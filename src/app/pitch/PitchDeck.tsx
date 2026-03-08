@@ -623,7 +623,7 @@ function SlideContact() {
         </a>
       </div>
       <p className="mt-4 text-sm text-muted normal-case sm:text-base">
-        theleetcodecity.com
+        theleetcodecity.tech
       </p>
     </div>
   );

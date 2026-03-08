@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendNotificationAsync } from "@/lib/notifications";
 import { buildButton } from "@/lib/email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 interface ReEngagementTier {
   daysInactive: number;

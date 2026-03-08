@@ -1,7 +1,7 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 export function sendDailiesReminderNotification(
   devId: number,

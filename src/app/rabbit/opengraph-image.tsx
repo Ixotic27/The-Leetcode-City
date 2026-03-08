@@ -24,23 +24,23 @@ export default async function Image() {
   const PX = 14;
   const rabbitPixels: [number, number, string][] = [
     // Ears
-    [-2, -8, white], [-1, -8, white],  [1, -8, white], [2, -8, white],
-    [-2, -7, white], [-1, -7, white],  [1, -7, white], [2, -7, white],
-    [-2, -6, white], [-1, -6, white],  [1, -6, white], [2, -6, white],
-    [-2, -5, white], [-1, -5, white],  [1, -5, white], [2, -5, white],
+    [-2, -8, white], [-1, -8, white], [1, -8, white], [2, -8, white],
+    [-2, -7, white], [-1, -7, white], [1, -7, white], [2, -7, white],
+    [-2, -6, white], [-1, -6, white], [1, -6, white], [2, -6, white],
+    [-2, -5, white], [-1, -5, white], [1, -5, white], [2, -5, white],
     // Head
     [-3, -4, white], [-2, -4, white], [-1, -4, white], [0, -4, white], [1, -4, white], [2, -4, white], [3, -4, white],
-    [-3, -3, white], [-2, -3, red],   [-1, -3, white], [0, -3, white], [1, -3, white], [2, -3, red],   [3, -3, white],
+    [-3, -3, white], [-2, -3, red], [-1, -3, white], [0, -3, white], [1, -3, white], [2, -3, red], [3, -3, white],
     [-3, -2, white], [-2, -2, white], [-1, -2, white], [0, -2, white], [1, -2, white], [2, -2, white], [3, -2, white],
     // Body
     [-4, -1, white], [-3, -1, white], [-2, -1, white], [-1, -1, white], [0, -1, white], [1, -1, white], [2, -1, white], [3, -1, white], [4, -1, white],
-    [-4,  0, white], [-3,  0, white], [-2,  0, white], [-1,  0, white], [0,  0, white], [1,  0, white], [2,  0, white], [3,  0, white], [4,  0, white],
-    [-4,  1, white], [-3,  1, white], [-2,  1, white], [-1,  1, white], [0,  1, white], [1,  1, white], [2,  1, white], [3,  1, white], [4,  1, white],
-    [-4,  2, white], [-3,  2, white], [-2,  2, white], [-1,  2, white], [0,  2, white], [1,  2, white], [2,  2, white], [3,  2, white], [4,  2, white],
+    [-4, 0, white], [-3, 0, white], [-2, 0, white], [-1, 0, white], [0, 0, white], [1, 0, white], [2, 0, white], [3, 0, white], [4, 0, white],
+    [-4, 1, white], [-3, 1, white], [-2, 1, white], [-1, 1, white], [0, 1, white], [1, 1, white], [2, 1, white], [3, 1, white], [4, 1, white],
+    [-4, 2, white], [-3, 2, white], [-2, 2, white], [-1, 2, white], [0, 2, white], [1, 2, white], [2, 2, white], [3, 2, white], [4, 2, white],
     // Tail
     [-5, 0, white], [-6, 0, white], [-5, 1, white], [-6, 1, white],
     // Legs
-    [-3, 3, white], [-2, 3, white],  [0, 3, white], [1, 3, white],  [2, 3, white], [3, 3, white],
+    [-3, 3, white], [-2, 3, white], [0, 3, white], [1, 3, white], [2, 3, white], [3, 3, white],
   ];
 
   // Rabbit on the left side
@@ -147,7 +147,7 @@ export default async function Image() {
           display: "flex",
         }}>
           <span style={{ fontSize: 16, color: "#222222" }}>
-            theleetcodecity.com
+            theleetcodecity.tech
           </span>
         </div>
       </div>

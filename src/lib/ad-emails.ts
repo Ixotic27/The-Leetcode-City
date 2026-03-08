@@ -1,6 +1,6 @@
 import { getResend } from "./resend";
 
-const FROM = "LeetCode City <noreply@theleetcodecity.com>";
+const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
 
 export async function sendAdExpiringEmail(
   email: string,
@@ -19,9 +19,9 @@ export async function sendAdExpiringEmail(
         <p>Your ad <strong>"${escapeHtml(adBrand)}"</strong> expires in <strong>${daysLeft} day${daysLeft === 1 ? "" : "s"}</strong>.</p>
         <p>Check your stats before it ends:</p>
         <p><a href="${escapeHtml(trackingUrl)}" style="color: #ffa116;">View Dashboard</a></p>
-        <p>Want to keep running? <a href="https://theleetcodecity.com/advertise" style="color: #ffa116;">Renew your ad</a></p>
+        <p>Want to keep running? <a href="https://theleetcodecity.tech/advertise" style="color: #ffa116;">Renew your ad</a></p>
         <hr style="border-color: #1c1c20; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.com</p>
+        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.tech</p>
       </div>
     `,
   });
@@ -55,7 +55,7 @@ export async function sendAdExpiredEmail(
         <p>Ready for another run?</p>
         <p><a href="${escapeHtml(advertiseUrl)}" style="color: #ffa116;">Buy a new ad</a></p>
         <hr style="border-color: #1c1c20; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.com</p>
+        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.tech</p>
       </div>
     `,
   });

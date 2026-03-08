@@ -2,7 +2,7 @@ import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 import { TIER_EMOJI } from "../achievements";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 interface AchievementInfo {
   id: string;

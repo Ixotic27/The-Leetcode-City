@@ -836,7 +836,7 @@ function renderStories(
               textTransform: "uppercase",
             }}
           >
-            {t.cta} → theleetcodecity.com
+            {t.cta} → theleetcodecity.tech
           </div>
           <div
             style={{

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         try {
           const endsAt = new Date(ad.ends_at);
           const daysLeft = Math.max(1, Math.ceil((endsAt.getTime() - now.getTime()) / 86_400_000));
-          const trackingUrl = `https://theleetcodecity.com/advertise/track/${ad.tracking_token}`;
+          const trackingUrl = `https://theleetcodecity.tech/advertise/track/${ad.tracking_token}`;
 
           await sendAdExpiringEmail(
             ad.purchaser_email,
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
               impressions: impRes.count ?? 0,
               clicks: clickRes.count ?? 0,
             },
-            "https://theleetcodecity.com/advertise",
+            "https://theleetcodecity.tech/advertise",
           );
 
           await sb

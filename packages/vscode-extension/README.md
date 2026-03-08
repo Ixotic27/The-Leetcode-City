@@ -4,7 +4,7 @@ Your building's transmitter. When you code, it pulses. The city lights up.
 
 ## How it works
 
-1. Generate your API key at [theleetcodecity.com](https://www.theleetcodecity.com) (click "coding now" in the top bar)
+1. Generate your API key at [theleetcodecity.tech](https://theleetcodecity.tech) (click "coding now" in the top bar)
 2. Install this extension
 3. Run `Cmd+Shift+P` > "Pulse: Connect" and paste your key
 4. Start coding. Your building starts transmitting in ~30 seconds.
