@@ -81,7 +81,7 @@ Open [http://localhost:3001](http://localhost:3001) to see the city.
 ---
 
 <p align="center">
-  Original creator <a href="https://github.com/ishant-27">@ishant-27</a> | Maintained by <a href="https://github.com/Ixotic27">@Ixotic27</a>
+  Original creator <a href="https://github.com/Ixotic27">@Ixotic27</a>
 </p>
 <p align="center">
   Inspired by <a href="https://github.com/ishant-27/git-city">Git City</a>
