@@ -56,7 +56,8 @@ docs/
 *.mp4
 *.mov
 
-.vscode
+# .vscode
+# (removed to allow sharing workspace settings)
 
 # vscode extension build artifacts
 packages/vscode-extension/dist/
