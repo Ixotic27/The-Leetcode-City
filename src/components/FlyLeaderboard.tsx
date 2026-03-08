@@ -81,7 +81,7 @@ function nextSeed(seed: string): string | null {
 
 function loadFlyHistory(): FlyHistory | null {
   try {
-    const raw = localStorage.getItem("gitcity_fly_history");
+    const raw = localStorage.getItem("leetcodecity_fly_history");
     if (!raw) return null;
     return JSON.parse(raw) as FlyHistory;
   } catch {
@@ -139,7 +139,7 @@ export default function FlyLeaderboard() {
   // Load personal best + history on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("gitcity_fly_pb");
+      const stored = localStorage.getItem("leetcodecity_fly_pb");
       if (stored) setPersonalBest(parseInt(stored, 10));
     } catch {}
     setHistory(loadFlyHistory());

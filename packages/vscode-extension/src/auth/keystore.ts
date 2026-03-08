@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 
-const SECRET_KEY = "gitCity.apiKey";
+const SECRET_KEY = "leetcodecity.apiKey";
 
 let secrets: vscode.SecretStorage;
 let cachedKey: string | undefined;

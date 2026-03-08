@@ -401,7 +401,7 @@ export default async function LeaderboardPage({
             <p className="mt-6 text-[9px] text-muted normal-case">
               built by{" "}
               <a
-                href="https://github.com/ishant-27"
+                href="https://github.com/Ixotic27"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-amber-500 transition-colors"

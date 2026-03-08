@@ -47,7 +47,7 @@ export default async function UnsubscribePage({
             marginTop: 0,
           }}
         >
-          GIT CITY
+          LeetCode City
         </h1>
 
         <div
@@ -94,7 +94,7 @@ export default async function UnsubscribePage({
         />
 
         <a
-          href="https://thegitcity.com"
+          href="https://theleetcodecity.com"
           style={{ color: "#ffa116", fontSize: 14, textDecoration: "underline" }}
         >
           Back to LeetCode City

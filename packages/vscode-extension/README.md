@@ -1,10 +1,10 @@
-# Git City: Pulse
+# Leetcode City: Pulse
 
 Your building's transmitter. When you code, it pulses. The city lights up.
 
 ## How it works
 
-1. Generate your API key at [thegitcity.com](https://www.thegitcity.com) (click "coding now" in the top bar)
+1. Generate your API key at [theleetcodecity.com](https://www.theleetcodecity.com) (click "coding now" in the top bar)
 2. Install this extension
 3. Run `Cmd+Shift+P` > "Pulse: Connect" and paste your key
 4. Start coding. Your building starts transmitting in ~30 seconds.
@@ -18,7 +18,7 @@ When you're coding, your building glows in the city and you appear in the live f
 | `Pulse: Connect` | Link your building to the city |
 | `Pulse: Disconnect` | Unlink your building |
 | `Pulse: Toggle` | Pause/resume your transmitter |
-| `Pulse: Open City` | Open Git City in your browser |
+| `Pulse: Open City` | Open Leetcode City in your browser |
 
 ## Status bar
 
@@ -38,8 +38,8 @@ Click the status bar item to toggle your transmitter on/off.
 | Data | Public? | Can disable? |
 |------|---------|-------------|
 | Username | Yes (your GitHub login) | No (identifies your building) |
-| Language | Yes (e.g. "TypeScript") | Yes, via `gitCity.privacy.shareLanguage` |
-| Project name | **No, never public** | Yes, via `gitCity.privacy.shareProject` |
+| Language | Yes (e.g. "TypeScript") | Yes, via `leetcodecity.privacy.shareLanguage` |
+| Project name | **No, never public** | Yes, via `leetcodecity.privacy.shareProject` |
 | Branch name | **No, never public** | Excluded with project |
 | File paths | **Never sent** | N/A |
 | Code contents | **Never sent** | N/A |
@@ -50,10 +50,10 @@ Click the status bar item to toggle your transmitter on/off.
 
 ### Privacy settings
 
-Open VS Code Settings (`Cmd+,`) and search for "Git City":
+Open VS Code Settings (`Cmd+,`) and search for "Leetcode City":
 
-- `gitCity.privacy.shareLanguage` - Share the programming language (default: on)
-- `gitCity.privacy.shareProject` - Send project name for personal analytics (default: on)
-- `gitCity.privacy.excludeProjects` - List of project names to never track (e.g. `["secret-project", "client-work"]`)
-- `gitCity.enabled` - Disable all transmission entirely
-- `gitCity.idleTimeout` - Seconds of inactivity before standby (default: 300)
+- `leetcodecity.privacy.shareLanguage` - Share the programming language (default: on)
+- `leetcodecity.privacy.shareProject` - Send project name for personal analytics (default: on)
+- `leetcodecity.privacy.excludeProjects` - List of project names to never track (e.g. `["secret-project", "client-work"]`)
+- `leetcodecity.enabled` - Disable all transmission entirely
+- `leetcodecity.idleTimeout` - Seconds of inactivity before standby (default: 300)

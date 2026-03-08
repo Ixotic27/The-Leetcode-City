@@ -3,15 +3,15 @@
   "displayName": "LeetCode City: Pulse",
   "description": "Keep your city alive. When you code, your building glows and powers the signal. Privacy-first: you control what gets shared.",
   "version": "0.2.0",
-  "publisher": "git-city",
+  "publisher": "leetcode-city",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ishant-27/leetcode-city"
+    "url": "https://github.com/Ixotic27/leetcode-city"
   },
   "homepage": "https://hackoholic4.live",
   "bugs": {
-    "url": "https://github.com/ishant-27/leetcode-city/issues"
+    "url": "https://github.com/Ixotic27/leetcode-city/issues"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -27,47 +27,47 @@
   "contributes": {
     "commands": [
       {
-        "command": "gitCity.login",
+        "command": "leetcodecity.login",
         "title": "Pulse: Connect"
       },
       {
-        "command": "gitCity.logout",
+        "command": "leetcodecity.logout",
         "title": "Pulse: Disconnect"
       },
       {
-        "command": "gitCity.togglePause",
+        "command": "leetcodecity.togglePause",
         "title": "Pulse: Toggle"
       },
       {
-        "command": "gitCity.showDashboard",
+        "command": "leetcodecity.showDashboard",
         "title": "Pulse: Open City"
       }
     ],
     "configuration": {
-      "title": "Git City",
+      "title": "Leetcode City",
       "properties": {
-        "gitCity.enabled": {
+        "leetcodecity.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Enable/disable activity tracking"
         },
-        "gitCity.apiUrl": {
+        "leetcodecity.apiUrl": {
           "type": "string",
           "default": "https://hackoholic4.live",
           "description": "LeetCode City API URL (changing this sends your API key to a different server)",
           "scope": "application"
         },
-        "gitCity.privacy.shareLanguage": {
+        "leetcodecity.privacy.shareLanguage": {
           "type": "boolean",
           "default": true,
           "description": "Share the programming language you're using (shown publicly on your building)"
         },
-        "gitCity.privacy.shareProject": {
+        "leetcodecity.privacy.shareProject": {
           "type": "boolean",
           "default": true,
           "description": "Send project name for your personal analytics (never shown publicly to other users)"
         },
-        "gitCity.privacy.excludeProjects": {
+        "leetcodecity.privacy.excludeProjects": {
           "type": "array",
           "default": [],
           "items": {
@@ -75,7 +75,7 @@
           },
           "description": "Project names to never track at all (e.g. secret-project, client-work)"
         },
-        "gitCity.idleTimeout": {
+        "leetcodecity.idleTimeout": {
           "type": "number",
           "default": 300,
           "minimum": 60,

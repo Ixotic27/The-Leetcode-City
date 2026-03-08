@@ -478,7 +478,7 @@ export default async function DevPage({ params }: Props) {
           <p className="text-[9px] text-muted normal-case">
             built by{" "}
             <a
-              href="https://github.com/ishant-27"
+              href="https://github.com/Ixotic27"
               target="_blank"
               rel="noopener noreferrer"
               className="transition-colors hover:text-cream"

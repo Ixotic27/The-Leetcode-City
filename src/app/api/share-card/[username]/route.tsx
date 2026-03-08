@@ -471,7 +471,7 @@ function renderLandscape(
               textTransform: "uppercase",
             }}
           >
-            thegitcity.com/dev/{dev.github_login as string}
+            theleetcodecity.com/dev/{dev.github_login as string}
           </div>
         </div>
       </div>
@@ -836,7 +836,7 @@ function renderStories(
               textTransform: "uppercase",
             }}
           >
-            {t.cta} → thegitcity.com
+            {t.cta} → theleetcodecity.com
           </div>
           <div
             style={{

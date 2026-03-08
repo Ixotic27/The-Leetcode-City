@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-const OWNER_LOGIN = "ishant-27";
+const OWNER_LOGIN = "Ixotic27";
 
 // Historical baselines from Himetrica (tracking was lost in Supabase due to www origin bug).
 // These get added on top of live Supabase counts. Remove once Supabase data catches up.
 // To get per-ad numbers: filter Himetrica events by ad_id property.
 const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number; cta_clicks: number }> = {
-  "gitcity":   { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
+  "leetcodecity":   { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
   "samuel":    { impressions: 280045, clicks: 2274, cta_clicks: 999 },
   "build":     { impressions: 248929, clicks: 2022, cta_clicks: 888 },
   "advertise": { impressions: 31116,  clicks: 253,  cta_clicks: 110 },

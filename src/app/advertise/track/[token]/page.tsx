@@ -8,7 +8,7 @@ const ACCENT = "#ffa116";
 // Historical baselines from Himetrica (tracking was lost in Supabase due to www origin bug).
 // Same map as in /api/sky-ads/analytics — keep in sync.
 const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number; cta_clicks: number }> = {
-  "gitcity":   { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
+  "leetcodecity":   { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
   "samuel":    { impressions: 280045, clicks: 2274, cta_clicks: 999 },
   "build":     { impressions: 248929, clicks: 2022, cta_clicks: 888 },
   "advertise": { impressions: 31116,  clicks: 253,  cta_clicks: 110 },

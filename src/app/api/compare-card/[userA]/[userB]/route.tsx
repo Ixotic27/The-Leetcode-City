@@ -16,12 +16,12 @@ const i18n: Record<Lang, {
   en: {
     rank: "RANK", contribs: "CONTRIBS", stars: "STARS", repos: "REPOS", kudos: "KUDOS",
     wins: "wins", tie: "Tie", notFound: "Comparison not found",
-    cta: "Who wins? → thegitcity.com",
+    cta: "Who wins? → theleetcodecity.com",
   },
   pt: {
     rank: "RANK", contribs: "COMMITS", stars: "ESTRELAS", repos: "REPOS", kudos: "KUDOS",
     wins: "vence", tie: "Empate", notFound: "Comparacao nao encontrada",
-    cta: "Quem ganha? → thegitcity.com",
+    cta: "Quem ganha? → theleetcodecity.com",
   },
 };
 

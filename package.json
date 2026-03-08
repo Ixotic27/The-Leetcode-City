@@ -1,17 +1,17 @@
 {
-  "name": "git-city",
+  "name": "leetcode-city",
   "version": "0.1.0",
   "private": true,
-  "description": "Your GitHub profile as a 3D pixel art building in an interactive city",
-  "homepage": "https://thegitcity.com",
+  "description": "Your LeetCode profile as a 3D pixel art building in an interactive city",
+  "homepage": "https://theleetcodecity.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/srizzon/git-city"
+    "url": "https://github.com/Ixotic27/The-Leetcode-City"
   },
-  "author": "Samuel Rizzon",
+  "author": "Ixotic & ishant-27",
   "license": "AGPL-3.0",
   "keywords": [
-    "github",
+    "leetcode",
     "3d",
     "visualization",
     "three-js",

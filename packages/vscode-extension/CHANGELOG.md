@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-- Rebranded to **Git City: Pulse**
+- Rebranded to **Leetcode City: Pulse**
 - New status bar states: Transmitting, Standby, Off, Disconnected
 - Updated commands: Pulse: Connect, Disconnect, Toggle, Open City
 - Fixed API URL to use www subdomain

@@ -434,7 +434,7 @@ function RabbitContent() {
                 myPosition
                   ? `I followed the white rabbit in LeetCode City.\nCitizen #${myPosition} to find the other side.`
                   : `I followed the white rabbit in LeetCode City.`
-              )}&url=${encodeURIComponent("https://thegitcity.com/rabbit")}`}
+              )}&url=${encodeURIComponent("https://theleetcodecity.com/rabbit")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-pixel text-[10px] sm:text-[11px] tracking-widest px-5 py-2 border cursor-pointer transition-all hover:border-[#ffa116] hover:text-[#ffa116]"

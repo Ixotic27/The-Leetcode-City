@@ -50,7 +50,7 @@ export default function ShareButtons({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `gitcity-${login}-${format}.png`;
+      a.download = `leetcodecity-${login}-${format}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();

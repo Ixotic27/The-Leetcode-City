@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { DEFAULT_API_URL } from "./constants";
 
 export function getConfig() {
-  const cfg = vscode.workspace.getConfiguration("gitCity");
+  const cfg = vscode.workspace.getConfiguration("leetcodecity");
   return {
     enabled: cfg.get<boolean>("enabled", true),
     apiUrl: cfg.get<string>("apiUrl", DEFAULT_API_URL),

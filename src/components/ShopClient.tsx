@@ -879,7 +879,7 @@ export default function ShopClient({
         setTimeout(() => setSaved(false), 2000);
         try {
           localStorage.setItem(
-            "gitcity:loadout_override",
+            "leetcodecity:loadout_override",
             JSON.stringify({ developerId, loadout: payload, ts: Date.now() }),
           );
         } catch { }
@@ -1389,7 +1389,7 @@ export default function ShopClient({
                           } else if (isLeetCodeStar && !isOwned) {
                             // Step 1: open repo, Step 2: verify
                             if (starVerifyStep === "idle") {
-                              window.open("https://github.com/ishant-27/git-city", "_blank");
+                              window.open("https://github.com/Ixotic27/The-Leetcode-City", "_blank");
                               setStarVerifyStep("opened");
                             } else if (starVerifyStep === "opened") {
                               verifyLeetCodeStar();

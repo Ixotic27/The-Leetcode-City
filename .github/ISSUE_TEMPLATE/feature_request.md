@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea for Git City
+about: Suggest an idea for Ixotic
 title: "[Feature] "
 labels: enhancement
 assignees: ""

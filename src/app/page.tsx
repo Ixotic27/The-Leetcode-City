@@ -407,7 +407,7 @@ function HomeContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("gitcity_theme");
+    const saved = localStorage.getItem("leetcodecity_theme");
     if (saved !== null) {
       const n = parseInt(saved, 10);
       if (n >= 0 && n <= 3) setThemeIndex(n);
@@ -475,7 +475,7 @@ function HomeContent() {
   const [rabbitCinematicPhase, setRabbitCinematicPhase] = useState(-1);
   const [rabbitProgress, setRabbitProgress] = useState(0);
   useEffect(() => {
-    const saved = parseInt(localStorage.getItem("gitcity_rabbit_progress") ?? "0", 10) || 0;
+    const saved = parseInt(localStorage.getItem("leetcodecity_rabbit_progress") ?? "0", 10) || 0;
     if (saved > 0) setRabbitProgress(saved);
   }, []);
   const [rabbitSighting, setRabbitSighting] = useState<number | null>(null);
@@ -519,7 +519,7 @@ function HomeContent() {
 
   // Fetch LeetCode star count + Discord member count
   useEffect(() => {
-    fetch("https://api.github.com/repos/ishant-27/git-city")
+    fetch("https://api.github.com/repos/Ixotic27/The-Leetcode-City")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.stargazers_count != null) setStarCount(d.stargazers_count); })
       .catch(() => { });
@@ -715,7 +715,7 @@ function HomeContent() {
       .then((data) => {
         if (data && typeof data.city_theme === "number" && data.city_theme >= 0 && data.city_theme <= 3) {
           setThemeIndex(data.city_theme);
-          localStorage.setItem("gitcity_theme", String(data.city_theme));
+          localStorage.setItem("leetcodecity_theme", String(data.city_theme));
         }
       })
       .catch(() => { });
@@ -725,7 +725,7 @@ function HomeContent() {
   const cycleTheme = useCallback(() => {
     setThemeIndex((i) => {
       const next = (i + 1) % THEMES.length;
-      localStorage.setItem("gitcity_theme", String(next));
+      localStorage.setItem("leetcodecity_theme", String(next));
       if (sessionUserId) {
         fetch("/api/preferences/theme", {
           method: "PATCH",
@@ -967,7 +967,7 @@ function HomeContent() {
         if (!res.ok) return;
         const data = await res.json();
         const serverProgress = data?.progress ?? 0;
-        const localProgress = parseInt(localStorage.getItem("gitcity_rabbit_progress") ?? "0", 10) || 0;
+        const localProgress = parseInt(localStorage.getItem("leetcodecity_rabbit_progress") ?? "0", 10) || 0;
 
         // Sync local progress to server if ahead (silently fails if no claimed building)
         if (localProgress > serverProgress) {
@@ -983,7 +983,7 @@ function HomeContent() {
 
         const best = Math.max(serverProgress, localProgress);
         setRabbitProgress(best);
-        localStorage.setItem("gitcity_rabbit_progress", String(best));
+        localStorage.setItem("leetcodecity_rabbit_progress", String(best));
         if (best > 0 && best < 5) {
           setRabbitSighting(best + 1);
         }
@@ -1020,7 +1020,7 @@ function HomeContent() {
         const data = await res.json();
         if (res.ok) {
           setRabbitProgress(data.progress);
-          localStorage.setItem("gitcity_rabbit_progress", String(data.progress));
+          localStorage.setItem("leetcodecity_rabbit_progress", String(data.progress));
 
           if (data.completed) {
             setRabbitCompletion(true);
@@ -1038,7 +1038,7 @@ function HomeContent() {
     // Local tracking (not logged in or API failed)
     const newProgress = sighting;
     setRabbitProgress(newProgress);
-    localStorage.setItem("gitcity_rabbit_progress", String(newProgress));
+    localStorage.setItem("leetcodecity_rabbit_progress", String(newProgress));
 
     if (sighting >= 5) {
       // Final sighting: need login to save achievement
@@ -1104,7 +1104,7 @@ function HomeContent() {
 
     // Apply loadout override from localStorage (saved in shop, TTL 10 min)
     try {
-      const raw = localStorage.getItem("gitcity:loadout_override");
+      const raw = localStorage.getItem("leetcodecity:loadout_override");
       if (raw) {
         const { developerId, loadout, ts } = JSON.parse(raw);
         if (Date.now() - ts < 10 * 60 * 1000) {
@@ -1113,7 +1113,7 @@ function HomeContent() {
             allDevs[idx] = { ...allDevs[idx], loadout };
           }
         } else {
-          localStorage.removeItem("gitcity:loadout_override");
+          localStorage.removeItem("leetcodecity:loadout_override");
         }
       }
     } catch { }
@@ -1135,7 +1135,7 @@ function HomeContent() {
   const handleLoadFadeComplete = useCallback(() => {
     setLoadStage("done");
     const hasDeepLink = searchParams.get("user") || searchParams.get("compare");
-    if (!localStorage.getItem("gitcity_intro_seen") && !hasDeepLink) {
+    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink) {
       setIntroMode(true);
     }
   }, [searchParams]);
@@ -1240,7 +1240,7 @@ function HomeContent() {
 
         // Apply loadout override from localStorage (saved in shop, TTL 10 min)
         try {
-          const raw = localStorage.getItem("gitcity:loadout_override");
+          const raw = localStorage.getItem("leetcodecity:loadout_override");
           if (raw) {
             const { developerId, loadout, ts } = JSON.parse(raw);
             if (Date.now() - ts < 10 * 60 * 1000) {
@@ -1249,7 +1249,7 @@ function HomeContent() {
                 allDevs[idx] = { ...allDevs[idx], loadout };
               }
             } else {
-              localStorage.removeItem("gitcity:loadout_override");
+              localStorage.removeItem("leetcodecity:loadout_override");
             }
           }
         } catch { }
@@ -1344,9 +1344,9 @@ function HomeContent() {
     setIntroMode(false);
     setIntroPhase(-1);
     setIntroConfetti(false);
-    localStorage.setItem("gitcity_intro_seen", "true");
+    localStorage.setItem("leetcodecity_intro_seen", "true");
     // Show welcome CTA for non-logged-in users who haven't seen it
-    if (!session && !localStorage.getItem("gitcity_welcome_seen")) {
+    if (!session && !localStorage.getItem("leetcodecity_welcome_seen")) {
       setWelcomeCtaVisible(true);
       setTimeout(() => setWelcomeCtaVisible(false), 12000);
     }
@@ -1796,7 +1796,7 @@ function HomeContent() {
     if (loadStage !== "done" || isMobile || !session || flyMode || introMode) return;
     dailyNudgeTimerRef.current = setTimeout(() => {
       try {
-        const raw = localStorage.getItem("gitcity_fly_history");
+        const raw = localStorage.getItem("leetcodecity_fly_history");
         if (!raw) return; // no history — first-fly hint handles this
         const hist = JSON.parse(raw);
         if (!hist.seeds || Object.keys(hist.seeds).length === 0) return;
@@ -1818,14 +1818,14 @@ function HomeContent() {
   useEffect(() => {
     if (loadStage !== "done" || isMobile || flyMode || introMode) return;
     try {
-      if (localStorage.getItem("gitcity_fly_history") || localStorage.getItem("gitcity_fly_hint_seen")) return;
+      if (localStorage.getItem("leetcodecity_fly_history") || localStorage.getItem("leetcodecity_fly_hint_seen")) return;
     } catch { return; }
     flyHintTimerRef.current = setTimeout(() => {
       setShowFlyHint(true);
       // Auto-dismiss after 10s
       const autoDismiss = setTimeout(() => {
         setShowFlyHint(false);
-        try { localStorage.setItem("gitcity_fly_hint_seen", "1"); } catch { }
+        try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -1858,13 +1858,13 @@ function HomeContent() {
           const finalScore = flyScore.score + timeBonus;
           // Read current PB fresh from localStorage (React state may be stale)
           let currentPB = flyPersonalBest;
-          try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("gitcity_fly_pb") || "0", 10) || 0); } catch { }
+          try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { }
           // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
           const isNewPB = currentPB > 0 && finalScore > currentPB;
           // Update personal best
           if (isNewPB) {
             setFlyPersonalBest(finalScore);
-            try { localStorage.setItem("gitcity_fly_pb", String(finalScore)); } catch { }
+            try { localStorage.setItem("leetcodecity_fly_pb", String(finalScore)); } catch { }
           }
           // Update fly history (streak, days played, per-seed scores)
           if (finalScore > 0) {
@@ -1873,7 +1873,7 @@ function HomeContent() {
               const start = new Date(now.getFullYear(), 0, 0);
               const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
               const currentSeed = `${now.getFullYear()}-${dayOfYear}`;
-              const raw = localStorage.getItem("gitcity_fly_history");
+              const raw = localStorage.getItem("leetcodecity_fly_history");
               const hist = raw ? JSON.parse(raw) : { seeds: {}, currentStreak: 0, longestStreak: 0, lastPlayedSeed: "" };
               const prev = hist.seeds[currentSeed];
               hist.seeds[currentSeed] = {
@@ -1894,7 +1894,7 @@ function HomeContent() {
                 hist.lastPlayedSeed = currentSeed;
               }
               hist.longestStreak = Math.max(hist.longestStreak || 0, hist.currentStreak);
-              localStorage.setItem("gitcity_fly_history", JSON.stringify(hist));
+              localStorage.setItem("leetcodecity_fly_history", JSON.stringify(hist));
             } catch { }
           }
           // Exit fly immediately (don't block on API)
@@ -2336,7 +2336,7 @@ function HomeContent() {
             <button
               onClick={() => {
                 setShowFlyControls(false);
-                try { localStorage.setItem("gitcity_fly_controls_seen", "1"); } catch { }
+                try { localStorage.setItem("leetcodecity_fly_controls_seen", "1"); } catch { }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true }));
               }}
@@ -2431,7 +2431,7 @@ function HomeContent() {
       {!flyMode && !introMode && !rabbitCinematic && (
         <div className={`pointer-events-auto fixed top-3 left-3 z-30 items-center gap-1.5 sm:gap-2 sm:left-auto sm:right-4 sm:top-4 ${exploreMode ? "hidden lg:flex" : "flex"}`}>
           <a
-            href="https://github.com/ishant-27/git-city"
+            href="https://github.com/Ixotic27/The-Leetcode-City"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
@@ -2441,7 +2441,7 @@ function HomeContent() {
             {starCount != null && <span className="text-cream">{starCount.toLocaleString()}</span>}
           </a>
           <a
-            href="https://discord.gg/tTq4wjfG"
+            href="https://discord.gg/UQrhNNZvmj"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
@@ -2480,8 +2480,8 @@ function HomeContent() {
                 {codingPanelOpen && (() => {
                   // Creator always first, then up to 4 others
                   const allDevs = Array.from(liveByLogin.values());
-                  const creator = allDevs.find((d) => d.githubLogin.toLowerCase() === "ishant-27");
-                  const others = allDevs.filter((d) => d.githubLogin.toLowerCase() !== "ishant-27");
+                  const creator = allDevs.find((d) => d.githubLogin.toLowerCase() === "Ixotic27");
+                  const others = allDevs.filter((d) => d.githubLogin.toLowerCase() !== "Ixotic27");
                   const displayDevs = [
                     ...(creator ? [creator] : []),
                     ...others.slice(0, creator ? 4 : 5),
@@ -2495,7 +2495,7 @@ function HomeContent() {
                       </div>
                       <div className="max-h-60 overflow-y-auto">
                         {displayDevs.map((dev) => {
-                          const isCreator = dev.githubLogin.toLowerCase() === "ishant-27";
+                          const isCreator = dev.githubLogin.toLowerCase() === "Ixotic27";
                           return (
                             <button
                               key={dev.githubLogin}
@@ -2592,7 +2592,7 @@ function HomeContent() {
                               </button>
                             </div>
                             <div className="space-y-2.5 text-xs normal-case text-muted">
-                              <p><span className="text-cream">1.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=git-city.gitcity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
+                              <p><span className="text-cream">1.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
                               <p><span className="text-cream">2.</span> Cmd+Shift+P &rarr; &ldquo;Pulse: Connect&rdquo;</p>
                               <p><span className="text-cream">3.</span> Paste your key and start coding</p>
                             </div>
@@ -2613,7 +2613,7 @@ function HomeContent() {
                             </p>
                             <div className="mb-4 space-y-2.5 text-xs normal-case text-muted">
                               <p><span className="text-cream">1.</span> Generate your key below</p>
-                              <p><span className="text-cream">2.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=git-city.gitcity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
+                              <p><span className="text-cream">2.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
                               <p><span className="text-cream">3.</span> Paste key in VS Code, start coding</p>
                             </div>
                             <button
@@ -2681,6 +2681,15 @@ function HomeContent() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="transition-colors hover:text-cream"
+                >
+                  Original Creator
+                </a>
+                {" & "}
+                <a
+                  href="https://github.com/Ixotic27"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-cream"
                   style={{ color: theme.accent }}
                 >
                   Ixotic
@@ -2717,12 +2726,21 @@ function HomeContent() {
                       <div className="mt-2 flex items-center justify-between text-[8px] text-dim uppercase tracking-wider">
                         <span>{current.toLocaleString()} / {target.toLocaleString()}</span>
                         <a
+                          href="https://github.com/Ixotic27/The-Leetcode-City"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#ffa116] hover:underline"
+                        >
+                          Source code
+                        </a>
+                        {" | "}
+                        <a
                           href="https://github.com/ishant-27/git-city"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-cream transition-colors"
+                          className="text-[#ffa116] hover:underline"
                         >
-                          STAR US ON GITHUB
+                          Original Repo
                         </a>
                       </div>
                     </div>
@@ -2789,7 +2807,7 @@ function HomeContent() {
                 <button
                   onClick={() => {
                     setWelcomeCtaVisible(false);
-                    localStorage.setItem("gitcity_welcome_seen", "true");
+                    localStorage.setItem("leetcodecity_welcome_seen", "true");
                     handleSignIn();
                   }}
                   className="btn-press w-full max-w-[240px] py-2.5 text-[10px] text-bg"
@@ -2803,7 +2821,7 @@ function HomeContent() {
                 <button
                   onClick={() => {
                     setWelcomeCtaVisible(false);
-                    localStorage.setItem("gitcity_welcome_seen", "true");
+                    localStorage.setItem("leetcodecity_welcome_seen", "true");
                     setTimeout(() => searchInputRef.current?.focus(), 100);
                   }}
                   className="text-[9px] text-dim transition-colors hover:text-muted normal-case"
@@ -2892,9 +2910,9 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
-                        try { setFlyPersonalBest(parseInt(localStorage.getItem("gitcity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                         // Feature 3: show controls overlay on first flight
-                        if (!localStorage.getItem("gitcity_fly_controls_seen")) {
+                        if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                           setShowFlyControls(true);
                         }
                       }}
@@ -2929,7 +2947,7 @@ function HomeContent() {
                             onClick={() => {
                               setShowFlyHint(false);
                               clearTimeout(flyHintTimerRef.current);
-                              try { localStorage.setItem("gitcity_fly_hint_seen", "1"); } catch { }
+                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -2962,8 +2980,8 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
-                      try { setFlyPersonalBest(parseInt(localStorage.getItem("gitcity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
-                      if (!localStorage.getItem("gitcity_fly_controls_seen")) {
+                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                      if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                         setShowFlyControls(true);
                       }
                     }}
@@ -3980,7 +3998,7 @@ function HomeContent() {
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
                       a.href = url;
-                      a.download = `gitcity-${comparePair[0].login}-vs-${comparePair[1].login}.png`;
+                      a.download = `leetcodecity-${comparePair[0].login}-vs-${comparePair[1].login}.png`;
                       document.body.appendChild(a);
                       a.click();
                       a.remove();
@@ -3998,7 +4016,7 @@ function HomeContent() {
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement("a");
                       a.href = url;
-                      a.download = `gitcity-${comparePair[0].login}-vs-${comparePair[1].login}-stories.png`;
+                      a.download = `leetcodecity-${comparePair[0].login}-vs-${comparePair[1].login}-stories.png`;
                       document.body.appendChild(a);
                       a.click();
                       a.remove();
@@ -4471,7 +4489,7 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
-                  try { setFlyPersonalBest(parseInt(localStorage.getItem("gitcity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                 }}
                 className="btn-press px-5 py-2 text-[10px] text-bg"
                 style={{ backgroundColor: theme.accent, boxShadow: `3px 3px 0 0 ${theme.shadow}` }}

@@ -42,7 +42,7 @@ KKKKKKKK
 [11:56, 2/21/2026] +55 47 9734-6310: Acabei de ver no X
 [11:56, 2/21/2026] +55 47 9734-6310: Que doideira kkkkkkk
 [11:57, 2/21/2026] +55 83 8161-9538: até o dono do open claw tá lá já kkkk
-Manda ele integrar agora o claw no git city
+Manda ele integrar agora o claw no LeetCode City
 [11:58, 2/21/2026] Samuel Rizzon: ajudem a viralizar galera
 [11:58, 2/21/2026] Samuel Rizzon: o que eu posso fazer pra incentivar as pessoas a melhorarem o prédio? os preços estão caros?
 o que eu posso fazer pra incentivar as pessoas a melhorarem o prédio? os preços estão caros?
@@ -66,19 +66,19 @@ Twitter e tiktok  falaram q melhor para divulgação
 [12:02, 2/21/2026] Samuel Rizzon: mas isso de archievements é legal mesmo
 [12:02, 2/21/2026] Samuel Rizzon: uma coisa que vou fazer é deixar construir prédio só logando no github
 [12:02, 2/21/2026] Samuel Rizzon: mas vou esperar a cidade crescer mais, pq hoje qualquer um pode colocar um usuário na cidade
-[12:03, 2/21/2026] +55 83 8161-9538: E mano pq aí vai ter um sentido a mais de utilizar o git city
+[12:03, 2/21/2026] +55 83 8161-9538: E mano pq aí vai ter um sentido a mais de utilizar o LeetCode City
 
 ---
 
 assim no meu ponto de vista n vale apena pagar pq supor meu predio e pequeno n tem destaque pra q eu vou colocar uma bandeira onde tem uns 200 predio ao redor grandao
 Entendi, você pagaria em qual cenário???
-[12:29, 2/21/2026] +55 83 8161-9538: Cara então vai muito da persona por exemplo eu pagaria se eu tivesse algum beneficio visual de destaque obvio. uma outra coisa eu poderia utilizar o git city pra divulgar algum projeto meu publico
+[12:29, 2/21/2026] +55 83 8161-9538: Cara então vai muito da persona por exemplo eu pagaria se eu tivesse algum beneficio visual de destaque obvio. uma outra coisa eu poderia utilizar o LeetCode City pra divulgar algum projeto meu publico
 [12:30, 2/21/2026] +55 83 8161-9538: tipo um banner algo do tipo que faça vale apena o dinheiro
 [12:30, 2/21/2026] +55 83 8161-9538: Tipo divulgar para os outros devs algo que vc ta fazendo meio que uma conexão uma rede social por GITS
 
 --
 
-Já temos +250 devs na GitCity: a cidade dos devs.
+Já temos +250 devs na leetcodecity: a cidade dos devs.
 
 Se você ainda não construiu seu prédio lá, tá esperando o que?
 

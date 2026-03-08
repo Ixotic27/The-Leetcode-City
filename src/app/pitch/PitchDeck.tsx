@@ -577,7 +577,7 @@ function SlideVision() {
           <span style={{ color: ACCENT }}>city</span>.
         </p>
         <p className="mt-4 text-sm text-muted normal-case sm:text-base">
-          thegitcity.com
+          theleetcodecity.com
         </p>
       </div>
     </div>
@@ -623,7 +623,7 @@ function SlideContact() {
         </a>
       </div>
       <p className="mt-4 text-sm text-muted normal-case sm:text-base">
-        thegitcity.com
+        theleetcodecity.com
       </p>
     </div>
   );

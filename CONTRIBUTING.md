@@ -1,12 +1,12 @@
-# Contributing to Git City
+# Contributing to LeetCode City
 
 Thanks for your interest in contributing! Here's how to get started.
 
 ## Setup
 
 ```bash
-git clone https://github.com/srizzon/git-city.git
-cd git-city
+git clone https://github.com/Ixotic27/The-Leetcode-City.git
+cd leetcode-city
 npm install
 cp .env.example .env.local
 # Fill in your keys (see .env.example for details)
@@ -94,7 +94,7 @@ Start with an emoji + type. Single line, present tense, concise.
 
 ## Good First Issues
 
-Look for issues labeled [`good first issue`](https://github.com/srizzon/git-city/labels/good%20first%20issue). These are scoped tasks that don't require deep knowledge of the codebase.
+Look for issues labeled [`good first issue`](https://github.com/Ixotic27/The-Leetcode-City/labels/good%20first%20issue). These are scoped tasks that don't require deep knowledge of the codebase.
 
 ## Project Structure
 

@@ -1,6 +1,6 @@
 # LeetCode City — Implementation Plan
 
-**LeetCode City** is a full-featured web app inspired by [GitCity](https://thegitcity.com) — but instead of GitHub commit counts shaping buildings, your LeetCode problem-solving history builds your skyline. Every LeetCode user becomes a pixel-art 3D building: the more you grind, the taller your tower.
+**LeetCode City** is a full-featured web app inspired by [leetcodecity](https://theleetcodecity.com) — but instead of GitHub commit counts shaping buildings, your LeetCode problem-solving history builds your skyline. Every LeetCode user becomes a pixel-art 3D building: the more you grind, the taller your tower.
 
 ---
 

@@ -3,13 +3,13 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 
-const REPO_OWNER = "ishant-27";
-const REPO_NAME = "git-city";
+const REPO_OWNER = "Ixotic27";
+const REPO_NAME = "leetcode-city";
 
 function ghHeaders(): HeadersInit {
   const h: HeadersInit = {
     Accept: "application/vnd.github.v3+json",
-    "User-Agent": "git-city-app",
+    "User-Agent": "leetcode-city-app",
   };
   if (process.env.GITHUB_TOKEN) {
     h.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;

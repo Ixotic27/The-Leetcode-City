@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Git City is actively developed. Security fixes are applied to the latest version on `main`.
+LeetCode City is actively developed. Security fixes are applied to the latest version on `main`.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -11,13 +11,13 @@ Git City is actively developed. Security fixes are applied to the latest version
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a vulnerability in Git City, please **do not** open a public GitHub issue.
+We take security seriously. If you discover a vulnerability in LeetCode City, please **do not** open a public GitHub issue.
 
 ### How to Report
 
 Please report vulnerabilities by emailing the maintainer directly or using GitHub's private security advisory feature:
 
-1. Go to the [Security Advisories](https://github.com/srizzon/git-city/security/advisories) page
+1. Go to the [Security Advisories](https://github.com/Ixotic27/The-Leetcode-City/security/advisories) page
 2. Click **"Report a vulnerability"**
 3. Fill in the details of the issue
 
@@ -34,7 +34,7 @@ Please include as much of the following information as possible to help us under
 
 ## Sensitive Areas
 
-Git City handles the following sensitive data — please pay special attention when auditing:
+LeetCode City handles the following sensitive data — please pay special attention when auditing:
 
 - **GitHub OAuth tokens** — used for authentication via Supabase
 - **Supabase Row Level Security (RLS)** — controls data access per user
@@ -56,4 +56,4 @@ We follow a **coordinated disclosure** model. Once a fix is available, we will:
 2. Credit the reporter (unless they wish to remain anonymous)
 3. Release a patched version
 
-Thank you for helping keep Git City and its users safe!
+Thank you for helping keep LeetCode City and its users safe!

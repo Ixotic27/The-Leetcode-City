@@ -55,7 +55,7 @@ export function buildAdLink(ad: SkyAd): string | undefined {
   if (ad.link.startsWith("mailto:")) return ad.link;
   try {
     const url = new URL(ad.link);
-    url.searchParams.set("utm_source", "gitcity");
+    url.searchParams.set("utm_source", "leetcodecity");
     url.searchParams.set("utm_medium", "sky_ad");
     url.searchParams.set("utm_campaign", ad.id);
     url.searchParams.set("utm_content", ad.vehicle);
@@ -87,13 +87,13 @@ export function trackAdEvents(adId: string, eventTypes: ("impression" | "click" 
 
 export const DEFAULT_SKY_ADS: SkyAd[] = [
   {
-    id: "gitcity",
-    text: "THEGITCITY.COM ★ YOUR CODE, YOUR CITY ★ THEGITCITY.COM",
-    brand: "Git City",
+    id: "leetcodecity",
+    text: "THEleetcodecity.COM ★ YOUR CODE, YOUR CITY ★ THEleetcodecity.COM",
+    brand: "LeetCode City",
     description: "A city built from GitHub contributions. Search your username and find your building among thousands of developers.",
     color: "#f8d880",
     bgColor: "#1a1018",
-    link: "https://thegitcity.com",
+    link: "https://theleetcodecity.com",
     vehicle: "plane",
     priority: 100,
   },
@@ -101,10 +101,10 @@ export const DEFAULT_SKY_ADS: SkyAd[] = [
     id: "advertise",
     text: "ADD YOUR AD HERE",
     brand: "Sky Ads",
-    description: "Want your brand flying over Git City? Planes, blimps, your colors. Get in touch!",
+    description: "Want your brand flying over LeetCode City? Planes, blimps, your colors. Get in touch!",
     color: "#f8d880",
     bgColor: "#1a1018",
-    link: "https://thegitcity.com/advertise",
+    link: "https://theleetcodecity.com/advertise",
     vehicle: "plane",
     priority: 10,
   },

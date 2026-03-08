@@ -4,7 +4,7 @@ import { getResend } from "@/lib/resend";
 import { getDeveloperEmail } from "@/lib/notification-helpers";
 import { buildUnsubscribeUrl } from "@/lib/notifications";
 
-const FROM = "LeetCode City <noreply@thegitcity.com>";
+const FROM = "LeetCode City <noreply@theleetcodecity.com>";
 
 /**
  * POST /api/admin/send-update-email

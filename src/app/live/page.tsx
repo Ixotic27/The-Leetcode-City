@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { LiveSession } from "@/lib/useCodingPresence";
 
-const CREATOR_LOGIN = "ishant-27";
+const CREATOR_LOGIN = "Ixotic27";
 
 interface PresenceDev {
   githubLogin: string;
@@ -128,7 +128,7 @@ export default function LivePage() {
             Every dev who codes keeps a building lit. Install Pulse to power yours.
           </p>
           <a
-            href="https://marketplace.visualstudio.com/items?itemName=git-city.gitcity"
+            href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-press inline-block px-8 py-3 text-xs text-bg"

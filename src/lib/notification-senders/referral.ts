@@ -1,7 +1,7 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://thegitcity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
 
 export function sendReferralJoinedNotification(
   referrerId: number,
@@ -14,12 +14,12 @@ export function sendReferralJoinedNotification(
     category: "social",
     developerId: referrerId,
     dedupKey: `referral:${referrerId}:${referredId}`,
-    title: `Your referral @${referredLogin} just joined Git City!`,
-    body: `@${referredLogin} joined Git City through your referral link.`,
+    title: `Your referral @${referredLogin} just joined LeetCode City!`,
+    body: `@${referredLogin} joined LeetCode City through your referral link.`,
     html: `
       <p style="color: #ffa116; font-size: 16px;">Your referral joined!</p>
       <p style="color: #f0f0f0;">
-        <strong>@${referredLogin}</strong> just claimed their building in Git City
+        <strong>@${referredLogin}</strong> just claimed their building in LeetCode City
         through your referral link.
       </p>
       <p style="color: #666; font-size: 13px;">

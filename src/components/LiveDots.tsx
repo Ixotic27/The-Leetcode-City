@@ -8,7 +8,7 @@ import type { LiveSession } from "@/lib/useCodingPresence";
 
 const DOT_SIZE = 4;
 const CREATOR_DOT_SIZE = 5;
-const CREATOR_LOGIN = "ishant-27";
+const CREATOR_LOGIN = "Ixotic27";
 const _matrix = new THREE.Matrix4();
 const _pos = new THREE.Vector3();
 const _quat = new THREE.Quaternion();

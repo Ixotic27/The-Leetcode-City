@@ -1,7 +1,7 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://thegitcity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
 
 export function sendWelcomeNotification(devId: number, login: string, rank?: number) {
   const rankText = rank ? `You're developer #${rank.toLocaleString()}.` : "";
@@ -11,10 +11,10 @@ export function sendWelcomeNotification(devId: number, login: string, rank?: num
     category: "transactional",
     developerId: devId,
     dedupKey: `welcome:${devId}`,
-    title: `Welcome to Git City, @${login}!`,
-    body: `Your building is live in Git City. ${rankText} Check in daily to grow your streak and unlock items.`,
+    title: `Welcome to LeetCode City, @${login}!`,
+    body: `Your building is live in LeetCode City. ${rankText} Check in daily to grow your streak and unlock items.`,
     html: `
-      <p style="color: #f0f0f0; font-size: 16px;">Your building is live in Git City! ${rankText}</p>
+      <p style="color: #f0f0f0; font-size: 16px;">Your building is live in LeetCode City! ${rankText}</p>
       <p style="color: #f0f0f0;">Here's how to get started:</p>
       <ul style="color: #f0f0f0; padding-left: 20px;">
         <li style="margin-bottom: 8px;">Check in daily to build your streak</li>

@@ -1,6 +1,6 @@
 import { getResend } from "./resend";
 
-const FROM = "Git City <noreply@thegitcity.com>";
+const FROM = "LeetCode City <noreply@theleetcodecity.com>";
 
 export async function sendAdExpiringEmail(
   email: string,
@@ -12,16 +12,16 @@ export async function sendAdExpiringEmail(
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: `Your Git City ad expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
+    subject: `Your LeetCode City ad expires in ${daysLeft} day${daysLeft === 1 ? "" : "s"}`,
     html: `
       <div style="font-family: 'Silkscreen', monospace; max-width: 480px; margin: 0 auto; padding: 24px; background: #0a0a0e; color: #f0f0f0;">
         <h2 style="color: #ffa116; margin-top: 0;">Heads up!</h2>
         <p>Your ad <strong>"${escapeHtml(adBrand)}"</strong> expires in <strong>${daysLeft} day${daysLeft === 1 ? "" : "s"}</strong>.</p>
         <p>Check your stats before it ends:</p>
         <p><a href="${escapeHtml(trackingUrl)}" style="color: #ffa116;">View Dashboard</a></p>
-        <p>Want to keep running? <a href="https://thegitcity.com/advertise" style="color: #ffa116;">Renew your ad</a></p>
+        <p>Want to keep running? <a href="https://theleetcodecity.com/advertise" style="color: #ffa116;">Renew your ad</a></p>
         <hr style="border-color: #1c1c20; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #3a3a44;">Git City - thegitcity.com</p>
+        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.com</p>
       </div>
     `,
   });
@@ -37,7 +37,7 @@ export async function sendAdExpiredEmail(
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: `Your Git City ad "${escapeHtml(adBrand)}" has ended`,
+    subject: `Your LeetCode City ad "${escapeHtml(adBrand)}" has ended`,
     html: `
       <div style="font-family: 'Silkscreen', monospace; max-width: 480px; margin: 0 auto; padding: 24px; background: #0a0a0e; color: #f0f0f0;">
         <h2 style="color: #ffa116; margin-top: 0;">Campaign complete</h2>
@@ -55,7 +55,7 @@ export async function sendAdExpiredEmail(
         <p>Ready for another run?</p>
         <p><a href="${escapeHtml(advertiseUrl)}" style="color: #ffa116;">Buy a new ad</a></p>
         <hr style="border-color: #1c1c20; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #3a3a44;">Git City - thegitcity.com</p>
+        <p style="font-size: 12px; color: #3a3a44;">LeetCode City - theleetcodecity.com</p>
       </div>
     `,
   });

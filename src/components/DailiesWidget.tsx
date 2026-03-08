@@ -188,7 +188,7 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
                 if (starOpened) {
                   verifyStarOnReturn();
                 } else {
-                  window.open("https://github.com/ishant-27/git-city", "_blank");
+                  window.open("https://github.com/Ixotic27/The-Leetcode-City", "_blank");
                   setStarOpened(true);
                 }
               }}

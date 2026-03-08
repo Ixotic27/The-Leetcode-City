@@ -6,7 +6,7 @@ let updateTimer: ReturnType<typeof setInterval> | undefined;
 
 export function initStatusBar(context: vscode.ExtensionContext) {
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusBarItem.command = "gitCity.togglePause";
+  statusBarItem.command = "leetcodecity.togglePause";
   context.subscriptions.push(statusBarItem);
 
   updateDisplay("connect");
@@ -46,13 +46,13 @@ export function updateDisplay(status: "active" | "idle" | "paused" | "connect") 
       statusBarItem.text = "$(plug) Pulse: Disconnected";
       statusBarItem.backgroundColor = undefined;
       statusBarItem.tooltip = "Click to connect your Pulse";
-      statusBarItem.command = "gitCity.login";
+      statusBarItem.command = "leetcodecity.login";
       break;
   }
 
   // Restore command for non-connect states
   if (status !== "connect") {
-    statusBarItem.command = "gitCity.togglePause";
+    statusBarItem.command = "leetcodecity.togglePause";
   }
 }
 

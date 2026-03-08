@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("gitCity.login", async () => {
+    vscode.commands.registerCommand("leetcodecity.login", async () => {
       const key = await vscode.window.showInputBox({
         prompt: "Paste your API key from hackoholic4.live",
         placeHolder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
@@ -57,20 +57,20 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
 
-    vscode.commands.registerCommand("gitCity.logout", async () => {
+    vscode.commands.registerCommand("leetcodecity.logout", async () => {
       await deleteKey();
       sendOfflineSignal();
       updateDisplay("connect");
       vscode.window.showInformationMessage("Pulse disconnected.");
     }),
 
-    vscode.commands.registerCommand("gitCity.togglePause", () => {
+    vscode.commands.registerCommand("leetcodecity.togglePause", () => {
       const newState = !isPaused();
       setPaused(newState);
       updateDisplay(newState ? "paused" : "active");
     }),
 
-    vscode.commands.registerCommand("gitCity.showDashboard", () => {
+    vscode.commands.registerCommand("leetcodecity.showDashboard", () => {
       const { apiUrl } = getConfig();
       vscode.env.openExternal(vscode.Uri.parse(apiUrl));
     }),
