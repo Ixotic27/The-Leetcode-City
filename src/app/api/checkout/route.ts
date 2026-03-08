@@ -1,0 +1,357 @@
+import { NextResponse } from "next/server";
+import { createServerSupabase } from "@/lib/supabase-server";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { createCheckoutSession } from "@/lib/stripe";
+import { createPixQrCode } from "@/lib/abacatepay";
+import { createCryptoInvoice } from "@/lib/nowpayments";
+
+// Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
+// middleware rate limit.  This one is keyed by Supabase user ID so it
+// catches authenticated abuse even when requests come from different IPs.
+// Note: in-memory – resets on deploy / cold-start.  Acceptable because
+// the middleware already provides the primary protection layer.
+const lastCheckout = new Map<string, number>();
+
+export async function POST(request: Request) {
+  // Auth required
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  // Rate limit: 1 checkout per 10 seconds per user
+  const now = Date.now();
+  const last = lastCheckout.get(user.id);
+  if (last && now - last < 10_000) {
+    return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
+  }
+  lastCheckout.set(user.id, now);
+
+  const sb = getSupabaseAdmin();
+
+  // Validate user has claimed building
+  const { data: dev } = await sb
+    .from("developers")
+    .select("id, github_login, claimed, claimed_by")
+    .eq("claimed_by", user.id)
+    .single();
+
+  const githubLogin = dev?.github_login ?? "";
+
+  if (!dev || !dev.claimed) {
+    return NextResponse.json(
+      { error: "You must claim your building first" },
+      { status: 403 }
+    );
+  }
+
+  // Validate claimed_by matches user
+  if (dev.claimed_by !== user.id) {
+    return NextResponse.json(
+      { error: "This building is not yours" },
+      { status: 403 }
+    );
+  }
+
+  // Parse body
+  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments"; gifted_to_login?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  const { item_id, provider, gifted_to_login } = body;
+
+  if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments"].includes(provider)) {
+    return NextResponse.json({ error: "Invalid item_id or provider" }, { status: 400 });
+  }
+
+  // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
+  const country =
+    request.headers.get("x-vercel-ip-country") ??
+    request.headers.get("cf-ipcountry") ??
+    "";
+  const isBrazil = country.toUpperCase() === "BR";
+  const stripeCurrency: "usd" | "brl" = isBrazil ? "brl" : "usd";
+
+  // Gift validation
+  let giftedToDevId: number | null = null;
+  if (gifted_to_login) {
+    if (gifted_to_login.toLowerCase() === githubLogin) {
+      return NextResponse.json({ error: "Cannot gift to yourself" }, { status: 400 });
+    }
+
+    const { data: receiver } = await sb
+      .from("developers")
+      .select("id")
+      .eq("github_login", gifted_to_login.toLowerCase())
+      .single();
+
+    if (!receiver) {
+      return NextResponse.json({ error: "User not found in LeetCode City" }, { status: 400 });
+    }
+
+    // Check receiver doesn't already own this item (bought or gifted)
+    const { data: receiverOwnsBought } = await sb
+      .from("purchases")
+      .select("id")
+      .eq("developer_id", receiver.id)
+      .is("gifted_to", null)
+      .eq("item_id", item_id)
+      .eq("status", "completed")
+      .maybeSingle();
+    const { data: receiverOwnsGifted } = await sb
+      .from("purchases")
+      .select("id")
+      .eq("gifted_to", receiver.id)
+      .eq("item_id", item_id)
+      .eq("status", "completed")
+      .maybeSingle();
+
+    if (receiverOwnsBought || receiverOwnsGifted) {
+      return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
+    }
+
+    giftedToDevId = receiver.id;
+  }
+
+  // Validate item exists and is active
+  const { data: item } = await sb
+    .from("items")
+    .select("*")
+    .eq("id", item_id)
+    .eq("is_active", true)
+    .single();
+
+  if (!item) {
+    return NextResponse.json({ error: "Item not found or inactive" }, { status: 404 });
+  }
+
+  // A11: Check scarcity constraints (temporal + quantity)
+  if (item.available_until && new Date(item.available_until).getTime() <= Date.now()) {
+    return NextResponse.json({ error: "This item is no longer available" }, { status: 410 });
+  }
+  if (item.max_quantity != null) {
+    const { count: soldCount } = await sb
+      .from("purchases")
+      .select("id", { count: "exact", head: true })
+      .eq("item_id", item_id)
+      .eq("status", "completed");
+    if ((soldCount ?? 0) >= item.max_quantity) {
+      return NextResponse.json({ error: "This item is sold out" }, { status: 410 });
+    }
+  }
+
+  // Streak freeze: consumable with max 2 stored
+  if (item_id === "streak_freeze") {
+    const { data: freezeDev } = await sb
+      .from("developers")
+      .select("streak_freezes_available")
+      .eq("id", dev.id)
+      .single();
+
+    if ((freezeDev?.streak_freezes_available ?? 0) >= 2) {
+      return NextResponse.json(
+        { error: "Maximum 2 streak freezes stored" },
+        { status: 409 }
+      );
+    }
+  }
+
+  // Billboard allows multiple purchases (Times Square style)
+  if (item_id === "billboard") {
+    // Count existing completed billboard purchases
+    const { count: billboardCount } = await sb
+      .from("purchases")
+      .select("id", { count: "exact", head: true })
+      .eq("developer_id", dev.id)
+      .eq("item_id", "billboard")
+      .eq("status", "completed");
+
+    // Fetch building dimensions to calculate max slots
+    const { data: devFull } = await sb
+      .from("developers")
+      .select("github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos")
+      .eq("id", dev.id)
+      .single();
+
+    if (devFull) {
+      const { calcBuildingDims } = await import("@/lib/github");
+      const dims = calcBuildingDims(
+        devFull.github_login,
+        devFull.contributions,
+        devFull.public_repos,
+        devFull.total_stars,
+        20_000, // maxContrib estimate
+        200_000, // maxStars estimate
+        (devFull.contributions_total ?? 0) > 0 ? devFull : undefined,
+      );
+      const w = dims.width;
+      const d = dims.depth;
+      const h = dims.height;
+
+      const minBillArea = 10 * 8;
+      const totalFaceArea = 2 * (w + d) * h;
+      const maxSlots = Math.max(1, Math.floor(totalFaceArea / (minBillArea * 6)));
+
+      if ((billboardCount ?? 0) >= maxSlots) {
+        return NextResponse.json(
+          { error: `Max billboard slots reached (${maxSlots})` },
+          { status: 409 }
+        );
+      }
+    }
+  } else if (!giftedToDevId) {
+    // Non-billboard, non-gift items: check if buyer already owns it
+    const { data: existingPurchase } = await sb
+      .from("purchases")
+      .select("id")
+      .eq("developer_id", dev.id)
+      .eq("item_id", item_id)
+      .eq("status", "completed")
+      .maybeSingle();
+
+    if (existingPurchase) {
+      return NextResponse.json({ error: "Already owned" }, { status: 409 });
+    }
+  }
+
+  // Check for existing pending purchase (prevent double-click)
+  const { data: pendingPurchase } = await sb
+    .from("purchases")
+    .select("id")
+    .eq("developer_id", dev.id)
+    .eq("item_id", item_id)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (pendingPurchase) {
+    // Delete stale pending purchase to allow retry
+    await sb.from("purchases").delete().eq("id", pendingPurchase.id);
+  }
+
+  // DEV BYPASS: Allow Ishant_27 to get items for free for testing
+  const isDev = githubLogin.toLowerCase() === "ishant_27";
+
+  if (isDev) {
+    console.log(`[DEV] Bypassing payment for ${githubLogin}`);
+    const { data: purchase, error: purchaseError } = await sb
+      .from("purchases")
+      .insert({
+        developer_id: dev.id,
+        item_id,
+        provider: "stripe",
+        amount_cents: 0,
+        currency: "usd",
+        status: "completed",
+        ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
+      })
+      .select("id")
+      .single();
+
+    if (purchaseError) {
+      return NextResponse.json({ error: "Failed to create dev purchase" }, { status: 500 });
+    }
+
+    // Return a success URL that redirects back to the shop/city
+    return NextResponse.json({
+      url: `${new URL(request.url).origin}/shop/${githubLogin}?purchased_item=${item_id}`,
+      purchase_id: purchase.id
+    });
+  }
+
+  try {
+    if (provider === "stripe") {
+      const amountCents = stripeCurrency === "brl" ? item.price_brl_cents : item.price_usd_cents;
+      const { data: purchase, error: purchaseError } = await sb
+        .from("purchases")
+        .insert({
+          developer_id: dev.id,
+          item_id,
+          provider: "stripe",
+          amount_cents: amountCents,
+          currency: stripeCurrency,
+          status: "pending",
+          ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
+        })
+        .select("id")
+        .single();
+
+      if (purchaseError) {
+        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+      }
+
+      const { url } = await createCheckoutSession(item_id, dev.id, githubLogin, stripeCurrency, user.email, giftedToDevId, gifted_to_login);
+      return NextResponse.json({ url, purchase_id: purchase.id });
+    } else if (provider === "nowpayments") {
+      // Crypto via NOWPayments
+      const { data: purchase, error: purchaseError } = await sb
+        .from("purchases")
+        .insert({
+          developer_id: dev.id,
+          item_id,
+          provider: "nowpayments",
+          amount_cents: item.price_usd_cents,
+          currency: "usd",
+          status: "pending",
+          ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
+        })
+        .select("id")
+        .single();
+
+      if (purchaseError) {
+        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+      }
+
+      const { invoiceUrl, invoiceId } = await createCryptoInvoice(item_id, dev.id, githubLogin);
+
+      // Save invoice ID as provider_tx_id so webhook can find this purchase
+      await sb
+        .from("purchases")
+        .update({ provider_tx_id: `${dev.id}:${item_id}` })
+        .eq("id", purchase.id);
+
+      return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });
+    } else {
+      // AbacatePay
+      const { data: purchase, error: purchaseError } = await sb
+        .from("purchases")
+        .insert({
+          developer_id: dev.id,
+          item_id,
+          provider: "abacatepay",
+          amount_cents: item.price_brl_cents,
+          currency: "brl",
+          status: "pending",
+          ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
+        })
+        .select("id")
+        .single();
+
+      if (purchaseError) {
+        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+      }
+
+      const { brCode, brCodeBase64, pixId } = await createPixQrCode(item_id, dev.id, githubLogin);
+
+      // Save PIX ID as provider_tx_id
+      await sb
+        .from("purchases")
+        .update({ provider_tx_id: pixId })
+        .eq("id", purchase.id);
+
+      return NextResponse.json({ brCode, brCodeBase64, purchase_id: purchase.id });
+    }
+  } catch (err) {
+    console.error("Checkout error:", err);
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
+}

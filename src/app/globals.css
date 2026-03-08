@@ -1,0 +1,375 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-bg: #0d0d0f;
+  --color-bg-raised: #161618;
+  --color-bg-card: #1c1c20;
+  --color-cream: #e8dcc8;
+  --color-cream-dark: #c8b89c;
+  --color-border: #2a2a30;
+  --color-border-light: #3a3a44;
+  --color-dim: #5c5c6c;
+  --color-muted: #8c8c9c;
+  --color-warm: #d4cfc4;
+  --color-lime: #ffa116;
+  --color-lime-dark: #cc8111;
+  --font-pixel: "Silkscreen", monospace;
+}
+
+body {
+  background: #0d0d0f;
+  color: #d4cfc4;
+  font-family: "Silkscreen", monospace;
+}
+
+@keyframes blink-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.blink-dot {
+  animation: blink-dot 1s steps(1) infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pixel-shadow {
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.5);
+}
+
+.pixel-shadow-lime {
+  box-shadow: 4px 4px 0 0 #5a7a00;
+}
+
+.btn-press {
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.btn-press:hover {
+  transform: translate(2px, 2px);
+}
+
+.btn-press:hover.pixel-shadow-lime {
+  box-shadow: 2px 2px 0 0 #5a7a00;
+}
+
+.btn-press:active {
+  transform: translate(4px, 4px);
+  box-shadow: none !important;
+}
+
+@keyframes pulse-node {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 161, 22, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 12px 4px rgba(255, 161, 22, 0.15);
+  }
+}
+
+::selection {
+  background: rgba(255, 161, 22, 0.3);
+  color: #e8dcc8;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #2a2a30;
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #3a3a44;
+}
+
+/* ─── Free Gift CTA ─── */
+@keyframes gift-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px var(--gift-glow-color, #ffa11666), 4px 4px 0 0 var(--gift-shadow-color, #5a7a00);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 6px var(--gift-glow-color, #ffa11688), 4px 4px 0 0 var(--gift-shadow-color, #5a7a00);
+  }
+}
+
+@keyframes gift-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes gift-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ─── Kudos float animation ─── */
+@keyframes kudos-float {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  60% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-60px) scale(1.3);
+  }
+}
+
+.kudos-float {
+  animation: kudos-float 1.2s ease-out forwards;
+}
+
+/* ─── Lo-fi Radio ─── */
+@keyframes radio-pulse {
+
+  0%,
+  100% {
+    border-color: var(--radio-accent, #ffa116);
+  }
+
+  50% {
+    border-color: var(--color-border);
+  }
+}
+
+.radio-pulse {
+  animation: radio-pulse 2s ease-in-out infinite;
+}
+
+@keyframes eq-bar-1 {
+
+  0%,
+  100% {
+    height: 3px;
+  }
+
+  50% {
+    height: 10px;
+  }
+}
+
+@keyframes eq-bar-2 {
+
+  0%,
+  100% {
+    height: 8px;
+  }
+
+  50% {
+    height: 3px;
+  }
+}
+
+@keyframes eq-bar-3 {
+
+  0%,
+  100% {
+    height: 5px;
+  }
+
+  50% {
+    height: 12px;
+  }
+}
+
+.eq-bar {
+  width: 3px;
+  background: var(--radio-accent, #ffa116);
+  display: inline-block;
+}
+
+.eq-bar-1 {
+  animation: eq-bar-1 0.8s ease-in-out infinite;
+}
+
+.eq-bar-2 {
+  animation: eq-bar-2 0.6s ease-in-out infinite 0.15s;
+}
+
+.eq-bar-3 {
+  animation: eq-bar-3 0.7s ease-in-out infinite 0.3s;
+}
+
+.radio-volume {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.radio-volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: var(--radio-accent, #ffa116);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.radio-volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: var(--radio-accent, #ffa116);
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.radio-volume::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--color-border);
+}
+
+.radio-volume::-moz-range-track {
+  height: 4px;
+  background: var(--color-border);
+}
+
+/* ─── Intro Confetti ─── */
+@keyframes introConfettiFall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(720deg);
+  }
+}
+
+@keyframes streak-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+
+  50% {
+    box-shadow: 0 0 8px 2px currentColor;
+  }
+}
+
+@keyframes live-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
+  }
+
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 3px rgba(74, 222, 128, 0);
+  }
+}
+
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* ─── District fly-by announcement ─── */
+@keyframes district-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+.animate-district-in {
+  animation: district-in 3s ease-out forwards;
+}
+
+.gift-cta {
+  animation:
+    gift-glow 2s ease-in-out infinite,
+    gift-bounce 2.5s ease-in-out infinite;
+  background-image: linear-gradient(110deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.15) 45%,
+      rgba(255, 255, 255, 0.25) 50%,
+      rgba(255, 255, 255, 0.15) 55%,
+      transparent 70%);
+  background-size: 200% 100%;
+  animation:
+    gift-glow 2s ease-in-out infinite,
+    gift-bounce 2.5s ease-in-out infinite,
+    gift-shimmer 3s linear infinite;
+}

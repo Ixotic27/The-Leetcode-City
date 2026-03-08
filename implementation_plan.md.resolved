@@ -1,0 +1,198 @@
+# LeetCode City — Implementation Plan
+
+**LeetCode City** is a full-featured web app inspired by [GitCity](https://thegitcity.com) — but instead of GitHub commit counts shaping buildings, your LeetCode problem-solving history builds your skyline. Every LeetCode user becomes a pixel-art 3D building: the more you grind, the taller your tower.
+
+---
+
+## Proposed Changes
+
+### Component 1 — Project Scaffold
+
+#### [NEW] `d:/leetcode/` (Next.js 14 App Router project)
+
+Bootstrapped with `create-next-app`, configured with:
+- **Tailwind CSS v4** + `Silkscreen` pixel font (Google Fonts)
+- **TypeScript** for type safety
+- Supabase, Three.js, Framer Motion installed
+
+---
+
+### Component 2 — LeetCode API Proxy
+
+> [!IMPORTANT]
+> LeetCode does not have a public API. Their GraphQL endpoint at `https://leetcode.com/graphql` works from servers (no CORS) but blocks browser requests. We proxy all calls through a Next.js server route.
+
+#### [NEW] `app/api/leetcode/[username]/route.ts`
+Server-side API route that hits `https://leetcode.com/graphql` and returns combined user data. Fetches:
+
+| Field | Maps To |
+|---|---|
+| `submitStatsGlobal` | Easy / Medium / Hard solved counts → window colors + building height |
+| `profile.ranking` | Global ranking → building aura intensity |
+| `userContestRanking` | Contest rating + badge → roof decoration |
+| `userCalendar` | Streak + active days → building glow animation speed |
+| `languageProblemCount` | Top languages → displayed on profile page |
+
+Response is cached server-side for **5 minutes** per username using Next.js `unstable_cache`.
+
+---
+
+### Component 3 — 3D City Engine
+
+#### [NEW] `components/city/CityScene.tsx`
+Main Three.js scene using `@react-three/fiber`. Contains:
+- **City grid** — 20×20 block grid, buildings auto-placed by username hash → grid slot
+- **Ambient + directional lighting** + point lights on each building
+- **Fog** for depth
+- **Stars** skybox (night city aesthetic)
+
+#### [NEW] `components/city/Building.tsx`
+Per-user 3D building (instanced mesh for performance):
+
+```
+Building metric → 3D dimension:
+────────────────────────────────────────────────────
+total solved        → HEIGHT   (1 solved = 0.05 units, max ~150 units)
+acceptance rate %   → WIDTH    (0.5–1.5 units)
+contest rating      → DEPTH    (0.5–1.5 units, default 0.8 if unranked)
+easy solved         → Green window lights (bottom floors)
+medium solved       → Yellow window lights (mid floors)
+hard solved         → Red window lights (top floors)
+streak > 30 days    → Pulsing glow aura around base
+contest badge       → Crown/antenna on roof
+```
+
+- **LOD system**: Full pixel-art windows at <50 units distance, box mesh beyond 150 units
+- **Click handler** → `router.push('/user/[username]')`
+- **Username label** floating above building (sprite)
+
+#### [NEW] `components/city/CameraControls.tsx`
+Free-flight mode using `drei`'s `FlyControls` — WASD + mouse look. HUD shows mini-map.
+
+---
+
+### Component 4 — Pages
+
+#### [NEW] `app/page.tsx` — Landing Page
+- Hero section: **animated 3D city preview** (fixed camera pan)
+- Search bar: enter any LeetCode username → fetch + render building preview
+- Featured users carousel
+- "Claim your building" CTA
+
+#### [NEW] `app/city/page.tsx` — Full City View
+- Full-screen `CityScene` with all registered users
+- Search overlay (top-left)
+- Mini-map (bottom-right)
+- Activity feed drawer (right side)
+
+#### [NEW] `app/user/[username]/page.tsx` — Profile Page
+- Isolated building 3D preview (auto-rotating)
+- Stats grid: solved counts, ranking, streak, contest rating
+- Achievement badges strip
+- Top languages progress bars
+- Kudos button (with count)
+- Share card button
+
+#### [NEW] `app/compare/[user1]/[user2]/page.tsx` — Compare Mode
+- Two buildings side by side (split 3D viewport)
+- Stats comparison table (winner highlighted)
+
+#### [NEW] `app/leaderboard/page.tsx` — Leaderboard
+- Sorted by: total solved / contest rating / streak
+- Building thumbnail + username + key stats
+- Pagination
+
+#### [NEW] `app/shop/page.tsx` — Customization Shop
+- Grid of items: crowns, auras (colored glow), roof effects (particle emitters), face decorations
+- LeetCoins earned by: solving problems = 1 coin per solve, achievements = bonus coins
+- Purchase → stored in Supabase → applied to building mesh in city
+
+---
+
+### Component 5 — Achievement System
+
+#### [NEW] `lib/achievements.ts`
+Defines all achievements + trigger conditions:
+
+| Achievement | Trigger |
+|---|---|
+| 🏗️ First Building | Registered username |
+| 💯 Century | 100 problems solved |
+| 🔥 Grinder | 500 problems solved |
+| 🌆 Skyscraper | 1000 problems solved |
+| 🔴 Hard Hitter | 50 hard problems solved |
+| 👑 Elite | Top 1000 global ranking |
+| 📅 Streak Master | 100-day streak |
+| 🏆 Knight | Contest Knight badge |
+| 🔱 Guardian | Contest Guardian badge |
+| 🤝 Recruiter | 3 referrals |
+
+---
+
+### Component 6 — Social Features
+
+#### [NEW] `app/api/kudos/route.ts`
+POST endpoint to add kudos (stored in Supabase), GET to fetch count.
+
+#### [NEW] `components/ActivityFeed.tsx`
+Supabase Realtime subscription on `activity_log` table (inserts from registrations, achievements, kudos).
+
+#### [NEW] `lib/shareCard.ts`
+Uses `html2canvas` or Canvas API to render a shareable PNG card with building screenshot + stats.
+
+---
+
+### Component 7 — Database (Supabase)
+
+Tables:
+```sql
+users           (id, username, leetcode_data jsonb, claimed bool, created_at)
+buildings       (user_id, customization jsonb, coins int)
+achievements    (user_id, achievement_id, unlocked_at)
+kudos           (from_user_id, to_user_id, created_at)
+shop_items      (id, name, type, cost, asset_url)
+activity_log    (id, type, user_id, meta jsonb, created_at)
+```
+
+Auth: Supabase **Anonymous auth** → user claims building by entering LeetCode username (no LeetCode OAuth since LeetCode doesn't support it).
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+1. **API Proxy test** — Run dev server (`npm run dev`) then:
+   ```
+   curl http://localhost:3000/api/leetcode/neal_wu
+   ```
+   Expect JSON with `solved.easy`, `solved.medium`, `solved.hard`, `ranking`, `streak`.
+
+2. **Building metric math test** — Unit test in `__tests__/building.test.ts`:
+   ```
+   npm run test
+   ```
+   Validates that height = totalSolved * 0.05, width/depth within [0.5, 1.5] range.
+
+3. **Achievement trigger test** — `__tests__/achievements.test.ts`:
+   ```
+   npm run test
+   ```
+   Mocks user stats and verifies correct achievements are returned.
+
+### Browser Verification (via browser subagent)
+- Open `http://localhost:3000` → confirms landing page renders with animated city
+- Search "neal_wu" → building preview appears with correct stats
+- Navigate to `/city` → 3D city loads, buildings visible
+- Click a building → navigates to `/user/[username]`
+- `/compare/neal_wu/jiangly` → two buildings side by side
+- `/leaderboard` → sorted list with thumbnails
+- Achievement toast appears when a user with 1000+ solves registers
+- Kudos button increments counter
+- Share card downloads a PNG
+
+### Manual Steps for User
+1. After `npm run dev`, visit `http://localhost:3000`
+2. Type your LeetCode username in the search bar and press Enter
+3. Verify your building height reflects your solve count visually
+4. Click "Claim Your Building" to personalize it
