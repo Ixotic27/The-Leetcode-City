@@ -31,26 +31,13 @@ export const metadata: Metadata = {
     siteName: "LeetCode City",
     type: "website",
     locale: "en_US",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "LeetCode City",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     creator: "ixotic",
     site: "ixotic",
-    images: ["/og-image.png"],
   },
   authors: [{ name: "ixotic", url: "#" }],
-  icons: {
-    icon: "/icon-512.png",
-    apple: "/icon-512.png",
-  },
 };
 
 const BASE_URL =
