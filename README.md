@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://theleetcodecity.com">theleetcodecity.com</a>
+  <a href="https://theleetcodecity.tech">theleetcodecity.tech</a>
 </p>
 
 <p align="center">

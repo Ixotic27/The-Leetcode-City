@@ -218,7 +218,7 @@ function FloatingParticlesCSS() {
       delay: Math.random() * 6,
       size: 2 + Math.random() * 2,
     })),
-  []);
+    []);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
@@ -326,7 +326,7 @@ function RabbitContent() {
         fetch("/api/rabbit?check=true")
           .then((r) => r.ok ? r.json() : null)
           .then((data) => { if (data) setUserData(data); })
-          .catch(() => {});
+          .catch(() => { });
       } else {
         setUserData({ progress: 0, completed: false, completed_at: null });
       }
@@ -335,7 +335,7 @@ function RabbitContent() {
     fetch("/api/rabbit")
       .then((r) => r.ok ? r.json() : null)
       .then((data) => { if (data?.completers) setCompleters(data.completers); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -434,7 +434,7 @@ function RabbitContent() {
                 myPosition
                   ? `I followed the white rabbit in LeetCode City.\nCitizen #${myPosition} to find the other side.`
                   : `I followed the white rabbit in LeetCode City.`
-              )}&url=${encodeURIComponent("https://theleetcodecity.com/rabbit")}`}
+              )}&url=${encodeURIComponent("https://theleetcodecity.tech/rabbit")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="font-pixel text-[10px] sm:text-[11px] tracking-widest px-5 py-2 border cursor-pointer transition-all hover:border-[#ffa116] hover:text-[#ffa116]"

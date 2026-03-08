@@ -1,4 +1,4 @@
-const BASE_URL = "https://theleetcodecity.com";
+const BASE_URL = "https://theleetcodecity.tech";
 
 const FONT = `'Silkscreen', monospace`;
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');`;
@@ -44,7 +44,7 @@ export function wrapInBaseTemplate(bodyHtml: string, unsubscribeUrl?: string): s
         <tr>
           <td align="center">
             <span style="font-family: ${FONT}; font-size: 11px; color: #3a3a44;">
-              ${footer}<a href="${BASE_URL}" style="color: #3a3a44; text-decoration: none; font-family: ${FONT}; font-size: 11px;">theleetcodecity.com</a>
+              ${footer}<a href="${BASE_URL}" style="color: #3a3a44; text-decoration: none; font-family: ${FONT}; font-size: 11px;">theleetcodecity.tech</a>
             </span>
           </td>
         </tr>

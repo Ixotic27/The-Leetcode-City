@@ -53,9 +53,9 @@ export interface SendResult {
 
 // ── Config ──
 
-const FROM = "LeetCode City <noreply@theleetcodecity.com>";
+const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
 const HMAC_SECRET = process.env.UNSUBSCRIBE_HMAC_SECRET || process.env.CRON_SECRET || "fallback-secret";
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.com";
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 const RATE_LIMITS: Record<Channel, { perHour: number; perDay: number }> = {
   email: { perHour: 5, perDay: 10 },

@@ -71,7 +71,7 @@ export function trackAdEvent(adId: string, eventType: "impression" | "click" | "
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
     navigator.sendBeacon("/api/sky-ads/track", new Blob([body], { type: "application/json" }));
   } else {
-    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => {});
+    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => { });
   }
 }
 
@@ -81,19 +81,19 @@ export function trackAdEvents(adId: string, eventTypes: ("impression" | "click" 
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
     navigator.sendBeacon("/api/sky-ads/track", new Blob([body], { type: "application/json" }));
   } else {
-    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => {});
+    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => { });
   }
 }
 
 export const DEFAULT_SKY_ADS: SkyAd[] = [
   {
     id: "leetcodecity",
-    text: "THEleetcodecity.COM ★ YOUR CODE, YOUR CITY ★ THEleetcodecity.COM",
+    text: "THEleetcodecity.TECH ★ YOUR CODE, YOUR CITY ★ THEleetcodecity.TECH",
     brand: "LeetCode City",
     description: "A city built from GitHub contributions. Search your username and find your building among thousands of developers.",
     color: "#f8d880",
     bgColor: "#1a1018",
-    link: "https://theleetcodecity.com",
+    link: "https://theleetcodecity.tech",
     vehicle: "plane",
     priority: 100,
   },
@@ -104,7 +104,7 @@ export const DEFAULT_SKY_ADS: SkyAd[] = [
     description: "Want your brand flying over LeetCode City? Planes, blimps, your colors. Get in touch!",
     color: "#f8d880",
     bgColor: "#1a1018",
-    link: "https://theleetcodecity.com/advertise",
+    link: "https://theleetcodecity.tech/advertise",
     vehicle: "plane",
     priority: 10,
   },

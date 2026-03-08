@@ -94,7 +94,7 @@ export default async function UnsubscribePage({
         />
 
         <a
-          href="https://theleetcodecity.com"
+          href="https://theleetcodecity.tech"
           style={{ color: "#ffa116", fontSize: 14, textDecoration: "underline" }}
         >
           Back to LeetCode City

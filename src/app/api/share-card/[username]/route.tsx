@@ -178,7 +178,7 @@ export async function GET(
   const highestTier =
     achievements.length > 0
       ? TIER_ORDER.find((tier) => achievements.some((a) => a.tier === tier)) ??
-        "bronze"
+      "bronze"
       : null;
 
   // Effective contributions (matches rank calculation)
@@ -471,7 +471,7 @@ function renderLandscape(
               textTransform: "uppercase",
             }}
           >
-            theleetcodecity.com/dev/{dev.github_login as string}
+            theleetcodecity.tech/dev/{dev.github_login as string}
           </div>
         </div>
       </div>
