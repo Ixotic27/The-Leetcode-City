@@ -17,7 +17,7 @@
   <rect x="4" y="4" width="2" height="2" fill="#ff5f56"/>
   <rect x="8" y="4" width="2" height="2" fill="#ffbd2e"/>
   <rect x="12" y="4" width="2" height="2" fill="#27c93f"/>
-  <!-- Title hint "git-city" -->
+  <!-- Title hint "leetcode-city" -->
   <rect x="36" y="4" width="7" height="2" fill="#00ff41" opacity="0.15"/>
   <rect x="44" y="5" width="1" height="1" fill="#00ff41" opacity="0.1"/>
   <rect x="46" y="4" width="9" height="2" fill="#00ff41" opacity="0.15"/>
