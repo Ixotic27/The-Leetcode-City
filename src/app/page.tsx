@@ -1,3 +1,4 @@
+import SearchBar from '@/components/SearchBar';
 "use client";
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Suspense } from "react";
@@ -3970,32 +3971,15 @@ function HomeContent() {
               </p>
             )}
             {/* Search field for compare pick */}
-            <form
-              onSubmit={(e) => { e.preventDefault(); searchUser(); }}
-              className="mt-2 flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (feedback?.type === "error") setFeedback(null);
-                }}
-                placeholder="search username to compare"
-                className="min-w-0 flex-1 border-[2px] border-border bg-bg px-2.5 py-1.5 text-base sm:text-[10px] text-cream outline-none transition-colors placeholder:text-dim"
-                onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "")}
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={loading || !username.trim()}
-                className="btn-press flex-shrink-0 px-3 py-1.5 text-[10px] text-bg disabled:opacity-40"
-                style={{ backgroundColor: theme.accent }}
-              >
-                {loading ? "_" : "Go"}
-              </button>
-            </form>
+            <SearchBar 
+  username={username}
+  setUsername={setUsername}
+  feedback={feedback}
+  setFeedback={setFeedback}
+  loading={loading}
+  theme={theme}
+  searchUser={searchUser}
+/>
             {feedback && (
               <div className="mt-1.5">
                 <SearchFeedback feedback={feedback} accentColor={theme.accent} onDismiss={() => setFeedback(null)} onRetry={searchUser} />
