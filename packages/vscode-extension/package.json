@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/Ixotic27/leetcode-city"
   },
-  "homepage": "https://hackoholic4.live",
+  "homepage": "https://the-leetcode-city.vercel.app",
   "bugs": {
     "url": "https://github.com/Ixotic27/leetcode-city/issues"
   },
@@ -53,7 +53,7 @@
         },
         "leetcodecity.apiUrl": {
           "type": "string",
-          "default": "https://hackoholic4.live",
+          "default": "https://the-leetcode-city.vercel.app",
           "description": "LeetCode City API URL (changing this sends your API key to a different server)",
           "scope": "application"
         },

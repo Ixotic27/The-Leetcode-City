@@ -658,7 +658,8 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
-        } catch {
+        } catch (err) {
+          console.warn("[app/page.tsx] error:", err);
           setLinkedLeetCodeUsername(null);
         }
       } else {
@@ -680,7 +681,7 @@ function HomeContent() {
               // Small delay so the UI has settled after login redirect
               setTimeout(() => setShowLinkModal(true), 800);
             }
-          } catch { }
+          } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
         }
       }
     });
@@ -731,7 +732,7 @@ function HomeContent() {
             ) ?? prev;
           });
         }
-      } catch { /* silent */ }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* silent */
     };
 
     // Wait 10 seconds after login/link so city is fully loaded, then refresh once
@@ -835,7 +836,7 @@ function HomeContent() {
       trackReferralLinkLanded(ref);
       try {
         localStorage.setItem("gc_ref", JSON.stringify({ login: ref, expires: Date.now() + 7 * 86400000 }));
-      } catch { /* ignore */ }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
     }
   }, [searchParams]);
 
@@ -852,7 +853,7 @@ function HomeContent() {
           redirectTo += `?ref=${encodeURIComponent(login)}`;
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo },
@@ -868,7 +869,7 @@ function HomeContent() {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setFeedEvents(data.events ?? []);
-      } catch { /* ignore */ }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
     };
     fetchFeed();
     const interval = setInterval(fetchFeed, 120000);
@@ -889,7 +890,7 @@ function HomeContent() {
           });
           trackMissionRef.current("visit_building");
           trackMissionRef.current("visit_3_buildings");
-        } catch { /* ignore */ }
+        } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
       }, 3000);
     }
     return () => {
@@ -929,7 +930,7 @@ function HomeContent() {
         setKudosError(msg);
         setTimeout(() => setKudosError(null), 3000);
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
     finally { setKudosSending(false); }
   }, [selectedBuilding, kudosSending, kudosSent, session, authLogin]);
 
@@ -948,7 +949,7 @@ function HomeContent() {
         .filter((i) => i.price_usd_cents > 0 && !NON_GIFTABLE.has(i.id))
         .map((i) => ({ ...i, owned: receiverOwned.has(i.id) }));
       setGiftItems(available);
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
   }, [selectedBuilding, session]);
 
   // Gift: checkout for receiver
@@ -969,7 +970,7 @@ function HomeContent() {
       if (res.ok && data.url) {
         window.location.href = data.url;
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
     finally { setGiftBuying(null); }
   }, [selectedBuilding, giftBuying]);
 
@@ -1081,7 +1082,7 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch { }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     })();
   }, [session]);
 
@@ -1121,9 +1122,7 @@ function HomeContent() {
           setTimeout(() => setRabbitSighting(data.progress + 1), 2000);
           return;
         }
-      } catch {
-        // Fall through to local tracking
-      }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     }
 
     // Local tracking (not logged in or API failed)
@@ -1207,8 +1206,7 @@ function HomeContent() {
           localStorage.removeItem("leetcodecity:loadout_override");
         }
       }
-    } catch { }
-
+    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     rawDevsRef.current = allDevs;
     setStats(cityStats);
     const layout = generateCityLayout(allDevs);
@@ -1350,8 +1348,7 @@ function HomeContent() {
               localStorage.removeItem("leetcodecity:loadout_override");
             }
           }
-        } catch { }
-
+        } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
         // Generate layout
         setLoadStage("generating");
         setLoadProgress(45);
@@ -1462,14 +1459,14 @@ function HomeContent() {
 
     // Read current PB fresh from localStorage (React state may be stale)
     let currentPB = flyPersonalBestRef.current;
-    try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { }
+    try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
     const isNewPB = currentPB > 0 && finalScore > currentPB;
     // Update personal best
     if (isNewPB) {
       setFlyPersonalBest(finalScore);
       flyPersonalBestRef.current = finalScore;
-      try { localStorage.setItem("leetcodecity_fly_pb", String(finalScore)); } catch { }
+      try { localStorage.setItem("leetcodecity_fly_pb", String(finalScore)); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     }
     // Update fly history (streak, days played, per-seed scores)
     if (finalScore > 0) {
@@ -1500,7 +1497,7 @@ function HomeContent() {
         }
         hist.longestStreak = Math.max(hist.longestStreak || 0, hist.currentStreak);
         localStorage.setItem("leetcodecity_fly_history", JSON.stringify(hist));
-      } catch { }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     }
     // Exit fly immediately (don't block on API)
     setFlyMode(false); setFlyPaused(false); lastDistrictRef.current = null; setDistrictAnnouncement(null); clearTimeout(announceTimerRef.current);
@@ -1795,7 +1792,8 @@ function HomeContent() {
         setExploreMode(true);
       }
       setUsername("");
-    } catch {
+    } catch (err) {
+      console.warn("[app/page.tsx] error:", err);
       setFeedback({ type: "error", code: "network", username: trimmed });
       setLoading(false);
     } finally {
@@ -2026,7 +2024,7 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch { }
+      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2036,13 +2034,16 @@ function HomeContent() {
     if (loadStage !== "done" || isMobile || flyMode || introMode) return;
     try {
       if (localStorage.getItem("leetcodecity_fly_history") || localStorage.getItem("leetcodecity_fly_hint_seen")) return;
-    } catch { return; }
+    } catch (err) {
+      console.warn("[app/page.tsx] error:", err);
+      return;
+    }
     flyHintTimerRef.current = setTimeout(() => {
       setShowFlyHint(true);
       // Auto-dismiss after 10s
       const autoDismiss = setTimeout(() => {
         setShowFlyHint(false);
-        try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
+        try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -2136,7 +2137,7 @@ function HomeContent() {
               a.rel = "noopener noreferrer";
               a.click();
             }
-            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch { setAdToast(ad.brand || "link"); }
+            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch (err) { console.warn("[app/page.tsx] error:", err); setAdToast(ad.brand || "link"); }
             setTimeout(() => setAdToast(null), 2500);
           } else {
             trackAdEvent(ad.id, "click", authLogin || undefined);
@@ -2152,9 +2153,7 @@ function HomeContent() {
             if (viewed.includes(adId)) return;
             viewed.push(adId);
             sessionStorage.setItem(key, JSON.stringify(viewed));
-          } catch {
-            // sessionStorage unavailable — allow tracking
-          }
+          } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
           trackAdEvent(adId, "impression", authLogin || undefined);
           const ad = skyAds.find(a => a.id === adId);
           if (ad) trackSkyAdImpression(ad.id, ad.vehicle, ad.brand);
@@ -2530,7 +2529,7 @@ function HomeContent() {
             <button
               onClick={() => {
                 setShowFlyControls(false);
-                try { localStorage.setItem("leetcodecity_fly_controls_seen", "1"); } catch { }
+                try { localStorage.setItem("leetcodecity_fly_controls_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true }));
               }}
@@ -2821,7 +2820,11 @@ function HomeContent() {
                                     navigator.clipboard.writeText(data.key);
                                     setVsCodeKeyCopied(true);
                                     setTimeout(() => setVsCodeKeyCopied(false), 2000);
+                                  } else {
+                                    alert(data.error || "Failed to generate key. Make sure you're signed in and have claimed your building.");
                                   }
+                                } catch {
+                                  alert("Network error. Please try again.");
                                 } finally {
                                   setVsCodeKeyLoading(false);
                                 }
@@ -3105,7 +3108,7 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
-                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
                         // Feature 3: show controls overlay on first flight
                         if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                           setShowFlyControls(true);
@@ -3142,7 +3145,7 @@ function HomeContent() {
                             onClick={() => {
                               setShowFlyHint(false);
                               clearTimeout(flyHintTimerRef.current);
-                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
+                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -3175,7 +3178,7 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
-                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
                       if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                         setShowFlyControls(true);
                       }
@@ -4721,7 +4724,7 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
-                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
                 }}
                 className="btn-press px-5 py-2 text-[10px] text-bg"
                 style={{ backgroundColor: theme.accent, boxShadow: `3px 3px 0 0 ${theme.shadow}` }}

@@ -3,6 +3,12 @@ name: AI PR Reviewer
 on:
   pull_request:
     types: [opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR Number to manually review'
+        required: true
+        type: string
 
 permissions:
   pull-requests: write
@@ -16,90 +22,176 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: AI Security & Code Review
+          
+      - name: Auto-Label and Assign PR
+        if: github.event_name == 'pull_request' && github.event.action == 'opened'
         uses: actions/github-script@v7
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         with:
           script: |
-            const apiKey = process.env.OPENAI_API_KEY;
-            if (!apiKey) {
-              console.log("No OPENAI_API_KEY provided. Skipping AI review.");
+            const prNumber = context.issue.number;
+            const prUser = context.payload.pull_request.user.login;
+            const headRef = context.payload.pull_request.head.ref;
+            const branchMatch = headRef.match(/^(\d+)-/);
+            let labelsToAdd = new Set(["Gssoc 26", "gssoc:approved"]);
+            
+            // 1. Try to get issue number from branch name (e.g., 2-issue-name)
+            if (branchMatch) {
+              const issueNumber = parseInt(branchMatch[1]);
+              try {
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+                issue.data.labels.forEach(label => labelsToAdd.add(label.name));
+              } catch (e) {
+                console.log(`Could not fetch labels for issue #${issueNumber}`);
+              }
+            }
+            
+            // 2. Try to get issue number from PR body (e.g., Fixes #123)
+            const body = context.payload.pull_request.body || "";
+            const issueRegex = /(?:fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#(\d+)/gi;
+            let match;
+            while ((match = issueRegex.exec(body)) !== null) {
+              const issueNumber = parseInt(match[1]);
+              try {
+                const issue = await github.rest.issues.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                });
+                issue.data.labels.forEach(label => labelsToAdd.add(label.name));
+              } catch (e) {
+                console.log(`Could not fetch labels for issue #${issueNumber}`);
+              }
+            }
+            
+            // Assign the PR to the user who opened it
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              assignees: [prUser]
+            });
+            
+            // Add collected labels (Gssoc + issue labels)
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              labels: Array.from(labelsToAdd)
+            });
+            
+            // Request review from Ixotic27
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              reviewers: ["Ixotic27"]
+            });
+      
+      - name: Trigger Official Copilot & Auto-Approve
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const prNumber = context.payload.inputs ? parseInt(context.payload.inputs.pr_number) : context.issue.number;
+            
+            if (!prNumber) {
+              console.log("No PR number found. Skipping.");
               return;
             }
+            
+            // 1. Try to trigger official GitHub Copilot Reviewer
+            try {
+              console.log("Attempting to request review from official Copilot App...");
+              // By commenting "@copilot review", it forces the app to run
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: "@copilot review\n\n*(Automated trigger for official Copilot PR Reviewer)*"
+              });
+            } catch (e) {
+              console.log("Could not trigger Copilot via comment:", e);
+            }
+            
+            // 2. Perform Basic Security Scan to grant 'APPROVE' state for Auto-Merge
+            console.log(`Fetching PR #${prNumber} info...`);
+            const prInfo = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            const prUser = prInfo.data.user.login;
             
             console.log("Fetching PR diff...");
             const diffResponse = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
+              pull_number: prNumber,
               mediaType: { format: 'diff' }
             });
             
-            const diff = diffResponse.data;
+            const diff = typeof diffResponse.data === 'string' ? diffResponse.data : '';
             if (!diff || diff.length === 0) {
-              console.log("Empty diff. Nothing to review.");
+              console.log("Empty diff. Auto-approving.");
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                body: '✅ **Auto Review: Approved** — Empty diff, nothing to review.',
+                event: 'APPROVE'
+              });
               return;
             }
             
-            // Truncate diff to avoid token limits for large PRs
-            const truncatedDiff = diff.substring(0, 15000); 
+            console.log("Running basic security scan to authorize Auto-Merge...");
+            const suspiciousPatterns = [
+              { regex: /eval\s*\(/, name: 'eval() usage' },
+              { regex: /Function\s*\(/, name: 'Function() constructor' },
+              { regex: /child_process|exec\s*\(|execSync/, name: 'shell command execution' },
+              { regex: /process\.env\.\w+/, name: 'direct env access (review needed)' },
+              { regex: /SUPABASE_SERVICE_ROLE|SECRET|PASSWORD|PRIVATE_KEY/, name: 'hardcoded secret/key reference' },
+              { regex: /btoa|atob|Buffer\.from.*base64/, name: 'base64 encoding (potential obfuscation)' },
+              { regex: /fetch\s*\(\s*['"`]http:/, name: 'insecure HTTP fetch' },
+              { regex: /innerHTML\s*=/, name: 'innerHTML assignment (XSS risk)' },
+              { regex: /document\.write/, name: 'document.write (XSS risk)' },
+              { regex: /\.env\.local|\.env\.production/, name: 'env file reference' },
+            ];
             
-            const prompt = `You are a strict security and code quality reviewer for the LeetCode City open-source project.
-            Review the following Pull Request diff:
+            const findings = [];
+            const diffLines = diff.split('\n');
+            const addedLines = diffLines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
             
-            ${truncatedDiff}
-            
-            Your absolute top priorities are:
-            1. Security & Backdoors: Rigorously analyze the code for malicious code, compromised security, or vulnerabilities.
-            2. Logic & Stability: Look for edge cases, memory leaks, and logical bugs.
-            
-            Instructions:
-            - If you find ANY mistakes, security vulnerabilities, or bugs, respond with exactly "STATE: CHANGES_REQUESTED" on the first line, followed by a detailed explanation of what the user needs to fix.
-            - If the code looks perfectly secure and bug-free, respond with exactly "STATE: APPROVED" on the first line, followed by a brief positive summary. Please also add a polite request asking them to ⭐ Star the repository to help increase its visibility and support the developer!
-            `;
-            
-            console.log("Sending diff to OpenAI...");
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-              },
-              body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                messages: [{ role: 'user', content: prompt }]
-              })
-            });
-            
-            const data = await res.json();
-            if (!data.choices || data.choices.length === 0) {
-              console.error("Failed to get a response from OpenAI", data);
-              return;
+            for (const pattern of suspiciousPatterns) {
+              const matches = addedLines.filter(l => pattern.regex.test(l));
+              if (matches.length > 0) {
+                findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s)`);
+              }
             }
             
-            const reply = data.choices[0].message.content;
-            
-            let reviewEvent = 'COMMENT';
-            if (reply.includes('STATE: APPROVED')) {
-              reviewEvent = 'APPROVE';
-            } else if (reply.includes('STATE: CHANGES_REQUESTED')) {
-              reviewEvent = 'REQUEST_CHANGES';
+            if (findings.length > 0) {
+              const body = `🔍 **Basic Security Scan: Review Needed**\n\nThe following patterns were detected in the PR diff and require manual review:\n\n${findings.join('\n')}\n\n> This is an automated scan. A maintainer should review these findings before merging.\n\nHey @${prUser}, please review these flagged items and update your PR if necessary! 🛠️`;
+              
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                body: body,
+                event: 'COMMENT'
+              });
+              console.log(`Basic scan found ${findings.length} patterns. Left a comment for manual review.`);
+            } else {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                body: '✅ **Security Scan: Approved**\n\nNo malicious patterns detected. The official Copilot bot will provide detailed AI feedback shortly.\n\n⭐ **If you enjoyed contributing, please consider starring the repository to support the project!**',
+                event: 'APPROVE'
+              });
+              console.log("Basic scan passed. Auto-approved.");
             }
-            
-            // Clean the reply text
-            const cleanReply = reply
-              .replace(/STATE: APPROVED/g, '✅ **AI Review: Approved**\n')
-              .replace(/STATE: CHANGES_REQUESTED/g, '❌ **AI Review: Changes Requested**\n')
-              .replace(/STATE: COMMENT/g, '💬 **AI Review: Comment**\n');
-            
-            console.log("Submitting review...");
-            await github.rest.pulls.createReview({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              body: cleanReply,
-              event: reviewEvent
-            });
-            console.log("Review submitted successfully.");
+

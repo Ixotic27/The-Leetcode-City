@@ -122,8 +122,10 @@ const fragmentShader = /* glsl */ `
 
     // Emissive glow for lit windows, scaled by city energy
     // Both ambient and emissive dim when city sleeps
-    float ambientBase = 0.08 + 0.22 * uCityEnergy;
-    vec3 emissive = wallColor * 1.8 * uCityEnergy;
+    // Use a squared curve so sleeping (0.15) is very dark but waking up feels responsive
+    float energySq = uCityEnergy * uCityEnergy;
+    float ambientBase = 0.04 + 0.26 * energySq;
+    vec3 emissive = wallColor * 2.2 * energySq;
     vec3 wallFinal = wallColor * ambientBase + emissive;
 
     // Live building boost: pushes windows past bloom threshold
@@ -259,7 +261,7 @@ export default memo(function InstancedBuildings({
         uFocusedIdB: { value: -1.0 },
         uDimOpacity: { value: 0.6 },
         uDimEmissive: { value: 0.5 },
-        uCityEnergy: { value: 1.0 },
+        uCityEnergy: { value: 0.15 },
       },
       vertexShader,
       fragmentShader,
@@ -402,7 +404,29 @@ export default memo(function InstancedBuildings({
       risingRef.current = [];
     }
 
+    // Safety net: if buildings are still at rise=0 after 8 seconds
+    // (e.g. holdRise got stuck, animation race condition, etc.),
+    // force them visible so the city never appears empty.
+    const safetyTimer = setTimeout(() => {
+      const m = meshRef.current;
+      if (!m) return;
+      const attr = m.geometry.getAttribute("aRise") as THREE.InstancedBufferAttribute | undefined;
+      if (!attr) return;
+      const arr = attr.array as Float32Array;
+      let anyZero = false;
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] < 0.99) { arr[i] = 1; anyZero = true; }
+      }
+      if (anyZero) {
+        attr.needsUpdate = true;
+        riseInitialized.current = true;
+        risingRef.current = [];
+      }
+    }, 8000);
+
     mesh.count = count;
+
+    return () => clearTimeout(safetyTimer);
   }, [buildings, count, uvFrontData, uvSideData, riseData, tintData, liveData, lcData]);
 
   // Sync fog uniforms (only when values actually change, e.g. theme switch)
@@ -423,11 +447,11 @@ export default memo(function InstancedBuildings({
       lastFogFar.current = fog.far;
     }
 
-    // Smooth lerp city energy (transition over ~5 seconds)
+    // Smooth lerp city energy (transition over ~3 seconds)
     const current = material.uniforms.uCityEnergy.value;
     const target = cityEnergyRef.current;
     if (Math.abs(current - target) > 0.001) {
-      material.uniforms.uCityEnergy.value += (target - current) * 0.02;
+      material.uniforms.uCityEnergy.value += (target - current) * 0.04;
     }
   });
 

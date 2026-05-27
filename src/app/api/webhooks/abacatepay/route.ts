@@ -34,10 +34,8 @@ export async function POST(request: Request) {
   let body: any;
   try {
     body = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/webhooks/abacatepay/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const sb = getSupabaseAdmin();
   const pixId = extractPixId(body.data);
 

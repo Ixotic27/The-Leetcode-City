@@ -114,10 +114,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Target has an active Peace Shield" }, { status: 429 });
       }
     }
-  } catch {
-    // raids table may not exist yet - allow raid
+  } catch (err) {
+    console.warn("[app/api/raid/preview/route.ts] non-critical error:", err);
   }
-
   // Active Defenses
   const activeDefenses: string[] = Array.isArray(defender.active_defenses) ? defender.active_defenses : [];
   const hasSatellite = (attacker.owned_items ?? []).includes("scouting_satellite");

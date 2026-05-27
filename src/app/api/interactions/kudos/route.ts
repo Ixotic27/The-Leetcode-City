@@ -132,10 +132,9 @@ export async function POST(request: Request) {
         p_giver_id: giver.id,
         p_receiver_id: receiver.id,
       });
-    } catch {
-      // RPC may not exist yet before migration 015
+    } catch (err) {
+      console.warn("[app/api/interactions/kudos/route.ts] non-critical error:", err);
     }
-
     // Check kudos streak achievements
     await checkAchievements(giver.id, {
       contributions: giver.contributions ?? 0,

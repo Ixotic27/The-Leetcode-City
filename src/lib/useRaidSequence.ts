@@ -172,7 +172,8 @@ export function useRaidSequence(): [RaidState, RaidActions] {
           error: null,
           loading: false,
         });
-      } catch {
+      } catch (err) {
+        console.warn("[lib/useRaidSequence.ts] error:", err);
         setState((prev) => ({
           ...prev,
           loading: false,
@@ -235,7 +236,8 @@ export function useRaidSequence(): [RaidState, RaidActions] {
 
         // Auto-advance intro -> flight
         timerRef.current = setTimeout(() => setPhase("flight"), 4500);
-      } catch {
+      } catch (err) {
+        console.warn("[lib/useRaidSequence.ts] error:", err);
         setState((prev) => ({
           ...prev,
           loading: false,

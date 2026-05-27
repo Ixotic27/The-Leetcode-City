@@ -85,7 +85,7 @@ export function AdPurchaseForm() {
           window.location.href = `/advertise/setup/${token}`;
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[app/advertise/AdPurchaseForm.tsx] non-critical error:", err); }
   }, []);
 
   useEffect(() => {
@@ -144,7 +144,8 @@ export function AdPurchaseForm() {
       } else if (data.url) {
         window.location.href = data.url;
       }
-    } catch {
+    } catch (err) {
+      console.warn("[app/advertise/AdPurchaseForm.tsx] error:", err);
       setError("Network error. Please try again.");
       setLoading(false);
     }
