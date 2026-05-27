@@ -85,7 +85,35 @@ jobs:
             
             if (wantsAssignment) {
               if (assignees.length === 0) {
-                // Issue is unassigned -> Assign the user
+                
+                // --- 24-Hour Cooldown Check ---
+                // Search for issues in this repo assigned to this user in the last 24 hours
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const searchQuery = `repo:${context.repo.owner}/${context.repo.repo} assignee:${commenter} updated:>=${oneDayAgo} is:issue`;
+                
+                const searchResult = await github.rest.search.issuesAndPullRequests({
+                  q: searchQuery,
+                  per_page: 5
+                });
+                
+                // Filter out the current issue from results
+                const recentAssignments = searchResult.data.items.filter(
+                  item => item.number !== context.issue.number && !item.pull_request
+                );
+                
+                if (recentAssignments.length > 0) {
+                  // User was already assigned an issue in the last 24 hours -> Reject
+                  const recentIssue = recentAssignments[0];
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: `Hi @${commenter}, thank you for your enthusiasm! 🙌\n\nHowever, you were already assigned to **#${recentIssue.number}** recently. To give everyone a fair chance to contribute, each contributor can only be assigned **one issue per 24 hours**.\n\nPlease complete your current issue first, or wait until the 24-hour window passes before requesting a new one. Thank you for understanding! 💙`
+                  });
+                  return;
+                }
+                
+                // --- All checks passed -> Assign the user ---
                 await github.rest.issues.addAssignees({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -93,12 +121,12 @@ jobs:
                   assignees: [commenter]
                 });
                 
-                // Welcome message
+                // Welcome message with 48-hour deadline
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: `Hello @${commenter}, you have been selected to work on this issue! 🚀 Please read the \`CONTRIBUTING.md\` file before starting. We look forward to your Pull Request.\n\n⭐ **If you're excited to contribute, please consider starring this repository to help increase its visibility and support the developer!**`
+                  body: `Hello @${commenter}, you have been selected to work on this issue! 🚀 Please read the \`CONTRIBUTING.md\` file before starting.\n\n⏰ **Deadline: You have 48 hours to submit a Pull Request for this issue.** If no PR is submitted within that time, the issue will be unassigned and made available for other contributors. This keeps the project moving and ensures everyone gets a fair opportunity!\n\n⭐ **If you're excited to contribute, please consider starring this repository to help increase its visibility and support the developer!**\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
                 });
                 
                 // Automatically add labels if not present
@@ -106,7 +134,6 @@ jobs:
                 const labelsToAdd = [];
                 if (!labels.includes("Gssoc 26")) labelsToAdd.push("Gssoc 26");
                 if (!labels.includes("gssoc:approved")) labelsToAdd.push("gssoc:approved");
-                if (!labels.includes("mentor:Ixotic27")) labelsToAdd.push("mentor:Ixotic27");
                 
                 if (labelsToAdd.length > 0) {
                   await github.rest.issues.addLabels({
@@ -116,6 +143,14 @@ jobs:
                     labels: labelsToAdd
                   });
                 }
+                
+                // Lock the conversation so only collaborators can comment
+                await github.rest.issues.lock({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  lock_reason: 'resolved'
+                });
               } else if (!assignees.includes(commenter)) {
                 // Issue is already assigned
                 await github.rest.issues.createComment({
