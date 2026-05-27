@@ -23,7 +23,7 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 // ─── i18n ─────────────────────────────────────────────────────
-type Lang = "en" | "pt";
+type Lang = "en";
 
 const i18n: Record<Lang, {
   inTheCity: string;
@@ -42,16 +42,7 @@ const i18n: Record<Lang, {
     kudos: "KUDOS",
     cta: "Can you beat this?",
     notFound: "Developer not found",
-  },
-  pt: {
-    inTheCity: "na cidade",
-    commits: "RESOLVIDOS",
-    repos: "LC RANK",
-    stars: "REP.",
-    kudos: "KUDOS",
-    cta: "Consegue me superar?",
-    notFound: "Desenvolvedor nao encontrado",
-  },
+  }
 };
 
 // ─── Colors ───────────────────────────────────────────────────
@@ -103,7 +94,7 @@ export async function GET(
 ) {
   const { username } = await params;
   const format = request.nextUrl.searchParams.get("format") ?? "landscape";
-  const lang = (request.nextUrl.searchParams.get("lang") === "pt" ? "pt" : "en") as Lang;
+  const lang = "en"; // Hardcoded to English per maintainer instructions
 
   const fontData = await readFile(
     join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")
@@ -187,7 +178,7 @@ export async function GET(
 
   const t = i18n[lang];
   if (format === "stories") {
-    return renderStories(devEff, achievements, highestTier, fontData, t, lang);
+    return renderStories(devEff, achievements, highestTier, fontData, t);
   }
   return renderLandscape(devEff, achievements, highestTier, fontData, t);
 }
@@ -469,8 +460,8 @@ function renderLandscape(
               fontSize: 16,
               color: muted,
               textTransform: "uppercase",
-            }}
-          >
+                }}
+              >
             theleetcodecity.tech/dev/{dev.github_login as string}
           </div>
         </div>
@@ -512,31 +503,11 @@ const TAUNTS: Record<Lang, { rank: [number, string][]; contribs: [number, string
       [50, "EVERY SKYSCRAPER STARTS SOMEWHERE"],
     ],
     fallback: "JUST MOVED IN. WATCH ME GROW.",
-  },
-  pt: {
-    rank: [
-      [5, "EU SOU O HORIZONTE"],
-      [15, "A VISTA DAQUI DE CIMA E INSANA"],
-      [50, "DA PRA VER SEU PRÉDIO DAQUI"],
-      [100, "MEU ELEVADOR NAO DESCE ATE AI"],
-      [250, "SÓ COBERTURA"],
-      [500, "MEU PRÉDIO TEM PISCINA NO TOPO"],
-      [1000, "NADA MAL PRA QUEM DORME"],
-    ],
-    contribs: [
-      [5000, "EU NAO TOCO GRAMA. EU FAÇO PUSH."],
-      [2000, "SEU PRÉDIO CABE NO MEU LOBBY"],
-      [1000, "MEUS COMMITS TEM COMMITS"],
-      [500, "MAIS ALTO QUE SUA PACIÊNCIA"],
-      [200, "PRÉDIO PEQUENO, ENERGIA GRANDE"],
-      [50, "TODO ARRANHA-CEU COMEÇA EM ALGUM LUGAR"],
-    ],
-    fallback: "ACABEI DE CHEGAR. ME OBSERVE.",
-  },
+  }
 };
 
-function getTaunt(rank: number | null, contributions: number, lang: Lang): string {
-  const t = TAUNTS[lang];
+function getTaunt(rank: number | null, contributions: number): string {
+  const t = TAUNTS["en"]; // Directly access the English dictionary
   if (rank) {
     for (const [threshold, phrase] of t.rank) {
       if (rank <= threshold) return phrase;
@@ -549,27 +520,12 @@ function getTaunt(rank: number | null, contributions: number, lang: Lang): strin
 }
 
 // ─── Stories (1080x1920) ──────────────────────────────────────
-// IG safe zones: top ~130px, bottom ~120px
-// Precise Y map (no overlaps):
-//   150  taunt phrase                → ends ~200
-//   230  avatar (110px)              → ends 340
-//   356  name                        → ends ~406
-//   418  @login                      → ends ~446
-//   462  rank + tier                 → ends ~498
-//   ≥540 building top (dynamic)      → building hero
-//   1320 ground line
-//   1360 stats (3 flat)              → ends ~1440
-//   1470 achievement badges          → ends ~1502
-//   1540 CTA                         → ends ~1598
-//   1620 branding                    → ends ~1644
-//   1800+ bottom safe zone
 function renderStories(
   dev: Record<string, unknown>,
   achievements: { name: string; tier: string }[],
   highestTier: string | null,
   fontData: Buffer,
-  t: typeof i18n.en,
-  lang: Lang
+  t: typeof i18n.en
 ) {
   const contributions = dev.contributions as number;
   const rank = dev.rank as number | null;
@@ -578,7 +534,7 @@ function renderStories(
   );
   const BWIDTH = 320;
   const GROUND_Y = 1320;
-  const taunt = getTaunt(rank, contributions, lang);
+  const taunt = getTaunt(rank, contributions);
 
   const stats = [
     { label: t.commits, value: contributions.toLocaleString() },
@@ -601,7 +557,7 @@ function renderStories(
           alignItems: "center",
         }}
       >
-        {/* ── Taunt (the hook — first thing you read) ── */}
+        {/* ── Taunt ── */}
         <div
           style={{
             position: "absolute",
@@ -709,7 +665,7 @@ function renderStories(
           </div>
         </div>
 
-        {/* ── Building (HERO — fills the center) ── */}
+        {/* ── Building ── */}
         <div
           style={{
             position: "absolute",
@@ -744,7 +700,7 @@ function renderStories(
           }}
         />
 
-        {/* ── Stats: 3 across, clean ── */}
+        {/* ── Stats ── */}
         <div
           style={{
             position: "absolute",
