@@ -189,7 +189,16 @@ function calcHeight(
 // ─── V2 Detection & Formulas ────────────────────────────────
 
 function isV2Dev(dev: DeveloperRecord): boolean {
-  return false;
+  return Boolean(
+    (dev.contributions_total ?? 0) > 0 ||
+    (dev.contribution_years?.length ?? 0) > 0 ||
+    (dev.total_prs ?? 0) > 0 ||
+    (dev.total_reviews ?? 0) > 0 ||
+    (dev.repos_contributed_to ?? 0) > 0 ||
+    dev.account_created_at ||
+    (dev.active_days_last_year ?? 0) > 0 ||
+    (dev.language_diversity ?? 0) > 0
+  );
 }
 
 function calcHeightV2(
@@ -456,7 +465,6 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
   // ── 2. Place blocks on a GLOBAL axis-aligned grid ──
   // Downtown spiral at center, each district spiral at an offset.
   // occupiedCells prevents any overlap.
-  const BLOCK_STEP_X = BLOCK_FOOTPRINT_X + STREET_W; // 173
   const BLOCK_STEP_Z = BLOCK_FOOTPRINT_Z + STREET_W; // 149
   const RIVER_Z_THRESHOLD = BLOCK_STEP_Z / 2;
   const RIVER_PUSH = RIVER_WIDTH + 2 * RIVER_MARGIN - STREET_W;
@@ -643,8 +651,8 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
     if (addPlaza) {
       const key = `${ogx},${ogz}`;
       occupiedCells.add(key);
-      let [pcx, pcz] = gridToWorld(ogx, ogz);
-      if (pcz > RIVER_Z_THRESHOLD) pcz += RIVER_PUSH;
+      const [pcx, plazaZ] = gridToWorld(ogx, ogz);
+      const pcz = plazaZ > RIVER_Z_THRESHOLD ? plazaZ + RIVER_PUSH : plazaZ;
       plazas.push({
         position: [pcx, 0, pcz],
         size: Math.min(BLOCK_FOOTPRINT_X, BLOCK_FOOTPRINT_Z) * 0.8,
