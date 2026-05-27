@@ -10,7 +10,7 @@ VALUES (
   'pioneer_10k',
   'milestone',
   '10K Pioneer',
-  'Was part of Git City when it reached 10,000 developers',
+  'Was part of LeetCode City when it reached 10,000 developers',
   0,
   'diamond',
   'exclusive_badge',

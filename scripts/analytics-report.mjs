@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Git City Analytics Report
+ * LeetCode City Analytics Report
  *
  * Puxa dados do Supabase e gera um relatorio completo em Markdown.
  * Uso: node scripts/analytics-report.mjs
@@ -281,7 +281,7 @@ async function main() {
   // Generate report
   const now = new Date().toISOString().slice(0, 19).replace("T", " ");
 
-  let report = `# Git City Analytics Report
+  let report = `# LeetCode City Analytics Report
 
 Gerado em: ${now} UTC
 
