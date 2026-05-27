@@ -30,10 +30,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     code = (body.code ?? "").trim().toUpperCase();
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/shop/redeem/route.ts] error:", err); return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+   }
   if (!code) {
     return NextResponse.json({ error: "No code provided" }, { status: 400 });
   }

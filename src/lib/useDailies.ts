@@ -34,7 +34,7 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
       if (!r.ok) return;
       const json = (await r.json()) as DailiesData;
       setData(json);
-    } catch { }
+    } catch (err) { console.warn("[lib/useDailies.ts] non-critical error:", err); }
   }, []);
 
   // Initial fetch on mount
@@ -126,9 +126,8 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
       });
 
       return result as { ok: boolean; streak: number; total: number; freeze_granted: boolean; points_granted: number };
-    } catch {
-      return null;
-    }
+    } catch (err) { console.warn("[lib/useDailies.ts] error:", err); return null;
+     }
   }, []);
 
   return { data, loading, refresh, trackClientMission, claim, toasts };

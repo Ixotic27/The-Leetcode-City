@@ -23,10 +23,8 @@ export async function POST(request: Request) {
   let body: { type: string; data: Record<string, unknown> };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/webhooks/resend/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
 

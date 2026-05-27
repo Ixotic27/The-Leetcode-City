@@ -58,13 +58,11 @@ export async function POST(request: Request) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch {
-    return NextResponse.json(
+  } catch (err) { console.warn("[app/api/customizations/upload/route.ts] error:", err); return NextResponse.json(
       { error: "Invalid form data" },
       { status: 400 }
     );
-  }
-
+   }
   const file = formData.get("file") as File | null;
   const slotIndexRaw = formData.get("slot_index");
   const slotIndex = slotIndexRaw !== null ? parseInt(slotIndexRaw as string, 10) : 0;

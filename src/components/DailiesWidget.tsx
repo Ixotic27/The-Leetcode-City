@@ -50,7 +50,7 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
         setStarVerified(true);
         setStarOpened(false);
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.warn("[components/DailiesWidget.tsx] non-critical error:", err); }
     setStarVerifying(false);
   }, [starVerifying, starVerified, data?.has_github_star]);
 

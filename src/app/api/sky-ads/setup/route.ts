@@ -29,10 +29,8 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/sky-ads/setup/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { token } = body;
 
   if (!token || typeof token !== "string" || token.length < 10) {

@@ -24,10 +24,8 @@ export async function POST(request: NextRequest) {
   let body: { subject?: string; html?: string; slug?: string };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/admin/send-update-email/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { subject, html, slug } = body;
   if (!subject || !html || !slug) {
     return NextResponse.json(

@@ -30,9 +30,8 @@ async function getRecentSubmissions(username: string, withinMinutes = 30) {
 
         const cutoff = Date.now() / 1000 - withinMinutes * 60;
         return submissions.filter((s: any) => Number(s.timestamp) > cutoff);
-    } catch {
-        return null;
-    }
+    } catch (err) { console.warn("[app/api/lc-pulse/route.ts] error:", err); return null;
+     }
 }
 
 // POST: called by the client to report "I'm on LeetCode right now"
@@ -86,7 +85,7 @@ export async function POST() {
                             repo: "leetcode",
                         },
                     });
-                } catch { /* ignore duplicate feed entries */ }
+                } catch (err) { console.warn("[app/api/lc-pulse/route.ts] non-critical error:", err); }
             }
         }
 

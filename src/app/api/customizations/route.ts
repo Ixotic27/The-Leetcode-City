@@ -78,10 +78,8 @@ export async function POST(request: Request) {
   let body: { item_id: string; color?: string | null };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/customizations/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const { item_id, color } = body;
 
   if (item_id !== "custom_color") {

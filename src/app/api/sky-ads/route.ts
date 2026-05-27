@@ -84,9 +84,8 @@ export async function GET() {
     return NextResponse.json([...planes, ...blimps, ...billboards, ...rooftopSigns, ...ledWraps], {
       headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
     });
-  } catch {
-    return NextResponse.json(DEFAULT_SKY_ADS, {
+  } catch (err) { console.warn("[app/api/sky-ads/route.ts] error:", err); return NextResponse.json(DEFAULT_SKY_ADS, {
       headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
     });
-  }
+   }
 }

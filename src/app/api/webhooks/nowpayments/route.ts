@@ -14,10 +14,8 @@ export async function POST(request: Request) {
   let body: any;
   try {
     body = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/webhooks/nowpayments/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   // Verify HMAC-SHA512 signature
   const signature = request.headers.get("x-nowpayments-sig");
   if (!signature || !verifyIpnSignature(body, signature)) {

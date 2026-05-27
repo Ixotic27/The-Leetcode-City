@@ -44,7 +44,8 @@ function SupportContent() {
       if (data.url) {
         window.location.href = data.url;
       }
-    } catch {
+    } catch (err) {
+      console.warn("[app/support/page.tsx] error:", err);
       setError("Failed to connect. Try again.");
     } finally {
       setLoadingAmount(null);

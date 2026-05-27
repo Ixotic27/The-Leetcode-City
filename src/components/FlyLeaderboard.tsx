@@ -84,9 +84,8 @@ function loadFlyHistory(): FlyHistory | null {
     const raw = localStorage.getItem("leetcodecity_fly_history");
     if (!raw) return null;
     return JSON.parse(raw) as FlyHistory;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[components/FlyLeaderboard.tsx] error:", err); return null;
+   }
 }
 
 // ── Visual helpers ─────────────────────────────────────────────────────
@@ -141,7 +140,7 @@ export default function FlyLeaderboard() {
     try {
       const stored = localStorage.getItem("leetcodecity_fly_pb");
       if (stored) setPersonalBest(parseInt(stored, 10));
-    } catch {}
+    } catch (err) { console.warn("[components/FlyLeaderboard.tsx] non-critical error:", err); }
     setHistory(loadFlyHistory());
   }, []);
 

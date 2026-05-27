@@ -140,7 +140,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         });
         if (!res.ok) throw new Error("Failed to toggle");
         onToast(newActive ? "Ad resumed" : "Ad paused", "success");
-      } catch {
+      } catch (err) {
+        console.warn("[app/admin/ads/_lib/use-ads-data.ts] error:", err);
         // Revert
         setAds((prev) =>
           prev.map((ad) =>
@@ -164,7 +165,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         });
         if (!res.ok) throw new Error("Failed to delete");
         onToast("Ad deleted", "success");
-      } catch {
+      } catch (err) {
+        console.warn("[app/admin/ads/_lib/use-ads-data.ts] error:", err);
         setAds(prev);
         onToast("Failed to delete ad", "error");
       }
@@ -198,7 +200,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         onToast("Ad created", "success");
         fetchStats();
         return true;
-      } catch {
+      } catch (err) {
+        console.warn("[app/admin/ads/_lib/use-ads-data.ts] error:", err);
         onToast("Failed to create ad", "error");
         return false;
       } finally {
@@ -238,7 +241,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         onToast("Ad updated", "success");
         fetchStats();
         return true;
-      } catch {
+      } catch (err) {
+        console.warn("[app/admin/ads/_lib/use-ads-data.ts] error:", err);
         onToast("Failed to save ad", "error");
         return false;
       } finally {
@@ -266,7 +270,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         onToast(`${ids.length} ads ${action === "delete" ? "deleted" : action === "pause" ? "paused" : "resumed"}`, "success");
         fetchStats();
         return true;
-      } catch {
+      } catch (err) {
+        console.warn("[app/admin/ads/_lib/use-ads-data.ts] error:", err);
         onToast("Batch operation failed", "error");
         return false;
       } finally {

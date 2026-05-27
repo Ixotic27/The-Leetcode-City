@@ -134,7 +134,8 @@ export async function GET(request: Request) {
           gifts_received: giftsReceived,
         }, githubLogin);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[app/auth/callback/route.ts] error:", err);
       // Silently skip v2 features if tables/columns don't exist yet
       console.warn("Auth callback: skipping v2 achievement/referral check (migration may not have run)");
     }

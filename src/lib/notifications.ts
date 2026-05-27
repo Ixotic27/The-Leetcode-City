@@ -643,7 +643,8 @@ async function isInQuietHours(
   try {
     const formatter = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false });
     currentHour = parseInt(formatter.format(new Date()), 10);
-  } catch {
+  } catch (err) {
+    console.warn("[lib/notifications.ts] error:", err);
     currentHour = new Date().getUTCHours();
   }
 
