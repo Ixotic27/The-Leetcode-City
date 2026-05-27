@@ -107,6 +107,7 @@ function EffectForItem({
   itemId,
   dims,
   billboardImages,
+  ledBannerText,
 }: {
   itemId: string;
   dims: BuildingDims;

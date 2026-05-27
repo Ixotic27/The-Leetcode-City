@@ -132,7 +132,7 @@ export async function POST(request: Request) {
   }
 
   if (item_id === "led_banner") {
-    if (text === null || text === "") {
+    if (!text) {
       const { error: deleteError } = await sb.from("developer_customizations")
         .delete().eq("developer_id", dev.id).eq("item_id", "led_banner");
       if (deleteError) return NextResponse.json({ error: "Failed to remove customization" }, { status: 500 });

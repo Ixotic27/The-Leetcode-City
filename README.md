@@ -29,12 +29,6 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 - **Compare Mode** — Put two developers side by side and compare their buildings and stats
 - **Share Cards** — Download shareable image cards of your profile in landscape or stories format
 
-### Screenshots
-
-![Midnight City Overview](public/assets/midnight_overview.png)
-![Neon Sakura Theme](public/assets/neon_overview.png)
-![Flying Airplane](public/assets/flying_neon.png)
-![Flying at Sunset](public/assets/flying_sunset.png)
 
 ## How Buildings Work
 
