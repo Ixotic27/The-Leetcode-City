@@ -29,6 +29,7 @@
     "seed-lc-infinite": "npx tsx --env-file=.env.local scripts/seed-lc-infinite.ts",
     "backfill-lc": "npx tsx --env-file=.env.local scripts/backfill-lc-profiles.ts",
     "lc-hourly-fetcher": "npx tsx --env-file=.env.local scripts/lc-hourly-fetcher.ts",
+    "add-leetcode-items": "npx tsx --env-file=.env.local scripts/add-leetcode-items.ts",
     "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts"
   },
   "dependencies": {
@@ -59,6 +60,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5"
   }
 }
