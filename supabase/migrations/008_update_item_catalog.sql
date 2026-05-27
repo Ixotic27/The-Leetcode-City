@@ -1,5 +1,5 @@
 -- ============================================================
--- Git City v2 — Item Catalog Update: Zones + New Items
+-- LeetCode City v2 — Item Catalog Update: Zones + New Items
 -- ============================================================
 
 -- 1. Add zone column to items

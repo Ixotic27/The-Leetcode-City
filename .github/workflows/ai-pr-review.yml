@@ -139,8 +139,8 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber,
-                body: '✅ **Auto Review: Approved** — Empty diff, nothing to review.',
-                event: 'APPROVE'
+                body: '✅ **Auto Review: Clean** — Empty diff, nothing to review.',
+                event: 'COMMENT'
               });
               return;
             }
@@ -185,8 +185,8 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber,
-                body: '✅ **Security Scan: Approved**\n\nNo suspicious patterns detected.\n\n⭐ **If you enjoyed contributing, please consider starring the repository!**',
-                event: 'APPROVE'
+                body: '✅ **Security Scan: Clean**\n\nNo suspicious patterns detected.\n\n⭐ **If you enjoyed contributing, please consider starring the repository!**',
+                event: 'COMMENT'
               });
-              console.log("Security scan passed. Auto-approved.");
+              console.log("Security scan passed.");
             }
