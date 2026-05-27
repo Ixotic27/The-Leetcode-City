@@ -30,9 +30,13 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 - **Share Cards** — Download shareable image cards of your profile in landscape or stories format
 
 <!-- TODO: Add screenshots -->
-<!-- ![City Overview](assets/screenshot-city.png) -->
-<!-- ![Profile Page](assets/screenshot-profile.png) -->
-<!-- ![Compare Mode](assets/screenshot-compare.png) -->
+
+<p align="center">
+  <img src="assets/landingpage_evening.png" alt="LeetCode City — Where Code Builds Cities" width="800" />
+</p>
+<p align="center">
+  <img src="assets/landingpage_midnight.png" alt="LeetCode City — Where Code Builds Cities" width="800" />
+</p>
 
 ## How Buildings Work
 
