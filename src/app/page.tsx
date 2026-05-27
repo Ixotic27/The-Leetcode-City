@@ -2125,7 +2125,8 @@ function HomeContent() {
               a.rel = "noopener noreferrer";
               a.click();
             }
-            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch (err) { console.warn("[app/page.tsx] error:", err); setAdToast(ad.brand || "link"); }setTimeout(() => setAdToast(null), 2500);
+            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch (err) { console.warn("[app/page.tsx] error:", err); setAdToast(ad.brand || "link"); }
+            setTimeout(() => setAdToast(null), 2500);
           } else {
             trackAdEvent(ad.id, "click", authLogin || undefined);
             setClickedAd(ad);
@@ -3091,7 +3092,8 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
-                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }// Feature 3: show controls overlay on first flight
+                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                        // Feature 3: show controls overlay on first flight
                         if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                           setShowFlyControls(true);
                         }
@@ -3160,7 +3162,8 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
-                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
+                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                      if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                         setShowFlyControls(true);
                       }
                     }}
@@ -4687,7 +4690,8 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
-                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }}}
+                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                }}
                 className="btn-press px-5 py-2 text-[10px] text-bg"
                 style={{ backgroundColor: theme.accent, boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
               >
