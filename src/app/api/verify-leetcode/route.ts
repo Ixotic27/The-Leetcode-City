@@ -111,8 +111,7 @@ export async function POST(req: Request) {
             if (lcUserStats) {
                 lcUserStats.maxStreak = parseMaxStreak(lcUserStats, currentYear);
             }
-        } catch { }
-
+        } catch (err) { console.warn("[app/api/verify-leetcode/route.ts] non-critical error:", err); }
         // Parse solved counts by difficulty
         const acNums: { difficulty: string; count: number }[] =
             lcUserStats?.submitStats?.acSubmissionNum ?? [];

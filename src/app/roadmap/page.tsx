@@ -63,9 +63,7 @@ export default async function RoadmapPage() {
         }
       }
     }
-  } catch {
-    // Not logged in, that's fine
-  }
+  } catch (err) { console.warn("[app/roadmap/page.tsx] non-critical error:", err); }
 
   return (
     <RoadmapClient

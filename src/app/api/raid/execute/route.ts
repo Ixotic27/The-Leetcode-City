@@ -127,10 +127,9 @@ export async function POST(request: Request) {
     if ((weeklyPairCount ?? 0) > 0) {
       return NextResponse.json({ error: "Already raided this target this week" }, { status: 429 });
     }
-  } catch {
-    // raids table may not exist yet - allow raid
+  } catch (err) {
+    console.warn("[app/api/raid/execute/route.ts] non-critical error:", err);
   }
-
   // Determine vehicle + tag style from saved loadout (or override from request)
   const [{ data: raidLoadoutRow }, { data: ownedVehiclePurchases }] = await Promise.all([
     admin

@@ -50,7 +50,10 @@ function WallpaperInner() {
         const snapshot = await snapshotRes.json();
         allDevs = snapshot.developers;
       }
-    } catch { /* fall through to chunked */ }
+    } catch (err) {
+      console.warn("[app/wallpaper/page.tsx] error:", err);
+      /* fall through to chunked */
+    }
 
     // Fallback to chunked API
     if (allDevs.length === 0) {

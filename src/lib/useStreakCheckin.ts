@@ -50,7 +50,7 @@ export function useStreakCheckin(
         data.checked_in = false; // no pulse on cached load
         return data;
       }
-    } catch { }
+    } catch (err) { console.warn("[lib/useStreakCheckin.ts] non-critical error:", err); }
     return null;
   });
   const [loading, setLoading] = useState(false);

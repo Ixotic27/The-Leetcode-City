@@ -50,7 +50,5 @@ export async function broadcastToChannel(
         messages: [{ topic, event, payload }],
       }),
     });
-  } catch {
-    // Fire and forget — broadcast failure should never block the API response
-  }
+  } catch (err) { console.warn("[lib/supabase.ts] non-critical error:", err); } // Fire and forget — broadcast failure should never block the API response
 }

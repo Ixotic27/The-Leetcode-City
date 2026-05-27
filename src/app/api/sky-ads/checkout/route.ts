@@ -47,10 +47,8 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/sky-ads/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { plan_id, text, color, bgColor } = body;
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
