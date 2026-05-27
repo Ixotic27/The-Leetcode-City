@@ -24,12 +24,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed-lc": "npx tsx --env-file=.env.local scripts/seed-lc.ts",
-    "seed-lc-mass": "npx tsx --env-file=.env.local scripts/seed-lc-mass.ts",
-    "seed-lc-infinite": "npx tsx --env-file=.env.local scripts/seed-lc-infinite.ts",
-    "backfill-lc": "npx tsx --env-file=.env.local scripts/backfill-lc-profiles.ts",
-    "lc-hourly-fetcher": "npx tsx --env-file=.env.local scripts/lc-hourly-fetcher.ts",
-    "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts"
+    "seed-lc": "tsx --env-file=.env.local scripts/seed-lc.ts",
+    "seed-lc-mass": "tsx --env-file=.env.local scripts/seed-lc-mass.ts",
+    "seed-lc-infinite": "tsx --env-file=.env.local scripts/seed-lc-infinite.ts",
+    "backfill-lc": "tsx --env-file=.env.local scripts/backfill-lc-profiles.ts",
+    "lc-hourly-fetcher": "tsx --env-file=.env.local scripts/lc-hourly-fetcher.ts",
+    "generate-codes": "tsx --env-file=.env.local scripts/generate-codes.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
