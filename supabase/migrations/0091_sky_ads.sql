@@ -63,7 +63,7 @@ $$;
 
 -- Seed default ads
 insert into sky_ads (id, brand, text, description, color, bg_color, link, vehicle, priority) values
-  ('gitcity', 'Git City', 'THEGITCITY.COM ★ YOUR CODE, YOUR CITY ★ THEGITCITY.COM', 'A city built from GitHub contributions. Search your username and find your building among thousands of developers.', '#f8d880', '#1a1018', 'https://thegitcity.com', 'plane', 100),
+  ('gitcity', 'LeetCode City', 'THEGITCITY.COM ★ YOUR CODE, YOUR CITY ★ THEGITCITY.COM', 'A city built from GitHub contributions. Search your username and find your building among thousands of developers.', '#f8d880', '#1a1018', 'https://thegitcity.com', 'plane', 100),
   ('samuel', 'Samuel Rizzon', 'HEY, I BUILD THIS! → SAMUELRIZZON.DEV', 'Full-stack dev who builds weird and cool stuff. This city is one of them.', '#c8e64a', '#1a1018', 'https://www.samuelrizzon.dev/en.html', 'plane', 90),
   ('build', 'ReplyOS', 'YOUR AI COPILOT TO GROW ON X', 'I grew +1.2k followers and 1M views in 3 weeks using ReplyOS. Viral library, lead radar, post writer, auto-replies. Your AI copilot to grow on X.', '#ffffff', '#2a1838', 'https://reply-os.com', 'blimp', 80),
-  ('advertise', 'Sky Ads', 'ADD YOUR AD HERE', 'Want your brand flying over Git City? Planes, blimps, your colors. Get in touch!', '#f8d880', '#1a1018', 'mailto:samuelrizzondev@gmail.com?subject=Git%20City%20Sky%20Ad', 'plane', 10);
+  ('advertise', 'Sky Ads', 'ADD YOUR AD HERE', 'Want your brand flying over LeetCode City? Planes, blimps, your colors. Get in touch!', '#f8d880', '#1a1018', 'mailto:samuelrizzondev@gmail.com?subject=Git%20City%20Sky%20Ad', 'plane', 10);

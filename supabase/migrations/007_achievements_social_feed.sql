@@ -1,5 +1,5 @@
 -- ============================================================
--- Git City v2 — Achievements, Social Interactions, Activity Feed
+-- LeetCode City v2 — Achievements, Social Interactions, Activity Feed
 -- ============================================================
 
 -- 1. Extend developers table
@@ -168,9 +168,9 @@ on conflict (id) do nothing;
 
 -- Social (referrals)
 insert into achievements (id, category, name, description, threshold, tier, reward_type, reward_item_id, sort_order) values
-  ('recruiter',   'social',  'Recruiter',   'Refer 3 developers to Git City',            3,     'bronze',  'unlock_item',     'helipad',         13),
-  ('influencer',  'social',  'Influencer',  'Refer 10 developers to Git City',           10,    'gold',    'exclusive_badge',  null,              14),
-  ('mayor',       'social',  'Mayor',       'Refer 50 developers to Git City',           50,    'diamond', 'exclusive_badge',  null,              15)
+  ('recruiter',   'social',  'Recruiter',   'Refer 3 developers to LeetCode City',            3,     'bronze',  'unlock_item',     'helipad',         13),
+  ('influencer',  'social',  'Influencer',  'Refer 10 developers to LeetCode City',           10,    'gold',    'exclusive_badge',  null,              14),
+  ('mayor',       'social',  'Mayor',       'Refer 50 developers to LeetCode City',           50,    'diamond', 'exclusive_badge',  null,              15)
 on conflict (id) do nothing;
 
 -- Gifts sent

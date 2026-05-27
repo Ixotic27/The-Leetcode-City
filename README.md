@@ -84,5 +84,5 @@ Open [http://localhost:3001](http://localhost:3001) to see the city.
   Original creator <a href="https://github.com/Ixotic27">@Ixotic27</a>
 </p>
 <p align="center">
-  Inspired by <a href="https://github.com/srizzon/git-city">Git City</a>
+  Inspired by <a href="https://github.com/srizzon/git-city">LeetCode City</a>
 </p>
