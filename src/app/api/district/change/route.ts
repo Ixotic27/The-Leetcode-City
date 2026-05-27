@@ -26,9 +26,8 @@ export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  } catch (err) { console.warn("[app/api/district/change/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const district_id = body.district_id as string;
 
   if (!district_id || !VALID_DISTRICTS.includes(district_id)) {

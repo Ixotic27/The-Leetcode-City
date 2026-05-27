@@ -124,9 +124,7 @@ function savePendingBillboard(file: File): void {
         PENDING_BILLBOARD_KEY,
         JSON.stringify({ data: reader.result, type: file.type, name: file.name })
       );
-    } catch {
-      // localStorage full or unavailable — ignore
-    }
+    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
   };
   reader.readAsDataURL(file);
 }
@@ -136,7 +134,8 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
     const raw = localStorage.getItem(PENDING_BILLBOARD_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    console.warn("[components/ShopClient.tsx] error:", err);
     return null;
   }
 }
@@ -144,9 +143,7 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
 function clearPendingBillboard(): void {
   try {
     localStorage.removeItem(PENDING_BILLBOARD_KEY);
-  } catch {
-    // ignore
-  }
+  } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
 }
 
 // Convert a base64 data URL to a File
@@ -218,9 +215,7 @@ function PixModal({
           trackPurchaseCompleted(data.itemId, 0, "abacatepay");
           setStatus("completed");
         }
-      } catch {
-        // ignore polling errors
-      }
+      } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
     }, 3000);
 
     return () => {
@@ -241,9 +236,7 @@ function PixModal({
       await navigator.clipboard.writeText(data.brCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback: select text
-    }
+    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
   }, [data.brCode]);
 
   return (
@@ -510,7 +503,8 @@ function BillboardUploadPanel({
         setSavedSlot(slotIndex);
         setTimeout(() => setSavedSlot(null), 2000);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       // ignore
     } finally {
       setUploadingSlot(null);
@@ -697,7 +691,8 @@ export default function ShopClient({
         "America/Santarem",
       ]);
       setIsBrazil(brTimezones.has(tz));
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setIsBrazil(false);
     }
   }, []);
@@ -897,11 +892,12 @@ export default function ShopClient({
             "leetcodecity:loadout_override",
             JSON.stringify({ developerId, loadout: payload, ts: Date.now() }),
           );
-        } catch { }
+        } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); } 
       } else {
         setError("Failed to save. Try again.");
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Failed to save. Try again.");
     } finally {
       setSaving(false);
@@ -932,7 +928,8 @@ export default function ShopClient({
       setOwned((prev) =>
         prev.includes(FREE_CLAIM_ITEM) ? prev : [...prev, FREE_CLAIM_ITEM]
       );
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Network error. Try again.");
     } finally {
       setBuyingItem(null);
@@ -967,7 +964,8 @@ export default function ShopClient({
         setError("Star not found — make sure you starred the repo first!");
         setStarVerifyStep("opened");
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Network error. Try again.");
       setStarVerifyStep("opened");
     } finally {
@@ -1050,7 +1048,8 @@ export default function ShopClient({
         } else if (data.url) {
           window.location.href = data.url;
         }
-      } catch {
+      } catch (err) {
+        console.warn("[components/ShopClient.tsx] error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1081,7 +1080,8 @@ export default function ShopClient({
         } else {
           setError(data.error || "Failed to buy item.");
         }
-      } catch {
+      } catch (err) {
+        console.warn("[components/ShopClient.tsx] error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1150,7 +1150,8 @@ export default function ShopClient({
         setRedeemMsg(data.error ?? "Invalid or expired code.");
         setTimeout(() => setRedeemState("idle"), 4000);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setRedeemState("error");
       setRedeemMsg("Network error. Please try again.");
       setTimeout(() => setRedeemState("idle"), 4000);

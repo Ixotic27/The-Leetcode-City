@@ -18,9 +18,8 @@ export async function createServerSupabase() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             );
-          } catch {
-            // setAll can throw in Server Components (read-only).
-            // This is fine — the middleware handles cookie refresh.
+          } catch (err) {
+            console.warn("[lib/supabase-server.ts] non-critical error:", err);
           }
         },
       },

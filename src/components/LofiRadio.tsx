@@ -20,7 +20,7 @@ const DEFAULT_SHADOW = "#203870";
 
 function destroyHowl(howl: Howl | null) {
   if (howl) {
-    try { howl.unload(); } catch { }
+    try { howl.unload(); } catch (err) { console.warn("[components/LofiRadio.tsx] non-critical error:", err); }
   }
 }
 

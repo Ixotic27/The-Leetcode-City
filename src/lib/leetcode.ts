@@ -24,9 +24,8 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
         if (!res.ok) return null;
         const data = await res.json();
         return data?.data?.matchedUser?.profile?.aboutMe ?? null;
-    } catch {
-        return null;
-    }
+    } catch (err) { console.warn("[lib/leetcode.ts] error:", err); return null;
+     }
 }
 
 export function parseMaxStreak(matchedUser: any, currentYear: number): number {
@@ -38,7 +37,7 @@ export function parseMaxStreak(matchedUser: any, currentYear: number): number {
             try {
                 const parsed = JSON.parse(cal);
                 allTimestamps.push(...Object.keys(parsed).map(Number));
-            } catch { }
+            } catch (err) { console.warn("[lib/leetcode.ts] non-critical error:", err); }
         }
     }
     allTimestamps.sort((a, b) => a - b);

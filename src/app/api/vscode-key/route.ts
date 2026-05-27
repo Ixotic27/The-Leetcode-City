@@ -18,17 +18,27 @@ async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: str
     ""
   ).toLowerCase();
 
-  if (!githubLogin) return { error: "No LeetCode login found", status: 400 };
-
   const sb = getSupabaseAdmin();
-  const { data: dev } = await sb
+
+  // Try 1: match by github_login (works for GitHub-native developers)
+  if (githubLogin) {
+    const { data: dev } = await sb
+      .from("developers")
+      .select("id")
+      .eq("github_login", githubLogin)
+      .single();
+    if (dev) return { devId: dev.id };
+  }
+
+  // Try 2: match by claimed_by (works for LeetCode-seeded developers who claimed their building)
+  const { data: claimedDev } = await sb
     .from("developers")
     .select("id")
-    .eq("github_login", githubLogin)
+    .eq("claimed_by", user.id)
     .single();
+  if (claimedDev) return { devId: claimedDev.id };
 
-  if (!dev) return { error: "Developer not found", status: 404 };
-  return { devId: dev.id };
+  return { error: "Developer not found. Claim your building first.", status: 404 };
 }
 
 export async function GET() {

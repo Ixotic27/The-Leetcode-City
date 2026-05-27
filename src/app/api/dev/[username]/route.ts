@@ -85,8 +85,8 @@ async function fetchLeetCodeUser(username: string) {
     }
     const rawText = await res.text();
     let json: any;
-    try { json = JSON.parse(rawText); } catch { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`);
+    try { json = JSON.parse(rawText); } catch (err) { 
+      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
       return null;
     }
     if (!json?.data?.matchedUser) {
@@ -107,9 +107,8 @@ async function fetchLeetCodeUser(username: string) {
       mu.maxStreak = parseMaxStreak(mu, currentYear);
     }
     return json?.data ?? null;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[app/api/dev/[username]/route.ts] error:", err); return null;
+   }
 }
 
 export async function GET(
@@ -148,7 +147,8 @@ export async function GET(
       key = user ? `user:${user.id}` : (
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
       );
-    } catch {
+    } catch (err) {
+      console.warn("[app/api/dev/[username]/route.ts] error:", err);
       key = "unknown";
     }
     rateLimitKey = key;
