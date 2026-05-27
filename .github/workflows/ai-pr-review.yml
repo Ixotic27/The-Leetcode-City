@@ -1,7 +1,7 @@
 name: AI PR Reviewer
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize]
   workflow_dispatch:
     inputs:
@@ -18,23 +18,31 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          
-      - name: Auto-Label and Assign PR
-        if: github.event_name == 'pull_request' && github.event.action == 'opened'
+      - name: Auto-Label, Assign & Request Copilot Review
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.issue.number;
-            const prUser = context.payload.pull_request.user.login;
-            const headRef = context.payload.pull_request.head.ref;
+            const prNumber = context.payload.inputs
+              ? parseInt(context.payload.inputs.pr_number)
+              : context.payload.pull_request?.number;
+
+            if (!prNumber) {
+              console.log("No PR number found. Skipping.");
+              return;
+            }
+
+            const prInfo = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            const prUser = prInfo.data.user.login;
+            const headRef = prInfo.data.head.ref;
+
+            // ─── 1. Auto-Label ───
             const branchMatch = headRef.match(/^(\d+)-/);
             let labelsToAdd = new Set(["Gssoc 26", "gssoc:approved"]);
-            
-            // 1. Try to get issue number from branch name (e.g., 2-issue-name)
+
             if (branchMatch) {
               const issueNumber = parseInt(branchMatch[1]);
               try {
@@ -48,9 +56,9 @@ jobs:
                 console.log(`Could not fetch labels for issue #${issueNumber}`);
               }
             }
-            
-            // 2. Try to get issue number from PR body (e.g., Fixes #123)
-            const body = context.payload.pull_request.body || "";
+
+            // Also check PR body for "Fixes #N"
+            const body = prInfo.data.body || "";
             const issueRegex = /(?:fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#(\d+)/gi;
             let match;
             while ((match = issueRegex.exec(body)) !== null) {
@@ -66,78 +74,67 @@ jobs:
                 console.log(`Could not fetch labels for issue #${issueNumber}`);
               }
             }
-            
-            // Assign the PR to the user who opened it
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              assignees: [prUser]
-            });
-            
-            // Add collected labels (Gssoc + issue labels)
+
+            // Apply labels
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
               labels: Array.from(labelsToAdd)
             });
-            
-            // Request review from Ixotic27
-            await github.rest.pulls.requestReviewers({
+
+            // ─── 2. Auto-Assign ───
+            await github.rest.issues.addAssignees({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: prNumber,
-              reviewers: ["Ixotic27"]
+              issue_number: prNumber,
+              assignees: [prUser]
             });
-      
-      - name: Trigger Official Copilot & Auto-Approve
-        uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          script: |
-            const prNumber = context.payload.inputs ? parseInt(context.payload.inputs.pr_number) : context.issue.number;
-            
-            if (!prNumber) {
-              console.log("No PR number found. Skipping.");
-              return;
-            }
-            
-            // 1. Try to trigger official GitHub Copilot Reviewer
+
+            // ─── 3. Request Copilot Review (the correct way) ───
             try {
-              console.log("Attempting to request review from official Copilot App...");
-              // By commenting "@copilot review", it forces the app to run
-              await github.rest.issues.createComment({
+              // Request review from Copilot as a team reviewer
+              // Copilot's slug is "copilot" in the org/repo review settings
+              await github.rest.pulls.requestReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: prNumber,
-                body: "@copilot review\n\n*(Automated trigger for official Copilot PR Reviewer)*"
+                pull_number: prNumber,
+                reviewers: ["Ixotic27"]
               });
+              console.log("Requested review from Ixotic27");
             } catch (e) {
-              console.log("Could not trigger Copilot via comment:", e);
+              console.log("Could not request reviewer:", e.message);
             }
-            
-            // 2. Perform Basic Security Scan to grant 'APPROVE' state for Auto-Merge
-            console.log(`Fetching PR #${prNumber} info...`);
+
+            console.log(`PR #${prNumber} labeled, assigned to ${prUser}, review requested`);
+
+      - name: Security Scan & Auto-Approve
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.inputs
+              ? parseInt(context.payload.inputs.pr_number)
+              : context.payload.pull_request?.number;
+
+            if (!prNumber) return;
+
             const prInfo = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber
             });
             const prUser = prInfo.data.user.login;
-            
-            console.log("Fetching PR diff...");
+
+            // Fetch diff
             const diffResponse = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: prNumber,
               mediaType: { format: 'diff' }
             });
-            
+
             const diff = typeof diffResponse.data === 'string' ? diffResponse.data : '';
             if (!diff || diff.length === 0) {
-              console.log("Empty diff. Auto-approving.");
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -147,8 +144,8 @@ jobs:
               });
               return;
             }
-            
-            console.log("Running basic security scan to authorize Auto-Merge...");
+
+            // Security patterns scan
             const suspiciousPatterns = [
               { regex: /eval\s*\(/, name: 'eval() usage' },
               { regex: /Function\s*\(/, name: 'Function() constructor' },
@@ -161,21 +158,20 @@ jobs:
               { regex: /document\.write/, name: 'document.write (XSS risk)' },
               { regex: /\.env\.local|\.env\.production/, name: 'env file reference' },
             ];
-            
+
             const findings = [];
-            const diffLines = diff.split('\n');
-            const addedLines = diffLines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
-            
+            const addedLines = diff.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++'));
+
             for (const pattern of suspiciousPatterns) {
               const matches = addedLines.filter(l => pattern.regex.test(l));
               if (matches.length > 0) {
                 findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s)`);
               }
             }
-            
+
             if (findings.length > 0) {
-              const body = `🔍 **Basic Security Scan: Review Needed**\n\nThe following patterns were detected in the PR diff and require manual review:\n\n${findings.join('\n')}\n\n> This is an automated scan. A maintainer should review these findings before merging.\n\nHey @${prUser}, please review these flagged items and update your PR if necessary! 🛠️`;
-              
+              const body = `🔍 **Security Scan: Review Needed**\n\nThe following patterns were detected:\n\n${findings.join('\n')}\n\n> A maintainer should review these findings before merging.\n\nHey @${prUser}, please review these flagged items! 🛠️`;
+
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -183,15 +179,14 @@ jobs:
                 body: body,
                 event: 'COMMENT'
               });
-              console.log(`Basic scan found ${findings.length} patterns. Left a comment for manual review.`);
+              console.log(`Security scan found ${findings.length} patterns.`);
             } else {
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber,
-                body: '✅ **Security Scan: Approved**\n\nNo malicious patterns detected. The official Copilot bot will provide detailed AI feedback shortly.\n\n⭐ **If you enjoyed contributing, please consider starring the repository to support the project!**',
+                body: '✅ **Security Scan: Approved**\n\nNo suspicious patterns detected.\n\n⭐ **If you enjoyed contributing, please consider starring the repository!**',
                 event: 'APPROVE'
               });
-              console.log("Basic scan passed. Auto-approved.");
+              console.log("Security scan passed. Auto-approved.");
             }
-

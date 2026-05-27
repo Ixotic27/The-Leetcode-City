@@ -122,10 +122,10 @@ const fragmentShader = /* glsl */ `
 
     // Emissive glow for lit windows, scaled by city energy
     // Both ambient and emissive dim when city sleeps
-    // Use a squared curve so sleeping (0.15) is very dark but waking up feels responsive
-    float energySq = uCityEnergy * uCityEnergy;
-    float ambientBase = 0.04 + 0.26 * energySq;
-    vec3 emissive = wallColor * 2.2 * energySq;
+    // Cubic curve: sleeping (0.15^3=0.003) is nearly black, waking needs 3+ devs to feel alive
+    float energyCube = uCityEnergy * uCityEnergy * uCityEnergy;
+    float ambientBase = 0.03 + 0.27 * energyCube;
+    vec3 emissive = wallColor * 2.5 * energyCube;
     vec3 wallFinal = wallColor * ambientBase + emissive;
 
     // Live building boost: pushes windows past bloom threshold
