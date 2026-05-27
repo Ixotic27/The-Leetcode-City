@@ -741,6 +741,8 @@ function HomeContent() {
     return () => { clearTimeout(initialDelay); clearInterval(interval); };
   }, [linkedLeetCodeUsername]);
 
+  // LeetCode username used for building ownership checks.
+  // IMPORTANT: never rely on GitHub username for ownership.
   const authLogin = (
     session?.user?.user_metadata?.user_name ??
     session?.user?.user_metadata?.preferred_username ??
@@ -749,11 +751,21 @@ function HomeContent() {
     ""
   ).toLowerCase();
 
-  // Extra guard: check if selected building is own by comparing linked account
-  const isOwnBuilding = !!selectedBuilding && (
-    (authLogin !== "" && selectedBuilding.login.toLowerCase() === authLogin) ||
-    (!!linkedLeetCodeUsername && selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase())
-  );
+  const identityResolved = useMemo(() => {
+    // If not logged in, identity is trivially resolved.
+    if (!session) return true;
+    // While logged in, we only consider identity resolved once /api/me has returned
+    // (linkedLeetCodeUsername is either a string or null).
+    return linkedLeetCodeUsername !== null;
+  }, [session, linkedLeetCodeUsername]);
+
+  // Ownership: compare LeetCode usernames only.
+  const isOwnBuilding =
+  identityResolved &&
+  !!selectedBuilding &&
+  !!linkedLeetCodeUsername &&
+  selectedBuilding?.login?.toLowerCase() ===
+    linkedLeetCodeUsername.toLowerCase();
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -3715,7 +3727,8 @@ function HomeContent() {
               )}
 
               {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
-              {!isOwnBuilding && (() => {
+              {identityResolved && !isOwnBuilding && (() => {
+
                 const equipped: string[] = [];
                 if (selectedBuilding.loadout?.crown) equipped.push(selectedBuilding.loadout.crown);
                 if (selectedBuilding.loadout?.roof) equipped.push(selectedBuilding.loadout.roof);
@@ -3747,11 +3760,12 @@ function HomeContent() {
                         </span>
                       )}
                     </div>
-                    {session && !isOwnBuilding && (
+                    {identityResolved && !isOwnBuilding && (
                       <Link
                         href={`/shop/${authLogin}`}
                         className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
                         style={{
+
                           backgroundColor: theme.accent,
                           boxShadow: `2px 2px 0 0 ${theme.shadow}`,
                         }}
@@ -3764,7 +3778,8 @@ function HomeContent() {
               })()}
 
               {/* Kudos: give kudos (other's building, logged in) */}
-              {session && !isOwnBuilding && (
+             {identityResolved && !isOwnBuilding && (
+
                 <div className="relative mx-4 mb-3">
                   {/* Floating emoji animation on success */}
                   {kudosSent && (
@@ -3834,8 +3849,20 @@ function HomeContent() {
               )}
 
               {/* A3: Disabled action buttons for non-logged users */}
-              {!session && (
+              {!identityResolved && session && (
                 <div className="mx-4 mb-3 space-y-1.5">
+                  <button
+                    className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors"
+                    disabled
+                  >
+                    Loading actions...
+                  </button>
+                </div>
+              )}
+              {!session && (
+
+                <div className="mx-4 mb-3 space-y-1.5">
+
                   <button
                     onClick={() => { trackDisabledButtonClicked("kudos"); handleSignIn(); }}
                     className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
@@ -3858,7 +3885,8 @@ function HomeContent() {
               )}
 
               {/* Own building: copy invite link */}
-              {selectedBuilding.login.toLowerCase() === authLogin && (
+              {identityResolved && selectedBuilding?.login?.toLowerCase() === linkedLeetCodeUsername?.toLowerCase() && (
+
                 <div className="mx-4 mb-3">
                   <button
                     onClick={() => {
@@ -3876,7 +3904,8 @@ function HomeContent() {
               )}
 
               {/* Compare button */}
-              {!flyMode && !isOwnBuilding && (
+              {identityResolved && !isOwnBuilding && !flyMode && (
+
                 <div className="mx-4 mb-3">
                   <button
                     onClick={() => {
@@ -3893,7 +3922,8 @@ function HomeContent() {
 
               {/* Actions */}
               <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                {selectedBuilding.login.toLowerCase() === authLogin ? (
+                {identityResolved && selectedBuilding?.login?.toLowerCase() === linkedLeetCodeUsername?.toLowerCase() ? (
+
                   <>
                     <Link
                       href={`/shop/${selectedBuilding.login}?tab=loadout`}

@@ -49,7 +49,8 @@
     "resend": "^6.9.3",
     "server-only": "^0.0.1",
     "stripe": "^20.3.1",
-    "three": "^0.183.0"
+    "three": "^0.183.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
