@@ -11,6 +11,13 @@ import { createCryptoInvoice } from "@/lib/nowpayments";
 // Note: in-memory – resets on deploy / cold-start.  Acceptable because
 // the middleware already provides the primary protection layer.
 const lastCheckout = new Map<string, number>();
+// Cleanup stale entries older than 10s, runs every 30s
+setInterval(() => {
+  const cutoff = Date.now() - 10000;
+  for (const [key, ts] of lastCheckout) {
+    if (ts < cutoff) lastCheckout.delete(key);
+  }
+}, 30000);
 
 export async function POST(request: Request) {
   // Auth required
