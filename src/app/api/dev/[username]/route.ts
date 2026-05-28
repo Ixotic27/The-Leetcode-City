@@ -21,7 +21,8 @@ async function isRateLimited(key: string): Promise<boolean> {
     .eq("ip_hash", ipHash)
     .gte("created_at", oneHourAgo);
 
-  return (count ?? 0) >= 15; // increased limit
+  const RATE_LIMIT = parseInt(process.env.RATE_LIMIT_PER_HOUR ?? "15");
+  return (count ?? 0) >= RATE_LIMIT;
 }
 
 async function recordRateLimitRequest(key: string): Promise<void> {
@@ -129,7 +130,8 @@ export async function GET(
 
   if (cached) {
     const age = Date.now() - new Date(cached.fetched_at).getTime();
-    if (!forceRefresh && age < 12 * 60 * 60 * 1000) { // 12h cache
+    const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_HOURS ?? "12") * 3600000;
+    if (!forceRefresh && age < CACHE_TTL_MS) { // 12h cache
       cachedRecord = cached;
     }
   }
