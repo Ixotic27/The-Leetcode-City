@@ -34,24 +34,14 @@ const LC_USERS = [
     "yangzhe1990", "votrubac", "lee215", "awice", "stefanpochmann",
     "huahualeetcode", "hiepit", "DBabichev", "errichto", "kimi_reads",
     "coffeebeforecode", "NeetCode", "techinterviewpro", "coderonline",
-    // Editorial writers + community stars
-    "rockmanray", "zhi6", "leet_noob", "yufengg", "lc_helper",
-    "coder_1", "coder_2", "python_coder", "java_master", "algonaut",
-    "cpp_wizard", "dynamic_duo", "greedy_god", "bfs_master", "dfs_hero",
-    "sliding_window", "two_pointer", "backtrack_king", "tree_traversal", "graph_theory",
-    // Mix of various skill levels
-    "competitive_ace", "weekend_warrior", "daily_coder", "streak_holder", "problem_setter",
-    "runtime_error", "time_limit", "accepted", "wrong_answer", "memory_limit",
-    "binary_search", "divide_conquer", "merge_sort", "quick_sort", "heap_master",
-    "monotone_stack", "segment_tree", "fenwick_tree", "union_find", "trie_master",
-    "dp_enjoyer", "knapsack_pro", "coin_change", "edit_distance", "lcs_master",
-    "math_wizard", "bit_manipulation", "xor_trick", "gcd_lcm", "prime_sieve",
-    "matrix_ninja", "rotate_array", "linked_lister", "stack_overflow", "queue_theory",
-    "recursion_fan", "memoization", "tabulation", "top_down", "bottom_up",
-    // More real-sounding LeetCode handles
-    "algo_enthusiast", "code_daily", "grind_75", "blind_75", "neetcode150",
-    "interview_prep", "faang_ready", "system_design", "big_o_notation", "space_time",
-    "zero_to_hero", "consistency_key", "habit_stacker", "focused_coder", "clean_code",
+    // Community contributors & real LC users
+    "rockmanray", "zhi6", "cnoodle", "manky", "monish",
+    "sambhav", "jainam", "dhruv", "shivam", "aditya",
+    "abhishek", "rishabh", "aryan", "tanya", "neha",
+    "nikhil", "varun", "siddharth", "pratik", "rohit",
+    "amit", "kunal", "piyush", "rahul", "sagar",
+    "ajay", "vijay", "manoj", "sunil", "rajesh",
+    "deepak", "ashish",
 ];
 
 // ─── LeetCode GraphQL fetcher ─────────────────────────────────────────────────
