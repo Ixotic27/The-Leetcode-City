@@ -11,6 +11,9 @@ permissions:
   pull-requests: write
   actions: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   notify-ci-failure:
     # Act when CI completes and was triggered by a pull_request_target or push event

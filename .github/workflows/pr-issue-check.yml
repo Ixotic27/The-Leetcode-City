@@ -8,6 +8,9 @@ permissions:
   issues: write
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   check-issue-link:
     name: Verify PR is Linked to an Assigned Issue
