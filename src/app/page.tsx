@@ -1945,9 +1945,14 @@ function HomeContent() {
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
   // City energy: devs coding -> city lights up. 0 devs = nearly dark, 5+ = full brightness
-  const cityEnergy = useMemo(() => {
- 
-  }, [codingCount]);
+ const cityEnergy = useMemo(() => {
+  if (codingCount === 0) return 0.60;
+  if (codingCount === 1) return 0.75;
+  if (codingCount === 2) return 0.85;
+
+  if (codingCount <= 10) return 1.0 + (codingCount - 5) * 0.04;
+  return Math.min(1.6, 1.2 + (codingCount - 10) * 0.04);
+}, [codingCount]);
 
 
   // ─── Milestone celebration system ──────────────────────────
