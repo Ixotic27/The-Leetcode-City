@@ -156,7 +156,10 @@ export async function POST() {
 
   const githubLogin = dev?.github_login ?? "";
 
-  if (!dev || !dev.claimed) {
+  if (!dev) {
+    return NextResponse.json({ error: "Your LeetCode stats are still being synced. Please check back in a few minutes!" }, { status: 403 });
+  }
+  if (!dev.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
   }
 
