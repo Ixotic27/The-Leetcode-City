@@ -3,6 +3,14 @@ import { createBrowserClient } from "@supabase/ssr";
 
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
+/**
+ * Returns true when running without the service-role key.
+ * In dev mode, admin operations gracefully degrade (read-only via anon key).
+ */
+export function isDevMode(): boolean {
+  return !process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
 /** Client-side Supabase client (anon key, respects RLS) — singleton for "use client" */
 export function createBrowserSupabase() {
   if (browserClient) return browserClient;
@@ -14,11 +22,27 @@ export function createBrowserSupabase() {
   return browserClient;
 }
 
-/** Server-side Supabase client (service role, bypasses RLS) */
+/**
+ * Server-side Supabase client (service role, bypasses RLS).
+ * In dev mode (no service-role key), falls back to the anon key.
+ * Writes will be blocked by RLS but reads still work — perfect for
+ * contributors working on frontend/UI changes.
+ */
+let adminClientWarned = false;
 export function getSupabaseAdmin(): SupabaseClient {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !adminClientWarned) {
+    adminClientWarned = true;
+    console.warn(
+      "[dev mode] SUPABASE_SERVICE_ROLE_KEY not set — using anon key. " +
+      "Reads work, writes are blocked by RLS. This is fine for frontend development."
+    );
+  }
+
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    key!,
     { auth: { persistSession: false } }
   );
 }
@@ -35,8 +59,10 @@ export async function broadcastToChannel(
   event: string,
   payload: Record<string, unknown>,
 ) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) return; // Dev mode — skip broadcast silently
+
   const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/realtime/v1/api/broadcast`;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
   try {
     await fetch(url, {
@@ -52,3 +78,4 @@ export async function broadcastToChannel(
     });
   } catch (err) { console.warn("[lib/supabase.ts] non-critical error:", err); } // Fire and forget — broadcast failure should never block the API response
 }
+

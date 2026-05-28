@@ -31,6 +31,8 @@
     "lc-hourly-fetcher": "npx tsx --env-file=.env.local scripts/lc-hourly-fetcher.ts",
     "add-leetcode-items": "npx tsx --env-file=.env.local scripts/add-leetcode-items.ts",
     "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts",
+    "setup": "node scripts/setup.mjs",
+    "setup:check": "node scripts/setup.mjs --check",
     "test" : "vitest"
   },
   "dependencies": {
