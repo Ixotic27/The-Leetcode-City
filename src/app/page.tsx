@@ -1,4 +1,5 @@
 import SearchBar from '@/components/SearchBar';
+import UserProfile from '@/components/UserProfile';
 "use client";
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Suspense } from "react";
@@ -4250,27 +4251,7 @@ function HomeContent() {
               &#10005;
             </button>
 
-            {/* Avatar */}
-            {shareData.avatar_url && (
-              <Image
-                src={shareData.avatar_url}
-                alt={shareData.login}
-                width={48}
-                height={48}
-                className="mx-auto mb-3 border-[2px] border-border"
-                style={{ imageRendering: "pixelated" }}
-              />
-            )}
-
-            <p className="text-xs text-cream normal-case">
-              <span style={{ color: theme.accent }}>@{shareData.login}</span> joined the city!
-            </p>
-
-            <p className="mt-2 text-[10px] text-muted normal-case">
-              City Rank <span style={{ color: theme.accent }}>#{shareData.rank ?? "?"}</span>
-              {" · "}
-              <span style={{ color: theme.accent }}>{shareData.contributions.toLocaleString()}</span> solved
-            </p>
+         <UserProfile shareData={shareData} theme={theme} />
 
             {/* Buttons */}
             <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5 sm:flex-row sm:justify-center sm:gap-3">
