@@ -519,7 +519,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         litPercentage = 0.2 + composite * 0.7;
 
         // BUNGALOW OVERRIDE
-        if (dev.github_login.toLowerCase() === "ishant_27" && dev.building_style === "bungalow") {
+        if (dev.building_style === "bungalow") {
           w = 80;
           d = 60;
           height = 25;
