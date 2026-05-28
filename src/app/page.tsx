@@ -1,5 +1,6 @@
 import SearchBar from '@/components/SearchBar';
 import UserProfile from '@/components/UserProfile';
+import ActionToolbar from '../components/ActionToolbar';
 "use client";
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Suspense } from "react";
@@ -4407,23 +4408,14 @@ function HomeContent() {
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
-          <button
-            onClick={cycleTheme}
-            className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">{theme.name}</span>
-            <span className="text-dim">{themeIndex + 1}/{THEMES.length}</span>
-          </button>
-          {isMounted && <div id="gc-radio-slot" />}
-          <button
-            onClick={replayIntro}
-            className="btn-press flex items-center gap-1 border-[3px] border-border bg-bg/70 px-2 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-            title="Replay intro"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">Intro</span>
-          </button>
+          <ActionToolbar 
+  cycleTheme={cycleTheme} 
+  replayIntro={replayIntro} 
+  theme={theme} 
+  themeIndex={themeIndex} 
+  themesLength={THEMES.length} 
+  isMounted={isMounted} 
+/>
         </div>
       )}
 
