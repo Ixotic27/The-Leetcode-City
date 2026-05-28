@@ -215,8 +215,11 @@ export async function POST(request: Request) {
       
     if (consumable && consumable.quantity > 0) {
       // Check weekly uses
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+      weekStart.setHours(0, 0, 0, 0);
+      const currentWeekStr = weekStart.toISOString().split('T')[0];
       const resetWeekStr = new Date(consumable.last_reset_week).toISOString().split('T')[0];
       
       let currentUses = consumable.weekly_uses;
@@ -281,8 +284,11 @@ export async function POST(request: Request) {
       .gt("quantity", 0);
       
     if (availableDefenses && availableDefenses.length > 0) {
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+      weekStart.setHours(0, 0, 0, 0);
+      const currentWeekStr = weekStart.toISOString().split('T')[0];
       
       for (const def of availableDefenses) {
         let currentUses = def.weekly_uses;
@@ -415,8 +421,11 @@ export async function POST(request: Request) {
         .single();
         
       if (!inv) return;
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+      weekStart.setHours(0, 0, 0, 0);
+      const currentWeekStr = weekStart.toISOString().split('T')[0];
       const resetWeekStr = new Date(inv.last_reset_week).toISOString().split('T')[0];
       let currentUses = inv.weekly_uses;
       if (currentWeekStr !== resetWeekStr) currentUses = 0;
