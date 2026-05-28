@@ -15,6 +15,7 @@ import {
   type CityRiver,
   type CityBridge,
   type DistrictZone,
+  type DeveloperRecord,
 } from "@/lib/github";
 import Image from "next/image";
 import Link from "next/link";
@@ -379,8 +380,7 @@ function HomeContent() {
   const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawDevsRef = useRef<any[]>([]);
+  const rawDevsRef = useRef<DeveloperRecord[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
   const [river, setRiver] = useState<CityRiver | null>(null);
@@ -667,7 +667,7 @@ function HomeContent() {
         // Check if user already has a VS Code API key
         try {
           const keyRes = await fetch("/api/vscode-key");
-          const keyData = await keyRes.json();
+          const keyData: { hasKey: boolean } = await keyRes.json();
           if (keyData.hasKey) setHasVsCodeKey(true);
         } catch { /* ignore */ }
       } else {
@@ -677,7 +677,7 @@ function HomeContent() {
 
     supabase.auth.getSession().then(({ data: { session: s } }: { data: { session: Session | null } }) => updateSession(s));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, s: Session | null) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, s: Session | null) => {
       if (event !== "TOKEN_REFRESHED") {
         await updateSession(s);
         // Auto-open the Link LeetCode modal when user first signs in
@@ -1153,10 +1153,8 @@ function HomeContent() {
     if (bustCache) clearCityCache();
     const cacheBust = bustCache ? `?_t=${Date.now()}` : "";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allDevs: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cityStats: any = null;
+    let allDevs: DeveloperRecord[] = [];
+    let cityStats: CityStats | null = null;
 
     // Try pre-computed snapshot first (disabled to bypass legacy LeetCode snapshots)
     // try {
@@ -1206,7 +1204,7 @@ function HomeContent() {
       if (raw) {
         const { developerId, loadout, ts } = JSON.parse(raw);
         if (Date.now() - ts < 10 * 60 * 1000) {
-          const idx = allDevs.findIndex((d: Record<string, unknown>) => d.id === developerId);
+              const idx = allDevs.findIndex((d) => d.id === developerId);
           if (idx !== -1) {
             allDevs[idx] = { ...allDevs[idx], loadout };
           }
@@ -1290,10 +1288,8 @@ function HomeContent() {
         setLoadStage("fetching");
         setLoadProgress(10);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let allDevs: any[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let cityStats: any = null;
+        let allDevs: DeveloperRecord[] = [];
+        let cityStats: CityStats | null = null;
 
         // Try pre-computed snapshot first (disabled to bypass legacy LeetCode snapshot data)
         // try {
@@ -1353,7 +1349,7 @@ function HomeContent() {
           if (raw) {
             const { developerId, loadout, ts } = JSON.parse(raw);
             if (Date.now() - ts < 10 * 60 * 1000) {
-              const idx = allDevs.findIndex((d: Record<string, unknown>) => d.id === developerId);
+          const idx = allDevs.findIndex((d) => d.id === developerId);
               if (idx !== -1) {
                 allDevs[idx] = { ...allDevs[idx], loadout };
               }
@@ -1665,7 +1661,7 @@ function HomeContent() {
     // Check if this username already failed with a permanent error
     const cachedError = failedUsernamesRef.current.get(trimmed);
     if (cachedError) {
-      setFeedback({ type: "error", code: cachedError as any, username: trimmed });
+      setFeedback({ type: "error", code: cachedError as "not-found" | "org" | "no-activity" | "rate-limit" | "github-rate-limit" | "network" | "generic", username: trimmed });
       return;
     }
 
@@ -1846,8 +1842,8 @@ function HomeContent() {
       setShowLinkModal(false);
       trackBuildingClaimed(data.leetcode_username);
       await reloadCity();
-    } catch (err: any) {
-      setLinkError(err.message);
+    } catch (err: unknown) {
+      setLinkError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLinking(false);
     }
@@ -1866,8 +1862,8 @@ function HomeContent() {
       setLinkedLeetCodeUsername(null);
       setResetMsg(data.message || "Claim reset. You can now link a new GitHub account.");
       await reloadCity();
-    } catch (err: any) {
-      setResetMsg("Error: " + err.message);
+    } catch (err: unknown) {
+      setResetMsg("Error: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setResetting(false);
     }
@@ -3704,14 +3700,14 @@ function HomeContent() {
                   .sort((a, b) => b.contributions - a.contributions)
                   .findIndex(b => b.login === selectedBuilding.login) + 1;
 
-                const lcRank = (selectedBuilding as any).rank as number ?? 0;
+                const lcRank = selectedBuilding.rank;
                 const lcRankStr = lcRank === 0 || lcRank === 999999 ? "N/A" : `#${lcRank.toLocaleString()}`;
                 const solved = selectedBuilding.contributions;
-                const easySolved = (selectedBuilding as any).easy_solved as number ?? 0;
-                const medSolved = (selectedBuilding as any).medium_solved as number ?? 0;
-                const hardSolved = (selectedBuilding as any).hard_solved as number ?? 0;
-                const contestRating = (selectedBuilding as any).contest_rating as number ?? 0;
-                const streak = (selectedBuilding as any).lc_streak as number ?? 0;
+                const easySolved = selectedBuilding.easy_solved ?? 0;
+                const medSolved = selectedBuilding.medium_solved ?? 0;
+                const hardSolved = selectedBuilding.hard_solved ?? 0;
+                const contestRating = selectedBuilding.contest_rating ?? 0;
+                const streak = selectedBuilding.lc_streak ?? 0;
                 const reputation = selectedBuilding.total_stars;
 
                 const stats = [

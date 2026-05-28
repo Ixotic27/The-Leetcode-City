@@ -4,6 +4,55 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp } from "@/lib/xp";
 
+interface LeetCodeProfile {
+  realName?: string;
+  userAvatar?: string;
+  aboutMe?: string;
+  ranking?: number;
+  reputation?: number;
+  countryName?: string;
+  school?: string;
+  company?: string;
+  websites?: string[];
+  linkedinUrl?: string;
+  twitterUrl?: string;
+  githubUrl?: string;
+}
+
+interface LeetCodeSubmitStats {
+  acSubmissionNum: { difficulty: string; count: number }[];
+  totalSubmissionNum: { difficulty: string; count: number }[];
+}
+
+interface LeetCodeTagCount {
+  tagName: string;
+  problemsSolved: number;
+}
+
+interface LeetCodeBadge {
+  id: string;
+  name: string;
+  icon: string;
+  displayName: string;
+}
+
+interface LeetCodeUserStats {
+  username?: string;
+  profile?: LeetCodeProfile;
+  badges?: LeetCodeBadge[];
+  submitStats?: LeetCodeSubmitStats;
+  tagProblemCounts?: {
+    advanced: LeetCodeTagCount[];
+    intermediate: LeetCodeTagCount[];
+    fundamental: LeetCodeTagCount[];
+  };
+  userCalendar?: {
+    streak: number;
+    totalActiveDays: number;
+  };
+  maxStreak?: number;
+}
+
 export async function POST(req: Request) {
     try {
         const { leetcode_username } = await req.json();
@@ -48,7 +97,7 @@ export async function POST(req: Request) {
         }
 
         // Fetch full LC stats: easy/medium/hard, contest rating, streak
-        let lcUserStats: any = null;
+        let lcUserStats: LeetCodeUserStats | null = null;
         let lcContestStats = null;
         let lcStreakStats = null;
         try {
@@ -164,9 +213,9 @@ export async function POST(req: Request) {
             ...(tagCounts?.intermediate ?? []),
             ...(tagCounts?.fundamental ?? []),
         ]
-            .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+            .sort((a: LeetCodeTagCount, b: LeetCodeTagCount) => b.problemsSolved - a.problemsSolved)
             .slice(0, 20)
-            .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
+            .map((t: LeetCodeTagCount) => ({ name: t.tagName, solved: t.problemsSolved }));
 
         // litPercentage = how lit the building windows are
         // For LC: active_days / 365 (capped at 1.0), same mechanic as LeetCode City uses commit frequency
@@ -263,7 +312,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, leetcode_username: leetcode_username.toLowerCase() });
 
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });
     }
 }

@@ -10,6 +10,30 @@ import {
 } from "@/lib/raid";
 import type { RaidBoostItem } from "@/lib/raid";
 
+interface AttackerRow {
+  id: number;
+  claimed: boolean;
+  app_streak: number;
+  github_login: string;
+  avatar_url: string | null;
+  current_week_contributions: number;
+  current_week_kudos_given: number;
+  owned_items: string[];
+}
+
+interface DefenderRow {
+  id: number;
+  claimed: boolean;
+  app_streak: number;
+  github_login: string;
+  avatar_url: string | null;
+  contributions: number;
+  current_week_contributions: number;
+  current_week_kudos_received: number;
+  last_raided_at: string | null;
+  active_defenses: string[];
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -44,8 +68,7 @@ export async function POST(request: Request) {
     .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
     .eq("claimed_by", user.id)
     .single();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let attacker = attackerRes.data as Record<string, any> | null;
+  let attacker = attackerRes.data as AttackerRow | null;
 
   // Auto-claim logic if building exists but not claimed by user yet
   if (!attacker && githubLogin) {
@@ -73,7 +96,7 @@ export async function POST(request: Request) {
         .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
         .eq("claimed_by", user.id)
         .single();
-      attacker = attackerRes.data as Record<string, any> | null;
+      attacker = attackerRes.data as AttackerRow | null;
     }
   }
 
@@ -87,8 +110,7 @@ export async function POST(request: Request) {
     .select("id, claimed, app_streak, avatar_url, github_login, contributions, current_week_contributions, current_week_kudos_received, last_raided_at, active_defenses")
     .eq("github_login", target_login.toLowerCase())
     .single();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const defender = defenderRes.data as Record<string, any> | null;
+  const defender = defenderRes.data as DefenderRow | null;
 
   if (!defender) {
     return NextResponse.json({ error: "Target not found" }, { status: 404 });

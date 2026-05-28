@@ -18,6 +18,25 @@ import {
 } from "@/lib/raid";
 import { ITEM_UNLOCK_LEVELS } from "@/lib/zones";
 
+interface RaidDeveloperRow {
+  id: number;
+  claimed: boolean;
+  github_login: string;
+  avatar_url: string | null;
+  contributions: number;
+  public_repos: number;
+  total_stars: number;
+  kudos_count: number;
+  app_streak: number;
+  raid_xp: number;
+  xp_level: number;
+  current_week_contributions: number;
+  current_week_kudos_given: number;
+  current_week_kudos_received: number;
+  last_raided_at: string | null;
+  active_defenses: string[];
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -72,10 +91,8 @@ export async function POST(request: Request) {
       .single(),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let attacker = attackerRes.data as Record<string, any> | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const defender = defenderRes.data as Record<string, any> | null;
+  let attacker = attackerRes.data as RaidDeveloperRow | null;
+  const defender = defenderRes.data as RaidDeveloperRow | null;
 
   // Auto-claim logic if building exists but not claimed by user yet
   if (!attacker && githubLogin) {
@@ -103,7 +120,7 @@ export async function POST(request: Request) {
         .select(raidColumns)
         .eq("claimed_by", user.id)
         .single();
-      attacker = attackerRes.data as Record<string, any> | null;
+      attacker = attackerRes.data as RaidDeveloperRow | null;
     }
   }
 
