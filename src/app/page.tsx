@@ -2,7 +2,7 @@
 import SearchBar from '@/components/SearchBar';
 import UserProfile from '@/components/UserProfile';
 import ActionToolbar from '@/components/ActionToolbar';
-"use client";
+
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
