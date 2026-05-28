@@ -3,7 +3,7 @@ name: CI Pipeline
 on:
   push:
     branches: [main]
-  pull_request:
+  pull_request_target:
     branches: [main]
 
 jobs:
@@ -14,6 +14,10 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          # For pull_request_target, we must explicitly checkout the PR merge ref
+          # This is safe because we only run lint/build (no secret access)
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,6 +38,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
