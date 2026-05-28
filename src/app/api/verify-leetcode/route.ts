@@ -199,6 +199,7 @@ export async function POST(req: Request) {
             .from("developers")
             .upsert({
                 github_login: leetcode_username.toLowerCase(),
+                lc_username: leetcode_username.toLowerCase(),
                 github_id: github_id,
                 name: name,
                 avatar_url: avatar_url,

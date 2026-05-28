@@ -3251,19 +3251,28 @@ function HomeContent() {
                       </button>
                     )}
                     {linkedLeetCodeUsername && (
-                      <Link
-                        href={`/dev/${linkedLeetCodeUsername}`}
-                        className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
-                        style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
-                      >
-                        @{linkedLeetCodeUsername}
-                        {streakData && streakData.streak > 0 && (
-                          <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
-                            <span className="text-[9px] leading-none">🔥</span>
-                            <span className="font-bold">{streakData.streak}</span>
-                          </span>
-                        )}
-                      </Link>
+                      <>
+                        <Link
+                          href="/settings"
+                          className="flex items-center gap-1 border-[3px] border-border bg-bg/80 px-2 py-1.5 text-[10px] text-muted normal-case backdrop-blur-sm transition-colors hover:border-border-light hover:text-cream"
+                          title="Settings"
+                        >
+                          ⚙️
+                        </Link>
+                        <Link
+                          href={`/dev/${linkedLeetCodeUsername}`}
+                          className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
+                          style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
+                        >
+                          @{linkedLeetCodeUsername}
+                          {streakData && streakData.streak > 0 && (
+                            <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
+                              <span className="text-[9px] leading-none">🔥</span>
+                              <span className="font-bold">{streakData.streak}</span>
+                            </span>
+                          )}
+                        </Link>
+                      </>
                     )}
                     {myBuilding?.claimed && (
                       <XpBar
@@ -3347,20 +3356,29 @@ function HomeContent() {
                   Link
                 </button>
               )}
-              {linkedLeetCodeUsername && (
-                <Link
-                  href={`/dev/${linkedLeetCodeUsername}`}
-                  className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
-                  style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
-                >
-                  @{linkedLeetCodeUsername.slice(0, 6)}
-                  {streakData && streakData.streak > 0 && (
-                    <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
-                      <span className="text-[8px] leading-none">🔥</span>
-                      <span className="font-bold">{streakData.streak}</span>
-                    </span>
-                  )}
-                </Link>
+             {linkedLeetCodeUsername && (
+                <>
+                  <Link
+                    href="/settings"
+                    className="btn-press flex items-center border-[2px] border-border px-2 py-1.5 text-[10px] text-muted transition-colors active:bg-white/5"
+                    title="Settings"
+                  >
+                    ⚙️
+                  </Link>
+                  <Link
+                    href={`/dev/${linkedLeetCodeUsername}`}
+                    className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
+                    style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
+                  >
+                    @{linkedLeetCodeUsername.slice(0, 6)}
+                    {streakData && streakData.streak > 0 && (
+                      <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
+                        <span className="text-[8px] leading-none">🔥</span>
+                        <span className="font-bold">{streakData.streak}</span>
+                      </span>
+                    )}
+                  </Link>
+                </>
               )}
               <button
                 onClick={handleSignOut}
