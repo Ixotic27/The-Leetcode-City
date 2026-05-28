@@ -7,12 +7,12 @@ interface SkeletonProps {
   height?: string | number;
 }
 
-export const Skeleton: React.FC<SkeletonProps> = ({
+export default function Skeleton({
   className = "",
   variant = "rectangular",
   width,
   height,
-}) => {
+}: SkeletonProps) {
   const baseShape =
     variant === "circle"
       ? "rounded-full"
@@ -29,4 +29,4 @@ export const Skeleton: React.FC<SkeletonProps> = ({
       }}
     />
   );
-};
+}
