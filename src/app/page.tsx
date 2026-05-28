@@ -1,4 +1,8 @@
 "use client";
+import SearchBar from '@/components/SearchBar';
+import UserProfile from '@/components/UserProfile';
+import ActionToolbar from '@/components/ActionToolbar';
+
 
 import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -447,7 +451,6 @@ function HomeContent() {
   const [vsCodeKey, setVsCodeKey] = useState<string | null>(null);
   const [vsCodeKeyLoading, setVsCodeKeyLoading] = useState(false);
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
-  const [hasVsCodeKey, setHasVsCodeKey] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -659,17 +662,9 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
-        } catch (err) {
-          console.warn("[app/page.tsx] error:", err);
+        } catch {
           setLinkedLeetCodeUsername(null);
         }
-
-        // Check if user already has a VS Code API key
-        try {
-          const keyRes = await fetch("/api/vscode-key");
-          const keyData = await keyRes.json();
-          if (keyData.hasKey) setHasVsCodeKey(true);
-        } catch { /* ignore */ }
       } else {
         setLinkedLeetCodeUsername(null);
       }
@@ -689,7 +684,7 @@ function HomeContent() {
               // Small delay so the UI has settled after login redirect
               setTimeout(() => setShowLinkModal(true), 800);
             }
-          } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+          } catch { }
         }
       }
     });
@@ -740,7 +735,7 @@ function HomeContent() {
             ) ?? prev;
           });
         }
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* silent */
+      } catch { /* silent */ }
     };
 
     // Wait 10 seconds after login/link so city is fully loaded, then refresh once
@@ -750,8 +745,6 @@ function HomeContent() {
     return () => { clearTimeout(initialDelay); clearInterval(interval); };
   }, [linkedLeetCodeUsername]);
 
-  // LeetCode username used for building ownership checks.
-  // IMPORTANT: never rely on GitHub username for ownership.
   const authLogin = (
     session?.user?.user_metadata?.user_name ??
     session?.user?.user_metadata?.preferred_username ??
@@ -760,21 +753,11 @@ function HomeContent() {
     ""
   ).toLowerCase();
 
-  const identityResolved = useMemo(() => {
-    // If not logged in, identity is trivially resolved.
-    if (!session) return true;
-    // While logged in, we only consider identity resolved once /api/me has returned
-    // (linkedLeetCodeUsername is either a string or null).
-    return linkedLeetCodeUsername !== null;
-  }, [session, linkedLeetCodeUsername]);
-
-  // Ownership: compare LeetCode usernames only.
-  const isOwnBuilding =
-  identityResolved &&
-  !!selectedBuilding &&
-  !!linkedLeetCodeUsername &&
-  selectedBuilding?.login?.toLowerCase() ===
-    linkedLeetCodeUsername.toLowerCase();
+  // Extra guard: check if selected building is own by comparing linked account
+  const isOwnBuilding = !!selectedBuilding && (
+    (authLogin !== "" && selectedBuilding.login.toLowerCase() === authLogin) ||
+    (!!linkedLeetCodeUsername && selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase())
+  );
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -844,7 +827,7 @@ function HomeContent() {
       trackReferralLinkLanded(ref);
       try {
         localStorage.setItem("gc_ref", JSON.stringify({ login: ref, expires: Date.now() + 7 * 86400000 }));
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+      } catch { /* ignore */ }
     }
   }, [searchParams]);
 
@@ -861,7 +844,7 @@ function HomeContent() {
           redirectTo += `?ref=${encodeURIComponent(login)}`;
         }
       }
-    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+    } catch { /* ignore */ }
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo },
@@ -877,7 +860,7 @@ function HomeContent() {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setFeedEvents(data.events ?? []);
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+      } catch { /* ignore */ }
     };
     fetchFeed();
     const interval = setInterval(fetchFeed, 120000);
@@ -898,7 +881,7 @@ function HomeContent() {
           });
           trackMissionRef.current("visit_building");
           trackMissionRef.current("visit_3_buildings");
-        } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+        } catch { /* ignore */ }
       }, 3000);
     }
     return () => {
@@ -938,7 +921,7 @@ function HomeContent() {
         setKudosError(msg);
         setTimeout(() => setKudosError(null), 3000);
       }
-    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+    } catch { /* ignore */ }
     finally { setKudosSending(false); }
   }, [selectedBuilding, kudosSending, kudosSent, session, authLogin]);
 
@@ -957,7 +940,7 @@ function HomeContent() {
         .filter((i) => i.price_usd_cents > 0 && !NON_GIFTABLE.has(i.id))
         .map((i) => ({ ...i, owned: receiverOwned.has(i.id) }));
       setGiftItems(available);
-    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+    } catch { /* ignore */ }
   }, [selectedBuilding, session]);
 
   // Gift: checkout for receiver
@@ -978,7 +961,7 @@ function HomeContent() {
       if (res.ok && data.url) {
         window.location.href = data.url;
       }
-    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); } /* ignore */
+    } catch { /* ignore */ }
     finally { setGiftBuying(null); }
   }, [selectedBuilding, giftBuying]);
 
@@ -1090,7 +1073,7 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+      } catch { }
     })();
   }, [session]);
 
@@ -1130,7 +1113,9 @@ function HomeContent() {
           setTimeout(() => setRabbitSighting(data.progress + 1), 2000);
           return;
         }
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+      } catch {
+        // Fall through to local tracking
+      }
     }
 
     // Local tracking (not logged in or API failed)
@@ -1214,7 +1199,8 @@ function HomeContent() {
           localStorage.removeItem("leetcodecity:loadout_override");
         }
       }
-    } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+    } catch { }
+
     rawDevsRef.current = allDevs;
     setStats(cityStats);
     const layout = generateCityLayout(allDevs);
@@ -1232,15 +1218,10 @@ function HomeContent() {
   const handleLoadFadeComplete = useCallback(() => {
     setLoadStage("done");
     const hasDeepLink = searchParams.get("user") || searchParams.get("compare");
-    // Skip intro for signed-in users (they've already been through the flow)
-    // and for return visits with deep links
-    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink && !session) {
+    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink) {
       setIntroMode(true);
-    } else if (!localStorage.getItem("leetcodecity_intro_seen") && session) {
-      // Signed-in user who somehow lost localStorage — mark as seen to prevent future re-triggers
-      localStorage.setItem("leetcodecity_intro_seen", "true");
     }
-  }, [searchParams, session]);
+  }, [searchParams]);
 
   // Retry handler for loading errors
   const handleLoadRetry = useCallback(() => {
@@ -1361,7 +1342,8 @@ function HomeContent() {
               localStorage.removeItem("leetcodecity:loadout_override");
             }
           }
-        } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+        } catch { }
+
         // Generate layout
         setLoadStage("generating");
         setLoadProgress(45);
@@ -1472,14 +1454,14 @@ function HomeContent() {
 
     // Read current PB fresh from localStorage (React state may be stale)
     let currentPB = flyPersonalBestRef.current;
-    try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+    try { currentPB = Math.max(currentPB, parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { }
     // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
     const isNewPB = currentPB > 0 && finalScore > currentPB;
     // Update personal best
     if (isNewPB) {
       setFlyPersonalBest(finalScore);
       flyPersonalBestRef.current = finalScore;
-      try { localStorage.setItem("leetcodecity_fly_pb", String(finalScore)); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+      try { localStorage.setItem("leetcodecity_fly_pb", String(finalScore)); } catch { }
     }
     // Update fly history (streak, days played, per-seed scores)
     if (finalScore > 0) {
@@ -1510,7 +1492,7 @@ function HomeContent() {
         }
         hist.longestStreak = Math.max(hist.longestStreak || 0, hist.currentStreak);
         localStorage.setItem("leetcodecity_fly_history", JSON.stringify(hist));
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+      } catch { }
     }
     // Exit fly immediately (don't block on API)
     setFlyMode(false); setFlyPaused(false); lastDistrictRef.current = null; setDistrictAnnouncement(null); clearTimeout(announceTimerRef.current);
@@ -1805,8 +1787,7 @@ function HomeContent() {
         setExploreMode(true);
       }
       setUsername("");
-    } catch (err) {
-      console.warn("[app/page.tsx] error:", err);
+    } catch {
       setFeedback({ type: "error", code: "network", username: trimmed });
       setLoading(false);
     } finally {
@@ -1963,19 +1944,15 @@ function HomeContent() {
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
-  // City energy: devs coding -> city lights up
-  // 0 devs = ~10% (city sleeping, very dim)
-  // 1 dev  = ~16% (city waking up)
-  // 3-5   = ~50-85% (city alive)
-  // 10+   = 100%+ bloom (city buzzing)
-  const cityEnergy = useMemo(() => {
-    if (codingCount === 0) return 0.60; // 🌑 City Sleeping — still visible
-    if (codingCount === 1) return 0.75; // 🌒 City Waking Up
-    if (codingCount === 2) return 0.85; // waking transition
-    if (codingCount <= 5) return 0.90 + (codingCount - 3) * 0.05; // 🌆 City Alive: 3->0.90, 5->1.0
-    if (codingCount <= 10) return 1.0 + (codingCount - 5) * 0.04; // ramp to 1.2
-    return Math.min(1.6, 1.2 + (codingCount - 10) * 0.04); // ⚡ City Buzzing
-  }, [codingCount]);
+  // City energy: devs coding -> city lights up. 0 devs = nearly dark, 5+ = full brightness
+ const cityEnergy = useMemo(() => {
+  if (codingCount === 0) return 0.60;
+  if (codingCount === 1) return 0.75;
+  if (codingCount === 2) return 0.85;
+
+  if (codingCount <= 10) return 1.0 + (codingCount - 5) * 0.04;
+  return Math.min(1.6, 1.2 + (codingCount - 10) * 0.04);
+}, [codingCount]);
 
 
   // ─── Milestone celebration system ──────────────────────────
@@ -2042,7 +2019,7 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+      } catch { }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2052,16 +2029,13 @@ function HomeContent() {
     if (loadStage !== "done" || isMobile || flyMode || introMode) return;
     try {
       if (localStorage.getItem("leetcodecity_fly_history") || localStorage.getItem("leetcodecity_fly_hint_seen")) return;
-    } catch (err) {
-      console.warn("[app/page.tsx] error:", err);
-      return;
-    }
+    } catch { return; }
     flyHintTimerRef.current = setTimeout(() => {
       setShowFlyHint(true);
       // Auto-dismiss after 10s
       const autoDismiss = setTimeout(() => {
         setShowFlyHint(false);
-        try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+        try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -2155,7 +2129,7 @@ function HomeContent() {
               a.rel = "noopener noreferrer";
               a.click();
             }
-            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch (err) { console.warn("[app/page.tsx] error:", err); setAdToast(ad.brand || "link"); }
+            try { setAdToast(ad.brand || new URL(ad.link).hostname.replace("www.", "")); } catch { setAdToast(ad.brand || "link"); }
             setTimeout(() => setAdToast(null), 2500);
           } else {
             trackAdEvent(ad.id, "click", authLogin || undefined);
@@ -2171,7 +2145,9 @@ function HomeContent() {
             if (viewed.includes(adId)) return;
             viewed.push(adId);
             sessionStorage.setItem(key, JSON.stringify(viewed));
-          } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+          } catch {
+            // sessionStorage unavailable — allow tracking
+          }
           trackAdEvent(adId, "impression", authLogin || undefined);
           const ad = skyAds.find(a => a.id === adId);
           if (ad) trackSkyAdImpression(ad.id, ad.vehicle, ad.brand);
@@ -2547,7 +2523,7 @@ function HomeContent() {
             <button
               onClick={() => {
                 setShowFlyControls(false);
-                try { localStorage.setItem("leetcodecity_fly_controls_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+                try { localStorage.setItem("leetcodecity_fly_controls_seen", "1"); } catch { }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", bubbles: true }));
               }}
@@ -2810,44 +2786,9 @@ function HomeContent() {
                             <p className="mt-3 text-[10px] normal-case text-muted/50">
                               Your building lights up in ~30s
                             </p>
-                          </div>
-                        ) : hasVsCodeKey ? (
-                          <div className="px-5 py-5">
-                            <div className="mb-3 flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-[#4ade80]" />
-                              <p className="text-sm font-bold text-cream">Extension Connected</p>
-                            </div>
-                            <p className="mb-4 text-[11px] normal-case text-muted">
-                              Your API key is active. Open VS Code and start coding to power your building.
+                            <p className="mt-1.5 text-[10px] normal-case text-muted/50">
+                              Only your username and language are shared publicly. Control what&apos;s sent in VS Code Settings &gt; LeetCode City &gt; Privacy.
                             </p>
-                            <div className="space-y-2.5 text-xs normal-case text-muted">
-                              <p><span className="text-cream">Tip:</span> Run <span className="text-cream">Cmd+Shift+P</span> &rarr; &ldquo;Pulse: Connect&rdquo; if you need to re-enter your key</p>
-                            </div>
-                            <button
-                              onClick={async () => {
-                                setVsCodeKeyLoading(true);
-                                try {
-                                  const res = await fetch("/api/vscode-key", { method: "POST" });
-                                  const data = await res.json();
-                                  if (data.key) {
-                                    setVsCodeKey(data.key);
-                                    navigator.clipboard.writeText(data.key);
-                                    setVsCodeKeyCopied(true);
-                                    setTimeout(() => setVsCodeKeyCopied(false), 2000);
-                                  } else {
-                                    alert(data.error || "Failed to regenerate key.");
-                                  }
-                                } catch {
-                                  alert("Network error. Please try again.");
-                                } finally {
-                                  setVsCodeKeyLoading(false);
-                                }
-                              }}
-                              disabled={vsCodeKeyLoading}
-                              className="mt-4 w-full border border-border py-2 text-center text-[11px] normal-case text-muted transition-colors hover:border-border-light hover:text-cream"
-                            >
-                              {vsCodeKeyLoading ? "Generating..." : "Regenerate Key"}
-                            </button>
                           </div>
                         ) : (
                           <div className="px-5 py-5">
@@ -2870,15 +2811,10 @@ function HomeContent() {
                                   const data = await res.json();
                                   if (data.key) {
                                     setVsCodeKey(data.key);
-                                    setHasVsCodeKey(true);
                                     navigator.clipboard.writeText(data.key);
                                     setVsCodeKeyCopied(true);
                                     setTimeout(() => setVsCodeKeyCopied(false), 2000);
-                                  } else {
-                                    alert(data.error || "Failed to generate key. Make sure you're signed in and have claimed your building.");
                                   }
-                                } catch {
-                                  alert("Network error. Please try again.");
                                 } finally {
                                   setVsCodeKeyLoading(false);
                                 }
@@ -3162,7 +3098,7 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
-                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                         // Feature 3: show controls overlay on first flight
                         if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                           setShowFlyControls(true);
@@ -3199,7 +3135,7 @@ function HomeContent() {
                             onClick={() => {
                               setShowFlyHint(false);
                               clearTimeout(flyHintTimerRef.current);
-                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch (err) { console.warn("[app/page.tsx] non-critical error:", err); }
+                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -3232,7 +3168,7 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
-                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                       if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                         setShowFlyControls(true);
                       }
@@ -3802,8 +3738,7 @@ function HomeContent() {
               )}
 
               {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
-              {identityResolved && !isOwnBuilding && (() => {
-
+              {!isOwnBuilding && (() => {
                 const equipped: string[] = [];
                 if (selectedBuilding.loadout?.crown) equipped.push(selectedBuilding.loadout.crown);
                 if (selectedBuilding.loadout?.roof) equipped.push(selectedBuilding.loadout.roof);
@@ -3835,12 +3770,11 @@ function HomeContent() {
                         </span>
                       )}
                     </div>
-                    {identityResolved && !isOwnBuilding && (
+                    {session && !isOwnBuilding && (
                       <Link
                         href={`/shop/${authLogin}`}
                         className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
                         style={{
-
                           backgroundColor: theme.accent,
                           boxShadow: `2px 2px 0 0 ${theme.shadow}`,
                         }}
@@ -3853,8 +3787,7 @@ function HomeContent() {
               })()}
 
               {/* Kudos: give kudos (other's building, logged in) */}
-             {identityResolved && !isOwnBuilding && (
-
+              {session && !isOwnBuilding && (
                 <div className="relative mx-4 mb-3">
                   {/* Floating emoji animation on success */}
                   {kudosSent && (
@@ -3911,8 +3844,8 @@ function HomeContent() {
                   )}
                   <button
                     onClick={() => {
-                      if (linkedLeetCodeUsername && selectedBuilding) {
-                        raidActions.startPreview(selectedBuilding.login, buildings, linkedLeetCodeUsername);
+                      if (authLogin && selectedBuilding) {
+                        raidActions.startPreview(selectedBuilding.login, buildings, authLogin);
                       }
                     }}
                     disabled={raidState.loading}
@@ -3924,20 +3857,8 @@ function HomeContent() {
               )}
 
               {/* A3: Disabled action buttons for non-logged users */}
-              {!identityResolved && session && (
-                <div className="mx-4 mb-3 space-y-1.5">
-                  <button
-                    className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors"
-                    disabled
-                  >
-                    Loading actions...
-                  </button>
-                </div>
-              )}
               {!session && (
-
                 <div className="mx-4 mb-3 space-y-1.5">
-
                   <button
                     onClick={() => { trackDisabledButtonClicked("kudos"); handleSignIn(); }}
                     className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
@@ -3960,8 +3881,7 @@ function HomeContent() {
               )}
 
               {/* Own building: copy invite link */}
-              {identityResolved && selectedBuilding?.login?.toLowerCase() === linkedLeetCodeUsername?.toLowerCase() && (
-
+              {selectedBuilding.login.toLowerCase() === authLogin && (
                 <div className="mx-4 mb-3">
                   <button
                     onClick={() => {
@@ -3979,8 +3899,7 @@ function HomeContent() {
               )}
 
               {/* Compare button */}
-              {identityResolved && !isOwnBuilding && !flyMode && (
-
+              {!flyMode && !isOwnBuilding && (
                 <div className="mx-4 mb-3">
                   <button
                     onClick={() => {
@@ -3997,10 +3916,9 @@ function HomeContent() {
 
               {/* Actions */}
               <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                {identityResolved && selectedBuilding?.login?.toLowerCase() === linkedLeetCodeUsername?.toLowerCase() ? (
-
+                {selectedBuilding.login.toLowerCase() === authLogin ? (
                   <>
-                    <a
+                    <Link
                       href={`/shop/${selectedBuilding.login}?tab=loadout`}
                       className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
                       style={{
@@ -4009,17 +3927,17 @@ function HomeContent() {
                       }}
                     >
                       Loadout
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href={`/dev/${selectedBuilding.login}`}
                       className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
                     >
                       Profile
-                    </a>
+                    </Link>
                   </>
                 ) : (
                   <>
-                    <a
+                    <Link
                       href={`/dev/${selectedBuilding.login}`}
                       className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
                       style={{
@@ -4028,7 +3946,7 @@ function HomeContent() {
                       }}
                     >
                       View Profile
-                    </a>
+                    </Link>
                     <a
                       href={`https://leetcode.com/u/${selectedBuilding.login}/`}
                       target="_blank"
@@ -4075,32 +3993,15 @@ function HomeContent() {
               </p>
             )}
             {/* Search field for compare pick */}
-            <form
-              onSubmit={(e) => { e.preventDefault(); searchUser(); }}
-              className="mt-2 flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (feedback?.type === "error") setFeedback(null);
-                }}
-                placeholder="search username to compare"
-                className="min-w-0 flex-1 border-[2px] border-border bg-bg px-2.5 py-1.5 text-base sm:text-[10px] text-cream outline-none transition-colors placeholder:text-dim"
-                onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
-                onBlur={(e) => (e.currentTarget.style.borderColor = "")}
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={loading || !username.trim()}
-                className="btn-press flex-shrink-0 px-3 py-1.5 text-[10px] text-bg disabled:opacity-40"
-                style={{ backgroundColor: theme.accent }}
-              >
-                {loading ? "_" : "Go"}
-              </button>
-            </form>
+            <SearchBar 
+  username={username}
+  setUsername={setUsername}
+  feedback={feedback}
+  setFeedback={setFeedback}
+  loading={loading}
+  theme={theme}
+  searchUser={searchUser}
+/>
             {feedback && (
               <div className="mt-1.5">
                 <SearchFeedback feedback={feedback} accentColor={theme.accent} onDismiss={() => setFeedback(null)} onRetry={searchUser} />
@@ -4371,27 +4272,7 @@ function HomeContent() {
               &#10005;
             </button>
 
-            {/* Avatar */}
-            {shareData.avatar_url && (
-              <Image
-                src={shareData.avatar_url}
-                alt={shareData.login}
-                width={48}
-                height={48}
-                className="mx-auto mb-3 border-[2px] border-border"
-                style={{ imageRendering: "pixelated" }}
-              />
-            )}
-
-            <p className="text-xs text-cream normal-case">
-              <span style={{ color: theme.accent }}>@{shareData.login}</span> joined the city!
-            </p>
-
-            <p className="mt-2 text-[10px] text-muted normal-case">
-              City Rank <span style={{ color: theme.accent }}>#{shareData.rank ?? "?"}</span>
-              {" · "}
-              <span style={{ color: theme.accent }}>{shareData.contributions.toLocaleString()}</span> solved
-            </p>
+         <UserProfile shareData={shareData} theme={theme} />
 
             {/* Buttons */}
             <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5 sm:flex-row sm:justify-center sm:gap-3">
@@ -4547,23 +4428,14 @@ function HomeContent() {
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
-          <button
-            onClick={cycleTheme}
-            className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">{theme.name}</span>
-            <span className="text-dim">{themeIndex + 1}/{THEMES.length}</span>
-          </button>
-          {isMounted && <div id="gc-radio-slot" />}
-          <button
-            onClick={replayIntro}
-            className="btn-press flex items-center gap-1 border-[3px] border-border bg-bg/70 px-2 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-            title="Replay intro"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">Intro</span>
-          </button>
+          <ActionToolbar 
+  cycleTheme={cycleTheme} 
+  replayIntro={replayIntro} 
+  theme={theme} 
+  themeIndex={themeIndex} 
+  themesLength={THEMES.length} 
+  isMounted={isMounted} 
+/>
         </div>
       )}
 
@@ -4796,7 +4668,7 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
-                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch (err) { console.warn("[app/page.tsx] error:", err); setFlyPersonalBest(0); }
+                  try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                 }}
                 className="btn-press px-5 py-2 text-[10px] text-bg"
                 style={{ backgroundColor: theme.accent, boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
@@ -5181,3 +5053,4 @@ export default function Home() {
     </Suspense>
   );
 }
+
