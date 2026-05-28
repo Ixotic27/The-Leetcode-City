@@ -1665,11 +1665,23 @@ export default function ShopClient({
                               </div>
                             )}
                             
-                            {/* Billboard Edit Button Preview */}
+                            {/* Billboard slot summary for equipped owner */}
                             {((isOwned && itemId === "billboard") || billboardSlots > 0) && itemId === "billboard" && isEquipped && (
                               <div className="mt-2 w-full flex justify-center text-[9px] text-muted normal-case hover:text-cream">
                                 {billboardImages.length} images set
                               </div>
+                            )}
+
+                            {/* Billboard preview/upload panel (owner edit or pre-purchase preview) */}
+                            {itemId === "billboard" && (isEquipped || isConfirming) && (
+                              <BillboardUploadPanel
+                                images={previewBillboardImages ?? billboardImages}
+                                slotCount={billboardSlots}
+                                isOwned={isOwned}
+                                autoUploading={autoUploading}
+                                onImagesChange={setBillboardImages}
+                                onPreviewChange={setPreviewBillboardImages}
+                              />
                             )}
 
                             {/* Buy confirmation popover */}
