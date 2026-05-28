@@ -35,11 +35,15 @@ jobs:
 
             // ── 1. Define all label specs (from the PR Labels system) ──
             const labelSpecs = {
-              // Difficulty labels (required)
+              // Difficulty labels (required on every issue/PR)
+              'beginner':           { color: '22c55e', description: 'Beginner difficulty level' },
+              'intermediate':       { color: '3b82f6', description: 'Intermediate difficulty level' },
+              'advanced':           { color: 'f97316', description: 'Advanced difficulty level' },
               'level:beginner':     { color: '22c55e', description: 'Beginner difficulty level' },
               'level:intermediate': { color: '3b82f6', description: 'Intermediate difficulty level' },
               'level:advanced':     { color: 'f97316', description: 'Advanced difficulty level' },
               'level:critical':     { color: '6b7280', description: 'Critical difficulty level' },
+              'good first issue':   { color: '7057ff', description: 'Good for newcomers' },
               // Quality labels (optional)
               'quality:clean':       { color: '22c55e', description: 'Clean, well-written code' },
               'quality:exceptional': { color: '8b5cf6', description: 'Exceptional quality contribution' },
@@ -52,8 +56,11 @@ jobs:
               'type:performance': { color: '6366f1', description: 'Code changes that improve performance/speed' },
               'type:design':      { color: 'ec4899', description: 'UI designs, styling, and themes' },
               'type:refactor':    { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature' },
-              // Approval & status labels
-              'gssoc:approved':   { color: '22c55e', description: 'Approved for GSSoC points' },
+              // GSSoC & approval labels (required on every issue/PR)
+              'Gssoc 26':         { color: 'e5533d', description: 'GSSoC 2026 contribution' },
+
+              'gssoc:verified':   { color: '0e8a16', description: 'Verified GSSoC contribution' },
+              // Status labels
               'status:blocked':   { color: 'dc2626', description: 'This PR is blocked due to a failing CI check.' },
               'needs-rebase':     { color: 'e11d48', description: 'This PR has merge conflicts and needs a rebase.' },
               'needs-details':    { color: 'f97316', description: 'This PR is missing required description details.' },
@@ -104,11 +111,36 @@ jobs:
               return null;
             }
 
-            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved']);
+            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:verified', 'good first issue']);
 
             // Detect type from PR title
             const typeLabel = detectType(prTitle) || detectType(headRef);
             if (typeLabel) labelsToAdd.add(typeLabel);
+
+            // ── 4a. Auto-detect difficulty level from PR title/body/branch ──
+            const difficultyKeywords = {
+              'advanced':     ['advanced', 'complex', 'critical', 'architecture', 'security', 'migration'],
+              'intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration'],
+              'beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge'],
+            };
+
+            const allText = `${prTitle} ${headRef} ${prBody}`.toLowerCase();
+            let detectedDifficulty = null;
+            for (const [level, keywords] of Object.entries(difficultyKeywords)) {
+              if (keywords.some(kw => allText.includes(kw))) {
+                detectedDifficulty = level;
+                break; // first match wins (advanced > intermediate > beginner)
+              }
+            }
+
+            // Check if PR already has a difficulty label from linked issues
+            const existingDiffLabels = ['beginner', 'intermediate', 'advanced', 'level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+            const hasDiffFromLinked = [...labelsToAdd].some(l => existingDiffLabels.includes(l));
+
+            if (!hasDiffFromLinked) {
+              // Apply detected difficulty, or default to beginner
+              labelsToAdd.add(detectedDifficulty || 'beginner');
+            }
 
             // ── 4. Inherit labels from linked issues ──
             const branchMatch = headRef.match(/^(\d+)-/);

@@ -52,12 +52,12 @@ jobs:
               'type:performance': { color: '6366f1', description: 'Code changes that improve performance/speed' },
               'type:design':      { color: 'ec4899', description: 'UI designs, styling, and themes' },
               'type:refactor':    { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature' },
-              'gssoc:approved':   { color: '22c55e', description: 'Approved for GSSoC points' },
+
               'status:blocked':   { color: 'dc2626', description: 'This PR is blocked due to a failing CI check.' },
               'needs-rebase':     { color: 'e11d48', description: 'This PR has merge conflicts and needs a rebase.' },
               'needs-details':    { color: 'f97316', description: 'This PR is missing required description details.' },
               'inactive':         { color: '6b7280', description: 'This PR was closed due to inactivity.' },
-              'possible-duplicate': { color: 'fbca04', description: 'This issue may be a duplicate.' },
+
               'Gssoc 26':         { color: '0e8a16', description: 'GSSoC 2026 program' },
             };
 
@@ -128,7 +128,7 @@ jobs:
 
               // 1. Add gssoc labels if missing
               if (!currentLabels.includes('Gssoc 26')) labelsToAdd.push('Gssoc 26');
-              if (!currentLabels.includes('gssoc:approved')) labelsToAdd.push('gssoc:approved');
+
 
               // 2. Auto-detect type from title or branch
               const hasTypeLabel = currentLabels.some(l => l.startsWith('type:'));
