@@ -29,10 +29,6 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 - **Compare Mode** — Put two developers side by side and compare their buildings and stats
 - **Share Cards** — Download shareable image cards of your profile in landscape or stories format
 
-<!-- TODO: Add screenshots -->
-<!-- ![City Overview](assets/screenshot-city.png) -->
-<!-- ![Profile Page](assets/screenshot-profile.png) -->
-<!-- ![Compare Mode](assets/screenshot-compare.png) -->
 
 ## How Buildings Work
 

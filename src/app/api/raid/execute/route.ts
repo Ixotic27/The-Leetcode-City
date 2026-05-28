@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
   // Fetch attacker + defender in parallel
   const raidColumns = "id, claimed, github_login, avatar_url, contributions, public_repos, total_stars, kudos_count, app_streak, raid_xp, xp_level, current_week_contributions, current_week_kudos_given, current_week_kudos_received, last_raided_at, active_defenses";
-  const [attackerRes, defenderRes] = await Promise.all([
+  let [attackerRes, defenderRes] = await Promise.all([
     admin
       .from("developers")
       .select(raidColumns)
@@ -73,9 +73,39 @@ export async function POST(request: Request) {
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const attacker = attackerRes.data as Record<string, any> | null;
+  let attacker = attackerRes.data as Record<string, any> | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const defender = defenderRes.data as Record<string, any> | null;
+
+  // Auto-claim logic if building exists but not claimed by user yet
+  if (!attacker && githubLogin) {
+    const { data: unclaimedBuilding } = await admin
+      .from("developers")
+      .select("id, claimed_by")
+      .eq("github_login", githubLogin)
+      .eq("claimed", false)
+      .is("claimed_by", null)
+      .single();
+
+    if (unclaimedBuilding) {
+      await admin
+        .from("developers")
+        .update({
+          claimed: true,
+          claimed_by: user.id,
+          claimed_at: new Date().toISOString(),
+          fetch_priority: 1,
+        })
+        .eq("id", unclaimedBuilding.id);
+      
+      attackerRes = await admin
+        .from("developers")
+        .select(raidColumns)
+        .eq("claimed_by", user.id)
+        .single();
+      attacker = attackerRes.data as Record<string, any> | null;
+    }
+  }
 
   if (!attacker || !attacker.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });

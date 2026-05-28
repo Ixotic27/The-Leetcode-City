@@ -107,7 +107,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", dev.id)
-      .in("item_id", ["custom_color", "billboard", "building_style"]),
+      .in("item_id", ["custom_color", "billboard", "building_style", "led_banner"]),
     sb
       .from("purchases")
       .select("id", { count: "exact", head: true })
@@ -170,7 +170,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([id]) => id);
-  const initialLoadout = (loadoutResult.data?.config as { crown: string | null; roof: string | null; aura: string | null } | null) ?? null;
+  const initialLoadout = (loadoutResult.data?.config as { crown: string | null; roof: string | null; aura: string | null; faces: string | null } | null) ?? null;
 
   const billboardSlots = billboardPurchasesResult.count ?? 0;
   const maxContrib = topDevResult.data?.contributions ?? dev.contributions;
@@ -188,6 +188,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
   let initialCustomColor: string | null = null;
   let initialBillboardImages: string[] = [];
   let initialBuildingStyle = "tower";
+  let initialLedBannerText: string | null = null;
   for (const row of customizationsResult.data ?? []) {
     const config = row.config as Record<string, unknown>;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -203,6 +204,9 @@ export default async function ShopPage({ params, searchParams }: Props) {
     }
     if (row.item_id === "building_style" && typeof config?.style === "string") {
       initialBuildingStyle = config.style;
+    }
+    if (row.item_id === "led_banner" && typeof config?.text === "string") {
+      initialLedBannerText = config.text;
     }
   }
 
@@ -247,6 +251,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
           ownedItems={ownedItems}
           initialCustomColor={initialCustomColor}
           initialBillboardImages={initialBillboardImages}
+          initialLedBannerText={initialLedBannerText}
           billboardSlots={billboardSlots}
           buildingDims={buildingDims}
           achievements={achievements}

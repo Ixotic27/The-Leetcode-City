@@ -280,7 +280,7 @@ export async function GET(
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", upserted.id)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style"]),
+      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
     sb
       .from("raid_tags")
       .select("attacker_login, tag_style, expires_at")
@@ -301,7 +301,10 @@ export async function GET(
     crown: loadoutConfig.crown ?? null,
     roof: loadoutConfig.roof ?? null,
     aura: loadoutConfig.aura ?? null,
+    faces: loadoutConfig.faces ?? null,
   } : null;
+
+  const ledBannerText = (customizationsResult.data ?? []).find(c => c.item_id === "led_banner")?.config?.text ?? null;
 
   const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
 
@@ -310,6 +313,7 @@ export async function GET(
     owned_items: ownedItems,
     custom_color: customColor,
     billboard_images: billboardImages,
+    led_banner_text: ledBannerText,
     loadout: loadout,
     building_style: buildingStyle,
     active_raid_tag: raidTagsResult.data?.[0] ?? null,

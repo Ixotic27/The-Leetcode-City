@@ -39,13 +39,43 @@ export async function POST(request: Request) {
   ).toLowerCase();
 
   // Fetch attacker
-  const attackerRes = await admin
+  let attackerRes = await admin
     .from("developers")
     .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
     .eq("claimed_by", user.id)
     .single();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const attacker = attackerRes.data as Record<string, any> | null;
+  let attacker = attackerRes.data as Record<string, any> | null;
+
+  // Auto-claim logic if building exists but not claimed by user yet
+  if (!attacker && githubLogin) {
+    const { data: unclaimedBuilding } = await admin
+      .from("developers")
+      .select("id, claimed_by")
+      .eq("github_login", githubLogin)
+      .eq("claimed", false)
+      .is("claimed_by", null)
+      .single();
+
+    if (unclaimedBuilding) {
+      await admin
+        .from("developers")
+        .update({
+          claimed: true,
+          claimed_by: user.id,
+          claimed_at: new Date().toISOString(),
+          fetch_priority: 1,
+        })
+        .eq("id", unclaimedBuilding.id);
+      
+      attackerRes = await admin
+        .from("developers")
+        .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
+        .eq("claimed_by", user.id)
+        .single();
+      attacker = attackerRes.data as Record<string, any> | null;
+    }
+  }
 
   if (!attacker || !attacker.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });

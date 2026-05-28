@@ -183,3 +183,100 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ success: true, image_url: imageUrl, slot_index: slotIndex, images });
 }
+
+export async function DELETE(request: Request) {
+  // Auth required
+  const supabase = await createServerSupabase();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const sb = getSupabaseAdmin();
+
+  // Validate developer
+  const { data: dev } = await sb
+    .from("developers")
+    .select("id, github_login, claimed, claimed_by")
+    .eq("claimed_by", user.id)
+    .single();
+
+  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+    return NextResponse.json(
+      { error: "Building not found or not yours" },
+      { status: 403 }
+    );
+  }
+
+  const { slot_index } = await request.json();
+  if (typeof slot_index !== "number" || slot_index < 0) {
+    return NextResponse.json(
+      { error: "Invalid slot_index" },
+      { status: 400 }
+    );
+  }
+
+  // Read existing config
+  const { data: existingConfig } = await sb
+    .from("developer_customizations")
+    .select("config")
+    .eq("developer_id", dev.id)
+    .eq("item_id", "billboard")
+    .maybeSingle();
+
+  let images: string[] = [];
+  if (existingConfig) {
+    const cfg = existingConfig.config as Record<string, unknown>;
+    if (Array.isArray(cfg?.images)) {
+      images = [...(cfg.images as string[])];
+    } else if (typeof cfg?.image_url === "string") {
+      images = [cfg.image_url];
+    }
+  }
+
+  if (slot_index >= images.length || !images[slot_index]) {
+    return NextResponse.json(
+      { error: "Slot is already empty" },
+      { status: 400 }
+    );
+  }
+
+  // Try to remove the file from storage (best-effort)
+  try {
+    const oldUrl = images[slot_index];
+    const fileName = oldUrl.split("/").pop();
+    if (fileName) {
+      await sb.storage.from("billboards").remove([fileName]);
+    }
+  } catch (err) {
+    console.warn("[app/api/customizations/upload/route.ts] non-critical storage cleanup error:", err);
+  }
+
+  // Clear the slot
+  images[slot_index] = "";
+
+  // Upsert customization
+  const { error: upsertError } = await sb
+    .from("developer_customizations")
+    .upsert(
+      {
+        developer_id: dev.id,
+        item_id: "billboard",
+        config: { images },
+      },
+      { onConflict: "developer_id,item_id" }
+    );
+
+  if (upsertError) {
+    console.error("Upsert error:", upsertError);
+    return NextResponse.json(
+      { error: "Failed to update customization" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true, slot_index, images });
+}

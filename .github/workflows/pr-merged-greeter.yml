@@ -1,0 +1,27 @@
+name: PR Merged Greeter
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  thank-contributor:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Leave Thank You Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            const message = `🎉 **Congratulations @${creator}! Your PR has been successfully merged.** 🚀\n\nThank you for contributing to **The Leetcode City**. Your work helps us build a better platform for the community.\n\n⚠️ **Important for GSSoC Contributors:**\nPlease make sure you are following all contribution guidelines. All important announcements and point claims happen through the official GSSoC channels.\n\nKeep building! 💻✨`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: message
+            });

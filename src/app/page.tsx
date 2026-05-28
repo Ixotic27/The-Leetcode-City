@@ -1232,10 +1232,15 @@ function HomeContent() {
   const handleLoadFadeComplete = useCallback(() => {
     setLoadStage("done");
     const hasDeepLink = searchParams.get("user") || searchParams.get("compare");
-    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink) {
+    // Skip intro for signed-in users (they've already been through the flow)
+    // and for return visits with deep links
+    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink && !session) {
       setIntroMode(true);
+    } else if (!localStorage.getItem("leetcodecity_intro_seen") && session) {
+      // Signed-in user who somehow lost localStorage — mark as seen to prevent future re-triggers
+      localStorage.setItem("leetcodecity_intro_seen", "true");
     }
-  }, [searchParams]);
+  }, [searchParams, session]);
 
   // Retry handler for loading errors
   const handleLoadRetry = useCallback(() => {
@@ -1958,14 +1963,18 @@ function HomeContent() {
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
-  // City energy: devs coding -> city lights up. 0 devs = nearly dark, 5+ = full brightness
+  // City energy: devs coding -> city lights up
+  // 0 devs = ~10% (city sleeping, very dim)
+  // 1 dev  = ~16% (city waking up)
+  // 3-5   = ~50-85% (city alive)
+  // 10+   = 100%+ bloom (city buzzing)
   const cityEnergy = useMemo(() => {
-    if (codingCount === 0) return 0.15; // sleeping — dimmer city
-    if (codingCount === 1) return 0.4;
-    if (codingCount === 2) return 0.55;
-    if (codingCount <= 5) return 0.55 + (codingCount - 2) * 0.12; // 3->0.67, 5->0.91
-    if (codingCount <= 15) return 1.0 + (Math.min(codingCount, 15) - 5) * 0.02; // 10->1.1, 15->1.2
-    return Math.min(1.4, 1.2 + (codingCount - 15) * 0.02); // 25+->1.4 cap
+    if (codingCount === 0) return 0.10; // 🌑 City Sleeping — very dim
+    if (codingCount === 1) return 0.16; // 🌒 City Waking Up
+    if (codingCount === 2) return 0.35; // waking transition
+    if (codingCount <= 5) return 0.50 + (codingCount - 3) * 0.175; // 🌆 City Alive: 3->0.50, 4->0.675, 5->0.85
+    if (codingCount <= 10) return 0.85 + (codingCount - 5) * 0.03; // ramp to 1.0: 6->0.88, 10->1.0
+    return Math.min(1.4, 1.0 + (codingCount - 10) * 0.04); // ⚡ City Buzzing: 10->1.0, 15->1.2, 20+->1.4 cap
   }, [codingCount]);
 
   // ─── Milestone celebration system ──────────────────────────
@@ -3883,8 +3892,8 @@ function HomeContent() {
                   )}
                   <button
                     onClick={() => {
-                      if (authLogin && selectedBuilding) {
-                        raidActions.startPreview(selectedBuilding.login, buildings, authLogin);
+                      if (linkedLeetCodeUsername && selectedBuilding) {
+                        raidActions.startPreview(selectedBuilding.login, buildings, linkedLeetCodeUsername);
                       }
                     }}
                     disabled={raidState.loading}

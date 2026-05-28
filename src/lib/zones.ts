@@ -5,12 +5,14 @@ export const ZONE_ITEMS: Record<string, string[]> = {
   crown: ["flag", "helipad", "spire", "satellite_dish", "crown_item", "github_star", "ac_badge"],
   roof: ["antenna_array", "rooftop_garden", "rooftop_fire", "pool_party", "tle_fire", "binary_tree"],
   aura: ["neon_trim", "spotlight", "hologram_ring", "lightning_aura", "neon_outline", "particle_aura"],
+  faces: ["custom_color", "billboard", "led_banner"],
 };
 
 export const ZONE_LABELS: Record<string, string> = {
   crown: "Crown",
   roof: "Roof",
   aura: "Aura",
+  faces: "Faces",
 };
 
 export const ITEM_NAMES: Record<string, string> = {
