@@ -236,7 +236,7 @@ export async function POST(request: Request) {
       const isLevelUnlocked = reqLevel && xpLevel >= reqLevel;
       
       // Exception for scouting satellite which has a quest requirement
-      let isAllowed = isLevelUnlocked;
+      const isAllowed = isLevelUnlocked;
       if (consumable_item_id === "scouting_satellite") {
         const metReqs = (attacker.contributions ?? 0) >= 10; // Simple fallback check for tests, or wait, actual quest is medium>=10 or hard>=5 (which we don't have readily available in this table right now)
         // Since we don't have leetcode stats synced in `developers` table perfectly for this exact condition without a full check, we will just trust the frontend for satellite if they don't have a row...

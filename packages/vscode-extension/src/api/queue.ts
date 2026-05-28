@@ -3,7 +3,7 @@ import { sendHeartbeats } from "./client";
 import { FLUSH_INTERVAL_MS, MAX_BATCH_SIZE, QUEUE_STORAGE_KEY } from "../constants";
 import type { RawHeartbeat } from "../privacy/sanitizer";
 
-let queue: RawHeartbeat[] = [];
+const queue: RawHeartbeat[] = [];
 let flushTimer: ReturnType<typeof setInterval> | undefined;
 let globalState: vscode.Memento;
 

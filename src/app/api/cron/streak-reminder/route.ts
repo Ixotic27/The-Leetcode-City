@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
   // ─── Dailies reminders: users with 1-2 missions done but not 3 ────
   const dailiesResults = { reminded: 0, skipped: 0 };
-  let dailiesOffset = 0;
+  const dailiesOffset = 0;
 
   while (true) {
     // Find devs who have some (but not all) missions done today
