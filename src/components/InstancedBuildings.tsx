@@ -7,7 +7,7 @@ import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
 import { wasAdPointerConsumed } from "./SkyAds";
 
-// ─── Atlas Constants (must match Building3D.tsx) ───────────────
+// ─── Atlas Constants ───────────────
 const ATLAS_SIZE = 2048;
 const ATLAS_CELL = 8;
 const ATLAS_COLS = ATLAS_SIZE / ATLAS_CELL; // 256
@@ -42,7 +42,6 @@ const vertexShader = /* glsl */ `
     vLive = aLive;
     vLcStats = aLcStats;
 
-    // Rise animation: modulate Y position by aRise (0 = underground, 1 = full height)
     vec3 localPos = position;
     localPos.y = localPos.y * aRise + (aRise - 1.0) * 0.5;
 
@@ -66,6 +65,7 @@ const fragmentShader = /* glsl */ `
   uniform float uDimOpacity;
   uniform float uDimEmissive;
   uniform float uCityEnergy;
+  uniform float uTimeOfDay; // 0.0 = Night, 1.0 = Day
 
   varying vec2 vUv;
   varying vec3 vNormal;
@@ -78,90 +78,74 @@ const fragmentShader = /* glsl */ `
   varying vec3 vLcStats;
 
   void main() {
-    // Early discard: skip fragments fully inside fog (invisible anyway)
     float fogDepth = length(vViewPos);
     if (fogDepth > uFogFar) discard;
 
     vec3 absN = abs(vNormal);
     float isRoof = step(0.5, absN.y);
 
-    // Choose UV params based on face normal:
-    // Front/back faces (normal along Z) use aUvFront
-    // Left/right faces (normal along X) use aUvSide
     bool isFrontBack = absN.z > absN.x;
     vec4 uvParams = isFrontBack ? vUvFront : vUvSide;
 
     vec2 atlasUv = uvParams.xy + vUv * uvParams.zw;
     vec3 wallColor = texture2D(uAtlas, atlasUv).rgb;
 
-    // Custom color tint: blend custom color with theme face color at 50%
-    // vTint.a > 0.5 means this building has a custom color
     if (vTint.a > 0.5) {
-      // Detect face pixels (background between windows) vs window pixels
-      // Face pixels are close to uFaceColor, windows are brighter
       float isFacePixel = step(length(wallColor - uFaceColor), 0.08);
       vec3 blendedTint = mix(uFaceColor, vTint.rgb, 0.5);
       wallColor = mix(wallColor, blendedTint, isFacePixel);
     }
 
-    // LeetCode Zone Coloring
-    // Determine if we are a window pixel (brighter than wall base)
     float isWindow = step(0.12, length(wallColor - uFaceColor));
     float totalSolved = vLcStats.x + vLcStats.y + vLcStats.z;
     if (totalSolved > 0.01 && isRoof < 0.5 && isWindow > 0.5) {
       float easyEdge = vLcStats.x / totalSolved;
       float medEdge = easyEdge + (vLcStats.y / totalSolved);
       vec3 zoneColor;
-      if (vUv.y < easyEdge) zoneColor = vec3(0.13, 0.77, 0.36); // Easy (Green)
-      else if (vUv.y < medEdge) zoneColor = vec3(0.96, 0.62, 0.04); // Medium (Yellow)
-      else zoneColor = vec3(0.93, 0.26, 0.26); // Hard (Red)
-      
-      // Inject zone color into the window glow
+      if (vUv.y < easyEdge) zoneColor = vec3(0.13, 0.77, 0.36);
+      else if (vUv.y < medEdge) zoneColor = vec3(0.96, 0.62, 0.04);
+      else zoneColor = vec3(0.93, 0.26, 0.26);
+
       wallColor *= (zoneColor * 2.0);
     }
 
-    // Emissive glow for lit windows, scaled by city energy
-    // Both ambient and emissive dim when city sleeps
-    // Cubic curve: sleeping (0.15^3=0.003) is nearly black, waking needs 3+ devs to feel alive
     float energyCube = uCityEnergy * uCityEnergy * uCityEnergy;
-    float ambientBase = 0.08 + 0.22 * energyCube; // Increased base from 0.03 to 0.08 for better baseline visibility
-    vec3 emissive = wallColor * 2.5 * energyCube;
-    vec3 wallFinal = wallColor * ambientBase + emissive;
 
-    // Live building boost: pushes windows past bloom threshold
+    // Dynamic Day/Night lighting logic
+    float ambientDay = mix(0.08, 0.7, uTimeOfDay);
+    float ambientBase = ambientDay + 0.22 * energyCube;
+
+    // Windows glow more at night
+    float nightGlowMultiplier = mix(3.5, 0.5, uTimeOfDay);
+    vec3 emissive = wallColor * nightGlowMultiplier * energyCube * isWindow;
+
+    vec3 wallFinal = wallColor * ambientBase + emissive;
     vec3 liveBoost = vec3(1.4, 1.35, 1.2);
     wallFinal = mix(wallFinal, wallFinal * liveBoost, vLive);
 
-    // Roof: solid color with emissive, also scaled by city energy
-    vec3 roofFinal = uRoofColor * (0.4 + 1.4 * uCityEnergy);
-
+    vec3 roofFinal = uRoofColor * (ambientDay + 1.4 * uCityEnergy);
     vec3 color = mix(wallFinal, roofFinal, isRoof);
 
-    // Simple directional light
-    vec3 lightDir = normalize(vec3(0.3, 1.0, 0.5));
-    float diffuse = max(dot(vNormal, lightDir), 0.0) * 0.3 + 0.7;
+    // Directional light changes based on time
+    vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
+    float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.5, uTimeOfDay) + mix(0.5, 0.8, uTimeOfDay);
     color *= diffuse;
 
-    // Focus/dim: keep focused building at full opacity, dim others
     float isFocused = step(abs(vInstanceId - uFocusedId), 0.5)
                     + step(abs(vInstanceId - uFocusedIdB), 0.5);
     isFocused = min(isFocused, 1.0);
 
-    // When uFocusedId < 0, no dimming (no building focused)
     float hasFocus = step(0.0, uFocusedId);
 
     float dimFactor = mix(1.0, mix(uDimOpacity, 1.0, isFocused), hasFocus);
     float emissiveMult = mix(1.0, mix(uDimEmissive, 1.0, isFocused), hasFocus);
     color *= emissiveMult * dimFactor;
 
-    // Screen-door transparency: discard pixels on non-focused buildings
-    // Uses 4x4 Bayer dithering for smooth look
     float isUnfocused = hasFocus * (1.0 - isFocused);
     if (isUnfocused > 0.5) {
       int x = int(mod(gl_FragCoord.x, 4.0));
       int y = int(mod(gl_FragCoord.y, 4.0));
       int idx = x + y * 4;
-      // 4x4 Bayer matrix thresholds (normalized 0-1)
       float bayer;
       if (idx == 0) bayer = 0.0;    else if (idx == 1) bayer = 0.5;
       else if (idx == 2) bayer = 0.125; else if (idx == 3) bayer = 0.625;
@@ -174,7 +158,6 @@ const fragmentShader = /* glsl */ `
       if (bayer > uDimOpacity) discard;
     }
 
-    // Linear fog (reuse fogDepth from early discard)
     float fogFactor = smoothstep(uFogNear, uFogFar, fogDepth);
     color = mix(color, uFogColor, fogFactor);
 
@@ -182,13 +165,10 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-// ─── Pre-allocated temp objects ────────────────────────────────
 const _matrix = new THREE.Matrix4();
 const _position = new THREE.Vector3();
 const _quaternion = new THREE.Quaternion();
 const _scale = new THREE.Vector3(1, 1, 1);
-
-// ─── Types ─────────────────────────────────────────────────────
 
 interface InstancedBuildingsProps {
   buildings: CityBuilding[];
@@ -205,17 +185,13 @@ interface InstancedBuildingsProps {
   cityEnergy?: number;
 }
 
-// Rise animation tracking
 interface RiseState {
   startTime: number;
   idx: number;
 }
 
-const RISE_DURATION = 0.85; // seconds
-const MAX_RISE_TOTAL = 4; // cap total stagger to 4s regardless of building count
-
-// Module-level flag so the rise animation only plays once per session,
-// surviving component remounts caused by Next.js navigation.
+const RISE_DURATION = 0.85;
+const MAX_RISE_TOTAL = 4;
 let hasPlayedRiseGlobal = false;
 
 export default memo(function InstancedBuildings({
@@ -235,7 +211,6 @@ export default memo(function InstancedBuildings({
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = buildings.length;
 
-  // Lookup for login -> index (lowercased)
   const loginToIdx = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < buildings.length; i++) {
@@ -244,10 +219,8 @@ export default memo(function InstancedBuildings({
     return map;
   }, [buildings]);
 
-  // Shared geometry (unit box)
   const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
 
-  // Shader material (created once, uniforms updated reactively)
   const material = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -262,14 +235,13 @@ export default memo(function InstancedBuildings({
         uDimOpacity: { value: 0.6 },
         uDimEmissive: { value: 0.5 },
         uCityEnergy: { value: 0.15 },
+        uTimeOfDay: { value: 1.0 }, // New uniform added
       },
       vertexShader,
       fragmentShader,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update theme-dependent uniforms without recreating the material
   useEffect(() => {
     material.uniforms.uAtlas.value = atlasTexture;
     material.uniforms.uRoofColor.value.set(colors.roof);
@@ -277,79 +249,81 @@ export default memo(function InstancedBuildings({
     material.needsUpdate = true;
   }, [material, atlasTexture, colors.roof, colors.face]);
 
-  // Per-instance attribute buffers
-  const { uvFrontData, uvSideData, riseData, tintData, lcData } = useMemo(() => {
-    const uvF = new Float32Array(count * 4);
-    const uvS = new Float32Array(count * 4);
-    const rise = new Float32Array(count);
-    const tint = new Float32Array(count * 4);
-    const lc = new Float32Array(count * 3);
-    const _c = new THREE.Color();
+  const { uvFrontData, uvSideData, riseData, tintData, lcData } =
+    useMemo(() => {
+      const uvF = new Float32Array(count * 4);
+      const uvS = new Float32Array(count * 4);
+      const rise = new Float32Array(count);
+      const tint = new Float32Array(count * 4);
+      const lc = new Float32Array(count * 3);
+      const _c = new THREE.Color();
 
-    for (let i = 0; i < count; i++) {
-      const b = buildings[i];
-      const seed = b.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
+      for (let i = 0; i < count; i++) {
+        const b = buildings[i];
+        const seed =
+          b.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
-      const bandIndex = Math.min(5, Math.max(0, Math.round(b.litPercentage * 5)));
-      const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
+        const bandIndex = Math.min(
+          5,
+          Math.max(0, Math.round(b.litPercentage * 5)),
+        );
+        const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 
-      // Front face UV
-      const frontColStart = Math.abs(seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor));
-      uvF[i * 4 + 0] = frontColStart / ATLAS_COLS;
-      uvF[i * 4 + 1] = bandRowOffset / ATLAS_COLS;
-      uvF[i * 4 + 2] = b.windowsPerFloor / ATLAS_COLS;
-      uvF[i * 4 + 3] = b.floors / ATLAS_COLS;
+        const frontColStart = Math.abs(
+          seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor),
+        );
+        uvF[i * 4 + 0] = frontColStart / ATLAS_COLS;
+        uvF[i * 4 + 1] = bandRowOffset / ATLAS_COLS;
+        uvF[i * 4 + 2] = b.windowsPerFloor / ATLAS_COLS;
+        uvF[i * 4 + 3] = b.floors / ATLAS_COLS;
 
-      // Side face UV (different column start for variety)
-      const sideColStart = Math.abs((seed + 7919) % Math.max(1, ATLAS_COLS - b.sideWindowsPerFloor));
-      uvS[i * 4 + 0] = sideColStart / ATLAS_COLS;
-      uvS[i * 4 + 1] = bandRowOffset / ATLAS_COLS;
-      uvS[i * 4 + 2] = b.sideWindowsPerFloor / ATLAS_COLS;
-      uvS[i * 4 + 3] = b.floors / ATLAS_COLS;
+        const sideColStart = Math.abs(
+          (seed + 7919) % Math.max(1, ATLAS_COLS - b.sideWindowsPerFloor),
+        );
+        uvS[i * 4 + 0] = sideColStart / ATLAS_COLS;
+        uvS[i * 4 + 1] = bandRowOffset / ATLAS_COLS;
+        uvS[i * 4 + 2] = b.sideWindowsPerFloor / ATLAS_COLS;
+        uvS[i * 4 + 3] = b.floors / ATLAS_COLS;
 
-      // Rise starts at 0 (will animate to 1)
-      rise[i] = 0;
+        rise[i] = 0;
 
-      // Custom color tint (rgb = color, a = flag)
-      if (b.custom_color) {
-        _c.set(b.custom_color);
-        tint[i * 4 + 0] = _c.r;
-        tint[i * 4 + 1] = _c.g;
-        tint[i * 4 + 2] = _c.b;
-        tint[i * 4 + 3] = 1.0;
-      } else {
-        tint[i * 4 + 0] = 0;
-        tint[i * 4 + 1] = 0;
-        tint[i * 4 + 2] = 0;
-        tint[i * 4 + 3] = 0;
+        if (b.custom_color) {
+          _c.set(b.custom_color);
+          tint[i * 4 + 0] = _c.r;
+          tint[i * 4 + 1] = _c.g;
+          tint[i * 4 + 2] = _c.b;
+          tint[i * 4 + 3] = 1.0;
+        } else {
+          tint[i * 4 + 0] = 0;
+          tint[i * 4 + 1] = 0;
+          tint[i * 4 + 2] = 0;
+          tint[i * 4 + 3] = 0;
+        }
+
+        lc[i * 3 + 0] = b.easy_solved || 0;
+        lc[i * 3 + 1] = b.medium_solved || 0;
+        lc[i * 3 + 2] = b.hard_solved || 0;
       }
 
-      // LC Stats
-      lc[i * 3 + 0] = b.easy_solved || 0;
-      lc[i * 3 + 1] = b.medium_solved || 0;
-      lc[i * 3 + 2] = b.hard_solved || 0;
-    }
+      return {
+        uvFrontData: uvF,
+        uvSideData: uvS,
+        riseData: rise,
+        tintData: tint,
+        lcData: lc,
+      };
+    }, [buildings, count]);
 
-    return { uvFrontData: uvF, uvSideData: uvS, riseData: rise, tintData: tint, lcData: lc };
-  }, [buildings, count]);
-
-  // Live presence attribute (updated dynamically)
   const liveData = useMemo(() => new Float32Array(count), [count]);
-
-  // Rise animation state
   const risingRef = useRef<RiseState[]>([]);
   const riseInitialized = useRef(false);
-  // hasPlayedRise uses the module-level flag (hasPlayedRiseGlobal) so the
-  // animation survives component remounts from Next.js navigation.
   const holdRiseRef = useRef(holdRise);
   holdRiseRef.current = holdRise;
 
-  // Initialize instances
   useEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
-    // Set instance matrices
     for (let i = 0; i < count; i++) {
       const b = buildings[i];
       _position.set(b.position[0], b.height / 2, b.position[2]);
@@ -359,27 +333,28 @@ export default memo(function InstancedBuildings({
     }
     mesh.instanceMatrix.needsUpdate = true;
 
-    // Force a bounding sphere that covers the entire city so raycaster coarse test always passes.
-    // computeBoundingSphere() may not work correctly for InstancedMesh in all Three.js versions.
     let maxDist = 0;
     let maxHeight = 0;
     for (let i = 0; i < count; i++) {
       const b = buildings[i];
-      const d = Math.sqrt(b.position[0] * b.position[0] + b.position[2] * b.position[2]);
+      const d = Math.sqrt(
+        b.position[0] * b.position[0] + b.position[2] * b.position[2],
+      );
       if (d > maxDist) maxDist = d;
       if (b.height > maxHeight) maxHeight = b.height;
     }
     const radius = Math.sqrt(maxDist * maxDist + maxHeight * maxHeight) + 100;
-    mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, maxHeight / 2, 0), radius);
-    mesh.boundingBox = null; // let Three.js recompute if needed
+    mesh.boundingSphere = new THREE.Sphere(
+      new THREE.Vector3(0, maxHeight / 2, 0),
+      radius,
+    );
+    mesh.boundingBox = null;
 
-    // Set per-instance attributes
     const uvFrontAttr = new THREE.InstancedBufferAttribute(uvFrontData, 4);
     const uvSideAttr = new THREE.InstancedBufferAttribute(uvSideData, 4);
     const riseAttr = new THREE.InstancedBufferAttribute(riseData, 1);
     riseAttr.setUsage(THREE.DynamicDrawUsage);
     const tintAttr = new THREE.InstancedBufferAttribute(tintData, 4);
-
     const liveAttr = new THREE.InstancedBufferAttribute(liveData, 1);
     liveAttr.setUsage(THREE.DynamicDrawUsage);
 
@@ -388,34 +363,36 @@ export default memo(function InstancedBuildings({
     mesh.geometry.setAttribute("aRise", riseAttr);
     mesh.geometry.setAttribute("aTint", tintAttr);
     mesh.geometry.setAttribute("aLive", liveAttr);
-    mesh.geometry.setAttribute("aLcStats", new THREE.InstancedBufferAttribute(lcData, 3));
+    mesh.geometry.setAttribute(
+      "aLcStats",
+      new THREE.InstancedBufferAttribute(lcData, 3),
+    );
 
     if (hasPlayedRiseGlobal) {
-      // Skip rise animation on return visits / subsequent updates
-      // Show all buildings at full height immediately
       for (let i = 0; i < count; i++) riseData[i] = 1;
       riseAttr.needsUpdate = true;
       riseInitialized.current = true;
       risingRef.current = [];
     } else {
-      // First mount this session: play the staggered rise animation
       hasPlayedRiseGlobal = true;
       riseInitialized.current = false;
       risingRef.current = [];
     }
 
-    // Safety net: if buildings are still at rise=0 after 8 seconds
-    // (e.g. holdRise got stuck, animation race condition, etc.),
-    // force them visible so the city never appears empty.
     const safetyTimer = setTimeout(() => {
       const m = meshRef.current;
       if (!m) return;
-      const attr = m.geometry.getAttribute("aRise") as THREE.InstancedBufferAttribute | undefined;
+      const attr = m.geometry.getAttribute("aRise") as
+        | THREE.InstancedBufferAttribute
+        | undefined;
       if (!attr) return;
       const arr = attr.array as Float32Array;
       let anyZero = false;
       for (let i = 0; i < arr.length; i++) {
-        if (arr[i] < 0.99) { arr[i] = 1; anyZero = true; }
+        if (arr[i] < 0.99) {
+          arr[i] = 1;
+          anyZero = true;
+        }
       }
       if (anyZero) {
         attr.needsUpdate = true;
@@ -425,20 +402,33 @@ export default memo(function InstancedBuildings({
     }, 8000);
 
     mesh.count = count;
-
     return () => clearTimeout(safetyTimer);
-  }, [buildings, count, uvFrontData, uvSideData, riseData, tintData, liveData, lcData]);
+  }, [
+    buildings,
+    count,
+    uvFrontData,
+    uvSideData,
+    riseData,
+    tintData,
+    liveData,
+    lcData,
+  ]);
 
-  // Sync fog uniforms (only when values actually change, e.g. theme switch)
-  // Also smoothly lerp cityEnergy uniform toward target value
   const lastFogNear = useRef(0);
   const lastFogFar = useRef(0);
   const cityEnergyRef = useRef(cityEnergy);
   cityEnergyRef.current = cityEnergy;
+
+  // Global Time Cycle Logic
   useFrame(({ scene, clock }) => {
     if (!material.uniforms) return;
     const fog = scene.fog as THREE.Fog | null;
     if (!fog) return;
+
+    // Day/Night Calculation: 1 min cycle for demo, easily changable
+    const timeCycle = (Math.sin(clock.elapsedTime * 0.05) + 1.0) / 2.0;
+    material.uniforms.uTimeOfDay.value = timeCycle;
+
     if (fog.near !== lastFogNear.current || fog.far !== lastFogFar.current) {
       material.uniforms.uFogColor.value.copy(fog.color);
       material.uniforms.uFogNear.value = fog.near;
@@ -447,7 +437,6 @@ export default memo(function InstancedBuildings({
       lastFogFar.current = fog.far;
     }
 
-    // Smooth lerp city energy (transition over ~3 seconds)
     const current = material.uniforms.uCityEnergy.value;
     const target = cityEnergyRef.current;
     if (Math.abs(current - target) > 0.001) {
@@ -455,63 +444,63 @@ export default memo(function InstancedBuildings({
     }
   });
 
-  // Update focus uniforms
   useEffect(() => {
     if (!material.uniforms) return;
-    const idA = focusedBuilding ? loginToIdx.get(focusedBuilding.toLowerCase()) : undefined;
-    const idB = focusedBuildingB ? loginToIdx.get(focusedBuildingB.toLowerCase()) : undefined;
+    const idA = focusedBuilding
+      ? loginToIdx.get(focusedBuilding.toLowerCase())
+      : undefined;
+    const idB = focusedBuildingB
+      ? loginToIdx.get(focusedBuildingB.toLowerCase())
+      : undefined;
     material.uniforms.uFocusedId.value = idA !== undefined ? idA : -1.0;
     material.uniforms.uFocusedIdB.value = idB !== undefined ? idB : -1.0;
   }, [focusedBuilding, focusedBuildingB, loginToIdx, material]);
 
-  // Update live presence glow
   useEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
-    const liveAttr = mesh.geometry.getAttribute("aLive") as THREE.InstancedBufferAttribute | undefined;
+    const liveAttr = mesh.geometry.getAttribute("aLive") as
+      | THREE.InstancedBufferAttribute
+      | undefined;
     if (!liveAttr) return;
     const arr = liveAttr.array as Float32Array;
 
     for (let i = 0; i < count; i++) {
       const login = buildings[i].login.toLowerCase();
-      // Creator gets an overdriven glow (1.5 overshoots the mix, extra bright)
-      arr[i] = liveByLogin?.has(login) ? (login === "Ixotic27" ? 1.5 : 1.0) : 0.0;
+      arr[i] = liveByLogin?.has(login)
+        ? login === "Ixotic27"
+          ? 1.5
+          : 1.0
+        : 0.0;
     }
     liveAttr.needsUpdate = true;
   }, [liveByLogin, buildings, count]);
 
-  // Rise animation + staggered init
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
     if (!mesh) return;
-
-    // Hold rise animation until loading screen is done
     if (holdRiseRef.current) return;
 
-    // Initialize rise animation queue (staggered)
     const now = clock.elapsedTime;
     if (!riseInitialized.current) {
       riseInitialized.current = true;
       const staggerDelay = Math.min(0.003, MAX_RISE_TOTAL / Math.max(1, count));
       const queue: RiseState[] = [];
       for (let i = 0; i < count; i++) {
-        queue.push({
-          startTime: now + i * staggerDelay,
-          idx: i,
-        });
+        queue.push({ startTime: now + i * staggerDelay, idx: i });
       }
       risingRef.current = queue;
     }
 
-    // Early exit if nothing is rising (avoids array allocation per frame)
     const rising = risingRef.current;
     if (rising.length === 0) return;
 
-    const riseAttr = mesh.geometry.getAttribute("aRise") as THREE.InstancedBufferAttribute;
+    const riseAttr = mesh.geometry.getAttribute(
+      "aRise",
+    ) as THREE.InstancedBufferAttribute;
     if (!riseAttr) return;
     const arr = riseAttr.array as Float32Array;
 
-    // Process rising buildings
     let anyChanged = false;
     const nextRising: RiseState[] = [];
 
@@ -519,37 +508,25 @@ export default memo(function InstancedBuildings({
       const state = rising[r];
       const elapsed = now - state.startTime;
       if (elapsed < 0) {
-        // Not started yet - keep this and all remaining in queue
-        for (let j = r; j < rising.length; j++) {
-          nextRising.push(rising[j]);
-        }
+        for (let j = r; j < rising.length; j++) nextRising.push(rising[j]);
         break;
       }
       const progress = Math.min(1, elapsed / RISE_DURATION);
-      // Ease-out cubic
       const t = 1 - Math.pow(1 - progress, 3);
       arr[state.idx] = t;
       anyChanged = true;
 
-      if (progress < 1) {
-        nextRising.push(state);
-      }
+      if (progress < 1) nextRising.push(state);
     }
 
     risingRef.current = nextRising;
-
-    if (anyChanged) {
-      riseAttr.needsUpdate = true;
-    }
+    if (anyChanged) riseAttr.needsUpdate = true;
   });
-
-  // ─── Click / Hover interaction (manual raycast, bypasses R3F events) ──
 
   const { gl, camera } = useThree();
   const raycasterRef = useRef(new THREE.Raycaster());
   const pointerNDC = useRef(new THREE.Vector2());
 
-  // Stable refs so listeners always access latest values
   const buildingsRef = useRef(buildings);
   buildingsRef.current = buildings;
   const onClickRef = useRef(onBuildingClick);
@@ -557,8 +534,12 @@ export default memo(function InstancedBuildings({
   const introRef = useRef(introMode);
   introRef.current = introMode;
 
-  // Tap state: captured on pointerdown, resolved on pointerup
-  const tapRef = useRef<{ time: number; id: number; x: number; y: number } | null>(null);
+  const tapRef = useRef<{
+    time: number;
+    id: number;
+    x: number;
+    y: number;
+  } | null>(null);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -569,7 +550,10 @@ export default memo(function InstancedBuildings({
       pointerNDC.current.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     };
 
-    const raycastInstance = (clientX: number, clientY: number): number | null => {
+    const raycastInstance = (
+      clientX: number,
+      clientY: number,
+    ): number | null => {
       const mesh = meshRef.current;
       if (!mesh) return null;
       screenToNDC(clientX, clientY);
@@ -584,12 +568,20 @@ export default memo(function InstancedBuildings({
     };
 
     const onPointerDown = (e: PointerEvent) => {
-      if (introRef.current) return;
-      if (wasAdPointerConsumed()) return;
-      if ((window as any).__spireClicked) return;
+      if (
+        introRef.current ||
+        wasAdPointerConsumed() ||
+        (window as any).__spireClicked
+      )
+        return;
       const id = raycastInstance(e.clientX, e.clientY);
       if (id !== null && id < buildingsRef.current.length) {
-        tapRef.current = { time: performance.now(), id, x: e.clientX, y: e.clientY };
+        tapRef.current = {
+          time: performance.now(),
+          id,
+          x: e.clientX,
+          y: e.clientY,
+        };
       }
     };
 
@@ -610,22 +602,22 @@ export default memo(function InstancedBuildings({
       }
     };
 
-    // Hover raycast for cursor:pointer — skip on touch devices (no cursor)
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     let lastMoveTime = 0;
-    const onPointerMove = isTouch ? null : (e: PointerEvent) => {
-      if (introRef.current) {
-        document.body.style.cursor = "auto";
-        return;
-      }
-      if ((window as any).__spireCursor) return;
-      // Throttle hover raycast to ~8Hz
-      const now = performance.now();
-      if (now - lastMoveTime < 125) return;
-      lastMoveTime = now;
-      const id = raycastInstance(e.clientX, e.clientY);
-      document.body.style.cursor = id !== null ? "pointer" : "auto";
-    };
+    const onPointerMove = isTouch
+      ? null
+      : (e: PointerEvent) => {
+          if (introRef.current) {
+            document.body.style.cursor = "auto";
+            return;
+          }
+          if ((window as any).__spireCursor) return;
+          const now = performance.now();
+          if (now - lastMoveTime < 125) return;
+          lastMoveTime = now;
+          const id = raycastInstance(e.clientX, e.clientY);
+          document.body.style.cursor = id !== null ? "pointer" : "auto";
+        };
 
     canvas.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", onPointerUp);
@@ -634,12 +626,12 @@ export default memo(function InstancedBuildings({
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerup", onPointerUp);
-      if (onPointerMove) canvas.removeEventListener("pointermove", onPointerMove);
+      if (onPointerMove)
+        canvas.removeEventListener("pointermove", onPointerMove);
       document.body.style.cursor = "auto";
     };
   }, [gl, camera]);
 
-  // Cleanup
   useEffect(() => {
     return () => {
       geo.dispose();
