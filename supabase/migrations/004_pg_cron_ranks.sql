@@ -1,5 +1,5 @@
 -- ============================================================
--- Git City — pg_cron: recalculate ranks every 30 minutes
+-- LeetCode City — pg_cron: recalculate ranks every 30 minutes
 -- ============================================================
 -- Requires pg_cron extension (enabled by default on Supabase)
 

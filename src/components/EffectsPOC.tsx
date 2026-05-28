@@ -931,7 +931,7 @@ function PreviewScene({
   loadout,
   dims,
 }: {
-  loadout: { crown: string | null; roof: string | null; aura: string | null };
+  loadout: { crown: string | null; roof: string | null; aura: string | null; faces: string | null };
   dims: BuildingDims;
 }) {
   const { width: W, height: H, depth: D } = dims;
@@ -1110,16 +1110,18 @@ export default function EffectsPOC() {
     crown: string | null;
     roof: string | null;
     aura: string | null;
+    faces: string | null;
   }>({
     crown: "github_star",
     roof: null,
     aura: "star_orbit",
+    faces: null,
   });
 
   const dims: BuildingDims = { width: 24, height: 42, depth: 18 };
   const camDist = Math.max(80, dims.height * 2.5);
 
-  const setZone = (zone: "crown" | "roof" | "aura") => (id: string | null) => {
+  const setZone = (zone: "crown" | "roof" | "aura" | "faces") => (id: string | null) => {
     setLoadout((prev) => ({ ...prev, [zone]: id }));
   };
 

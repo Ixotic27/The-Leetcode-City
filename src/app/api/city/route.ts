@@ -55,7 +55,7 @@ export async function GET(request: Request) {
       .from("developer_customizations")
       .select("developer_id, item_id, config")
       .in("developer_id", devIds)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style"]),
+      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
     sb
       .from("developer_achievements")
       .select("developer_id, achievement_id")
@@ -82,7 +82,8 @@ export async function GET(request: Request) {
   // Build customization maps
   const customColorMap: Record<number, string> = {};
   const billboardImagesMap: Record<number, string[]> = {};
-  const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null }> = {};
+  const ledBannerTextMap: Record<number, string> = {};
+  const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
   for (const row of customizationsResult.data ?? []) {
     const config = row.config as Record<string, unknown>;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -100,10 +101,14 @@ export async function GET(request: Request) {
         crown: (config?.crown as string) ?? null,
         roof: (config?.roof as string) ?? null,
         aura: (config?.aura as string) ?? null,
+        faces: (config?.faces as string) ?? null,
       };
     }
     if (row.item_id === "building_style" && typeof config?.style === "string") {
       // Style is handled via styleMap below
+    }
+    if (row.item_id === "led_banner" && typeof config?.text === "string") {
+      ledBannerTextMap[row.developer_id] = config.text;
     }
   }
 
@@ -140,6 +145,7 @@ export async function GET(request: Request) {
     owned_items: ownedItemsMap[dev.id] ?? [],
     custom_color: customColorMap[dev.id] ?? null,
     billboard_images: billboardImagesMap[dev.id] ?? [],
+    led_banner_text: ledBannerTextMap[dev.id] ?? null,
     achievements: achievementsMap[dev.id] ?? [],
     loadout: loadoutMap[dev.id] ?? null,
     building_style: styleMap[dev.id] ?? "tower",

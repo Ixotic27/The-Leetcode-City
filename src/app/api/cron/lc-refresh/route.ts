@@ -69,9 +69,8 @@ async function fetchLCFullProfile(username: string): Promise<any> {
       );
     }
     return json?.data ?? null;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[app/api/cron/lc-refresh/route.ts] error:", err); return null;
+   }
 }
 
 async function upsertFullProfile(

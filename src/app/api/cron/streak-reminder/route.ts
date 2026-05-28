@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
           today,
         );
         results.reminded++;
-      } catch {
+      } catch (err) {
+        console.warn("[app/api/cron/streak-reminder/route.ts] error:", err);
         results.errors++;
       }
     }
@@ -115,7 +116,8 @@ export async function GET(request: NextRequest) {
         const completedCount = countMap.get(dev.id) ?? 0;
         sendDailiesReminderNotification(dev.id, dev.github_login, completedCount, today);
         dailiesResults.reminded++;
-      } catch {
+      } catch (err) {
+        console.warn("[app/api/cron/streak-reminder/route.ts] error:", err);
         dailiesResults.skipped++;
       }
     }

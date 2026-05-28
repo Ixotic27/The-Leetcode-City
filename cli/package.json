@@ -1,0 +1,31 @@
+{
+  "name": "leetcode-city",
+  "version": "1.0.0",
+  "description": "CLI to set up The Leetcode City for local development — one command, zero config",
+  "bin": {
+    "leetcode-city": "./bin/cli.mjs"
+  },
+  "keywords": [
+    "leetcode",
+    "leetcode-city",
+    "3d",
+    "pixel-art",
+    "cli",
+    "setup",
+    "gssoc"
+  ],
+  "author": "Ixotic27",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ixotic27/The-Leetcode-City"
+  },
+  "homepage": "https://theleetcodecity.tech",
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module",
+  "files": [
+    "bin/"
+  ]
+}

@@ -64,10 +64,11 @@ export interface CityBuilding {
   owned_items: string[];
   custom_color?: string | null;
   billboard_images?: string[];
+  led_banner_text?: string | null;
   achievements: string[];
   kudos_count: number;
   visit_count: number;
-  loadout?: { crown: string | null; roof: string | null; aura: string | null } | null;
+  loadout?: { crown: string | null; roof: string | null; aura: string | null; faces: string | null } | null;
   app_streak: number;
   raid_xp: number;
   current_week_contributions: number;
@@ -189,16 +190,19 @@ function calcHeight(
 // ─── V2 Detection & Formulas ────────────────────────────────
 
 function isV2Dev(dev: DeveloperRecord): boolean {
-  return Boolean(
-    (dev.contributions_total ?? 0) > 0 ||
+  // LeetCode-seeded devs have contributions_total=1000 and active_days_last_year=365
+  // as placeholder values. Only treat as V2 if there are real GitHub-specific signals.
+  const hasRealGitHubData = Boolean(
     (dev.contribution_years?.length ?? 0) > 0 ||
     (dev.total_prs ?? 0) > 0 ||
     (dev.total_reviews ?? 0) > 0 ||
     (dev.repos_contributed_to ?? 0) > 0 ||
     dev.account_created_at ||
-    (dev.active_days_last_year ?? 0) > 0 ||
     (dev.language_diversity ?? 0) > 0
   );
+  // contributions_total=1000 with active_days_last_year=365 is a LeetCode placeholder pattern
+  const isLcPlaceholder = (dev.contributions_total === 1000 && dev.active_days_last_year === 365 && !dev.account_created_at);
+  return hasRealGitHubData && !isLcPlaceholder;
 }
 
 function calcHeightV2(
@@ -215,9 +219,12 @@ function calcHeightV2(
   const fNorm = Math.log10(Math.max(1, dev.followers ?? 0)) / Math.log10(50_000);
 
   // Consistency: years active / account age
-  const accountAgeYears = Math.max(1,
-    (Date.now() - new Date(dev.account_created_at || dev.created_at).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-  );
+  const dateStr = dev.account_created_at || dev.created_at;
+  const parsedDate = dateStr ? new Date(dateStr) : null;
+  const dateMs = parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate.getTime() : 0;
+  const accountAgeYears = dateMs > 0
+    ? Math.max(1, (Date.now() - dateMs) / (365.25 * 24 * 60 * 60 * 1000))
+    : 1; // Fallback: assume 1 year if no date available
   const yearsActive = dev.contribution_years?.length || 1;
   const consistencyRaw = (yearsActive / accountAgeYears) * Math.min(1, contribs / (accountAgeYears * 200));
   const consistencyNorm = Math.min(1, consistencyRaw);
@@ -525,6 +532,12 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         }
       }
 
+      // Safety guard: if any dimension is NaN or invalid, use safe defaults
+      if (isNaN(height) || height <= 0) height = MIN_BUILDING_HEIGHT;
+      if (isNaN(w) || w <= 0) w = 16;
+      if (isNaN(d) || d <= 0) d = 14;
+      if (isNaN(litPercentage) || litPercentage < 0) litPercentage = 0.3;
+
       const floorH = 6;
       const floors = Math.max(3, Math.floor(height / floorH));
       const windowsPerFloor = Math.max(3, Math.floor(w / 5));
@@ -546,6 +559,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         owned_items: dev.owned_items ?? [],
         custom_color: dev.custom_color ?? null,
         billboard_images: dev.billboard_images ?? [],
+        led_banner_text: (dev as unknown as Record<string, unknown>).led_banner_text as string | null ?? null,
         achievements: (dev as unknown as Record<string, unknown>).achievements as string[] ?? [],
         kudos_count: (dev as unknown as Record<string, unknown>).kudos_count as number ?? 0,
         visit_count: (dev as unknown as Record<string, unknown>).visit_count as number ?? 0,

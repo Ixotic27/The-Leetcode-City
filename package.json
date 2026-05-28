@@ -30,7 +30,10 @@
     "backfill-lc": "npx tsx --env-file=.env.local scripts/backfill-lc-profiles.ts",
     "lc-hourly-fetcher": "npx tsx --env-file=.env.local scripts/lc-hourly-fetcher.ts",
     "add-leetcode-items": "npx tsx --env-file=.env.local scripts/add-leetcode-items.ts",
-    "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts"
+    "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts",
+    "setup": "node scripts/setup.mjs",
+    "setup:check": "node scripts/setup.mjs --check",
+    "test" : "vitest"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -49,18 +52,20 @@
     "resend": "^6.9.3",
     "server-only": "^0.0.1",
     "stripe": "^20.3.1",
-    "three": "^0.183.0"
+    "three": "^0.183.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/howler": "^2.2.12",
-    "@types/node": "^20",
+    "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.7"
   }
 }

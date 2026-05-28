@@ -79,10 +79,8 @@ export async function POST(request: NextRequest) {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/heartbeats/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+   }
   const rawList = Array.isArray(rawBody) ? rawBody : [rawBody];
   if (rawList.length === 0) {
     return NextResponse.json({ accepted: 0, rejected: 0 });
