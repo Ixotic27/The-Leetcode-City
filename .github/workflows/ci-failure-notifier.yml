@@ -9,11 +9,15 @@ on:
 permissions:
   issues: write
   pull-requests: write
+  actions: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   notify-ci-failure:
-    # Act when CI completes and was triggered by a pull_request or push event
-    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'
+    # Act when CI completes and was triggered by a pull_request_target or push event
+    if: github.event.workflow_run.event == 'pull_request_target' || github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Notify CI Failure/Success
@@ -102,7 +106,46 @@ jobs:
                 });
               }
 
-              // Check for an existing failure comment to avoid spamming
+              // ── Fetch actual failure details from the CI run ──
+              let failureDetails = '';
+              try {
+                const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                });
+
+                const failedJobs = jobs.jobs.filter(j => j.conclusion === 'failure');
+                if (failedJobs.length > 0) {
+                  const details = [];
+                  for (const job of failedJobs) {
+                    const failedSteps = job.steps.filter(s => s.conclusion === 'failure');
+                    const stepNames = failedSteps.map(s => `\`${s.name}\``).join(', ');
+                    details.push(`- **${job.name}** failed at step(s): ${stepNames || 'unknown'}`);
+                  }
+                  failureDetails = `\n**🔍 What failed:**\n${details.join('\n')}\n`;
+                }
+
+                // Fetch annotations (error messages from the build/lint output)
+                const { data: annotations } = await github.rest.checks.listAnnotations({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  check_run_id: failedJobs[0].id,
+                  per_page: 10,
+                });
+
+                if (annotations.length > 0) {
+                  const errorLines = annotations
+                    .slice(0, 5)
+                    .map(a => `- \`${a.path}:${a.start_line}\`: ${a.message}`)
+                    .join('\n');
+                  failureDetails += `\n**📋 Error Details (first ${Math.min(5, annotations.length)}):**\n${errorLines}\n`;
+                }
+              } catch (err) {
+                core.warning(`Could not fetch failure details: ${err.message}`);
+              }
+
+              // Delete any previous failure comment to avoid stale info, then post fresh one
               const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -110,39 +153,45 @@ jobs:
                 per_page: 100,
               });
 
-              const alreadyCommented = comments.some(c =>
-                c.user?.login === 'github-actions[bot]' &&
-                c.body?.includes('CI Pipeline is failing')
-              );
-
-              if (!alreadyCommented) {
-                const runUrl = run.html_url;
-
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  body: `🚨 Hey @${author}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
-
-            Please fix the issues before this can be reviewed. Here's how:
-
-            **1. Run checks locally before pushing:**
-            \`\`\`bash
-            npm run lint           # Run ESLint
-            npm run build          # Verify production build passes
-            \`\`\`
-
-            **2. Auto-fix common issues:**
-            \`\`\`bash
-            npm run lint -- --fix  # Auto-fix lint errors where possible
-            \`\`\`
-
-            **3. Check the full failure log here:**
-            👉 [View CI Run](${runUrl})
-
-            Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
-                });
+              // Delete old failure comments so the latest always reflects the current run
+              for (const c of comments) {
+                if (c.user?.login === 'github-actions[bot]' && c.body?.includes('CI Pipeline is failing')) {
+                  await github.rest.issues.deleteComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: c.id,
+                  });
+                }
               }
+
+              const runUrl = run.html_url;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: [
+                  `🚨 Hey @${author}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.`,
+                  failureDetails,
+                  `Please fix the issues before this can be reviewed. Here's how:`,
+                  ``,
+                  `**1. Run checks locally before pushing:**`,
+                  `\`\`\`bash`,
+                  `npm run lint           # Run ESLint`,
+                  `npm run build          # Verify production build passes`,
+                  `\`\`\``,
+                  ``,
+                  `**2. Auto-fix common issues:**`,
+                  `\`\`\`bash`,
+                  `npm run lint -- --fix  # Auto-fix lint errors where possible`,
+                  `\`\`\``,
+                  ``,
+                  `**3. Check the full failure log here:**`,
+                  `👉 [View CI Run](${runUrl})`,
+                  ``,
+                  `Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`
+                ].join('\n'),
+              });
             } else if (conclusion === 'success') {
               core.info(`PR #${prNumber}: CI succeeded. Removing '${label}' label if present.`);
               const hasLabel = currentLabels.includes(label);
@@ -230,7 +279,30 @@ jobs:
                   });
                 }
 
-                // Avoid duplicate comments
+                // ── Fetch actual failure details ──
+                let failureDetails = '';
+                try {
+                  const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    run_id: ciRun.id,
+                  });
+
+                  const failedJobs = jobs.jobs.filter(j => j.conclusion === 'failure');
+                  if (failedJobs.length > 0) {
+                    const details = [];
+                    for (const job of failedJobs) {
+                      const failedSteps = job.steps.filter(s => s.conclusion === 'failure');
+                      const stepNames = failedSteps.map(s => `\`${s.name}\``).join(', ');
+                      details.push(`- **${job.name}** failed at step(s): ${stepNames || 'unknown'}`);
+                    }
+                    failureDetails = `\n**🔍 What failed:**\n${details.join('\n')}\n`;
+                  }
+                } catch (err) {
+                  core.warning(`Could not fetch failure details for PR #${pr.number}: ${err.message}`);
+                }
+
+                // Delete old failure comments and post fresh one
                 const { data: comments } = await github.rest.issues.listComments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -238,37 +310,42 @@ jobs:
                   per_page: 100,
                 });
 
-                const alreadyCommented = comments.some(c =>
-                  c.user?.login === 'github-actions[bot]' &&
-                  c.body?.includes('CI Pipeline is failing')
-                );
-
-                if (!alreadyCommented) {
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: pr.number,
-                    body: `🚨 Hey @${pr.user.login}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
-
-            Please fix the issues before this can be reviewed. Here's how:
-
-            **1. Run checks locally before pushing:**
-            \`\`\`bash
-            npm run lint           # Run ESLint
-            npm run build          # Verify production build passes
-            \`\`\`
-
-            **2. Auto-fix common issues:**
-            \`\`\`bash
-            npm run lint -- --fix  # Auto-fix lint errors where possible
-            \`\`\`
-
-            **3. Check the full failure log here:**
-            👉 [View CI Run](${ciRun.html_url})
-
-            Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
-                  });
+                for (const c of comments) {
+                  if (c.user?.login === 'github-actions[bot]' && c.body?.includes('CI Pipeline is failing')) {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: c.id,
+                    });
+                  }
                 }
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: [
+                    `🚨 Hey @${pr.user.login}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.`,
+                    failureDetails,
+                    `Please fix the issues before this can be reviewed. Here's how:`,
+                    ``,
+                    `**1. Run checks locally before pushing:**`,
+                    `\`\`\`bash`,
+                    `npm run lint           # Run ESLint`,
+                    `npm run build          # Verify production build passes`,
+                    `\`\`\``,
+                    ``,
+                    `**2. Auto-fix common issues:**`,
+                    `\`\`\`bash`,
+                    `npm run lint -- --fix  # Auto-fix lint errors where possible`,
+                    `\`\`\``,
+                    ``,
+                    `**3. Check the full failure log here:**`,
+                    `👉 [View CI Run](${ciRun.html_url})`,
+                    ``,
+                    `Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`
+                  ].join('\n'),
+                });
               } else if (ciRun.conclusion === 'success' && hasBlockedLabel) {
                 // CI is now passing — remove the stale blocked label
                 await github.rest.issues.removeLabel({

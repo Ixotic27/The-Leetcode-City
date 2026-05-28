@@ -9,6 +9,9 @@ permissions:
   issues: write
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ── Job 1: Label, Assign, and Request Reviews (runs on every PR event) ──
   label-pr:
@@ -214,9 +217,15 @@ jobs:
             const addedLines = diff.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++'));
 
             for (const pattern of suspiciousPatterns) {
-              const matches = addedLines.filter(l => pattern.regex.test(l));
+              const matches = addedLines.filter(l => {
+                if (!pattern.regex.test(l)) return false;
+                // Exclude safe GitHub Actions secret references like ${{ secrets.FOO }}
+                if (pattern.name === 'hardcoded secret/key reference' && /\$\{\{\s*secrets\./.test(l)) return false;
+                return true;
+              });
               if (matches.length > 0) {
-                findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s)`);
+                const preview = matches.slice(0, 3).map(m => `  \`${m.substring(1).trim()}\``).join('\n');
+                findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s):\n${preview}`);
               }
             }
 

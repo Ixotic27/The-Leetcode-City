@@ -16,6 +16,20 @@ import path from "path";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+// ── CLI Args ──
+const args = process.argv.slice(2);
+const pagesArg = args.indexOf("--pages");
+let MAX_PAGES = Infinity;
+if (pagesArg !== -1) {
+  const raw = args[pagesArg + 1];
+  const parsed = Number(raw);
+  if (!raw || !Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+    console.error("Error: --pages must be a positive integer (e.g., --pages 5)");
+    process.exit(1);
+  }
+  MAX_PAGES = parsed;
+}
+
 if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
     process.exit(1);
@@ -185,13 +199,13 @@ function saveState(page: number) {
 }
 
 async function main() {
-    let startPage = getLastPage();
+    const startPage = getLastPage();
     console.log(`\n🏙️  LC City Infinite Mass Seeder — Resuming from page ${startPage}...\n`);
 
     let ok = 0, skip = 0, fail = 0;
     let page = startPage;
 
-    while (page < 100000) { // Practically infinite
+    while (page < startPage + MAX_PAGES) { // Practically infinite
         console.log(`\n--- Fetching global ranking page ${page} ---`);
         const usernames = await fetchRankingPage(page);
 
@@ -233,6 +247,7 @@ async function main() {
         // Pause between pages
         await sleep(2000);
     }
+    console.log(`\n🏁 Batch complete — ${ok} ok | ${skip} skipped | ${fail} failed | stopped at page ${page}`);
 }
 
 main().catch(console.error);
