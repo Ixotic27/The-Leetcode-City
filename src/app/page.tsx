@@ -3261,13 +3261,13 @@ function HomeContent() {
 
           {/* Theme switcher + Radio (bottom-left) — above ticker */}
           <div className="pointer-events-auto fixed bottom-10 left-3 z-[31] flex items-center gap-2 sm:left-4">
-            <ActionToolbar 
-              cycleTheme={cycleTheme} 
-              replayIntro={replayIntro} 
-              theme={theme} 
-              themeIndex={themeIndex} 
-              themesLength={THEMES.length} 
-              isMounted={isMounted} 
+            <ActionToolbar
+              cycleTheme={cycleTheme}
+              replayIntro={replayIntro}
+              theme={theme}
+              themeIndex={themeIndex}
+              themesLength={THEMES.length}
+              isMounted={isMounted}
             />
           </div>
 
@@ -3800,7 +3800,7 @@ function HomeContent() {
                 </button>
               </div>
             ) : (
-              <SearchBar 
+              <SearchBar
                 username={username}
                 setUsername={setUsername}
                 feedback={feedback}
@@ -4926,7 +4926,7 @@ function HomeContent() {
               </p>
             )}
             {/* Search field for compare pick */}
-            <SearchBar 
+            <SearchBar
               username={username}
               setUsername={setUsername}
               feedback={feedback}
@@ -5475,13 +5475,13 @@ function HomeContent() {
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
-          <ActionToolbar 
-            cycleTheme={cycleTheme} 
-            replayIntro={replayIntro} 
-            theme={theme} 
-            themeIndex={themeIndex} 
-            themesLength={THEMES.length} 
-            isMounted={isMounted} 
+          <ActionToolbar
+            cycleTheme={cycleTheme}
+            replayIntro={replayIntro}
+            theme={theme}
+            themeIndex={themeIndex}
+            themesLength={THEMES.length}
+            isMounted={isMounted}
           />
         </div>
       )}
