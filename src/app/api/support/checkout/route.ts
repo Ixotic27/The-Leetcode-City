@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 
 const MIN_AMOUNT = 1;
-
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
 
 // Simple IP-based rate limit (1 request per 5 seconds)
 const lastRequest = new Map<string, number>();
