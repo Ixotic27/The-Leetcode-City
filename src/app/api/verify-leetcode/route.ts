@@ -53,10 +53,9 @@ export async function POST(req: Request) {
         let lcStreakStats = null;
         try {
             const currentYear = new Date().getFullYear();
-            let aliases = "";
-            for (let y = 2015; y <= currentYear; y++) {
-                aliases += `\n                        y${y}: userCalendar(year: ${y}) { submissionCalendar }`;
-            }
+            const prevYear = currentYear - 1;
+            const aliases = `\n                        y${currentYear}: userCalendar(year: ${currentYear}) { submissionCalendar }` +
+                            `\n                        y${prevYear}: userCalendar(year: ${prevYear}) { submissionCalendar }`;
             const profileQuery = `
                 query getUserProfile($username: String!) {
                     matchedUser(username: $username) {

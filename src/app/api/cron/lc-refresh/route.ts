@@ -23,10 +23,10 @@ const LC_HEADERS = {
 };
 
 function calendarAliases(): string {
-  const year = new Date().getFullYear();
-  return Array.from({ length: year - 2014 }, (_, i) => 2015 + i)
-    .map((y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`)
-    .join("");
+  const currentYear = new Date().getFullYear();
+  const prevYear = currentYear - 1;
+  return `\n        y${currentYear}: userCalendar(year: ${currentYear}) { submissionCalendar }` +
+         `\n        y${prevYear}: userCalendar(year: ${prevYear}) { submissionCalendar }`;
 }
 
 async function fetchLCFullProfile(username: string): Promise<any> {
