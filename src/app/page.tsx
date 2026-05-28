@@ -1944,15 +1944,19 @@ function HomeContent() {
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
-  // City energy: devs coding -> city lights up. 0 devs = nearly dark, 5+ = full brightness
- const cityEnergy = useMemo(() => {
-  if (codingCount === 0) return 0.60;
-  if (codingCount === 1) return 0.75;
-  if (codingCount === 2) return 0.85;
-
-  if (codingCount <= 10) return 1.0 + (codingCount - 5) * 0.04;
-  return Math.min(1.6, 1.2 + (codingCount - 10) * 0.04);
-}, [codingCount]);
+  // City energy: devs coding -> city lights up
+  // 0 devs = ~10% (city sleeping, very dim)
+  // 1 dev  = ~16% (city waking up)
+  // 3-5   = ~50-85% (city alive)
+  // 10+   = 100%+ bloom (city buzzing)
+  const cityEnergy = useMemo(() => {
+    if (codingCount === 0) return 0.15; // sleeping — dimmer city
+    if (codingCount === 1) return 0.40;
+    if (codingCount === 2) return 0.55;
+    if (codingCount <= 5) return 0.55 + (codingCount - 2) * 0.12; // 3->0.67, 5->0.91
+    if (codingCount <= 15) return 1.0 + (Math.min(codingCount, 15) - 5) * 0.02; // 10->1.1, 15->1.2
+    return Math.min(1.4, 1.2 + (codingCount - 15) * 0.02); // 25+->1.4 cap
+  }, [codingCount]);
 
 
   // ─── Milestone celebration system ──────────────────────────
