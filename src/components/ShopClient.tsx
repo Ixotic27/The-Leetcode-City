@@ -1666,7 +1666,7 @@ export default function ShopClient({
                             )}
                             
                             {/* Billboard Upload Panel */}
-                            {itemId === "billboard" && isEquipped && (
+                            {itemId === "billboard" && (isEquipped || isConfirming) && (
                               <BillboardUploadPanel
                                 images={billboardImages}
                                 slotCount={billboardSlots}
