@@ -20,7 +20,7 @@ export async function POST() {
 
   if (!githubLogin) {
     return NextResponse.json(
-      { error: "No LeetCode username in profile" },
+      { error: "Could not determine your username from GitHub. Please try logging in again." },
       { status: 400 }
     );
   }
