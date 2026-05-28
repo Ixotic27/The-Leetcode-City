@@ -3,6 +3,9 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { levelFromXp } from "@/lib/xp";
 
+/**
+ * @param {import('next/server').NextRequest} req
+ */
 export async function POST(req: Request) {
   try {
     const supabase = await createServerSupabase();
