@@ -35,9 +35,8 @@ function ClickPreview({
     ? (() => {
         try {
           return new URL(link).hostname.replace("www.", "");
-        } catch {
-          return link;
-        }
+        } catch (err) { console.warn("[app/advertise/setup/[token]/SetupContent.tsx] error:", err); return link;
+         }
       })()
     : null;
   const isMailto = link?.startsWith("mailto:");
@@ -158,7 +157,8 @@ export function SetupContent({
       }
 
       window.location.href = `/advertise/track/${token}`;
-    } catch {
+    } catch (err) {
+      console.warn("[app/advertise/setup/[token]/SetupContent.tsx] error:", err);
       setError("Network error. Please try again.");
       setSaving(false);
     }

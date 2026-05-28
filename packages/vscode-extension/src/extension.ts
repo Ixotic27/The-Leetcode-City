@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("leetcodecity.login", async () => {
       const key = await vscode.window.showInputBox({
-        prompt: "Paste your API key from hackoholic4.live",
+        prompt: "Paste your API key from the-leetcode-city.vercel.app",
         placeHolder: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         password: true,
         ignoreFocusOut: true,

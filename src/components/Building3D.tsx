@@ -472,23 +472,21 @@ export const BuildingItemEffects = memo(function BuildingItemEffects({ building,
   const crownItems = ZONE_ITEMS.crown;
   const roofItems = ZONE_ITEMS.roof;
   const auraItems = ZONE_ITEMS.aura;
+  const facesItems = ZONE_ITEMS.faces;
 
   // Without a loadout, only render flag (free claim item). All other items require explicit equip.
-  const hasLoadout = loadout && (loadout.crown || loadout.roof || loadout.aura);
+  const hasLoadout = loadout && (loadout.crown || loadout.roof || loadout.aura || loadout.faces);
   const crownItem = hasLoadout ? loadout.crown : (items.includes("flag") ? "flag" : null);
   const roofItem = hasLoadout ? loadout.roof : null;
   const auraItem = hasLoadout ? loadout.aura : null;
-
-  const shouldRender = (itemId: string) => {
-    if (!items.includes(itemId)) return false;
-    return true; // Faces zone items always render if owned
-  };
+  const facesItem = hasLoadout ? loadout.faces : null;
 
   const shouldRenderZone = (itemId: string) => {
     if (!items.includes(itemId)) return false;
     if (crownItems.includes(itemId)) return crownItem === itemId;
     if (roofItems.includes(itemId)) return roofItem === itemId;
     if (auraItems.includes(itemId)) return auraItem === itemId;
+    if (facesItems.includes(itemId)) return facesItem === itemId;
     return true;
   };
 
@@ -567,12 +565,12 @@ export const BuildingItemEffects = memo(function BuildingItemEffects({ building,
         <BinaryTree height={height} width={width} depth={depth} />
       )}
 
-      {/* Faces zone (always render if owned) */}
-      {shouldRender("billboard") && (
+      {/* Faces zone */}
+      {shouldRenderZone("billboard") && (
         <Billboards height={height} width={width} depth={depth} images={billboard_images ?? []} color={accentColor} />
       )}
-      {shouldRender("led_banner") && (
-        <LEDBanner height={height} width={width} depth={depth} color={accentColor} />
+      {shouldRenderZone("led_banner") && (
+        <LEDBanner height={height} width={width} depth={depth} color={accentColor} text={building.led_banner_text} />
       )}
     </>
   );

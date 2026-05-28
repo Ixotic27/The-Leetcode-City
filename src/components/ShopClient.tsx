@@ -43,6 +43,7 @@ interface Loadout {
   crown: string | null;
   roof: string | null;
   aura: string | null;
+  faces: string | null;
 }
 
 // A11: Scarcity helpers
@@ -82,6 +83,7 @@ interface Props {
   ownedItems: string[];
   initialCustomColor: string | null;
   initialBillboardImages: string[];
+  initialLedBannerText: string | null;
   billboardSlots: number;
   buildingDims: BuildingDims;
   achievements?: string[];
@@ -124,9 +126,7 @@ function savePendingBillboard(file: File): void {
         PENDING_BILLBOARD_KEY,
         JSON.stringify({ data: reader.result, type: file.type, name: file.name })
       );
-    } catch {
-      // localStorage full or unavailable — ignore
-    }
+    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
   };
   reader.readAsDataURL(file);
 }
@@ -136,7 +136,8 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
     const raw = localStorage.getItem(PENDING_BILLBOARD_KEY);
     if (!raw) return null;
     return JSON.parse(raw);
-  } catch {
+  } catch (err) {
+    console.warn("[components/ShopClient.tsx] error:", err);
     return null;
   }
 }
@@ -144,9 +145,7 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
 function clearPendingBillboard(): void {
   try {
     localStorage.removeItem(PENDING_BILLBOARD_KEY);
-  } catch {
-    // ignore
-  }
+  } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
 }
 
 // Convert a base64 data URL to a File
@@ -218,9 +217,7 @@ function PixModal({
           trackPurchaseCompleted(data.itemId, 0, "abacatepay");
           setStatus("completed");
         }
-      } catch {
-        // ignore polling errors
-      }
+      } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
     }, 3000);
 
     return () => {
@@ -241,9 +238,7 @@ function PixModal({
       await navigator.clipboard.writeText(data.brCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback: select text
-    }
+    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
   }, [data.brCode]);
 
   return (
@@ -510,7 +505,8 @@ function BillboardUploadPanel({
         setSavedSlot(slotIndex);
         setTimeout(() => setSavedSlot(null), 2000);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       // ignore
     } finally {
       setUploadingSlot(null);
@@ -629,6 +625,7 @@ export default function ShopClient({
   ownedItems,
   initialCustomColor,
   initialBillboardImages,
+  initialLedBannerText,
   billboardSlots: initialBillboardSlots,
   buildingDims,
   achievements = [],
@@ -652,7 +649,7 @@ export default function ShopClient({
   const [xpLevel, setXpLevel] = useState(initialXpLevel);
   // Loadout state
   const [loadout, setLoadout] = useState<Loadout>(
-    initialLoadout ?? { crown: null, roof: null, aura: null }
+    initialLoadout ?? { crown: null, roof: null, aura: null, faces: null }
   );
   const loadoutRef = useRef(loadout);
   loadoutRef.current = loadout;
@@ -697,16 +694,19 @@ export default function ShopClient({
         "America/Santarem",
       ]);
       setIsBrazil(brTimezones.has(tz));
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setIsBrazil(false);
     }
   }, []);
 
   const [pixModal, setPixModal] = useState<PixModalData | null>(null);
   const [customColor, setCustomColor] = useState<string | null>(initialCustomColor);
+  const [ledBannerText, setLedBannerText] = useState<string | null>(initialLedBannerText ?? null);
   const [billboardImages, setBillboardImages] = useState<string[]>(initialBillboardImages);
   const [billboardSlots, setBillboardSlots] = useState(initialBillboardSlots);
   const [previewColor, setPreviewColor] = useState<string | null>(null);
+  const [previewLedBannerText, setPreviewLedBannerText] = useState<string | null>(null);
   const [previewBillboardImages, setPreviewBillboardImages] = useState<string[] | null>(null);
   const [autoUploading, setAutoUploading] = useState(false);
   const [purchaseToast, setPurchaseToast] = useState<string | null>(purchasedItem);
@@ -776,6 +776,7 @@ export default function ShopClient({
     crown: loadout.crown ?? (!initialLoadout && owned.includes("flag") ? "flag" : null),
     roof: loadout.roof,
     aura: loadout.aura,
+    faces: loadout.faces,
   };
 
   // Dismiss buy confirmation popover on click outside
@@ -897,16 +898,33 @@ export default function ShopClient({
             "leetcodecity:loadout_override",
             JSON.stringify({ developerId, loadout: payload, ts: Date.now() }),
           );
-        } catch { }
+        } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); } 
       } else {
         setError("Failed to save. Try again.");
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Failed to save. Try again.");
     } finally {
       setSaving(false);
     }
   }, []);
+
+  const handleSaveCustomization = async (itemId: string, payload: Record<string, any>) => {
+    try {
+      const res = await fetch("/api/customizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ item_id: itemId, ...payload }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(`Failed to save ${itemId}: ${data.error || res.statusText}`);
+      }
+    } catch (err: any) {
+      setError(`Network error: ${err.message}`);
+    }
+  };
 
   const claimFreeItem = useCallback(async () => {
     if (buyingItem) return;
@@ -932,7 +950,8 @@ export default function ShopClient({
       setOwned((prev) =>
         prev.includes(FREE_CLAIM_ITEM) ? prev : [...prev, FREE_CLAIM_ITEM]
       );
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Network error. Try again.");
     } finally {
       setBuyingItem(null);
@@ -967,7 +986,8 @@ export default function ShopClient({
         setError("Star not found — make sure you starred the repo first!");
         setStarVerifyStep("opened");
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setError("Network error. Try again.");
       setStarVerifyStep("opened");
     } finally {
@@ -1050,7 +1070,8 @@ export default function ShopClient({
         } else if (data.url) {
           window.location.href = data.url;
         }
-      } catch {
+      } catch (err) {
+        console.warn("[components/ShopClient.tsx] error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1081,7 +1102,8 @@ export default function ShopClient({
         } else {
           setError(data.error || "Failed to buy item.");
         }
-      } catch {
+      } catch (err) {
+        console.warn("[components/ShopClient.tsx] error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1150,7 +1172,8 @@ export default function ShopClient({
         setRedeemMsg(data.error ?? "Invalid or expired code.");
         setTimeout(() => setRedeemState("idle"), 4000);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] error:", err);
       setRedeemState("error");
       setRedeemMsg("Network error. Please try again.");
       setTimeout(() => setRedeemState("idle"), 4000);
@@ -1396,6 +1419,7 @@ export default function ShopClient({
                   loadout={effectiveLoadout}
                   ownedFacesItems={ownedFacesItems}
                   customColor={previewColor ?? customColor}
+                  ledBannerText={previewLedBannerText ?? ledBannerText}
                   billboardImages={previewBillboardImages ?? billboardImages}
                   buildingDims={buildingDims}
                   highlightItemId={highlightItem}
@@ -1603,6 +1627,56 @@ export default function ShopClient({
                               )}
                             </button>
 
+                            {/* Custom Color Picker Preview */}
+                            {isOwned && itemId === "custom_color" && isEquipped && (
+                              <div className="mt-2 w-full flex flex-col items-center gap-1">
+                                <input
+                                  type="color"
+                                  value={customColor ?? "#ffffff"}
+                                  onChange={(e) => setCustomColor(e.target.value)}
+                                  className="w-full h-8 cursor-pointer border-[2px] border-border bg-bg-raised p-1 hover:border-border-light"
+                                />
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleSaveCustomization("custom_color", { color: customColor }); }}
+                                  className="w-full border-[2px] border-border py-1 text-[9px] text-muted hover:text-cream bg-bg-card"
+                                >
+                                  Save Color
+                                </button>
+                              </div>
+                            )}
+
+                            {/* LED Banner Text Preview */}
+                            {isOwned && itemId === "led_banner" && isEquipped && (
+                              <div className="mt-2 w-full flex flex-col items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={ledBannerText ?? ""}
+                                  placeholder="Your text here"
+                                  onChange={(e) => setLedBannerText(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-full h-8 px-2 border-[2px] border-border bg-bg-raised text-[10px] text-cream"
+                                />
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleSaveCustomization("led_banner", { text: ledBannerText }); }}
+                                  className="w-full border-[2px] border-border py-1 text-[9px] text-muted hover:text-cream bg-bg-card"
+                                >
+                                  Save Text
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* Billboard Upload Panel */}
+                            {itemId === "billboard" && (isEquipped || isConfirming) && (
+                              <BillboardUploadPanel
+                                images={billboardImages}
+                                slotCount={billboardSlots}
+                                isOwned={isOwned}
+                                autoUploading={autoUploading}
+                                onImagesChange={setBillboardImages}
+                                onPreviewChange={setPreviewBillboardImages}
+                              />
+                            )}
+
                             {/* Buy confirmation popover */}
                             {isConfirming && shopItem && (
                               <div data-buy-popover className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 w-36 border-[2px] border-border bg-bg p-2 shadow-lg">
@@ -1673,113 +1747,6 @@ export default function ShopClient({
                 );
               })}
 
-              {/* FACES zone */}
-              <div className="border-[3px] border-border bg-bg-raised p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm" style={{ color: ACCENT }}>
-                    Faces
-                  </h3>
-                  <span className="text-[9px] text-muted normal-case">
-                    {owned.filter((id) => FACES_ITEMS.includes(id)).length}/{FACES_ITEMS.length} owned · always active if owned
-                  </span>
-                </div>
-
-                {/* Faces item cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-                  {FACES_ITEMS.map((itemId) => {
-                    const isOwned = owned.includes(itemId);
-                    const shopItem = getShopItem(itemId);
-                    const isBillboard = itemId === "billboard";
-                    const isBuying = buyingItem === itemId;
-                    const isConfirming = confirmBuyItem === itemId;
-
-                    let badge: string;
-                    let badgeColor: string;
-                    if (isOwned && !isBillboard) {
-                      badge = "\u2713";
-                      badgeColor = ACCENT;
-                    } else if (isBillboard && billboardSlots > 0) {
-                      badge = `x${billboardSlots}`;
-                      badgeColor = ACCENT;
-                    } else if (shopItem) {
-                      badge = formatPrice(shopItem);
-                      badgeColor = "#a0a0b0";
-                    } else {
-                      badge = "";
-                      badgeColor = "#a0a0b0";
-                    }
-
-                    return (
-                      <div key={itemId} className="relative" data-buy-popover>
-                        <button
-                          onClick={() => {
-                            if (isOwned || isBuying) return;
-                            if (shopItem && shopItem.price_usd_cents > 0) {
-                              setConfirmBuyItem(isConfirming ? null : itemId);
-                            }
-                          }}
-                          disabled={isBuying || isOwned}
-                          className={[
-                            "flex flex-col items-center justify-center p-2 transition-all w-full aspect-square",
-                            isOwned ? "border-[3px]" : "border-[2px]",
-                            isOwned ? "border-[#39d353]" : isConfirming ? "border-[var(--color-border-light)]" : "border-border",
-                            isOwned ? "bg-[rgba(57,211,83,0.1)]" : "bg-bg-card",
-                            !isOwned ? "opacity-60 hover:border-border-light hover:opacity-100" : ""
-                          ].join(" ")}
-                        >
-                          <span className="text-3xl">{ITEM_EMOJIS[itemId] ?? "?"}</span>
-                          <span className="mt-1 text-[10px] text-cream truncate w-full text-center">
-                            {ITEM_NAMES[itemId] ?? itemId}
-                          </span>
-                          <span
-                            className={`mt-0.5 ${badge.startsWith("$") ? "text-[10px] font-bold" : "text-[9px]"}`}
-                            style={{ color: badgeColor }}
-                          >
-                            {isBuying ? "..." : badge}
-                          </span>
-                        </button>
-                        
-                        {/* Custom Color Picker Preview */}
-                        {isOwned && itemId === "custom_color" && (
-                          <div className="mt-2 w-full flex justify-center">
-                            <input
-                              type="color"
-                              value={customColor ?? "#ffffff"}
-                              onChange={(e) => setCustomColor(e.target.value)}
-                              className="w-full h-8 cursor-pointer border-[2px] border-border bg-bg-raised p-1 hover:border-border-light"
-                            />
-                          </div>
-                        )}
-                        
-                        {/* Billboard Edit Button Preview */}
-                        {((isOwned && itemId === "billboard") || billboardSlots > 0) && itemId === "billboard" && (
-                          <div className="mt-2 w-full flex justify-center text-[9px] text-muted normal-case hover:text-cream">
-                            {billboardImages.length} images set
-                          </div>
-                        )}
-
-                        {/* Buy Confirmation */}
-                        {isConfirming && shopItem && (
-                          <div className="absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 w-48 border-[3px] border-border bg-bg-raised p-3 shadow-xl">
-                            <p className="text-[10px] text-cream normal-case mb-2 leading-relaxed">
-                              Get {ITEM_NAMES[itemId]} for {formatPrice(shopItem)}?
-                            </p>
-                            <div className="flex flex-col gap-1.5">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); setBuyingItem(itemId); setBuyingProvider("stripe"); }}
-                                className="btn-press py-1.5 text-[9px] text-bg"
-                                style={{ backgroundColor: ACCENT }}
-                              >
-                                {isBuying ? "..." : "Pay with Card"}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
 
               {/* Consumables section */}
@@ -2178,6 +2145,7 @@ export default function ShopClient({
                 loadout={effectiveLoadout}
                 ownedFacesItems={ownedFacesItems}
                 customColor={previewColor ?? customColor}
+                ledBannerText={previewLedBannerText ?? ledBannerText}
                 billboardImages={previewBillboardImages ?? billboardImages}
                 buildingDims={buildingDims}
                 highlightItemId={highlightItem}

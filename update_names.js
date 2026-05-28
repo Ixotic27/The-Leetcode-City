@@ -16,8 +16,8 @@ function processFile(filePath) {
     let content = fs.readFileSync(filePath, 'utf-8');
     let original = content;
 
-    // 1. Git City -> LeetCode City
-    content = content.replace(/Git City/g, "LeetCode City");
+    // 1. LeetCode City -> LeetCode City
+    content = content.replace(/LeetCode City/g, "LeetCode City");
 
     // 2. GitHub -> LeetCode
     content = content.replace(/GitHub/g, "LeetCode");

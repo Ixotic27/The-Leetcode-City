@@ -35,8 +35,7 @@ export async function GET(request: Request) {
   const period = searchParams.get("period") ?? "30d";
 
   // Refresh materialized view (ignore errors - view may be empty on first run)
-  try { await admin.rpc("refresh_sky_ad_stats"); } catch {}
-
+  try { await admin.rpc("refresh_sky_ad_stats"); } catch (err) { console.warn("[app/api/sky-ads/analytics/route.ts] non-critical error:", err); }
   // Build date filter
   let dayFilter: string | null = null;
   if (period === "7d") {

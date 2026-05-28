@@ -85,8 +85,8 @@ async function fetchLeetCodeUser(username: string) {
     }
     const rawText = await res.text();
     let json: any;
-    try { json = JSON.parse(rawText); } catch { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`);
+    try { json = JSON.parse(rawText); } catch (err) { 
+      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
       return null;
     }
     if (!json?.data?.matchedUser) {
@@ -107,9 +107,8 @@ async function fetchLeetCodeUser(username: string) {
       mu.maxStreak = parseMaxStreak(mu, currentYear);
     }
     return json?.data ?? null;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[app/api/dev/[username]/route.ts] error:", err); return null;
+   }
 }
 
 export async function GET(
@@ -148,7 +147,8 @@ export async function GET(
       key = user ? `user:${user.id}` : (
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
       );
-    } catch {
+    } catch (err) {
+      console.warn("[app/api/dev/[username]/route.ts] error:", err);
       key = "unknown";
     }
     rateLimitKey = key;
@@ -280,7 +280,7 @@ export async function GET(
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", upserted.id)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style"]),
+      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
     sb
       .from("raid_tags")
       .select("attacker_login, tag_style, expires_at")
@@ -301,7 +301,10 @@ export async function GET(
     crown: loadoutConfig.crown ?? null,
     roof: loadoutConfig.roof ?? null,
     aura: loadoutConfig.aura ?? null,
+    faces: loadoutConfig.faces ?? null,
   } : null;
+
+  const ledBannerText = (customizationsResult.data ?? []).find(c => c.item_id === "led_banner")?.config?.text ?? null;
 
   const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
 
@@ -310,6 +313,7 @@ export async function GET(
     owned_items: ownedItems,
     custom_color: customColor,
     billboard_images: billboardImages,
+    led_banner_text: ledBannerText,
     loadout: loadout,
     building_style: buildingStyle,
     active_raid_tag: raidTagsResult.data?.[0] ?? null,

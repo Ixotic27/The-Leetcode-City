@@ -107,10 +107,12 @@ function EffectForItem({
   itemId,
   dims,
   billboardImages,
+  ledBannerText,
 }: {
   itemId: string;
   dims: BuildingDims;
   billboardImages?: string[];
+  ledBannerText?: string | null;
 }) {
   switch (itemId) {
     case "neon_outline":
@@ -146,7 +148,7 @@ function EffectForItem({
     case "lightning_aura":
       return <LightningAura {...dims} color={ACCENT} />;
     case "led_banner":
-      return <LEDBanner {...dims} color={ACCENT} />;
+      return <LEDBanner {...dims} color={ACCENT} text={ledBannerText} />;
     case "github_star":
       return <LeetCodeStar {...dims} />;
     case "ac_badge":
@@ -177,6 +179,7 @@ interface Loadout {
   crown: string | null;
   roof: string | null;
   aura: string | null;
+  faces: string | null;
 }
 
 function ShopPreviewScene({
@@ -184,6 +187,7 @@ function ShopPreviewScene({
   ownedFacesItems,
   customColor,
   billboardImages,
+  ledBannerText,
   dims,
   highlightItemId,
   buildingStyle,
@@ -192,6 +196,7 @@ function ShopPreviewScene({
   ownedFacesItems: string[];
   customColor: string | null;
   billboardImages: string[];
+  ledBannerText: string | null;
   dims: BuildingDims;
   highlightItemId?: string | null;
   buildingStyle?: string;
@@ -333,13 +338,23 @@ function ShopPreviewScene({
             return showId ? <EffectForItem key={zone} itemId={showId} dims={{ width: W, height: H, depth: D }} /> : null;
           })}
 
-          {/* Faces: always render if owned (same as Building3D) */}
-          {ownedFacesItems.includes("led_banner") && (
-            <EffectForItem itemId="led_banner" dims={{ width: W, height: H, depth: D }} />
-          )}
-          {(billboardImages.length > 0 || ownedFacesItems.includes("billboard")) && (
-            <EffectForItem itemId="billboard" dims={{ width: W, height: H, depth: D }} billboardImages={billboardImages} />
-          )}
+          {/* Faces: respect loadout and highlight */
+          (() => {
+            const equipped = loadout.faces;
+            const highlightInZone = highlightItemId && ZONE_ITEMS.faces?.includes(highlightItemId);
+            const showId = highlightInZone ? highlightItemId : equipped;
+
+            return (
+              <>
+                {showId === "led_banner" && (
+                  <EffectForItem itemId="led_banner" dims={{ width: W, height: H, depth: D }} ledBannerText={ledBannerText} />
+                )}
+                {showId === "billboard" && (
+                  <EffectForItem itemId="billboard" dims={{ width: W, height: H, depth: D }} billboardImages={billboardImages} />
+                )}
+              </>
+            );
+          })()}
         </group>
       </group>
     </>
@@ -353,14 +368,16 @@ export default function ShopPreview({
   ownedFacesItems,
   customColor,
   billboardImages,
+  ledBannerText,
   buildingDims,
   highlightItemId,
   buildingStyle,
 }: {
-  loadout: { crown: string | null; roof: string | null; aura: string | null };
+  loadout: { crown: string | null; roof: string | null; aura: string | null; faces: string | null };
   ownedFacesItems: string[];
   customColor: string | null;
   billboardImages: string[];
+  ledBannerText: string | null;
   buildingDims?: BuildingDims;
   highlightItemId?: string | null;
   buildingStyle?: string;
@@ -394,6 +411,7 @@ export default function ShopPreview({
             ownedFacesItems={ownedFacesItems}
             customColor={customColor}
             billboardImages={billboardImages}
+            ledBannerText={ledBannerText}
             dims={dims}
             highlightItemId={highlightItemId}
             buildingStyle={buildingStyle}

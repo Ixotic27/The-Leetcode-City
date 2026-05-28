@@ -123,10 +123,11 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
       }
     }
     return total;
-  } catch {
+  } catch (err) {
+    console.warn("[app/api/checkin/route.ts] error:", err);
     return null;
   }
-}
+}  
 
 export async function POST() {
   const supabase = await createServerSupabase();
@@ -305,10 +306,9 @@ export async function POST() {
       success: r.success,
       created_at: r.created_at,
     }));
-  } catch {
-    // raids table may not exist yet
+  } catch (err) {
+    console.warn("[app/api/checkin/route.ts] non-critical error:", err);
   }
-
   return NextResponse.json({
     checked_in: checkinResult.checked_in,
     already_today: checkinResult.already_today ?? false,

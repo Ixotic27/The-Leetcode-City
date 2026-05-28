@@ -61,10 +61,8 @@ export async function POST(request: Request) {
   let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments"; gifted_to_login?: string };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const { item_id, provider, gifted_to_login } = body;
 
   if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments"].includes(provider)) {

@@ -55,7 +55,8 @@ export default function DistrictChooser({
         return;
       }
       onChosen(data.district);
-    } catch {
+    } catch (err) {
+      console.warn("[components/DistrictChooser.tsx] error:", err);
       setError("Network error");
     } finally {
       setSubmitting(false);

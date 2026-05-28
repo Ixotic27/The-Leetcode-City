@@ -1912,7 +1912,7 @@ interface Props {
 function CityExposure({ cityEnergy }: { cityEnergy: number }) {
   const gl = useThree((s) => s.gl);
   const targetRef = useRef(1.3);
-  targetRef.current = 0.6 + 0.8 * Math.min(1, cityEnergy); // 0.6 at sleep, 1.4 at full
+  targetRef.current = cityEnergy; // Directly use 0.10 to 1.40 scale
 
   useFrame(() => {
     const current = gl.toneMappingExposure;

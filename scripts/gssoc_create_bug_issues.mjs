@@ -236,7 +236,7 @@ If no GitHub login is found, it returns:
 This error message references "LeetCode username" but the variable is actually checking for a **GitHub** login from OAuth. This is confusing for users and developers.
 
 ### Root Cause
-The error message was never updated after the project pivoted from "Git City" to "LeetCode City". The variable is named \`githubLogin\` but the message says "LeetCode username".
+The error message was never updated after the project pivoted from "LeetCode City" to "LeetCode City". The variable is named \`githubLogin\` but the message says "LeetCode username".
 
 ### Steps to Reproduce
 1. Authenticate via GitHub OAuth with an account that has no \`user_name\` or \`preferred_username\` in metadata

@@ -2,6 +2,7 @@
 
 import { useRef, useMemo, useState, useEffect, memo } from "react";
 import { useFrame } from "@react-three/fiber";
+import { Text } from "@react-three/drei";
 import * as THREE from "three";
 
 // ─── Shared Geometries (reused across all effect components) ─
@@ -1453,11 +1454,13 @@ export const LEDBanner = memo(function LEDBanner({
   width,
   depth,
   color = "#ffa116",
+  text,
 }: {
   height: number;
   width: number;
   depth: number;
   color?: string;
+  text?: string | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const frameCount = useRef(0);
@@ -1498,6 +1501,45 @@ export const LEDBanner = memo(function LEDBanner({
       }
     }
   });
+
+  // Render actual text if provided, otherwise render the abstract blocks
+  if (text) {
+    const textGroupRef = useRef<THREE.Group>(null);
+    useFrame((state) => {
+      if (!textGroupRef.current) return;
+      // Scroll text horizontally
+      const t = state.clock.elapsedTime;
+      textGroupRef.current.position.x = Math.sin(t) * 2;
+    });
+
+    return (
+      <group>
+        {faces.map((face, f) => {
+          const rotY = face.axis === "x" ? (face.pos[2] > 0 ? 0 : Math.PI) : (face.pos[0] > 0 ? Math.PI / 2 : -Math.PI / 2);
+          return (
+            <group key={`text-${f}`} position={[face.pos[0], face.pos[1], face.pos[2]]} rotation={[0, rotY, 0]}>
+              <mesh position={[0, 0, 0]} geometry={_plane} scale={[face.faceW, bannerH, 1]}>
+                <meshStandardMaterial color="#000000" />
+              </mesh>
+              <group ref={f === 0 ? textGroupRef : undefined}>
+                <Text
+                  position={[0, 0, 0.1]}
+                  fontSize={1.5}
+                  color={color}
+                  anchorX="center"
+                  anchorY="middle"
+                  font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
+                >
+                  {text}
+                  <meshBasicMaterial color={color} toneMapped={false} />
+                </Text>
+              </group>
+            </group>
+          );
+        })}
+      </group>
+    );
+  }
 
   return (
     <group ref={groupRef}>
