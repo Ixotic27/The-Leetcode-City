@@ -15,7 +15,7 @@ export function getStripe(): Stripe {
     throw new Error("STRIPE_SECRET_KEY is not set");
   }
   stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2026-01-28.clover",
+    apiVersion: "2026-02-25.clover",
   });
   return stripeInstance;
 }
@@ -27,7 +27,7 @@ export async function createCheckoutSession(
   currency: "usd" | "brl" = "usd",
   customerEmail?: string,
   giftedToDevId?: number | null,
-  giftedToLogin?: string | null
+  giftedToLogin?: string | null,
 ): Promise<{ url: string }> {
   const sb = getSupabaseAdmin();
 
@@ -44,7 +44,8 @@ export async function createCheckoutSession(
   }
 
   const stripe = getStripe();
-  const unitAmount = currency === "brl" ? item.price_brl_cents : item.price_usd_cents;
+  const unitAmount =
+    currency === "brl" ? item.price_brl_cents : item.price_usd_cents;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
