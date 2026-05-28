@@ -17,6 +17,11 @@ interface Props {
   raidData: RaidExecuteResponse | null;
   onPhaseComplete: (phase: RaidPhase) => void;
 }
+interface ExplosionData {
+  id: number;
+  position: THREE.Vector3;
+  createdAt: number;
+}
 
 // ─── Constants ────────────────────────────────────────────────
 
@@ -674,12 +679,8 @@ function FuturisticJetMesh() {
       </mesh>
       
       {/* Wingtip Vapor Trails (Using actual scattering particle system) */}
-      <group position={[-4.0, -0.1, 1.6]} ref={trailLRef}>
-         <SmokeTrail vehicleRef={trailLRef} active={true} />
-      </group>
-      <group position={[4.0, -0.1, 1.6]} ref={trailRRef}>
-         <SmokeTrail vehicleRef={trailRRef} active={true} />
-      </group>
+      <group position={[-4.0, -0.1, 1.6]} ref={trailLRef} />
+      <group position={[4.0, -0.1, 1.6]} ref={trailRRef} />
 
       {/* Engine glow point lights */}
       <pointLight position={[-0.55, -0.25, 3.4]} color="#00aaff" intensity={6} distance={12} />
@@ -721,7 +722,10 @@ function SmokeTrail({ vehicleRef, active }: {
   const spawnTimer = useRef(0);
 
   useEffect(() => {
-    if (!active) particles.current = [];
+  if (!active) {
+    particles.current = [];
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   useFrame((_, delta) => {
@@ -850,6 +854,7 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact }: {
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const glowRef = useRef<THREE.InstancedMesh>(null);
+  const [explosions, setExplosions] = useState<ExplosionData[]>([]);
   const projectiles = useRef<{
     pos: THREE.Vector3;
     vel: THREE.Vector3;
@@ -917,7 +922,17 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact }: {
         p.alive = false;
         impactCount.current++;
         if (impactCount.current % 2 === 0) playRaidSound("impact");
+        // This triggers the screen shake on every projectile impact
+        onImpact();
         if (impactCount.current >= PROJECTILE_COUNT * 0.8) onImpact();
+        setExplosions((prev) => [
+          ...prev,
+          {
+            id: Math.random(),
+            position: p.pos.clone(),
+            createdAt: Date.now(),
+          },
+        ]);
       }
 
       if (p.pos.y < 0) p.alive = false;
@@ -933,26 +948,28 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact }: {
 
   return (
     <group>
-      {/* Core — small bright bullet */}
-      <instancedMesh ref={meshRef} args={[undefined, undefined, PROJECTILE_COUNT]} frustumCulled={false}>
-        <sphereGeometry args={[0.6, 6, 6]} />
-        <meshStandardMaterial
-          color="#ffaa00"
-          emissive="#ff6600"
-          emissiveIntensity={8}
-          toneMapped={false}
-        />
+      <instancedMesh ref={meshRef} args={[undefined, undefined, PROJECTILE_COUNT]}>
+        <boxGeometry args={[0.4, 0.4, 1.5]} />
+        <meshStandardMaterial color="#ffcc00" emissive="#ff3300" emissiveIntensity={2} toneMapped={false} />
       </instancedMesh>
-      {/* Glow halo — larger, transparent, trails behind */}
-      <instancedMesh ref={glowRef} args={[undefined, undefined, PROJECTILE_COUNT]} frustumCulled={false}>
-        <sphereGeometry args={[2, 8, 8]} />
-        <meshBasicMaterial
-          color="#ff4400"
-          transparent
-          opacity={0.25}
-          depthWrite={false}
+      {glowRef.current && (
+        <instancedMesh ref={glowRef} args={[undefined, undefined, PROJECTILE_COUNT]}>
+          <sphereGeometry args={[0.8, 8, 8]} />
+          <meshBasicMaterial color="#ff4400" transparent opacity={0.4} />
+        </instancedMesh>
+      )}
+
+      {/* Render the updated explosion particle bursts */}
+      {explosions.map((exp) => (
+        <ExplosionParticles
+          key={exp.id}
+          position={exp.position}
+          onComplete={() => {
+            // Clean up the explosion state once the animation finishes
+            setExplosions((prev) => prev.filter((e) => e.id !== exp.id));
+          }}
         />
-      </instancedMesh>
+      ))}
     </group>
   );
 }
@@ -1621,6 +1638,85 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
       {/* Fire glow */}
       <FireGlow active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} position={defenderTopPos} />
+    </group>
+  );
+}
+interface ExplosionParticlesProps {
+  position: THREE.Vector3;
+  onComplete: () => void;
+}
+
+function ExplosionParticles({ position, onComplete }: ExplosionParticlesProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startTime = useRef(Date.now());
+  const particleCount = 15;
+
+  // Generate directions and scales for our 3D debris cubes
+  const [velocities, matrices] = useMemo(() => {
+    const vels: THREE.Vector3[] = [];
+    const mats: THREE.Matrix4[] = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+      // Burst outward uniformly
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      const speed = 6 + Math.random() * 12;
+
+      vels.push(new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.sin(phi) * Math.sin(theta) * speed,
+        Math.cos(phi) * speed
+      ));
+
+      // Create a transformation matrix for each cube particle
+      const matrix = new THREE.Matrix4();
+      const scale = 0.3 + Math.random() * 0.5; // Random particle size
+      matrix.makeScale(scale, scale, scale);
+      mats.push(matrix);
+    }
+    return [vels, mats];
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) return;
+
+    const elapsed = Date.now() - startTime.current;
+
+    // Fade out and move particles over time
+    for (let i = 0; i < particleCount; i++) {
+      const mat = matrices[i];
+      const vel = velocities[i];
+      
+      // Extract position from matrix, add velocity, and update matrix
+      const pos = new THREE.Vector3().setFromMatrixPosition(mat);
+      pos.addScaledVector(vel, delta);
+      
+      // Apply deceleration/gravity slightly
+      vel.y -= 5 * delta;
+
+      // Rebuild the matrix with new position
+      mat.setPosition(pos);
+      meshRef.current.setMatrixAt(i, mat);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+
+    // Remove the explosion from memory after 0.5 seconds
+    if (elapsed > 500) {
+      onComplete();
+    }
+  });
+
+  return (
+    <group position={position}>
+      <instancedMesh ref={meshRef} args={[undefined, undefined, particleCount]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial 
+          color="#ff4400" 
+          emissive="#ff1100" 
+          emissiveIntensity={3} 
+          toneMapped={false} 
+        />
+      </instancedMesh>
     </group>
   );
 }
