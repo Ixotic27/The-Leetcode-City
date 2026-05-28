@@ -15,6 +15,9 @@ function extractPixId(data: any): string | undefined {
 }
 
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Layer 1: Validate webhook secret via query string
   const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;

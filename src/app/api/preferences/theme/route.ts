@@ -41,6 +41,9 @@ export async function GET() {
  * Update the authenticated user's city theme.
  * Body: { city_theme: number }
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function PATCH(request: Request) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();

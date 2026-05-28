@@ -8,6 +8,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tec
 /**
  * Cron: Monday 10:00 UTC - Weekly recap email for active developers.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

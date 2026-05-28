@@ -25,6 +25,9 @@ function maxScoreForCollected(collected: number): number {
   return Math.ceil(bestComboScore * 1.5 * 1.1);
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -149,6 +152,9 @@ export async function POST(request: Request) {
   return NextResponse.json({ id: row.id, score, rank_today, total });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const seed = searchParams.get("seed") || getTodaySeed();

@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 
 // POST - Record rabbit sighting encounter
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -117,6 +120,9 @@ export async function POST(request: Request) {
 }
 
 // GET - Hall of completers (public) or progress check (authenticated)
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const admin = getSupabaseAdmin();

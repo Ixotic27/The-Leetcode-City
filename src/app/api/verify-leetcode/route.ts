@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp } from "@/lib/xp";
 
+/**
+ * @param {import('next/server').NextRequest} req
+ */
 export async function POST(req: Request) {
     try {
         const { leetcode_username } = await req.json();
@@ -196,6 +199,7 @@ export async function POST(req: Request) {
             .from("developers")
             .upsert({
                 github_login: leetcode_username.toLowerCase(),
+                lc_username: leetcode_username.toLowerCase(),
                 github_id: github_id,
                 name: name,
                 avatar_url: avatar_url,

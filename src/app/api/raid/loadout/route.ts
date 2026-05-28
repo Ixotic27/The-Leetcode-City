@@ -3,6 +3,9 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { RAID_VEHICLE_ITEMS, RAID_TAG_ITEMS } from "@/lib/zones";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const devId = searchParams.get("developer_id");
@@ -53,6 +56,9 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {

@@ -7,6 +7,9 @@ import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const rawBody = await request.text();
 

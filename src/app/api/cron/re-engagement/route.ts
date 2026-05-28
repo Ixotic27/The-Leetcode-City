@@ -57,6 +57,9 @@ const TIERS: ReEngagementTier[] = [
  * Cron: Daily 14:00 UTC - Re-engagement emails for inactive developers.
  * Category: marketing (opt-in only, defaults to false).
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

@@ -15,6 +15,9 @@ const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
  *
  * Body: { subject: string, html: string, slug: string }
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

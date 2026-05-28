@@ -3,6 +3,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 const MIN_EVENTS = 8;
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));

@@ -153,6 +153,9 @@ async function upsertFullProfile(
   return !error;
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
   const authHeader = request.headers.get("authorization");

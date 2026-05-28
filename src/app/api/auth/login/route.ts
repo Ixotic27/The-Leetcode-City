@@ -1,6 +1,9 @@
 import { createBrowserSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const callbackUrl = searchParams.get("callbackUrl") || "/";

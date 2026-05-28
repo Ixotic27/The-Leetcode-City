@@ -67,6 +67,9 @@ async function sleep(ms: number) {
 }
 
 async function fetchLCUser(username: string) {
+    const currentYear = new Date().getFullYear();
+    const prevYear = currentYear - 1;
+
     const query = `
     query($username: String!) {
       matchedUser(username: $username) {
@@ -77,7 +80,7 @@ async function fetchLCUser(username: string) {
           totalSubmissionNum { difficulty count }
         }
         userCalendar { streak totalActiveDays }${
-        Array.from({ length: new Date().getFullYear() - 2014 }, (_, i) => 2015 + i)
+        [currentYear, prevYear]
             .map(y => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`).join("")
     }
       }

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+/**
+ * @param {{ params: any }} context
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ username: string }> }

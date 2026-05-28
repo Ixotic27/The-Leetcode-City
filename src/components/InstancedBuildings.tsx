@@ -124,7 +124,7 @@ const fragmentShader = /* glsl */ `
     // Both ambient and emissive dim when city sleeps
     // Cubic curve: sleeping (0.15^3=0.003) is nearly black, waking needs 3+ devs to feel alive
     float energyCube = uCityEnergy * uCityEnergy * uCityEnergy;
-    float ambientBase = 0.03 + 0.27 * energyCube;
+    float ambientBase = 0.08 + 0.22 * energyCube; // Increased base from 0.03 to 0.08 for better baseline visibility
     vec3 emissive = wallColor * 2.5 * energyCube;
     vec3 wallFinal = wallColor * ambientBase + emissive;
 

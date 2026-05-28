@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
  * Handles bounces, complaints, delivery confirmations, and opens/clicks.
  * Updates notification_log delivery lifecycle and notification_suppressions.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Verify webhook secret (set in Resend dashboard)
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;

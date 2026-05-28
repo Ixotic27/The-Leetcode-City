@@ -5,6 +5,9 @@ import { flushPendingBatches } from "@/lib/notifications";
  * Cron: Every 15 minutes - Flush closed notification batches.
  * Compiles digest emails for batched events (raids, achievements, etc).
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

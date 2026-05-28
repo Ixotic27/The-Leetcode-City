@@ -25,6 +25,9 @@ async function checkAdmin() {
 }
 
 // Create a new ad
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   if (!(await checkAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -74,6 +77,9 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "purchaser_email", "plan_id",
 ]);
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function PUT(request: Request) {
   if (!(await checkAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -112,6 +118,9 @@ export async function PUT(request: Request) {
 }
 
 // Hard delete ad row
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function DELETE(request: Request) {
   if (!(await checkAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -138,6 +147,9 @@ export async function DELETE(request: Request) {
 }
 
 // Batch operations: pause, resume, or delete multiple ads
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function PATCH(request: Request) {
   if (!(await checkAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

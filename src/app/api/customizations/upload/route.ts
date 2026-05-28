@@ -10,6 +10,9 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
 ]);
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Auth required
   const supabase = await createServerSupabase();
@@ -184,6 +187,9 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true, image_url: imageUrl, slot_index: slotIndex, images });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function DELETE(request: Request) {
   // Auth required
   const supabase = await createServerSupabase();

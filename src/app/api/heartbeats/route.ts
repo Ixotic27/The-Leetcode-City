@@ -58,6 +58,9 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
 
 // ── Route ───────────────────────────────────────────────────────────────────
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
   if (!apiKey) {

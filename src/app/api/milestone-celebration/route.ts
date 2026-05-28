@@ -5,6 +5,9 @@ import { sendCommunityMilestoneNotifications } from "@/lib/notification-senders/
 // Milestones to celebrate (every 5k after 10k)
 const MILESTONES = [10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
 
+/**
+ * @param {import('next/server').NextRequest} req
+ */
 export async function POST(req: Request) {
   const { total_developers } = await req.json().catch(() => ({ total_developers: 0 }));
   if (!total_developers || typeof total_developers !== "number") {

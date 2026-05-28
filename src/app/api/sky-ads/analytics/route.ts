@@ -14,6 +14,9 @@ const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number
   "advertise": { impressions: 31116,  clicks: 253,  cta_clicks: 110 },
 };
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   // Auth check
   const supabase = await createServerSupabase();

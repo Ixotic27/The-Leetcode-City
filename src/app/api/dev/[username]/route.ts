@@ -112,6 +112,10 @@ async function fetchLeetCodeUser(username: string) {
    }
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ * @param {{ params: any }} context
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }

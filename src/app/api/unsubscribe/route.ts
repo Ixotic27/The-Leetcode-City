@@ -9,6 +9,9 @@ const VALID_CATEGORIES = ["transactional", "social", "digest", "marketing", "str
  * RFC 8058 requires POST for one-click List-Unsubscribe.
  * No login needed - HMAC token proves the link is legitimate.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const { searchParams } = new URL(request.url);
   const devId = Number(searchParams.get("dev"));
@@ -57,6 +60,9 @@ export async function POST(request: Request) {
  *
  * NOTE: We ALSO process on GET because users click links, not POST them.
  * The POST handler above is for email client one-click (RFC 8058).
+ */
+/**
+ * @param {import('next/server').NextRequest} request
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);

@@ -8,6 +8,9 @@ const VALID_DISTRICTS = [
   "devops", "security", "gamedev", "vibe_coder", "creator",
 ];
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
