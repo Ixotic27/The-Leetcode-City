@@ -1,8 +1,6 @@
 name: Auto Issue Manager
 
 on:
-  issues:
-    types: [opened]
   issue_comment:
     types: [created]
 
@@ -11,153 +9,128 @@ permissions:
   contents: read
 
 jobs:
-  issue_manager:
+  auto-assign:
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'issue_comment' &&
+      !github.event.issue.pull_request &&
+      github.event.comment.user.type != 'Bot'
     steps:
-      - name: AI Issue Triage
-        if: github.event_name == 'issues' && github.event.action == 'opened'
-        uses: actions/github-script@v7
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          script: |
-            const issue = context.payload.issue;
-            const apiKey = process.env.GH_TOKEN;
-            
-            // Skip if no token
-            if (!apiKey) {
-              console.log("No GITHUB_TOKEN found. Skipping AI triage.");
-              return;
-            }
-            
-            const prompt = `You are an AI repository manager for a project called LeetCode City.
-            A new issue has been created by @${issue.user.login}:
-            Title: ${issue.title}
-            Body: ${issue.body}
-            
-            Evaluate this issue. Is it a good issue, or does it seem like spam, redundant, or low-effort?
-            Respond with a brief, friendly comment addressing the user.
-            If it's good, thank them, say a maintainer will review it shortly, and kindly ask them to ⭐ Star the repository to support the project!
-            If it's poor quality or a duplicate, gently ask for more details or clarification. Keep it concise.`;
-            
-            try {
-              const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                  model: 'gpt-4o-mini',
-                  messages: [{ role: 'user', content: prompt }]
-                })
-              });
-              
-              const data = await res.json();
-              if (data.choices && data.choices.length > 0) {
-                const reply = data.choices[0].message.content;
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: reply
-                });
-              }
-            } catch (err) {
-              console.error("AI Triage Error:", err);
-            }
-
       - name: Handle Auto-Assignment
-        if: github.event_name == 'issue_comment' && !github.event.issue.pull_request
         uses: actions/github-script@v7
         with:
           script: |
             const commentBody = context.payload.comment.body.toLowerCase();
             const commenter = context.payload.comment.user.login;
             const assignees = context.payload.issue.assignees.map(a => a.login);
-            
+            const issueState = context.payload.issue.state;
+
+            if (issueState === 'closed') return;
+
             // Keywords that indicate a user wants to be assigned
-            const wantsAssignment = 
-              commentBody.includes('assign me') || 
-              commentBody.includes('i would like to work on this') || 
-              commentBody.includes('can i take this') || 
+            const wantsAssignment =
+              commentBody.includes('assign me') ||
+              commentBody.includes('i would like to work on this') ||
+              commentBody.includes('can i take this') ||
+              commentBody.includes('can i work on this') ||
+              commentBody.includes('i want to work on this') ||
+              commentBody.includes('i want to take this') ||
+              commentBody.includes('let me work on this') ||
+              commentBody.includes('let me take this') ||
+              commentBody.includes('i want to fix this') ||
+              commentBody.includes('i want to contribute') ||
+              commentBody.includes('can i be assigned') ||
+              commentBody.includes('assign me to this') ||
+              commentBody.includes('assign me this') ||
+              commentBody.includes('i will work on this') ||
+              commentBody.includes('i can work on this') ||
+              commentBody.includes('i am interested') ||
+              commentBody.includes("i'm interested") ||
+              commentBody.includes("i'd like to work") ||
+              commentBody.includes('id like to work') ||
+              commentBody.includes("i'll work on this") ||
+              commentBody.includes('ill work on this') ||
+              commentBody.includes('please assign me') ||
               commentBody.includes('gssoc');
-            
-            if (wantsAssignment) {
-              if (assignees.length === 0) {
-                
-                // --- 24-Hour Cooldown Check ---
-                // Search for issues in this repo assigned to this user in the last 24 hours
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                const searchQuery = `repo:${context.repo.owner}/${context.repo.repo} assignee:${commenter} updated:>=${oneDayAgo} is:issue`;
-                
-                const searchResult = await github.rest.search.issuesAndPullRequests({
-                  q: searchQuery,
-                  per_page: 5
-                });
-                
-                // Filter out the current issue from results
-                const recentAssignments = searchResult.data.items.filter(
-                  item => item.number !== context.issue.number && !item.pull_request
-                );
-                
-                if (recentAssignments.length > 0) {
-                  // User was already assigned an issue in the last 24 hours -> Reject
-                  const recentIssue = recentAssignments[0];
-                  await github.rest.issues.createComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    body: `Hi @${commenter}, thank you for your enthusiasm! 🙌\n\nHowever, you were already assigned to **#${recentIssue.number}** recently. To give everyone a fair chance to contribute, each contributor can only be assigned **one issue per 24 hours**.\n\nPlease complete your current issue first, or wait until the 24-hour window passes before requesting a new one. Thank you for understanding! 💙`
-                  });
-                  return;
-                }
-                
-                // --- All checks passed -> Assign the user ---
-                await github.rest.issues.addAssignees({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  assignees: [commenter]
-                });
-                
-                // Welcome message with 48-hour deadline and PR rules
+
+            if (!wantsAssignment) return;
+
+            if (assignees.length === 0) {
+
+              // ── 24-Hour Rate Limit: max 3 issues per 24 hours ──
+              const { data: userAssignedIssues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                assignee: commenter,
+                state: 'open',
+                per_page: 100,
+              });
+
+              // Filter to actual issues (not PRs)
+              const openAssignedIssues = userAssignedIssues.filter(
+                i => !i.pull_request && i.number !== context.issue.number
+              );
+
+              if (openAssignedIssues.length >= 3) {
+                const issueList = openAssignedIssues
+                  .slice(0, 3)
+                  .map(i => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
+                  .join('\n');
+
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: `Hello @${commenter}, you have been selected to work on this issue! 🚀 Please read the \`CONTRIBUTING.md\` file before starting.\n\n⏰ **Deadline: You have 48 hours to submit a Pull Request for this issue.** If no PR is submitted within that time, the issue will be unassigned and made available for other contributors. This keeps the project moving and ensures everyone gets a fair opportunity!\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${context.issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${context.issue.number}\` so it automatically links to this issue and inherits its labels.\n\n⭐ **If you're excited to contribute, please consider starring this repository to help increase its visibility and support the developer!**\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
+                  body: `Hi @${commenter}, thank you for your enthusiasm! 🙌\n\nHowever, you already have **${openAssignedIssues.length}/3** active assigned issues (the maximum allowed).\n\nPlease complete or close one of your current issues before requesting a new one:\n\n${issueList}\n\nThank you for understanding! 💙`
                 });
-                
-                // Automatically add labels if not present
-                const labels = context.payload.issue.labels.map(l => l.name);
-                const labelsToAdd = [];
-                if (!labels.includes("Gssoc 26")) labelsToAdd.push("Gssoc 26");
-                if (!labels.includes("gssoc:approved")) labelsToAdd.push("gssoc:approved");
-                
-                if (labelsToAdd.length > 0) {
-                  await github.rest.issues.addLabels({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: context.issue.number,
-                    labels: labelsToAdd
-                  });
-                }
-                
-                // Lock the conversation so only collaborators can comment
-                await github.rest.issues.lock({
+                return;
+              }
+
+              // ── All checks passed → Assign the user ──
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                assignees: [commenter]
+              });
+
+              // Welcome message with 48-hour deadline and PR rules
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `Hello @${commenter}, you have been selected to work on this issue! 🚀 Please read the \`CONTRIBUTING.md\` file before starting.\n\n⏰ **Deadline: You have 48 hours to submit a Pull Request for this issue.** If no PR is submitted within that time, the issue will be unassigned and made available for other contributors. This keeps the project moving and ensures everyone gets a fair opportunity!\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${context.issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${context.issue.number}\` so it automatically links to this issue and inherits its labels.\n\n⭐ **If you're excited to contribute, please consider starring this repository to help increase its visibility and support the developer!**\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
+              });
+
+              // Automatically add GSSoC labels if not present
+              const labels = context.payload.issue.labels.map(l => l.name);
+              const labelsToAdd = [];
+              if (!labels.includes('Gssoc 26')) labelsToAdd.push('Gssoc 26');
+              if (!labels.includes('gssoc:approved')) labelsToAdd.push('gssoc:approved');
+
+              if (labelsToAdd.length > 0) {
+                await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  lock_reason: 'resolved'
-                });
-              } else if (!assignees.includes(commenter)) {
-                // Issue is already assigned
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: context.issue.number,
-                  body: `Hi @${commenter}, this issue is already assigned to @${assignees[0]}. Issues are assigned on a first-come, first-served basis. Please feel free to look for other unassigned issues to contribute to! 🌟`
+                  labels: labelsToAdd
                 });
               }
+
+              // Lock the conversation so only collaborators can comment
+              await github.rest.issues.lock({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                lock_reason: 'resolved'
+              });
+
+            } else if (!assignees.includes(commenter)) {
+              // Issue is already assigned to someone else
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `Hi @${commenter}, this issue is already assigned to @${assignees[0]}. Issues are assigned on a first-come, first-served basis. Please feel free to look for other unassigned issues to contribute to! 🌟`
+              });
             }
