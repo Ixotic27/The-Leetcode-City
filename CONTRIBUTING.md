@@ -60,8 +60,14 @@ Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.l
 ## 🏷️ Getting Assigned to an Issue
 
 1. Find an open, unassigned issue
-2. Comment `assign me` (or `I want to work on this`, `can I take this`, etc.)
-3. The bot assigns you automatically (first-come, first-served)
+2. Comment `assign me` (or `I want to work on this`, `can I take this`, etc.) **AND include a "Proposed Solution" heading**.
+   - Example:
+     ```markdown
+     assign me!
+     ### Proposed Solution
+     I will update the components to use the new API structure...
+     ```
+3. The bot will automatically assign you (first-come, first-served) if your comment includes a proposed solution.
 4. You have **48 hours** to submit a PR
 5. The issue conversation is locked — further discussion happens in your PR
 

@@ -55,6 +55,19 @@ jobs:
 
             if (!wantsAssignment) return;
 
+            // Check if they included a proposed solution
+            const hasProposedSolution = commentBody.includes('proposed solution');
+
+            if (!hasProposedSolution && assignees.length === 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `Hi @${commenter}, thank you for your interest! 🙌\n\nTo be assigned to this issue, you must include a **Proposed Solution** in your comment. This helps us ensure that you have a clear plan before starting work.\n\nPlease reply again with your approach, including a heading like \`### Proposed Solution\` or \`My Proposed Solution\`.`
+              });
+              return;
+            }
+
             if (assignees.length === 0) {
 
               // ── 24-Hour Rate Limit: max 3 issues per 24 hours ──
