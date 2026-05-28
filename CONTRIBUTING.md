@@ -171,3 +171,53 @@ Run `npm install` to pick up new dependencies, then `npm run lint`.
 ## Questions?
 
 Open an issue or reach out on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/).
+
+---
+
+## 🏷️ PR Label System
+
+Our bot and maintainers use labels to manage the workflow and review process.
+
+### Auto-Applied by Bot
+
+| Label | When |
+|-------|------|
+| `type:bug`, `type:feature`, `type:docs`, etc. | Detected from PR title/branch |
+| `status:blocked` | CI fails |
+| `needs-rebase` | Merge conflicts |
+| `needs-details` | PR template incomplete |
+
+### Applied by Maintainer
+
+| Label | Purpose |
+|-------|---------|
+| `level:beginner` / `intermediate` / `advanced` / `critical` | Issue difficulty level |
+| `quality:clean` / `quality:exceptional` | Code quality assessment |
+
+---
+
+## 🏆 GSSoC 2026 (GirlScript Summer of Code)
+
+If you are participating in GSSoC 2026, LeetCode City is proud to be a participating project! 
+
+### GSSoC Labels
+
+These labels are specifically used for tracking GSSoC contributions:
+
+| Label | Purpose |
+|-------|---------|
+| `Gssoc 26` | Automatically applied to every assigned issue and opened PR |
+| `gssoc:approved` | Automatically applied when a GSSoC PR is merged |
+| `mentor:username` | Indicates which mentor reviewed this PR |
+
+### 📊 GSSoC Scoring System
+
+Points are awarded based on a combination of difficulty, code quality, and the type of contribution.
+
+```
+Score = 50 + (difficulty_multiplier × quality_multiplier) + type_bonus
+```
+
+- **Base Points:** `gssoc:approved` gives **+50 base points** (applied to every merged PR).
+- **Multipliers:** Difficulty and quality multipliers are set by maintainers during review.
+- **Type Bonus:** Bonus points are automatically detected based on the `type:` label (e.g., features grant more bonus points than minor doc fixes).
