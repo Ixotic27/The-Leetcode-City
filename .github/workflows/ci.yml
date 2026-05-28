@@ -52,7 +52,7 @@ jobs:
             fi
             echo "Linting changed files only:"
             echo "$CHANGED"
-            npx next lint --file $CHANGED
+            npx eslint $CHANGED
           else
             # Full lint on push to main
             npm run lint
