@@ -10,6 +10,9 @@ permissions:
   issues: write
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   welcome:
     runs-on: ubuntu-latest
@@ -58,4 +61,47 @@ jobs:
             - ✅ Your PR description includes \`Fixes #<issue-number>\`
 
             A maintainer will review your PR shortly. Hang tight! 🚀`
+            });
+
+      - name: Triage external issues
+        if: >
+          github.event_name == 'issues' &&
+          github.event.issue.user.login != 'Ixotic27'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const author = issue.user.login;
+
+            // Create the 'needs-triage' label if it doesn't exist
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'needs-triage',
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'needs-triage',
+                color: 'fbca04',
+                description: 'New issue awaiting admin review',
+              });
+            }
+
+            // Add the label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['needs-triage'],
+            });
+
+            // Post triage message
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Hey @${author}, thank you for raising this issue! 🙌\n\nThis has been flagged for the **project admin** to review. We will discuss it internally and get back to you with next steps.\n\nIn the meantime, please make sure you've provided:\n- 📝 A clear description of the problem or feature request\n- 🖼️ Screenshots or logs if applicable\n- 📂 Relevant file paths or code references\n\nSit tight — we'll update you soon! 💙`
             });

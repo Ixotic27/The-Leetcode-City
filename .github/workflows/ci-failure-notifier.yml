@@ -11,6 +11,9 @@ permissions:
   pull-requests: write
   actions: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   notify-ci-failure:
     # Act when CI completes and was triggered by a pull_request_target or push event
@@ -167,25 +170,27 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: prNumber,
-                body: `🚨 Hey @${author}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
-${failureDetails}
-Please fix the issues before this can be reviewed. Here's how:
-
-**1. Run checks locally before pushing:**
-\`\`\`bash
-npm run lint           # Run ESLint
-npm run build          # Verify production build passes
-\`\`\`
-
-**2. Auto-fix common issues:**
-\`\`\`bash
-npm run lint -- --fix  # Auto-fix lint errors where possible
-\`\`\`
-
-**3. Check the full failure log here:**
-👉 [View CI Run](${runUrl})
-
-Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
+                body: [
+                  `🚨 Hey @${author}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.`,
+                  failureDetails,
+                  `Please fix the issues before this can be reviewed. Here's how:`,
+                  ``,
+                  `**1. Run checks locally before pushing:**`,
+                  `\`\`\`bash`,
+                  `npm run lint           # Run ESLint`,
+                  `npm run build          # Verify production build passes`,
+                  `\`\`\``,
+                  ``,
+                  `**2. Auto-fix common issues:**`,
+                  `\`\`\`bash`,
+                  `npm run lint -- --fix  # Auto-fix lint errors where possible`,
+                  `\`\`\``,
+                  ``,
+                  `**3. Check the full failure log here:**`,
+                  `👉 [View CI Run](${runUrl})`,
+                  ``,
+                  `Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`
+                ].join('\n'),
               });
             } else if (conclusion === 'success') {
               core.info(`PR #${prNumber}: CI succeeded. Removing '${label}' label if present.`);
@@ -319,25 +324,27 @@ Once you push a fix and the CI passes, the \`status:blocked\` label will be remo
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
-                  body: `🚨 Hey @${pr.user.login}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
-${failureDetails}
-Please fix the issues before this can be reviewed. Here's how:
-
-**1. Run checks locally before pushing:**
-\`\`\`bash
-npm run lint           # Run ESLint
-npm run build          # Verify production build passes
-\`\`\`
-
-**2. Auto-fix common issues:**
-\`\`\`bash
-npm run lint -- --fix  # Auto-fix lint errors where possible
-\`\`\`
-
-**3. Check the full failure log here:**
-👉 [View CI Run](${ciRun.html_url})
-
-Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
+                  body: [
+                    `🚨 Hey @${pr.user.login}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.`,
+                    failureDetails,
+                    `Please fix the issues before this can be reviewed. Here's how:`,
+                    ``,
+                    `**1. Run checks locally before pushing:**`,
+                    `\`\`\`bash`,
+                    `npm run lint           # Run ESLint`,
+                    `npm run build          # Verify production build passes`,
+                    `\`\`\``,
+                    ``,
+                    `**2. Auto-fix common issues:**`,
+                    `\`\`\`bash`,
+                    `npm run lint -- --fix  # Auto-fix lint errors where possible`,
+                    `\`\`\``,
+                    ``,
+                    `**3. Check the full failure log here:**`,
+                    `👉 [View CI Run](${ciRun.html_url})`,
+                    ``,
+                    `Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`
+                  ].join('\n'),
                 });
               } else if (ciRun.conclusion === 'success' && hasBlockedLabel) {
                 // CI is now passing — remove the stale blocked label

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendAdExpiringEmail, sendAdExpiredEmail } from "@/lib/ad-emails";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
   const authHeader = request.headers.get("authorization");

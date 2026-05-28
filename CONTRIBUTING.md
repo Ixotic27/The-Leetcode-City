@@ -55,7 +55,7 @@ Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.l
 | 3D rendering & animations | Raids & interactions |
 | Leaderboard & search | API route writes |
 
-> **Need full API access?** Ask [@Ixotic27](https://github.com/Ixotic27) for the service role key.
+> **Need full API access?** DM me on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/) for the service role key.
 
 ## 🏷️ Getting Assigned to an Issue
 

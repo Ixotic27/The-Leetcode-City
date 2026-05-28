@@ -18,6 +18,9 @@ import {
 } from "@/lib/raid";
 import { ITEM_UNLOCK_LEVELS } from "@/lib/zones";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {

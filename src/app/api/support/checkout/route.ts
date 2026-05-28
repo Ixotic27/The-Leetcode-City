@@ -12,6 +12,9 @@ function getBaseUrl(): string {
 // Simple IP-based rate limit (1 request per 5 seconds)
 const lastRequest = new Map<string, number>();
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??

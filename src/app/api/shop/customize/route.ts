@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
     const supabase = await createServerSupabase();
     const {
