@@ -1,6 +1,9 @@
 # Contributing to LeetCode City
 
-Thanks for your interest in contributing! Here's how to get started.
+Thanks for your interest in contributing! 
+
+> **🎉 NEW: Zero-Config Contribution Workflow!**
+> We've completely overhauled the setup process for contributors. You no longer need to hunt down API keys, set up services, or manually configure `.env.local` files just to work on the frontend. The new `leetcode-city` CLI handles everything for you automatically!
 
 ## 🚀 Quick Setup (Zero Keys Needed)
 

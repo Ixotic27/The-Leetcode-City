@@ -129,6 +129,9 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 
 ## 🤝 Contributing
 
+> **🎉 NEW: Zero-Config Contribution Workflow!**
+> We've just made contributing 10x easier. You no longer need to set up any API keys to work on the UI, 3D scenes, or styling. Just run `npx leetcode-city init` and start coding immediately! See [Getting Started](#-getting-started) for details.
+
 We welcome contributions! Here's how:
 
 1. **Get assigned** — Comment `assign me` on any open, unassigned issue
