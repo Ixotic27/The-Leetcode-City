@@ -137,7 +137,7 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (err) {
-    console.warn("[components/ShopClient.tsx] error:", err);
+    console.warn("[components/ShopClient.tsx] non-critical error:", err);
     return null;
   }
 }
@@ -506,8 +506,7 @@ function BillboardUploadPanel({
         setTimeout(() => setSavedSlot(null), 2000);
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
-      // ignore
+      console.error("[components/ShopClient.tsx] upload error:", err);
     } finally {
       setUploadingSlot(null);
     }
@@ -903,7 +902,7 @@ export default function ShopClient({
         setError("Failed to save. Try again.");
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] save loadout error:", err);
       setError("Failed to save. Try again.");
     } finally {
       setSaving(false);
@@ -951,7 +950,7 @@ export default function ShopClient({
         prev.includes(FREE_CLAIM_ITEM) ? prev : [...prev, FREE_CLAIM_ITEM]
       );
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] claim free item error:", err);
       setError("Network error. Try again.");
     } finally {
       setBuyingItem(null);
@@ -987,7 +986,7 @@ export default function ShopClient({
         setStarVerifyStep("opened");
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] verify star error:", err);
       setError("Network error. Try again.");
       setStarVerifyStep("opened");
     } finally {
@@ -1071,7 +1070,7 @@ export default function ShopClient({
           window.location.href = data.url;
         }
       } catch (err) {
-        console.warn("[components/ShopClient.tsx] error:", err);
+        console.error("[components/ShopClient.tsx] checkout error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1103,7 +1102,7 @@ export default function ShopClient({
           setError(data.error || "Failed to buy item.");
         }
       } catch (err) {
-        console.warn("[components/ShopClient.tsx] error:", err);
+        console.error("[components/ShopClient.tsx] buy with points error:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1173,7 +1172,7 @@ export default function ShopClient({
         setTimeout(() => setRedeemState("idle"), 4000);
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] redeem error:", err);
       setRedeemState("error");
       setRedeemMsg("Network error. Please try again.");
       setTimeout(() => setRedeemState("idle"), 4000);

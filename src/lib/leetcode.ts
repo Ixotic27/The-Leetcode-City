@@ -24,7 +24,7 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
         if (!res.ok) return null;
         const data = await res.json();
         return data?.data?.matchedUser?.profile?.aboutMe ?? null;
-    } catch (err) { console.warn("[lib/leetcode.ts] error:", err); return null;
+    } catch (err) { console.error("[lib/leetcode.ts] error:", err); return null;
      }
 }
 
