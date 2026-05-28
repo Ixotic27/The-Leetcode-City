@@ -126,12 +126,16 @@ async function run() {
         const commentBody = `Hey @${author}! 🤖\n\nMy semantic scan detected that this issue might be a duplicate of #${olderIssue.number} (Similarity: **${similarityPercent}%**).\n\nPlease check between these issues and close this one if it is a duplicate.`;
 
         console.log(`Posting duplicate warning comment on newer issue #${newerIssue.number}...`);
-        await octokit.rest.issues.createComment({
-          owner,
-          repo,
-          issue_number: newerIssue.number,
-          body: commentBody,
-        });
+        try {
+          await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: newerIssue.number,
+            body: commentBody,
+          });
+        } catch (commentErr) {
+          console.warn(`⚠️ Warning: Could not add comment to Issue #${newerIssue.number}:`, commentErr.message);
+        }
 
         // Add 'possible-duplicate' label to the newer issue
         try {

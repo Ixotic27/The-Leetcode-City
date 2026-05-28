@@ -1,5 +1,9 @@
 "use client";
+
 import Skeleton from "@/components/Skeleton";
+import SearchBar from '@/components/SearchBar';
+import UserProfile from '@/components/UserProfile';
+import ActionToolbar from '@/components/ActionToolbar';
 import {
   useState,
   useCallback,
@@ -890,8 +894,7 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
-        } catch (err) {
-          console.warn("[app/page.tsx] error:", err);
+        } catch {
           setLinkedLeetCodeUsername(null);
         }
 
@@ -1000,9 +1003,9 @@ function HomeContent() {
             );
           });
         }
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
-      } /* silent */
+      } catch {
+        /* silent */
+      }
     };
 
     // Wait 10 seconds after login/link so city is fully loaded, then refresh once
@@ -1015,8 +1018,6 @@ function HomeContent() {
     };
   }, [linkedLeetCodeUsername]);
 
-  // LeetCode username used for building ownership checks.
-  // IMPORTANT: never rely on GitHub username for ownership.
   const authLogin = (
     session?.user?.user_metadata?.user_name ??
     session?.user?.user_metadata?.preferred_username ??
@@ -1033,13 +1034,11 @@ function HomeContent() {
     return linkedLeetCodeUsername !== null;
   }, [session, linkedLeetCodeUsername]);
 
-  // Ownership: compare LeetCode usernames only.
-  const isOwnBuilding =
-    identityResolved &&
-    !!selectedBuilding &&
-    !!linkedLeetCodeUsername &&
-    selectedBuilding?.login?.toLowerCase() ===
-      linkedLeetCodeUsername.toLowerCase();
+  // Extra guard: check if selected building is own by comparing linked account
+  const isOwnBuilding = !!selectedBuilding && (
+    (authLogin !== "" && selectedBuilding.login.toLowerCase() === authLogin) ||
+    (!!linkedLeetCodeUsername && selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase())
+  );
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1123,9 +1122,9 @@ function HomeContent() {
           "gc_ref",
           JSON.stringify({ login: ref, expires: Date.now() + 7 * 86400000 }),
         );
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
-      } /* ignore */
+      } catch {
+        /* ignore */
+      }
     }
   }, [searchParams]);
 
@@ -1142,9 +1141,9 @@ function HomeContent() {
           redirectTo += `?ref=${encodeURIComponent(login)}`;
         }
       }
-    } catch (err) {
-      console.warn("[app/page.tsx] non-critical error:", err);
-    } /* ignore */
+    } catch {
+      /* ignore */
+    }
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo },
@@ -1160,9 +1159,9 @@ function HomeContent() {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setFeedEvents(data.events ?? []);
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
-      } /* ignore */
+      } catch {
+        /* ignore */
+      }
     };
     fetchFeed();
     const interval = setInterval(fetchFeed, 120000);
@@ -1192,9 +1191,9 @@ function HomeContent() {
           });
           trackMissionRef.current("visit_building");
           trackMissionRef.current("visit_3_buildings");
-        } catch (err) {
-          console.warn("[app/page.tsx] non-critical error:", err);
-        } /* ignore */
+        } catch {
+          /* ignore */
+        }
       }, 3000);
     }
     return () => {
@@ -1236,10 +1235,9 @@ function HomeContent() {
         setKudosError(msg);
         setTimeout(() => setKudosError(null), 3000);
       }
-    } catch (err) {
-      console.warn("[app/page.tsx] non-critical error:", err);
-    } finally {
+    } catch {
       /* ignore */
+    } finally {
       setKudosSending(false);
     }
   }, [selectedBuilding, kudosSending, kudosSent, session, authLogin]);
@@ -1261,9 +1259,9 @@ function HomeContent() {
         .filter((i) => i.price_usd_cents > 0 && !NON_GIFTABLE.has(i.id))
         .map((i) => ({ ...i, owned: receiverOwned.has(i.id) }));
       setGiftItems(available);
-    } catch (err) {
-      console.warn("[app/page.tsx] non-critical error:", err);
-    } /* ignore */
+    } catch {
+      /* ignore */
+    }
   }, [selectedBuilding, session]);
 
   // Gift: checkout for receiver
@@ -1285,10 +1283,9 @@ function HomeContent() {
         if (res.ok && data.url) {
           window.location.href = data.url;
         }
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
-      } finally {
+      } catch {
         /* ignore */
+      } finally {
         setGiftBuying(null);
       }
     },
@@ -1461,8 +1458,8 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
+      } catch {
+        /* ignore */
       }
     })();
   }, [session]);
@@ -1508,8 +1505,8 @@ function HomeContent() {
           setTimeout(() => setRabbitSighting(data.progress + 1), 2000);
           return;
         }
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
+      } catch {
+        // Fall through to local tracking
       }
     }
 
@@ -1599,9 +1596,10 @@ function HomeContent() {
           localStorage.removeItem("leetcodecity:loadout_override");
         }
       }
-    } catch (err) {
-      console.warn("[app/page.tsx] non-critical error:", err);
+    } catch {
+      /* ignore */
     }
+
     rawDevsRef.current = allDevs;
     setStats(cityStats);
     const layout = generateCityLayout(allDevs);
@@ -1619,19 +1617,10 @@ function HomeContent() {
   const handleLoadFadeComplete = useCallback(() => {
     setLoadStage("done");
     const hasDeepLink = searchParams.get("user") || searchParams.get("compare");
-    // Skip intro for signed-in users (they've already been through the flow)
-    // and for return visits with deep links
-    if (
-      !localStorage.getItem("leetcodecity_intro_seen") &&
-      !hasDeepLink &&
-      !session
-    ) {
+    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink) {
       setIntroMode(true);
-    } else if (!localStorage.getItem("leetcodecity_intro_seen") && session) {
-      // Signed-in user who somehow lost localStorage — mark as seen to prevent future re-triggers
-      localStorage.setItem("leetcodecity_intro_seen", "true");
     }
-  }, [searchParams, session]);
+  }, [searchParams]);
 
   // Retry handler for loading errors
   const handleLoadRetry = useCallback(() => {
@@ -1761,9 +1750,10 @@ function HomeContent() {
               localStorage.removeItem("leetcodecity:loadout_override");
             }
           }
-        } catch (err) {
-          console.warn("[app/page.tsx] non-critical error:", err);
+        } catch {
+          /* ignore */
         }
+
         // Generate layout
         setLoadStage("generating");
         setLoadProgress(45);
@@ -1891,8 +1881,8 @@ function HomeContent() {
           currentPB,
           parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0,
         );
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
+      } catch {
+        /* ignore */
       }
       // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
       const isNewPB = currentPB > 0 && finalScore > currentPB;
@@ -1902,8 +1892,8 @@ function HomeContent() {
         flyPersonalBestRef.current = finalScore;
         try {
           localStorage.setItem("leetcodecity_fly_pb", String(finalScore));
-        } catch (err) {
-          console.warn("[app/page.tsx] non-critical error:", err);
+        } catch {
+          /* ignore */
         }
       }
       // Update fly history (streak, days played, per-seed scores)
@@ -1953,8 +1943,8 @@ function HomeContent() {
             "leetcodecity_fly_history",
             JSON.stringify(hist),
           );
-        } catch (err) {
-          console.warn("[app/page.tsx] non-critical error:", err);
+        } catch {
+          /* ignore */
         }
       }
       // Exit fly immediately (don't block on API)
@@ -2318,8 +2308,7 @@ function HomeContent() {
         setExploreMode(true);
       }
       setUsername("");
-    } catch (err) {
-      console.warn("[app/page.tsx] error:", err);
+    } catch {
       setFeedback({ type: "error", code: "network", username: trimmed });
       setLoading(false);
     } finally {
@@ -2419,8 +2408,8 @@ function HomeContent() {
         );
         if (updated) setSelectedBuilding(updated);
       }
-    } catch (err) {
-      // ignore
+    } catch {
+      /* ignore */
     } finally {
       setRefreshingStats(false);
     }
@@ -2508,12 +2497,12 @@ function HomeContent() {
   // 3-5   = ~50-85% (city alive)
   // 10+   = 100%+ bloom (city buzzing)
   const cityEnergy = useMemo(() => {
-    if (codingCount === 0) return 0.1; // 🌑 City Sleeping — very dim
-    if (codingCount === 1) return 0.16; // 🌒 City Waking Up
-    if (codingCount === 2) return 0.35; // waking transition
-    if (codingCount <= 5) return 0.5 + (codingCount - 3) * 0.175; // 🌆 City Alive: 3->0.50, 4->0.675, 5->0.85
-    if (codingCount <= 10) return 0.85 + (codingCount - 5) * 0.03; // ramp to 1.0: 6->0.88, 10->1.0
-    return Math.min(1.4, 1.0 + (codingCount - 10) * 0.04); // ⚡ City Buzzing: 10->1.0, 15->1.2, 20+->1.4 cap
+    if (codingCount === 0) return 0.15; // sleeping — dimmer city
+    if (codingCount === 1) return 0.40;
+    if (codingCount === 2) return 0.55;
+    if (codingCount <= 5) return 0.55 + (codingCount - 2) * 0.12; // 3->0.67, 5->0.91
+    if (codingCount <= 15) return 1.0 + (Math.min(codingCount, 15) - 5) * 0.02; // 10->1.1, 15->1.2
+    return Math.min(1.4, 1.2 + (codingCount - 15) * 0.02); // 25+->1.4 cap
   }, [codingCount]);
 
   // ─── Milestone celebration system ──────────────────────────
@@ -2594,8 +2583,8 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch (err) {
-        console.warn("[app/page.tsx] non-critical error:", err);
+      } catch {
+        /* ignore */
       }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
@@ -2610,8 +2599,7 @@ function HomeContent() {
         localStorage.getItem("leetcodecity_fly_hint_seen")
       )
         return;
-    } catch (err) {
-      console.warn("[app/page.tsx] error:", err);
+    } catch {
       return;
     }
     flyHintTimerRef.current = setTimeout(() => {
@@ -2621,8 +2609,8 @@ function HomeContent() {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch (err) {
-          console.warn("[app/page.tsx] non-critical error:", err);
+        } catch {
+          /* ignore */
         }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
@@ -2740,8 +2728,7 @@ function HomeContent() {
               setAdToast(
                 ad.brand || new URL(ad.link).hostname.replace("www.", ""),
               );
-            } catch (err) {
-              console.warn("[app/page.tsx] error:", err);
+            } catch {
               setAdToast(ad.brand || "link");
             }
             setTimeout(() => setAdToast(null), 2500);
@@ -2759,8 +2746,8 @@ function HomeContent() {
             if (viewed.includes(adId)) return;
             viewed.push(adId);
             sessionStorage.setItem(key, JSON.stringify(viewed));
-          } catch (err) {
-            console.warn("[app/page.tsx] non-critical error:", err);
+          } catch {
+            // sessionStorage unavailable — allow tracking
           }
           trackAdEvent(adId, "impression", authLogin || undefined);
           const ad = skyAds.find((a) => a.id === adId);
@@ -3212,8 +3199,8 @@ function HomeContent() {
                 setShowFlyControls(false);
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-                } catch (err) {
-                  console.warn("[app/page.tsx] non-critical error:", err);
+                } catch {
+                  /* ignore */
                 }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(
@@ -3274,17 +3261,14 @@ function HomeContent() {
 
           {/* Theme switcher + Radio (bottom-left) — above ticker */}
           <div className="pointer-events-auto fixed bottom-10 left-3 z-[31] flex items-center gap-2 sm:left-4">
-            <button
-              onClick={cycleTheme}
-              className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-            >
-              <span style={{ color: theme.accent }}>&#9654;</span>
-              <span className="text-cream">{theme.name}</span>
-              <span className="text-dim">
-                {themeIndex + 1}/{THEMES.length}
-              </span>
-            </button>
-            {isMounted && <div id="gc-radio-slot" />}
+            <ActionToolbar 
+              cycleTheme={cycleTheme} 
+              replayIntro={replayIntro} 
+              theme={theme} 
+              themeIndex={themeIndex} 
+              themesLength={THEMES.length} 
+              isMounted={isMounted} 
+            />
           </div>
 
           {/* Feed toggle (top-right, below LeetCode badges on desktop) */}
@@ -3367,7 +3351,7 @@ function HomeContent() {
               fill="currentColor"
               className="text-[#5865F2]"
             >
-              <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.947 2.418-2.157 2.418z" />
+              <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.947 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.947 2.418-2.157 2.418z" />
             </svg>
             <span className="hidden sm:inline text-cream">Discord</span>
             {discordMembers != null && (
@@ -3560,89 +3544,16 @@ function HomeContent() {
                                 </button>
                               </div>
                               <div className="space-y-2.5 text-xs normal-case text-muted">
-                                <p>
-                                  <span className="text-cream">1.</span> Install{" "}
-                                  <a
-                                    href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[#4ade80] hover:underline"
-                                  >
-                                    LeetCode City: Pulse
-                                  </a>{" "}
-                                  in VS Code
-                                </p>
-                                <p>
-                                  <span className="text-cream">2.</span>{" "}
-                                  Cmd+Shift+P &rarr; &ldquo;Pulse:
-                                  Connect&rdquo;
-                                </p>
-                                <p>
-                                  <span className="text-cream">3.</span> Paste
-                                  your key and start coding
-                                </p>
+                                <p><span className="text-cream">1.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
+                                <p><span className="text-cream">2.</span> Cmd+Shift+P &rarr; &ldquo;Pulse: Connect&rdquo;</p>
+                                <p><span className="text-cream">3.</span> Paste your key and start coding</p>
                               </div>
                               <p className="mt-3 text-[10px] normal-case text-muted/50">
                                 Your building lights up in ~30s
                               </p>
-                            </div>
-                          ) : hasVsCodeKey ? (
-                            <div className="px-5 py-5">
-                              <div className="mb-3 flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-[#4ade80]" />
-                                <p className="text-sm font-bold text-cream">
-                                  Extension Connected
-                                </p>
-                              </div>
-                              <p className="mb-4 text-[11px] normal-case text-muted">
-                                Your API key is active. Open VS Code and start
-                                coding to power your building.
+                              <p className="mt-1.5 text-[10px] normal-case text-muted/50">
+                                Only your username and language are shared publicly. Control what&apos;s sent in VS Code Settings &gt; LeetCode City &gt; Privacy.
                               </p>
-                              <div className="space-y-2.5 text-xs normal-case text-muted">
-                                <p>
-                                  <span className="text-cream">Tip:</span> Run{" "}
-                                  <span className="text-cream">
-                                    Cmd+Shift+P
-                                  </span>{" "}
-                                  &rarr; &ldquo;Pulse: Connect&rdquo; if you
-                                  need to re-enter your key
-                                </p>
-                              </div>
-                              <button
-                                onClick={async () => {
-                                  setVsCodeKeyLoading(true);
-                                  try {
-                                    const res = await fetch("/api/vscode-key", {
-                                      method: "POST",
-                                    });
-                                    const data = await res.json();
-                                    if (data.key) {
-                                      setVsCodeKey(data.key);
-                                      navigator.clipboard.writeText(data.key);
-                                      setVsCodeKeyCopied(true);
-                                      setTimeout(
-                                        () => setVsCodeKeyCopied(false),
-                                        2000,
-                                      );
-                                    } else {
-                                      alert(
-                                        data.error ||
-                                          "Failed to regenerate key.",
-                                      );
-                                    }
-                                  } catch {
-                                    alert("Network error. Please try again.");
-                                  } finally {
-                                    setVsCodeKeyLoading(false);
-                                  }
-                                }}
-                                disabled={vsCodeKeyLoading}
-                                className="mt-4 w-full border border-border py-2 text-center text-[11px] normal-case text-muted transition-colors hover:border-border-light hover:text-cream"
-                              >
-                                {vsCodeKeyLoading
-                                  ? "Generating..."
-                                  : "Regenerate Key"}
-                              </button>
                             </div>
                           ) : (
                             <div className="px-5 py-5">
@@ -3650,77 +3561,37 @@ function HomeContent() {
                                 Keep your city alive
                               </p>
                               <p className="mb-3 text-[11px] normal-case text-muted">
-                                When you code, your building glows and the city
-                                stays lit. Every active dev powers the signal.
+                                When you code, your building glows and the city stays lit. Every active dev powers the signal.
                               </p>
                               <div className="mb-4 space-y-2.5 text-xs normal-case text-muted">
-                                <p>
-                                  <span className="text-cream">1.</span>{" "}
-                                  Generate your key below
-                                </p>
-                                <p>
-                                  <span className="text-cream">2.</span> Install{" "}
-                                  <a
-                                    href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-[#4ade80] hover:underline"
-                                  >
-                                    LeetCode City: Pulse
-                                  </a>{" "}
-                                  in VS Code
-                                </p>
-                                <p>
-                                  <span className="text-cream">3.</span> Paste
-                                  key in VS Code, start coding
-                                </p>
+                                <p><span className="text-cream">1.</span> Generate your key below</p>
+                                <p><span className="text-cream">2.</span> Install <a href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity" target="_blank" rel="noopener noreferrer" className="text-[#4ade80] hover:underline">LeetCode City: Pulse</a> in VS Code</p>
+                                <p><span className="text-cream">3.</span> Paste key in VS Code, start coding</p>
                               </div>
                               <button
                                 onClick={async () => {
                                   setVsCodeKeyLoading(true);
                                   try {
-                                    const res = await fetch("/api/vscode-key", {
-                                      method: "POST",
-                                    });
+                                    const res = await fetch("/api/vscode-key", { method: "POST" });
                                     const data = await res.json();
                                     if (data.key) {
                                       setVsCodeKey(data.key);
-                                      setHasVsCodeKey(true);
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
-                                      setTimeout(
-                                        () => setVsCodeKeyCopied(false),
-                                        2000,
-                                      );
-                                    } else {
-                                      alert(
-                                        data.error ||
-                                          "Failed to generate key. Make sure you're signed in and have claimed your building.",
-                                      );
+                                      setTimeout(() => setVsCodeKeyCopied(false), 2000);
                                     }
-                                  } catch {
-                                    alert("Network error. Please try again.");
                                   } finally {
                                     setVsCodeKeyLoading(false);
                                   }
                                 }}
                                 disabled={vsCodeKeyLoading}
                                 className="btn-press w-full py-2.5 text-center text-xs text-bg"
-                                style={{
-                                  backgroundColor: "#4ade80",
-                                  boxShadow: "2px 2px 0 0 #16a34a",
-                                }}
+                                style={{ backgroundColor: "#4ade80", boxShadow: "2px 2px 0 0 #16a34a" }}
                               >
-                                {vsCodeKeyLoading
-                                  ? "Generating..."
-                                  : vsCodeKeyCopied
-                                    ? "Key copied to clipboard!"
-                                    : "Generate API Key"}
+                                {vsCodeKeyLoading ? "Generating..." : vsCodeKeyCopied ? "Key copied to clipboard!" : "Generate API Key"}
                               </button>
                               <p className="mt-3 text-[10px] normal-case text-muted/50">
-                                Only your username and language are shared
-                                publicly. You can control this in VS Code
-                                Settings &gt; LeetCode City &gt; Privacy.
+                                Only your username and language are shared publicly. You can control this in VS Code Settings &gt; LeetCode City &gt; Privacy.
                               </p>
                             </div>
                           )}
@@ -3929,46 +3800,15 @@ function HomeContent() {
                 </button>
               </div>
             ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="flex w-full max-w-md items-center gap-2"
-              >
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={username}
-                  onChange={(e) => {
-                    setUsername(e.target.value);
-                    if (feedback?.type === "error") setFeedback(null);
-                  }}
-                  placeholder={
-                    session
-                      ? "search any LeetCode username"
-                      : "type your LeetCode username"
-                  }
-                  className="min-w-0 flex-1 border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none transition-colors placeholder:text-dim sm:px-4 sm:py-2.5"
-                  style={{ borderColor: undefined }}
-                  onFocus={(e) =>
-                    (e.currentTarget.style.borderColor = theme.accent)
-                  }
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "")}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !username.trim()}
-                  className="btn-press flex-shrink-0 px-4 py-2 text-xs text-bg disabled:opacity-40 sm:px-5 sm:py-2.5"
-                  style={{
-                    backgroundColor: theme.accent,
-                    boxShadow: `4px 4px 0 0 ${theme.shadow}`,
-                  }}
-                >
-                  {loading ? (
-                    <span className="blink-dot inline-block">_</span>
-                  ) : (
-                    "Search"
-                  )}
-                </button>
-              </form>
+              <SearchBar 
+                username={username}
+                setUsername={setUsername}
+                feedback={feedback}
+                setFeedback={setFeedback}
+                loading={loading}
+                theme={theme}
+                searchUser={searchUser}
+              />
             )}
 
             {/* Search Feedback: loading phases + errors */}
@@ -4030,18 +3870,7 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
-                        try {
-                          setFlyPersonalBest(
-                            parseInt(
-                              localStorage.getItem("leetcodecity_fly_pb") ||
-                                "0",
-                              10,
-                            ) || 0,
-                          );
-                        } catch (err) {
-                          console.warn("[app/page.tsx] error:", err);
-                          setFlyPersonalBest(0);
-                        }
+                        try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
                         // Feature 3: show controls overlay on first flight
                         if (
                           !localStorage.getItem(
@@ -4085,17 +3914,7 @@ function HomeContent() {
                             onClick={() => {
                               setShowFlyHint(false);
                               clearTimeout(flyHintTimerRef.current);
-                              try {
-                                localStorage.setItem(
-                                  "leetcodecity_fly_hint_seen",
-                                  "1",
-                                );
-                              } catch (err) {
-                                console.warn(
-                                  "[app/page.tsx] non-critical error:",
-                                  err,
-                                );
-                              }
+                              try { localStorage.setItem("leetcodecity_fly_hint_seen", "1"); } catch { }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -4134,20 +3953,8 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
-                      try {
-                        setFlyPersonalBest(
-                          parseInt(
-                            localStorage.getItem("leetcodecity_fly_pb") || "0",
-                            10,
-                          ) || 0,
-                        );
-                      } catch (err) {
-                        console.warn("[app/page.tsx] error:", err);
-                        setFlyPersonalBest(0);
-                      }
-                      if (
-                        !localStorage.getItem("leetcodecity_fly_controls_seen")
-                      ) {
+                      try { setFlyPersonalBest(parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0); } catch { setFlyPersonalBest(0); }
+                      if (!localStorage.getItem("leetcodecity_fly_controls_seen")) {
                         setShowFlyControls(true);
                       }
                     }}
@@ -4232,32 +4039,28 @@ function HomeContent() {
                       </button>
                     )}
                     {linkedLeetCodeUsername && (
-                      <Link
-                        href={`/dev/${linkedLeetCodeUsername}`}
-                        className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
-                        style={
-                          streakData &&
-                          streakData.streak > 0 &&
-                          streakData.checked_in
-                            ? { animation: "streak-pulse 1.5s ease-in-out 2" }
-                            : undefined
-                        }
-                      >
-                        @{linkedLeetCodeUsername}
-                        {streakData && streakData.streak > 0 && (
-                          <span
-                            className="flex items-center gap-0.5"
-                            style={{
-                              color: getStreakTierColor(streakData.streak),
-                            }}
-                          >
-                            <span className="text-[9px] leading-none">🔥</span>
-                            <span className="font-bold">
-                              {streakData.streak}
+                      <>
+                        <Link
+                          href="/settings"
+                          className="flex items-center gap-1 border-[3px] border-border bg-bg/80 px-2 py-1.5 text-[10px] text-muted normal-case backdrop-blur-sm transition-colors hover:border-border-light hover:text-cream"
+                          title="Settings"
+                        >
+                          ⚙️
+                        </Link>
+                        <Link
+                          href={`/dev/${linkedLeetCodeUsername}`}
+                          className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
+                          style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
+                        >
+                          @{linkedLeetCodeUsername}
+                          {streakData && streakData.streak > 0 && (
+                            <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
+                              <span className="text-[9px] leading-none">🔥</span>
+                              <span className="font-bold">{streakData.streak}</span>
                             </span>
-                          </span>
-                        )}
-                      </Link>
+                          )}
+                        </Link>
+                      </>
                     )}
                     {myBuilding?.claimed && (
                       <XpBar
@@ -4350,28 +4153,28 @@ function HomeContent() {
                   </button>
                 )}
                 {linkedLeetCodeUsername && (
-                  <Link
-                    href={`/dev/${linkedLeetCodeUsername}`}
-                    className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
-                    style={
-                      streakData &&
-                      streakData.streak > 0 &&
-                      streakData.checked_in
-                        ? { animation: "streak-pulse 1.5s ease-in-out 2" }
-                        : undefined
-                    }
-                  >
-                    @{linkedLeetCodeUsername.slice(0, 6)}
-                    {streakData && streakData.streak > 0 && (
-                      <span
-                        className="flex items-center gap-0.5"
-                        style={{ color: getStreakTierColor(streakData.streak) }}
-                      >
-                        <span className="text-[8px] leading-none">🔥</span>
-                        <span className="font-bold">{streakData.streak}</span>
-                      </span>
-                    )}
-                  </Link>
+                  <>
+                    <Link
+                      href="/settings"
+                      className="btn-press flex items-center border-[2px] border-border px-2 py-1.5 text-[10px] text-muted transition-colors active:bg-white/5"
+                      title="Settings"
+                    >
+                      ⚙️
+                    </Link>
+                    <Link
+                      href={`/dev/${linkedLeetCodeUsername}`}
+                      className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
+                      style={streakData && streakData.streak > 0 && streakData.checked_in ? { animation: "streak-pulse 1.5s ease-in-out 2" } : undefined}
+                    >
+                      @{linkedLeetCodeUsername.slice(0, 6)}
+                      {streakData && streakData.streak > 0 && (
+                        <span className="flex items-center gap-0.5" style={{ color: getStreakTierColor(streakData.streak) }}>
+                          <span className="text-[8px] leading-none">🔥</span>
+                          <span className="font-bold">{streakData.streak}</span>
+                        </span>
+                      )}
+                    </Link>
+                  </>
                 )}
                 <button
                   onClick={handleSignOut}
@@ -4851,152 +4654,127 @@ function HomeContent() {
                     </div>
                   )}
 
-                {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
-                {identityResolved &&
-                  !isOwnBuilding &&
-                  (() => {
-                    const equipped: string[] = [];
-                    if (selectedBuilding.loadout?.crown)
-                      equipped.push(selectedBuilding.loadout.crown);
-                    if (selectedBuilding.loadout?.roof)
-                      equipped.push(selectedBuilding.loadout.roof);
-                    if (selectedBuilding.loadout?.aura)
-                      equipped.push(selectedBuilding.loadout.aura);
-                    for (const fi of [
-                      "custom_color",
-                      "billboard",
-                      "led_banner",
-                    ]) {
-                      if (selectedBuilding.owned_items.includes(fi))
-                        equipped.push(fi);
-                    }
-                    if (equipped.length === 0) return null;
-                    const shown = equipped.slice(0, 3);
-                    const extra = equipped.length - 3;
-                    return (
-                      <div
-                        className="mx-4 mb-3 border-[2px] p-2.5"
+              {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
+              {identityResolved && !isOwnBuilding && (() => {
+                const equipped: string[] = [];
+                if (selectedBuilding.loadout?.crown) equipped.push(selectedBuilding.loadout.crown);
+                if (selectedBuilding.loadout?.roof) equipped.push(selectedBuilding.loadout.roof);
+                if (selectedBuilding.loadout?.aura) equipped.push(selectedBuilding.loadout.aura);
+                for (const fi of ["custom_color", "billboard", "led_banner"]) {
+                  if (selectedBuilding.owned_items.includes(fi)) equipped.push(fi);
+                }
+                if (equipped.length === 0) return null;
+                const shown = equipped.slice(0, 3);
+                const extra = equipped.length - 3;
+                return (
+                  <div
+                    className="mx-4 mb-3 border-[2px] p-2.5"
+                    style={{ borderColor: `${theme.accent}33`, backgroundColor: `${theme.accent}08` }}
+                  >
+                    <div className="flex flex-wrap gap-1.5">
+                      {shown.map((id) => (
+                        <span
+                          key={id}
+                          className="text-[9px] normal-case"
+                          style={{ color: theme.accent }}
+                        >
+                          {ITEM_EMOJIS[id] ?? "🎁"} {ITEM_NAMES[id] ?? id}
+                        </span>
+                      ))}
+                      {extra > 0 && (
+                        <span className="text-[9px] text-muted">
+                          +{extra} more
+                        </span>
+                      )}
+                    </div>
+                    {session && !isOwnBuilding && (
+                      <Link
+                        href={`/shop/${authLogin}`}
+                        className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
                         style={{
-                          borderColor: `${theme.accent}33`,
-                          backgroundColor: `${theme.accent}08`,
+                          backgroundColor: theme.accent,
+                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
                         }}
                       >
-                        <div className="flex flex-wrap gap-1.5">
-                          {shown.map((id) => (
-                            <span
-                              key={id}
-                              className="text-[9px] normal-case"
-                              style={{ color: theme.accent }}
-                            >
-                              {ITEM_EMOJIS[id] ?? "🎁"} {ITEM_NAMES[id] ?? id}
-                            </span>
-                          ))}
-                          {extra > 0 && (
-                            <span className="text-[9px] text-muted">
-                              +{extra} more
-                            </span>
-                          )}
-                        </div>
-                        {identityResolved && !isOwnBuilding && (
-                          <Link
-                            href={`/shop/${authLogin}`}
-                            className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
-                            style={{
-                              backgroundColor: theme.accent,
-                              boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                            }}
-                          >
-                            Get these for your building
-                          </Link>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                {/* Kudos: give kudos (other's building, logged in) */}
-                {identityResolved && !isOwnBuilding && (
-                  <div className="relative mx-4 mb-3">
-                    {/* Floating emoji animation on success */}
-                    {kudosSent && (
-                      <div className="pointer-events-none absolute inset-0 overflow-visible">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <span
-                            key={i}
-                            className="kudos-float absolute text-sm"
-                            style={{
-                              left: `${15 + i * 14}%`,
-                              animationDelay: `${i * 0.08}s`,
-                            }}
-                          >
-                            {["👏", "⭐", "💛", "✨", "👏", "⭐"][i]}
-                          </span>
-                        ))}
-                      </div>
+                        Get these for your building
+                      </Link>
                     )}
-                    <button
-                      onClick={handleGiveKudos}
-                      disabled={kudosSending || kudosSent || !!kudosError}
-                      className={[
-                        "btn-press w-full py-2 text-[10px] text-bg transition-all duration-300",
-                        kudosSent ? "scale-[1.02]" : "",
-                      ].join(" ")}
-                      style={{
-                        backgroundColor: kudosError
-                          ? "#ff4444"
-                          : kudosSent
-                            ? "#39d353"
-                            : theme.accent,
-                        boxShadow: kudosError
-                          ? "0 0 12px rgba(255,68,68,0.4)"
-                          : kudosSent
-                            ? "0 0 12px rgba(57,211,83,0.4)"
-                            : `2px 2px 0 0 ${theme.shadow}`,
-                      }}
-                    >
-                      {kudosSending ? (
-                        <span className="animate-pulse">Sending...</span>
-                      ) : kudosError ? (
-                        <span>{kudosError}</span>
-                      ) : kudosSent ? (
-                        <span>+1 Kudos!</span>
-                      ) : (
-                        "Give Kudos"
-                      )}
-                    </button>
-                    <button
-                      onClick={handleOpenGift}
-                      className="btn-press mt-1.5 w-full border-[2px] border-border py-1.5 text-[9px] text-cream transition-colors hover:border-border-light"
-                    >
-                      Send Gift
-                    </button>
-                    {/* Raid button */}
-                    {raidState.phase === "idle" && raidState.error && (
-                      <p className="mt-1.5 text-center text-[10px] text-red-400">
-                        {raidState.error}
-                      </p>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (linkedLeetCodeUsername && selectedBuilding) {
-                          raidActions.startPreview(
-                            selectedBuilding.login,
-                            buildings,
-                            linkedLeetCodeUsername,
-                          );
-                        }
-                      }}
-                      disabled={raidState.loading}
-                      className="btn-press mt-1.5 w-full border-[3px] border-red-500/60 px-4 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10"
-                    >
-                      {raidState.loading
-                        ? "Loading..."
-                        : "\u2694\ufe0f BATTLE \u2014 Win +50 XP"}
-                    </button>
                   </div>
-                )}
+                );
+              })()}
 
-                {/* A3: Disabled action buttons for non-logged users */}
-                {!identityResolved && session && (
+              {/* Kudos: give kudos (other's building, logged in) */}
+              {identityResolved && session && !isOwnBuilding && (
+                <div className="relative mx-4 mb-3">
+                  {/* Floating emoji animation on success */}
+                  {kudosSent && (
+                    <div className="pointer-events-none absolute inset-0 overflow-visible">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="kudos-float absolute text-sm"
+                          style={{
+                            left: `${15 + i * 14}%`,
+                            animationDelay: `${i * 0.08}s`,
+                          }}
+                        >
+                          {["👏", "⭐", "💛", "✨", "👏", "⭐"][i]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    onClick={handleGiveKudos}
+                    disabled={kudosSending || kudosSent || !!kudosError}
+                    className={[
+                      "btn-press w-full py-2 text-[10px] text-bg transition-all duration-300",
+                      kudosSent ? "scale-[1.02]" : "",
+                    ].join(" ")}
+                    style={{
+                      backgroundColor: kudosError ? "#ff4444" : kudosSent ? "#39d353" : theme.accent,
+                      boxShadow: kudosError
+                        ? "0 0 12px rgba(255,68,68,0.4)"
+                        : kudosSent
+                          ? "0 0 12px rgba(57,211,83,0.4)"
+                          : `2px 2px 0 0 ${theme.shadow}`,
+                    }}
+                  >
+                    {kudosSending ? (
+                      <span className="animate-pulse">Sending...</span>
+                    ) : kudosError ? (
+                      <span>{kudosError}</span>
+                    ) : kudosSent ? (
+                      <span>+1 Kudos!</span>
+                    ) : (
+                      "Give Kudos"
+                    )}
+                  </button>
+                  <button
+                    onClick={handleOpenGift}
+                    className="btn-press mt-1.5 w-full border-[2px] border-border py-1.5 text-[9px] text-cream transition-colors hover:border-border-light"
+                  >
+                    Send Gift
+                  </button>
+                  {/* Raid button */}
+                  {raidState.phase === "idle" && raidState.error && (
+                    <p className="mt-1.5 text-center text-[10px] text-red-400">{raidState.error}</p>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (authLogin && selectedBuilding) {
+                        raidActions.startPreview(selectedBuilding.login, buildings, authLogin);
+                      }
+                    }}
+                    disabled={raidState.loading}
+                    className="btn-press mt-1.5 w-full border-[3px] border-red-500/60 px-4 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10"
+                  >
+                    {raidState.loading ? "Loading..." : "\u2694\ufe0f BATTLE \u2014 Win +50 XP"}
+                  </button>
+                </div>
+              )}
+
+              {/* A3: Disabled action buttons for non-logged users */}
+              {!identityResolved && session && (
                   <div className="mx-4 mb-3 space-y-1.5">
                     <button
                       className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors"
@@ -5005,123 +4783,110 @@ function HomeContent() {
                       Loading actions...
                     </button>
                   </div>
-                )}
-                {!session && (
-                  <div className="mx-4 mb-3 space-y-1.5">
-                    <button
-                      onClick={() => {
-                        trackDisabledButtonClicked("kudos");
-                        handleSignIn();
-                      }}
-                      className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
-                    >
-                      &#x1F512; Give Kudos
-                    </button>
-                    <button
-                      onClick={() => {
-                        trackDisabledButtonClicked("gift");
-                        handleSignIn();
-                      }}
-                      className="btn-press w-full py-1.5 text-[9px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
-                    >
-                      &#x1F512; Send Gift
-                    </button>
-                    <button
-                      onClick={() => {
-                        trackDisabledButtonClicked("raid");
-                        handleSignIn();
-                      }}
-                      className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-red-500/30 text-red-400/40 transition-colors hover:border-red-500/60 hover:text-red-400/70"
-                    >
-                      &#x1F512; &#x2694;&#xFE0F; BATTLE
-                    </button>
-                  </div>
-                )}
-
-                {/* Own building: copy invite link */}
-                {identityResolved &&
-                  selectedBuilding?.login?.toLowerCase() ===
-                    linkedLeetCodeUsername?.toLowerCase() && (
-                    <div className="mx-4 mb-3">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${window.location.origin}/?ref=${authLogin}`,
-                          );
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }}
-                        className="btn-press w-full border-[2px] border-border py-1.5 text-center text-[9px] text-cream transition-colors hover:border-border-light"
-                      >
-                        {copied ? "Copied!" : "\uD83D\uDCCB Copy Invite Link"}
-                      </button>
-                    </div>
-                  )}
-
-                {/* Compare button */}
-                {identityResolved && !isOwnBuilding && !flyMode && (
-                  <div className="mx-4 mb-3">
-                    <button
-                      onClick={() => {
-                        setCompareBuilding(selectedBuilding);
-                        setSelectedBuilding(null);
-                        if (!exploreMode) setExploreMode(true);
-                      }}
-                      className="btn-press w-full border-[2px] border-border py-1.5 text-center text-[9px] text-cream transition-colors hover:border-border-light"
-                    >
-                      Compare
-                    </button>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                  {identityResolved &&
-                  selectedBuilding?.login?.toLowerCase() ===
-                    linkedLeetCodeUsername?.toLowerCase() ? (
-                    <>
-                      <a
-                        href={`/shop/${selectedBuilding.login}?tab=loadout`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        Loadout
-                      </a>
-                      <a
-                        href={`/dev/${selectedBuilding.login}`}
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        Profile
-                      </a>
-                    </>
-                  ) : (
-                    <>
-                      <a
-                        href={`/dev/${selectedBuilding.login}`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        View Profile
-                      </a>
-                      <a
-                        href={`https://leetcode.com/u/${selectedBuilding.login}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        LeetCode
-                      </a>
-                    </>
-                  )}
+              )}
+              {!session && (
+                <div className="mx-4 mb-3 space-y-1.5">
+                  <button
+                    onClick={() => { trackDisabledButtonClicked("kudos"); handleSignIn(); }}
+                    className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
+                  >
+                    &#x1F512; Give Kudos
+                  </button>
+                  <button
+                    onClick={() => { trackDisabledButtonClicked("gift"); handleSignIn(); }}
+                    className="btn-press w-full py-1.5 text-[9px] border-[2px] border-dashed border-border/50 text-muted/60 transition-colors hover:border-border hover:text-muted"
+                  >
+                    &#x1F512; Send Gift
+                  </button>
+                  <button
+                    onClick={() => { trackDisabledButtonClicked("raid"); handleSignIn(); }}
+                    className="btn-press w-full py-2 text-[10px] border-[2px] border-dashed border-red-500/30 text-red-400/40 transition-colors hover:border-red-500/60 hover:text-red-400/70"
+                  >
+                    &#x1F512; &#x2694;&#xFE0F; BATTLE
+                  </button>
                 </div>
+              )}
+
+              {/* Own building: copy invite link */}
+              {identityResolved && isOwnBuilding && (
+                <div className="mx-4 mb-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/?ref=${authLogin}`
+                      );
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    className="btn-press w-full border-[2px] border-border py-1.5 text-center text-[9px] text-cream transition-colors hover:border-border-light"
+                  >
+                    {copied ? "Copied!" : "\uD83D\uDCCB Copy Invite Link"}
+                  </button>
+                </div>
+              )}
+
+              {/* Compare button */}
+              {identityResolved && !flyMode && !isOwnBuilding && (
+                <div className="mx-4 mb-3">
+                  <button
+                    onClick={() => {
+                      setCompareBuilding(selectedBuilding);
+                      setSelectedBuilding(null);
+                      if (!exploreMode) setExploreMode(true);
+                    }}
+                    className="btn-press w-full border-[2px] border-border py-1.5 text-center text-[9px] text-cream transition-colors hover:border-border-light"
+                  >
+                    Compare
+                  </button>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
+                {identityResolved && isOwnBuilding ? (
+                  <>
+                    <Link
+                      href={`/shop/${selectedBuilding.login}?tab=loadout`}
+                      className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                      style={{
+                        backgroundColor: theme.accent,
+                        boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                      }}
+                    >
+                      Loadout
+                    </Link>
+                    <Link
+                      href={`/dev/${selectedBuilding.login}`}
+                      className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                    >
+                      Profile
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={`/dev/${selectedBuilding.login}`}
+                      className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                      style={{
+                        backgroundColor: theme.accent,
+                        boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                      }}
+                    >
+                      View Profile
+                    </Link>
+                    <a
+                      href={`https://leetcode.com/u/${selectedBuilding.login}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                    >
+                      LeetCode
+                    </a>
+                  </>
+                )}
               </div>
             </div>
+          </div>
           </>
         )}
 
@@ -5161,37 +4926,15 @@ function HomeContent() {
               </p>
             )}
             {/* Search field for compare pick */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                searchUser();
-              }}
-              className="mt-2 flex items-center gap-2"
-            >
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (feedback?.type === "error") setFeedback(null);
-                }}
-                placeholder="search username to compare"
-                className="min-w-0 flex-1 border-[2px] border-border bg-bg px-2.5 py-1.5 text-base sm:text-[10px] text-cream outline-none transition-colors placeholder:text-dim"
-                onFocus={(e) =>
-                  (e.currentTarget.style.borderColor = theme.accent)
-                }
-                onBlur={(e) => (e.currentTarget.style.borderColor = "")}
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={loading || !username.trim()}
-                className="btn-press flex-shrink-0 px-3 py-1.5 text-[10px] text-bg disabled:opacity-40"
-                style={{ backgroundColor: theme.accent }}
-              >
-                {loading ? "_" : "Go"}
-              </button>
-            </form>
+            <SearchBar 
+              username={username}
+              setUsername={setUsername}
+              feedback={feedback}
+              setFeedback={setFeedback}
+              loading={loading}
+              theme={theme}
+              searchUser={searchUser}
+            />
             {feedback && (
               <div className="mt-1.5">
                 <SearchFeedback
@@ -5549,34 +5292,7 @@ function HomeContent() {
               &#10005;
             </button>
 
-            {/* Avatar */}
-            {shareData.avatar_url && (
-              <Image
-                src={shareData.avatar_url}
-                alt={shareData.login}
-                width={48}
-                height={48}
-                className="mx-auto mb-3 border-[2px] border-border"
-                style={{ imageRendering: "pixelated" }}
-              />
-            )}
-
-            <p className="text-xs text-cream normal-case">
-              <span style={{ color: theme.accent }}>@{shareData.login}</span>{" "}
-              joined the city!
-            </p>
-
-            <p className="mt-2 text-[10px] text-muted normal-case">
-              City Rank{" "}
-              <span style={{ color: theme.accent }}>
-                #{shareData.rank ?? "?"}
-              </span>
-              {" · "}
-              <span style={{ color: theme.accent }}>
-                {shareData.contributions.toLocaleString()}
-              </span>{" "}
-              solved
-            </p>
+            <UserProfile shareData={shareData} theme={theme} />
 
             {/* Buttons */}
             <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5 sm:flex-row sm:justify-center sm:gap-3">
@@ -5759,25 +5475,14 @@ function HomeContent() {
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
-          <button
-            onClick={cycleTheme}
-            className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">{theme.name}</span>
-            <span className="text-dim">
-              {themeIndex + 1}/{THEMES.length}
-            </span>
-          </button>
-          {isMounted && <div id="gc-radio-slot" />}
-          <button
-            onClick={replayIntro}
-            className="btn-press flex items-center gap-1 border-[3px] border-border bg-bg/70 px-2 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
-            title="Replay intro"
-          >
-            <span style={{ color: theme.accent }}>&#9654;</span>
-            <span className="text-cream">Intro</span>
-          </button>
+          <ActionToolbar 
+            cycleTheme={cycleTheme} 
+            replayIntro={replayIntro} 
+            theme={theme} 
+            themeIndex={themeIndex} 
+            themesLength={THEMES.length} 
+            isMounted={isMounted} 
+          />
         </div>
       )}
 
@@ -6101,9 +5806,8 @@ function HomeContent() {
                         10,
                       ) || 0,
                     );
-                  } catch (err) {
-                    console.warn("[app/page.tsx] error:", err);
-                    setFlyPersonalBest(0);
+                  } catch {
+                    /* ignore */
                   }
                 }}
                 className="btn-press px-5 py-2 text-[10px] text-bg"
@@ -6157,404 +5861,3 @@ function HomeContent() {
             <button
               onClick={() => setGiftClaimed(false)}
               className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
-            >
-              ESC
-            </button>
-
-            <div className="text-3xl sm:text-4xl mb-3">{"\uD83C\uDF89"}</div>
-
-            <p className="text-sm text-cream sm:text-base">Gift Unlocked!</p>
-
-            <div className="mt-4 inline-flex items-center gap-3 border-[2px] border-border bg-bg-card px-5 py-3">
-              <span className="text-2xl">{"\uD83C\uDFC1"}</span>
-              <div className="text-left">
-                <p className="text-xs text-cream">Flag</p>
-                <p className="text-[9px] text-muted normal-case">
-                  A flag on top of your building
-                </p>
-              </div>
-            </div>
-
-            {/* Upsell strip */}
-            <div className="mt-5 w-full max-w-[280px]">
-              <p className="mb-2 text-[9px] tracking-widest text-muted uppercase">
-                Upgrade your building
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { emoji: "\uD83C\uDF3F", name: "Garden", price: "$0.75" },
-                  { emoji: "\u2728", name: "Neon", price: "$1.00" },
-                  { emoji: "\uD83D\uDD25", name: "Fire", price: "$1.00" },
-                ].map((item) => (
-                  <Link
-                    key={item.name}
-                    href={shopHref}
-                    onClick={() => setGiftClaimed(false)}
-                    className="flex flex-col items-center gap-1 border-[2px] border-border bg-bg-card px-2 py-2.5 transition-colors hover:border-border-light"
-                  >
-                    <span className="text-xl">{item.emoji}</span>
-                    <span className="text-[8px] text-cream leading-tight">
-                      {item.name}
-                    </span>
-                    <span
-                      className="text-[9px] font-bold"
-                      style={{ color: theme.accent }}
-                    >
-                      {item.price}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
-              <button
-                onClick={() => {
-                  setGiftClaimed(false);
-                  if (myBuilding) {
-                    setFocusedBuilding(myBuilding.login);
-                    setSelectedBuilding(myBuilding);
-                    setExploreMode(true);
-                  }
-                }}
-                className="btn-press px-5 py-2.5 text-[10px] text-bg"
-                style={{
-                  backgroundColor: theme.accent,
-                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                }}
-              >
-                View in City
-              </button>
-              <Link
-                href={shopHref}
-                onClick={() => setGiftClaimed(false)}
-                className="btn-press border-[3px] border-border px-5 py-2 text-[10px] text-cream transition-colors hover:border-border-light"
-              >
-                Visit Shop {"→"}
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mark streak achievements as seen on check-in */}
-
-      {/* Raid Preview Modal */}
-      {raidState.phase === "preview" && raidState.previewData && (
-        <RaidPreviewModal
-          preview={raidState.previewData}
-          loading={raidState.loading}
-          error={raidState.error}
-          onRaid={(boostPurchaseId, vehicleId, offensiveItemId) =>
-            raidActions.executeRaid(boostPurchaseId, vehicleId, offensiveItemId)
-          }
-          onCancel={raidActions.exitRaid}
-        />
-      )}
-
-      {/* Raid Overlay (cinema bars + text + share) */}
-      {raidState.phase !== "idle" && raidState.phase !== "preview" && (
-        <RaidOverlay
-          phase={raidState.phase}
-          raidData={raidState.raidData}
-          onSkip={raidActions.skipToShare}
-          onExit={raidActions.exitRaid}
-        />
-      )}
-
-      {/* District chooser modal */}
-      {districtChooserOpen && myBuilding && (
-        <DistrictChooser
-          currentDistrict={myBuilding.district ?? null}
-          inferredDistrict={myBuilding.district ?? null}
-          onClose={() => {
-            sessionStorage.setItem("district_dismissed", "1");
-            setDistrictChooserOpen(false);
-          }}
-          onChosen={(districtId) => {
-            sessionStorage.setItem("district_dismissed", "1");
-            setDistrictChooserOpen(false);
-            // Update the building in local state
-            setBuildings((prev) =>
-              prev.map((b) =>
-                b.login === myBuilding.login
-                  ? { ...b, district: districtId, district_chosen: true }
-                  : b,
-              ),
-            );
-          }}
-        />
-      )}
-
-      {/* Founder's Landmark modals */}
-      {pillModalOpen && (
-        <PillModal
-          rabbitCompleted={rabbitProgress >= 5}
-          onRedPill={() => {
-            setPillModalOpen(false);
-            setFounderMessageOpen(true);
-          }}
-          onBluePill={() => {
-            setPillModalOpen(false);
-            if (rabbitProgress >= 5) return;
-            setRabbitSighting(rabbitProgress + 1);
-            setRabbitCinematic(true);
-          }}
-          onClose={() => setPillModalOpen(false)}
-        />
-      )}
-      {founderMessageOpen && (
-        <FounderMessage onClose={() => setFounderMessageOpen(false)} />
-      )}
-
-      {/* Rabbit Quest Cinematic Overlay */}
-      {rabbitCinematic && (
-        <div className="fixed inset-0 z-50 pointer-events-none">
-          {/* Letterbox bars */}
-          <div
-            className="absolute inset-x-0 top-0 origin-top bg-black/80 transition-transform duration-700"
-            style={{
-              height: "12%",
-              transform: rabbitCinematicPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
-            }}
-          />
-          <div
-            className="absolute inset-x-0 bottom-0 origin-bottom bg-black/80 transition-transform duration-700"
-            style={{
-              height: "18%",
-              transform: rabbitCinematicPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
-            }}
-          />
-
-          {/* CRT scanlines */}
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,161,22,0.08) 1px, rgba(255,161,22,0.08) 2px)",
-              backgroundSize: "100% 2px",
-            }}
-          />
-
-          {/* Text in lower bar */}
-          <div
-            className="absolute inset-x-0 bottom-0 flex items-center justify-center"
-            style={{ height: "18%" }}
-          >
-            {["Follow the white rabbit...", "It hides among the plazas..."].map(
-              (text, i) => (
-                <p
-                  key={i}
-                  className="absolute text-center font-pixel normal-case px-4"
-                  style={{
-                    fontSize: "clamp(0.85rem, 3vw, 1.5rem)",
-                    letterSpacing: "0.08em",
-                    color: "#ffa116",
-                    textShadow:
-                      "0 0 20px rgba(255,161,22,0.5), 0 0 40px rgba(255,161,22,0.2)",
-                    opacity: rabbitCinematicPhase === i ? 1 : 0,
-                    transition: "opacity 0.7s ease-in-out",
-                  }}
-                >
-                  {text}
-                </p>
-              ),
-            )}
-          </div>
-
-          {/* Skip button */}
-          <button
-            className="pointer-events-auto absolute top-4 right-4 z-[60] font-pixel text-[10px] sm:text-[12px] tracking-wider border border-[#ffa116]/40 px-3 py-1.5 transition-colors hover:bg-[#ffa116]/10"
-            style={{
-              color: "#ffa116",
-              textShadow: "0 0 8px rgba(255,161,22,0.3)",
-            }}
-            onClick={endRabbitCinematic}
-          >
-            SKIP
-          </button>
-        </div>
-      )}
-
-      {/* Rabbit hint flash ("The rabbit moves deeper...") */}
-      {rabbitHintFlash && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
-          style={{ animation: "rabbitHintAnim 3s ease-in-out forwards" }}
-        >
-          <div className="absolute inset-0 bg-black/60" />
-          <p
-            className="relative font-pixel text-[14px] sm:text-[16px] tracking-widest text-center px-4"
-            style={{
-              color: "#ffa116",
-              textShadow:
-                "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
-            }}
-          >
-            {rabbitHintFlash}
-          </p>
-          <style jsx>{`
-            @keyframes rabbitHintAnim {
-              0% {
-                opacity: 0;
-              }
-              15% {
-                opacity: 1;
-              }
-              70% {
-                opacity: 1;
-              }
-              100% {
-                opacity: 0;
-              }
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* Rabbit completion cinematic */}
-      {rabbitCompletion && (
-        <RabbitCompletion onComplete={() => setRabbitCompletion(false)} />
-      )}
-
-      {/* ─── Link LeetCode Modal ─── */}
-      {showLinkModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
-          <div className="w-full max-w-sm border-[3px] border-border bg-bg p-6 relative">
-            <button
-              onClick={() => {
-                setShowLinkModal(false);
-                setResetMsg("");
-              }}
-              className="absolute top-3 right-4 text-muted hover:text-cream text-lg"
-            >
-              &#10005;
-            </button>
-            <h2
-              className="text-xl text-cream mb-4 font-pixel"
-              style={{ color: theme.accent }}
-            >
-              Link LeetCode
-            </h2>
-
-            {/* Already linked — show current linked account + reset option */}
-            {linkedLeetCodeUsername ? (
-              <div className="space-y-4">
-                <div className="p-3 border border-border/50 bg-bg-card text-[11px] text-cream">
-                  Currently linked to:{" "}
-                  <span style={{ color: theme.accent }} className="font-bold">
-                    @{linkedLeetCodeUsername}
-                  </span>
-                </div>
-                {resetMsg && (
-                  <div className="p-2 border border-border/50 text-[10px] text-muted">
-                    {resetMsg}
-                  </div>
-                )}
-                <button
-                  onClick={handleResetClaim}
-                  disabled={resetting}
-                  className="w-full btn-press py-3 text-[11px] disabled:opacity-50 border-[2px] border-red-500/50 text-red-400 hover:bg-red-500/10"
-                >
-                  {resetting ? "Resetting..." : "Reset Claim (Unlink)"}
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleVerifyLeetCode}>
-                <div className="mb-4">
-                  <label className="block text-[10px] text-muted mb-2 font-pixel">
-                    1. Enter your LeetCode Username
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={linkInput}
-                      onChange={(e) => setLinkInput(e.target.value)}
-                      placeholder="LeetCode Username"
-                      className="flex-1 bg-black/50 border border-border px-3 py-2 text-[12px] text-cream outline-none focus:border-border-light"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (linkInput.trim())
-                          setConfirmedUsername(linkInput.trim());
-                      }}
-                      className="px-3 py-2 text-[11px] border border-border hover:border-border-light text-cream"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                </div>
-
-                {confirmedUsername && (
-                  <div className="mb-6 animate-[fade-in_0.2s_ease-out]">
-                    <label className="block text-[10px] text-muted mb-2 font-pixel">
-                      2. Verify Ownership
-                    </label>
-                    <p className="text-[10px] text-cream mb-3 leading-relaxed">
-                      Copy the code below and paste it into your{" "}
-                      <a
-                        href={`https://leetcode.com/u/${confirmedUsername}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="underline text-blue-400 hover:text-blue-300"
-                      >
-                        LeetCode Profile → Edit Profile → About Me
-                      </a>
-                      . Save, then click Verify.
-                    </p>
-
-                    <div className="flex items-center gap-2 bg-black/50 border border-border p-3 mb-2">
-                      <code
-                        className="text-[12px] flex-1 text-center font-bold"
-                        style={{ color: theme.accent }}
-                      >
-                        {expectedToken}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(expectedToken);
-                        }}
-                        className="text-[10px] bg-white/10 px-2 py-1 hover:bg-white/20"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {linkError && (
-                  <div className="mb-4 p-2 border border-red-500/50 bg-red-500/10 text-red-400 text-[10px]">
-                    {linkError}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={linking || !linkInput.trim()}
-                  className="w-full btn-press py-3 text-[12px] disabled:opacity-50 text-bg"
-                  style={{
-                    backgroundColor: theme.accent,
-                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                  }}
-                >
-                  {linking ? "Verifying..." : "Verify & Link"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-    </main>
-  );
-}
-
-export default function Home() {
-  return (
-    <Suspense>
-      <HomeContent />
-    </Suspense>
-  );
-}

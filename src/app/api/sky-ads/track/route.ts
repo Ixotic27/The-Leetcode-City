@@ -21,6 +21,9 @@ async function hashIP(ip: string): Promise<string> {
     .join("");
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   // ── Origin validation ──
   const origin = request.headers.get("origin") ?? request.headers.get("referer");
