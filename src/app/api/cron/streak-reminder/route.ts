@@ -7,6 +7,9 @@ import { sendDailiesReminderNotification } from "@/lib/notification-senders/dail
  * Cron: Daily 20:00 UTC - Remind developers who haven't checked in today
  * and have a streak >= 3.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

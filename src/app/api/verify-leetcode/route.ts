@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp } from "@/lib/xp";
 
+/**
+ * @param {import('next/server').NextRequest} req
+ */
 export async function POST(req: Request) {
     try {
         const { leetcode_username } = await req.json();

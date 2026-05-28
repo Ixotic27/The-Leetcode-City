@@ -1969,13 +1969,14 @@ function HomeContent() {
   // 3-5   = ~50-85% (city alive)
   // 10+   = 100%+ bloom (city buzzing)
   const cityEnergy = useMemo(() => {
-    if (codingCount === 0) return 0.10; // 🌑 City Sleeping — very dim
-    if (codingCount === 1) return 0.16; // 🌒 City Waking Up
-    if (codingCount === 2) return 0.35; // waking transition
-    if (codingCount <= 5) return 0.50 + (codingCount - 3) * 0.175; // 🌆 City Alive: 3->0.50, 4->0.675, 5->0.85
-    if (codingCount <= 10) return 0.85 + (codingCount - 5) * 0.03; // ramp to 1.0: 6->0.88, 10->1.0
-    return Math.min(1.4, 1.0 + (codingCount - 10) * 0.04); // ⚡ City Buzzing: 10->1.0, 15->1.2, 20+->1.4 cap
+    if (codingCount === 0) return 0.60; // 🌑 City Sleeping — still visible
+    if (codingCount === 1) return 0.75; // 🌒 City Waking Up
+    if (codingCount === 2) return 0.85; // waking transition
+    if (codingCount <= 5) return 0.90 + (codingCount - 3) * 0.05; // 🌆 City Alive: 3->0.90, 5->1.0
+    if (codingCount <= 10) return 1.0 + (codingCount - 5) * 0.04; // ramp to 1.2
+    return Math.min(1.6, 1.2 + (codingCount - 10) * 0.04); // ⚡ City Buzzing
   }, [codingCount]);
+
 
   // ─── Milestone celebration system ──────────────────────────
   const forceCelebrate = searchParams.has("celebrate");

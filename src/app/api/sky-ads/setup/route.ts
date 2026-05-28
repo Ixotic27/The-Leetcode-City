@@ -6,6 +6,9 @@ import { containsBlockedContent, isSuspiciousLink } from "@/lib/ad-moderation";
 
 const ALLOWED_LINK = /^(https:\/\/|mailto:)/;
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??

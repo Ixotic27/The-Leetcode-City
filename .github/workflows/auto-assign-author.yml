@@ -1,0 +1,86 @@
+name: Auto Assign Issue Author
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  assign-author:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.issue.user.type != 'Bot' &&
+      github.event.issue.user.login != 'Ixotic27'
+    steps:
+      - name: Auto-assign author if under limit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const author = issue.user.login;
+
+            // ── 24-Hour Rate Limit: max 3 issues per 24 hours ──
+            const { data: userAssignedIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              assignee: author,
+              state: 'open',
+              per_page: 100,
+            });
+
+            // Filter to actual issues (not PRs)
+            const openAssignedIssues = userAssignedIssues.filter(
+              i => !i.pull_request && i.number !== issue.number
+            );
+
+            if (openAssignedIssues.length >= 3) {
+              const issueList = openAssignedIssues
+                .slice(0, 3)
+                .map(i => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
+                .join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hi @${author}, thank you for raising this issue! 🙌\n\nWe normally auto-assign issues to the person who created them, but you already have **${openAssignedIssues.length}/3** active assigned issues (the maximum allowed).\n\nPlease complete or close one of your current issues before taking on new ones:\n\n${issueList}\n\nThis issue will remain unassigned and open for other contributors to claim.`
+              });
+              return;
+            }
+
+            // Assign the author
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              assignees: [author]
+            });
+
+            // Post assignment confirmation
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `Hello @${author}! Since you raised this issue, you have been automatically assigned to it to give you the first opportunity to fix it! 🚀\n\n⏰ **Deadline: You have 48 hours to submit a Pull Request.**\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${issue.number}\` so it automatically links to this issue and inherits its labels.\n\n*(Note: This issue will still be reviewed by the admin. Please wait for the \`needs-triage\` label to be removed before starting major work!)*`
+            });
+
+            // Automatically add GSSoC labels if not present
+            const labels = issue.labels.map(l => l.name);
+            const labelsToAdd = [];
+            if (!labels.includes('Gssoc 26')) labelsToAdd.push('Gssoc 26');
+            if (!labels.includes('gssoc:approved')) labelsToAdd.push('gssoc:approved');
+
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labelsToAdd
+              });
+            }

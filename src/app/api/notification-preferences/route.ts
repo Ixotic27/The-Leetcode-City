@@ -75,6 +75,9 @@ export async function GET() {
  * Update authenticated user's notification preferences.
  * `transactional` cannot be disabled (purchase receipts always send).
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function PATCH(request: Request) {
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
