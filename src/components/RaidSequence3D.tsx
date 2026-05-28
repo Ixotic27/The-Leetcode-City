@@ -679,12 +679,8 @@ function FuturisticJetMesh() {
       </mesh>
       
       {/* Wingtip Vapor Trails (Using actual scattering particle system) */}
-      <group position={[-4.0, -0.1, 1.6]} ref={trailLRef}>
-         <SmokeTrail vehicleRef={trailLRef} active={true} />
-      </group>
-      <group position={[4.0, -0.1, 1.6]} ref={trailRRef}>
-         <SmokeTrail vehicleRef={trailRRef} active={true} />
-      </group>
+      <group position={[-4.0, -0.1, 1.6]} ref={trailLRef} />
+      <group position={[4.0, -0.1, 1.6]} ref={trailRRef} />
 
       {/* Engine glow point lights */}
       <pointLight position={[-0.55, -0.25, 3.4]} color="#00aaff" intensity={6} distance={12} />
@@ -726,7 +722,10 @@ function SmokeTrail({ vehicleRef, active }: {
   const spawnTimer = useRef(0);
 
   useEffect(() => {
-    if (!active) particles.current = [];
+  if (!active) {
+    particles.current = [];
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   useFrame((_, delta) => {
