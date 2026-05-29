@@ -82,6 +82,8 @@ import {
   trackDisabledButtonClicked,
 } from "@/lib/himetrica";
 
+import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
+
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
 });
@@ -1559,24 +1561,9 @@ function HomeContent() {
     }
 
     if (allDevs.length === 0) return null;
-
-    // Apply loadout override from localStorage (saved in shop, TTL 10 min)
-    try {
-      const raw = localStorage.getItem("leetcodecity:loadout_override");
-      if (raw) {
-        const { developerId, loadout, ts } = JSON.parse(raw);
-        if (Date.now() - ts < 10 * 60 * 1000) {
-          const idx = allDevs.findIndex(
-            (d: Record<string, unknown>) => d.id === developerId,
-          );
-          if (idx !== -1) {
-            allDevs[idx] = { ...allDevs[idx], loadout };
-          }
-        } else {
-          localStorage.removeItem("leetcodecity:loadout_override");
-        }
-      }
-    } catch {}
+ 
+    // Apply localStorage overrides (style, color, billboard, loadout) — TTL 20 min
+    applyLocalStorageOverrides(allDevs);
 
     rawDevsRef.current = allDevs;
     setStats(cityStats);
@@ -1712,23 +1699,8 @@ function HomeContent() {
           return;
         }
 
-        // Apply loadout override from localStorage (saved in shop, TTL 10 min)
-        try {
-          const raw = localStorage.getItem("leetcodecity:loadout_override");
-          if (raw) {
-            const { developerId, loadout, ts } = JSON.parse(raw);
-            if (Date.now() - ts < 10 * 60 * 1000) {
-              const idx = allDevs.findIndex(
-                (d: Record<string, unknown>) => d.id === developerId,
-              );
-              if (idx !== -1) {
-                allDevs[idx] = { ...allDevs[idx], loadout };
-              }
-            } else {
-              localStorage.removeItem("leetcodecity:loadout_override");
-            }
-          }
-        } catch {}
+        // Apply localStorage overrides (style, color, billboard, loadout) — TTL 20 min
+        applyLocalStorageOverrides(allDevs);
 
         // Generate layout
         setLoadStage("generating");
@@ -1787,7 +1759,7 @@ function HomeContent() {
     }
 
     loadCity();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // esliloadCitynt-disable-next-line react-hooks/exhaustive-deps
   }, [loadStage]);
 
   // City reload on tab return removed — navigating back from shop already

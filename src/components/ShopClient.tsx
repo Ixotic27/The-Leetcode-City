@@ -853,6 +853,15 @@ export default function ShopClient({
         setBStyle(oldStyle); // Revert on failure
         const data = await res.json().catch(() => ({}));
         setError(`Failed to save style: ${data.error || res.statusText}`);
+      } else {
+        try {
+          localStorage.setItem(
+            "leetcodecity:style_override",
+            JSON.stringify({ developerId, value: newStyle, ts: Date.now() })
+          )
+        } catch (e) {
+            console.warn("[ShopClient] localStorage write failed:", e);
+        }
       }
     } catch (e: any) {
       setBStyle(oldStyle);
@@ -920,6 +929,23 @@ export default function ShopClient({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(`Failed to save ${itemId}: ${data.error || res.statusText}`);
+      } else {
+        try{
+          if (itemId === "custom_color" && payload.color) {
+            localStorage.setItem(
+              "leetcodecity:color_override",
+              JSON.stringify({ developerId, value: payload.color, ts: Date.now() })
+            );
+          }
+          if (itemId === "billboard" && payload.images) {
+            localStorage.setItem(
+              "leetcodecity:billboard_override",
+              JSON.stringify({ developerId, value: payload.images, ts: Date.now() })
+            )
+          }
+        } catch (err) {
+            console.warn("[ShopClient] localStorage write failed:", err);
+        }
       }
     } catch (err: any) {
       setError(`Network error: ${err.message}`);
