@@ -59,7 +59,7 @@ jobs:
               // GSSoC & approval labels (required on every issue/PR)
               'Gssoc 26':         { color: 'e5533d', description: 'GSSoC 2026 contribution' },
 
-              'gssoc:verified':   { color: '0e8a16', description: 'Verified GSSoC contribution' },
+              'gssoc:approved':   { color: '0e8a16', description: 'Approved GSSoC contribution' },
               // Status labels
               'status:blocked':   { color: 'dc2626', description: 'This PR is blocked due to a failing CI check.' },
               'needs-rebase':     { color: 'e11d48', description: 'This PR has merge conflicts and needs a rebase.' },
@@ -111,7 +111,7 @@ jobs:
               return null;
             }
 
-            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:verified', 'good first issue']);
+            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issue']);
 
             // Detect type from PR title
             const typeLabel = detectType(prTitle) || detectType(headRef);
