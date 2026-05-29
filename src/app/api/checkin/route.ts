@@ -8,6 +8,7 @@ import { touchLastActive } from "@/lib/notification-helpers";
 import { sendStreakMilestoneNotification } from "@/lib/notification-senders/streak";
 import { sendStreakBrokenNotification } from "@/lib/notification-senders/streak-broken";
 import { trackDailyMission } from "@/lib/dailies";
+import { fetchLeetCodeWeeklySubmissions } from "@/lib/leetcode";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 // A12: Streak reward milestones — {milestone: days, pool: item_ids to pick from}
@@ -79,55 +80,8 @@ async function grantStreakReward(
 
 // Lightweight LeetCode fetch: only current week contributions
 async function fetchWeeklyContributions(login: string): Promise<number | null> {
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) return null;
-
-  try {
-    const res = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        query: `query($login: String!) {
-          user(login: $login) {
-            contributionsCollection {
-              contributionCalendar {
-                weeks { contributionDays { contributionCount, date } }
-              }
-            }
-          }
-        }`,
-        variables: { login },
-      }),
-    });
-
-    if (!res.ok) return null;
-    const json = await res.json();
-    const weeks = json?.data?.user?.contributionsCollection?.contributionCalendar?.weeks;
-    if (!weeks) return null;
-
-    const now = new Date();
-    const isoWeekStart = new Date(now);
-    const dayOfWeek = now.getDay();
-    isoWeekStart.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-    isoWeekStart.setHours(0, 0, 0, 0);
-
-    let total = 0;
-    for (const week of weeks) {
-      for (const day of week.contributionDays ?? []) {
-        if (new Date(day.date) >= isoWeekStart) {
-          total += day.contributionCount;
-        }
-      }
-    }
-    return total;
-  } catch (err) {
-    console.warn("[app/api/checkin/route.ts] error:", err);
-    return null;
-  }
-}  
+  return fetchLeetCodeWeeklySubmissions(login);
+}
 
 export async function POST() {
   const supabase = await createServerSupabase();

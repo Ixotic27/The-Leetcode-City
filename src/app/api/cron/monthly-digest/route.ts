@@ -13,6 +13,9 @@ const MONTH_NAMES = [
 /**
  * Cron: 1st of month 10:00 UTC - Monthly highlights email.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

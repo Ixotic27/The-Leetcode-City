@@ -6,7 +6,7 @@ const STORAGE_PATH = "snapshot.json";
 const PAGE_SIZE = 1000; // Supabase PostgREST caps at 1000 rows per request
 
 /** Paginate through all rows of a table. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function fetchAll<T>(
   sb: ReturnType<typeof getSupabaseAdmin>,
   table: string,
@@ -32,6 +32,9 @@ async function fetchAll<T>(
   return all;
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {

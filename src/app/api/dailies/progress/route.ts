@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDailyMissions, getTodayStr, MISSIONS_BY_ID } from "@/lib/dailies";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {

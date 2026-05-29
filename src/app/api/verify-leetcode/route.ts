@@ -4,6 +4,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp } from "@/lib/xp";
 
+/**
+ * @param {import('next/server').NextRequest} req
+ */
 export async function POST(req: Request) {
     try {
         const { leetcode_username } = await req.json();
@@ -173,11 +176,11 @@ export async function POST(req: Request) {
         // Min 15% so building always looks inhabited; max 92% so some windows always dark
         const litPercentage = Math.min(0.92, Math.max(0.15, active_days_last_year / 365));
 
-        let contributions = Math.max(1, total_solved);
-        let rank = lcUserStats?.profile?.ranking ?? 999999;
-        let reputation = lcUserStats?.profile?.reputation ?? 0;
-        let name = lcUserStats?.profile?.realName || lcUserStats?.username || leetcode_username;
-        let avatar_url = lcUserStats?.profile?.userAvatar || "";
+        const contributions = Math.max(1, total_solved);
+        const rank = lcUserStats?.profile?.ranking ?? 999999;
+        const reputation = lcUserStats?.profile?.reputation ?? 0;
+        const name = lcUserStats?.profile?.realName || lcUserStats?.username || leetcode_username;
+        const avatar_url = lcUserStats?.profile?.userAvatar || "";
 
         let hash = 0;
         for (let i = 0; i < leetcode_username.length; i++) {
@@ -196,6 +199,7 @@ export async function POST(req: Request) {
             .from("developers")
             .upsert({
                 github_login: leetcode_username.toLowerCase(),
+                lc_username: leetcode_username.toLowerCase(),
                 github_id: github_id,
                 name: name,
                 avatar_url: avatar_url,
@@ -250,7 +254,7 @@ export async function POST(req: Request) {
         if (upsertError) {
             return NextResponse.json({ error: "Failed to link user record." }, { status: 500 });
         }
-        let devId = upsertData?.id;
+        const devId = upsertData?.id;
 
         // Insert feed event
         if (devId) {

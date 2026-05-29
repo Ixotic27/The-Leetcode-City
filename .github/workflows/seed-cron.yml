@@ -1,0 +1,47 @@
+name: LC City Seeder Cron
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # Every 6 hours
+  workflow_dispatch:          # Allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seed-cron
+  cancel-in-progress: true
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run seeder (5 pages ≈ 125 users)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/seed-lc-infinite.ts --pages 5
+
+      - name: Commit state file
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f scripts/seed-lc-state.json ]; then
+            git add scripts/seed-lc-state.json
+          fi
+          git diff --cached --quiet || git commit -m "🔧 ci: update seeder state"
+          git push
