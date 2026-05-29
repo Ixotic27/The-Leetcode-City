@@ -1,0 +1,104 @@
+name: Auto Review & Approve
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  auto-review:
+    name: Auto-approve after CI passes
+    runs-on: ubuntu-latest
+    # Only run when CI succeeded and only for PRs (not direct pushes to main)
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request_target'
+
+    steps:
+      - name: Get PR number from workflow run
+        id: get-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headSha = context.payload.workflow_run.head_sha;
+            const headBranch = context.payload.workflow_run.head_branch;
+
+            console.log(`CI passed for SHA: ${headSha}, branch: ${headBranch}`);
+
+            // Search for open PRs matching this head SHA
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            // Find the PR whose head SHA matches the workflow run
+            const pr = prs.find(p => p.head.sha === headSha);
+
+            if (!pr) {
+              console.log('No open PR found matching this workflow run. Skipping.');
+              core.setOutput('pr_number', '');
+              return;
+            }
+
+            console.log(`Found PR #${pr.number}: "${pr.title}" by @${pr.user.login}`);
+
+            // Skip if the PR author is Ixotic27 (don't self-review)
+            if (pr.user.login === 'Ixotic27') {
+              console.log('PR author is Ixotic27. Skipping self-review.');
+              core.setOutput('pr_number', '');
+              return;
+            }
+
+            core.setOutput('pr_number', pr.number.toString());
+            core.setOutput('pr_title', pr.title);
+            core.setOutput('pr_author', pr.user.login);
+
+      - name: Approve PR as Ixotic27
+        if: steps.get-pr.outputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          # Use the maintainer's PAT so the review is attributed to Ixotic27
+          github-token: ${{ secrets.REVIEWER_PAT }}
+          script: |
+            const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
+            const prTitle = `${{ steps.get-pr.outputs.pr_title }}`;
+            const prAuthor = `${{ steps.get-pr.outputs.pr_author }}`;
+
+            console.log(`Approving PR #${prNumber} ("${prTitle}") by @${prAuthor}...`);
+
+            try {
+              // Check if already reviewed to avoid duplicate approvals
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              const alreadyApproved = reviews.some(
+                r => r.user.login === 'Ixotic27' && r.state === 'APPROVED'
+              );
+
+              if (alreadyApproved) {
+                console.log('PR already approved by Ixotic27. Skipping duplicate review.');
+                return;
+              }
+
+              // Submit the approval review
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: 'APPROVE',
+                body: `✅ **LGTM!** All CI checks have passed. Code review approved.\n\nThank you for your contribution @${prAuthor}! 🚀`
+              });
+
+              console.log(`Successfully approved PR #${prNumber}!`);
+            } catch (err) {
+              console.error(`Failed to approve PR #${prNumber}:`, err.message);
+              core.setFailed(err.message);
+            }
