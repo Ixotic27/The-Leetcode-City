@@ -630,9 +630,23 @@ function HomeContent() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [vsCodeKey, setVsCodeKey] = useState<string | null>(null);
+  const [hasVsCodeKey, setHasVsCodeKey] = useState<boolean | null>(null);
   const [vsCodeKeyLoading, setVsCodeKeyLoading] = useState(false);
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (codingPanelOpen && hasVsCodeKey === null) {
+      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(d => {
+          if (typeof d.hasKey === "boolean") {
+            setHasVsCodeKey(d.hasKey);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
   const [claiming, setClaiming] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<string | null>(null);
@@ -3526,7 +3540,7 @@ function HomeContent() {
                               <div className="mb-4 space-y-2.5 text-xs normal-case text-muted">
                                 <p>
                                   <span className="text-cream">1.</span>{" "}
-                                  Generate your key below
+                                  {hasVsCodeKey ? "You already have an active key! Lost it? Generate a new one below." : "Generate your key below"}
                                 </p>
                                 <p>
                                   <span className="text-cream">2.</span> Install{" "}
@@ -4396,7 +4410,7 @@ function HomeContent() {
               You unlocked {streakData.streak_reward.item_name}
             </p>
             <Link
-              href={`/shop/${authLogin}`}
+              href="/shop"
               className="btn-press block w-full py-1.5 text-center text-[9px] text-bg"
               style={{
                 backgroundColor: theme.accent,

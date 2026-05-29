@@ -67,12 +67,14 @@ export async function POST(request: Request) {
       .from("developers")
       .select(raidColumns)
       .eq("claimed_by", user.id)
-      .single(),
+      .limit(1)
+      .maybeSingle(),
     admin
       .from("developers")
       .select(raidColumns)
       .eq("github_login", target_login.toLowerCase())
-      .single(),
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,9 +88,9 @@ export async function POST(request: Request) {
       .from("developers")
       .select("id, claimed_by")
       .eq("github_login", githubLogin)
-      .eq("claimed", false)
       .is("claimed_by", null)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (unclaimedBuilding) {
       await admin
@@ -105,7 +107,8 @@ export async function POST(request: Request) {
         .from("developers")
         .select(raidColumns)
         .eq("claimed_by", user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
       attacker = attackerRes.data as Record<string, any> | null;
     }
   }

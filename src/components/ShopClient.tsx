@@ -708,6 +708,8 @@ export default function ShopClient({
   const [previewColor, setPreviewColor] = useState<string | null>(null);
   const [previewLedBannerText, setPreviewLedBannerText] = useState<string | null>(null);
   const [previewBillboardImages, setPreviewBillboardImages] = useState<string[] | null>(null);
+  const [savingCustomization, setSavingCustomization] = useState<string | null>(null);
+  const [savedCustomization, setSavedCustomization] = useState<string | null>(null);
   const [autoUploading, setAutoUploading] = useState(false);
   const [purchaseToast, setPurchaseToast] = useState<string | null>(purchasedItem);
   const [giftToast, setGiftToast] = useState<{ item: string; to: string } | null>(
@@ -920,9 +922,12 @@ export default function ShopClient({
   }, []);
 
   const handleSaveCustomization = async (itemId: string, payload: Record<string, any>) => {
+    setSavingCustomization(itemId);
+    setSavedCustomization(null);
     try {
-      const res = await fetch("/api/customizations", {
+      const res = await fetch(`/api/customizations?t=${Date.now()}`, {
         method: "POST",
+        cache: "no-store",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ item_id: itemId, ...payload }),
       });
@@ -930,6 +935,8 @@ export default function ShopClient({
         const data = await res.json().catch(() => ({}));
         setError(`Failed to save ${itemId}: ${data.error || res.statusText}`);
       } else {
+        setSavedCustomization(itemId);
+        setTimeout(() => setSavedCustomization(null), 2000);
         try{
           if (itemId === "custom_color" && payload.color) {
             localStorage.setItem(
@@ -949,6 +956,8 @@ export default function ShopClient({
       }
     } catch (err: any) {
       setError(`Network error: ${err.message}`);
+    } finally {
+      setSavingCustomization(null);
     }
   };
 
@@ -1653,55 +1662,9 @@ export default function ShopClient({
                               )}
                             </button>
 
-                            {/* Custom Color Picker Preview */}
-                            {isOwned && itemId === "custom_color" && isEquipped && (
-                              <div className="mt-2 w-full flex flex-col items-center gap-1">
-                                <input
-                                  type="color"
-                                  value={customColor ?? "#ffffff"}
-                                  onChange={(e) => setCustomColor(e.target.value)}
-                                  className="w-full h-8 cursor-pointer border-[2px] border-border bg-bg-raised p-1 hover:border-border-light"
-                                />
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleSaveCustomization("custom_color", { color: customColor }); }}
-                                  className="w-full border-[2px] border-border py-1 text-[9px] text-muted hover:text-cream bg-bg-card"
-                                >
-                                  Save Color
-                                </button>
-                              </div>
-                            )}
 
-                            {/* LED Banner Text Preview */}
-                            {isOwned && itemId === "led_banner" && isEquipped && (
-                              <div className="mt-2 w-full flex flex-col items-center gap-1">
-                                <input
-                                  type="text"
-                                  value={ledBannerText ?? ""}
-                                  placeholder="Your text here"
-                                  onChange={(e) => setLedBannerText(e.target.value)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="w-full h-8 px-2 border-[2px] border-border bg-bg-raised text-[10px] text-cream"
-                                />
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleSaveCustomization("led_banner", { text: ledBannerText }); }}
-                                  className="w-full border-[2px] border-border py-1 text-[9px] text-muted hover:text-cream bg-bg-card"
-                                >
-                                  Save Text
-                                </button>
-                              </div>
-                            )}
                             
-                            {/* Billboard Upload Panel */}
-                            {itemId === "billboard" && (isEquipped || isConfirming) && (
-                              <BillboardUploadPanel
-                                images={billboardImages}
-                                slotCount={billboardSlots}
-                                isOwned={isOwned}
-                                autoUploading={autoUploading}
-                                onImagesChange={setBillboardImages}
-                                onPreviewChange={setPreviewBillboardImages}
-                              />
-                            )}
+
 
                             {/* Buy confirmation popover */}
                             {isConfirming && shopItem && (
@@ -1769,6 +1732,67 @@ export default function ShopClient({
                         );
                       })}
                     </div>
+
+                    {/* Full-width panels below the grid for equipped face items */}
+                    {equippedId === "custom_color" && owned.includes("custom_color") && (
+                      <div className="mt-3 border-[2px] border-border/50 bg-bg/50 px-4 py-3">
+                        <p className="mb-2 text-[9px] text-muted normal-case">Custom Building Color</p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={customColor ?? "#ffffff"}
+                            onChange={(e) => setCustomColor(e.target.value)}
+                            className="h-8 w-16 cursor-pointer border-[2px] border-border bg-bg-raised p-1 hover:border-border-light"
+                          />
+                          <span className="flex-1 text-[10px] text-cream font-mono">{customColor ?? "#ffffff"}</span>
+                          <button
+                            onClick={() => handleSaveCustomization("custom_color", { color: customColor })}
+                            disabled={savingCustomization === "custom_color"}
+                            className="btn-press px-4 py-1.5 text-[9px] text-bg disabled:opacity-40"
+                            style={{ backgroundColor: savedCustomization === "custom_color" ? "#39d353" : ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
+                          >
+                            {savingCustomization === "custom_color" ? "Saving..." : savedCustomization === "custom_color" ? "Saved!" : "Save Color"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {equippedId === "led_banner" && owned.includes("led_banner") && (
+                      <div className="mt-3 border-[2px] border-border/50 bg-bg/50 px-4 py-3">
+                        <p className="mb-2 text-[9px] text-muted normal-case">LED Banner Text</p>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="text"
+                            value={ledBannerText ?? ""}
+                            placeholder="Your text here"
+                            onChange={(e) => setLedBannerText(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 h-8 px-3 border-[2px] border-border bg-bg-raised text-[10px] text-cream"
+                          />
+                          <button
+                            onClick={() => handleSaveCustomization("led_banner", { text: ledBannerText })}
+                            disabled={savingCustomization === "led_banner"}
+                            className="btn-press px-4 py-1.5 text-[9px] text-bg disabled:opacity-40"
+                            style={{ backgroundColor: savedCustomization === "led_banner" ? "#39d353" : ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
+                          >
+                            {savingCustomization === "led_banner" ? "Saving..." : savedCustomization === "led_banner" ? "Saved!" : "Save Text"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {equippedId === "billboard" && owned.includes("billboard") && (
+                      <div className="mt-3">
+                        <BillboardUploadPanel
+                          images={billboardImages}
+                          slotCount={billboardSlots}
+                          isOwned={true}
+                          autoUploading={autoUploading}
+                          onImagesChange={setBillboardImages}
+                          onPreviewChange={setPreviewBillboardImages}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}

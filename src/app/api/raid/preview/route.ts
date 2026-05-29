@@ -46,7 +46,8 @@ export async function POST(request: Request) {
     .from("developers")
     .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
     .eq("claimed_by", user.id)
-    .single();
+    .limit(1)
+    .maybeSingle();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let attacker = attackerRes.data as Record<string, any> | null;
 
@@ -56,9 +57,9 @@ export async function POST(request: Request) {
       .from("developers")
       .select("id, claimed_by")
       .eq("github_login", githubLogin)
-      .eq("claimed", false)
       .is("claimed_by", null)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (unclaimedBuilding) {
       await admin
@@ -75,7 +76,8 @@ export async function POST(request: Request) {
         .from("developers")
         .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
         .eq("claimed_by", user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
       attacker = attackerRes.data as Record<string, any> | null;
     }
   }

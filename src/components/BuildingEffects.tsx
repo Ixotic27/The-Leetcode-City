@@ -1463,12 +1463,15 @@ export const LEDBanner = memo(function LEDBanner({
   text?: string | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const textGroupRef = useRef<THREE.Group>(null);
   const frameCount = useRef(0);
 
   const bannerH = 3;
   const y = height * 0.45;
   const hw = width / 2 + 0.3;
   const hd = depth / 2 + 0.3;
+
+  const hasText = !!(text && text.trim().length > 0);
 
   // Build face configs: each face has LED_SEGS scrolling blocks
   const faces = useMemo(() => [
@@ -1478,7 +1481,16 @@ export const LEDBanner = memo(function LEDBanner({
     { axis: "z" as const, faceW: depth, pos: [-hw, y, 0] as const, rot: 0 },     // left
   ], [width, depth, y, hw, hd]);
 
+  // Animation for abstract LED blocks (runs when no text)
   useFrame((state) => {
+    if (hasText) {
+      // Animate text scroll
+      if (textGroupRef.current) {
+        const t = state.clock.elapsedTime;
+        textGroupRef.current.position.x = Math.sin(t) * 2;
+      }
+      return;
+    }
     if (!groupRef.current) return;
     frameCount.current++;
     if (frameCount.current % 2 !== 0) return;
@@ -1502,16 +1514,8 @@ export const LEDBanner = memo(function LEDBanner({
     }
   });
 
-  // Render actual text if provided, otherwise render the abstract blocks
-  if (text) {
-    const textGroupRef = useRef<THREE.Group>(null);
-    useFrame((state) => {
-      if (!textGroupRef.current) return;
-      // Scroll text horizontally
-      const t = state.clock.elapsedTime;
-      textGroupRef.current.position.x = Math.sin(t) * 2;
-    });
-
+  // Render text version
+  if (hasText) {
     return (
       <group>
         {faces.map((face, f) => {
@@ -1541,6 +1545,7 @@ export const LEDBanner = memo(function LEDBanner({
     );
   }
 
+  // Render abstract LED blocks
   return (
     <group ref={groupRef}>
       {faces.flatMap((face, f) => {

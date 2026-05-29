@@ -3,6 +3,8 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ZONE_ITEMS } from "@/lib/zones";
 
+export const dynamic = "force-dynamic";
+
 /**
  * @param {import('next/server').NextRequest} request
  */
