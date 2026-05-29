@@ -174,9 +174,6 @@ function SkyDome({ stops }: { stops: [number, string][] }) {
     tex.minFilter = THREE.NearestFilter;
     tex.generateMipmaps = false;
     tex.needsUpdate = true;
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
     return new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false });
   }, [stops]);
 
@@ -1961,27 +1958,45 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
       dpr={Array.isArray(dpr) ? dpr : [dpr, dpr]}
       onCreated={({ gl, scene }) => {
         try {
-          gl.setPixelRatio(1);
+          // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
           if (gl.domElement && gl.domElement.style) gl.domElement.style.imageRendering = "pixelated";
-          // Ensure any already-created textures favor nearest filtering for a pixel-art look
-          scene.traverse((obj: any) => {
-            if (obj.isMesh && obj.material) {
-              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-              for (const m of mats) {
-                const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
-                for (const tx of maps) {
-                  if (tx && tx instanceof THREE.Texture) {
-                    tx.magFilter = THREE.NearestFilter;
-                    tx.minFilter = THREE.NearestFilter;
-                    tx.generateMipmaps = false;
-                    tx.needsUpdate = true;
+
+          // Best-effort: enforce nearest filtering on any textures already present.
+          // Also schedule a few post-mount traversal passes to catch textures created
+          // by React components after initial renderer creation.
+          const applyNearest = () => {
+            scene.traverse((obj: any) => {
+              if (obj.isMesh && obj.material) {
+                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                for (const m of mats) {
+                  const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
+                  for (const tx of maps) {
+                    if (tx && tx instanceof THREE.Texture) {
+                      tx.magFilter = THREE.NearestFilter;
+                      tx.minFilter = THREE.NearestFilter;
+                      tx.generateMipmaps = false;
+                      tx.needsUpdate = true;
+                    }
                   }
                 }
               }
-            }
-          });
+            });
+          };
+
+          // Initial pass
+          applyNearest();
+          // Run a few frames afterwards to catch late-mounted textures
+          let runs = 0;
+          const runner = () => {
+            try { applyNearest(); } catch (err) { /* keep going */ }
+            runs += 1;
+            if (runs < 6) requestAnimationFrame(runner);
+          };
+          requestAnimationFrame(runner);
         } catch (e) {
-          // swallow - best-effort
+          // Best-effort only — surface warnings to make issues diagnosable in dev
+          // eslint-disable-next-line no-console
+          console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}
       gl={{ antialias: false, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
