@@ -117,32 +117,9 @@ jobs:
             const typeLabel = detectType(prTitle) || detectType(headRef);
             if (typeLabel) labelsToAdd.add(typeLabel);
 
-            // ── 4a. Auto-detect difficulty level from PR title/body/branch ──
-            const difficultyKeywords = {
-              'advanced':     ['advanced', 'complex', 'critical', 'architecture', 'security', 'migration'],
-              'intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration'],
-              'beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge'],
-            };
+            // ── 4. Inherit labels from linked issues (BEFORE difficulty detection) ──
+            const ALL_DIFFICULTY_LABELS = ['beginner', 'intermediate', 'advanced', 'level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
 
-            const allText = `${prTitle} ${headRef} ${prBody}`.toLowerCase();
-            let detectedDifficulty = null;
-            for (const [level, keywords] of Object.entries(difficultyKeywords)) {
-              if (keywords.some(kw => allText.includes(kw))) {
-                detectedDifficulty = level;
-                break; // first match wins (advanced > intermediate > beginner)
-              }
-            }
-
-            // Check if PR already has a difficulty label from linked issues
-            const existingDiffLabels = ['beginner', 'intermediate', 'advanced', 'level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
-            const hasDiffFromLinked = [...labelsToAdd].some(l => existingDiffLabels.includes(l));
-
-            if (!hasDiffFromLinked) {
-              // Apply detected difficulty, or default to beginner
-              labelsToAdd.add(detectedDifficulty || 'beginner');
-            }
-
-            // ── 4. Inherit labels from linked issues ──
             const branchMatch = headRef.match(/^(\d+)-/);
             if (branchMatch) {
               const issueNumber = parseInt(branchMatch[1]);
@@ -165,6 +142,36 @@ jobs:
               } catch (e) {
                 console.log(`Could not fetch labels for issue #${issueNum}`);
               }
+            }
+
+            // ── 4a. Ensure exactly ONE difficulty label ──
+            // Collect any difficulty labels already inherited from linked issues
+            const inheritedDiffLabels = [...labelsToAdd].filter(l => ALL_DIFFICULTY_LABELS.includes(l));
+
+            if (inheritedDiffLabels.length > 1) {
+              // Multiple difficulty labels inherited — keep only the highest
+              const priority = ['level:critical', 'advanced', 'level:advanced', 'intermediate', 'level:intermediate', 'beginner', 'level:beginner'];
+              const best = priority.find(p => inheritedDiffLabels.includes(p));
+              for (const dl of inheritedDiffLabels) {
+                if (dl !== best) labelsToAdd.delete(dl);
+              }
+            } else if (inheritedDiffLabels.length === 0) {
+              // No difficulty label inherited — auto-detect from PR content
+              const difficultyKeywords = {
+                'advanced':     ['advanced', 'complex', 'critical', 'architecture', 'security', 'migration'],
+                'intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration'],
+                'beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge'],
+              };
+
+              const allText = `${prTitle} ${headRef} ${prBody}`.toLowerCase();
+              let detectedDifficulty = null;
+              for (const [level, keywords] of Object.entries(difficultyKeywords)) {
+                if (keywords.some(kw => allText.includes(kw))) {
+                  detectedDifficulty = level;
+                  break;
+                }
+              }
+              labelsToAdd.add(detectedDifficulty || 'beginner');
             }
 
             // ── 5. Apply labels ──
