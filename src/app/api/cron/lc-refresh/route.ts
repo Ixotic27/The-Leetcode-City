@@ -89,6 +89,39 @@ async function upsertFullProfile(
   const totalSolved = getAC("All");
   const totalSub = getTot("All");
   const activeDays = user.userCalendar?.totalActiveDays ?? 0;
+
+  // Calculate weekly contributions (last 7 days)
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgoYear = sevenDaysAgoDate.getFullYear();
+
+  const yearsToCheck = [currentYear];
+  if (sevenDaysAgoYear !== currentYear) {
+    yearsToCheck.push(sevenDaysAgoYear);
+  }
+
+  let weeklyContributions = 0;
+  now.setHours(0, 0, 0, 0);
+  const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
+
+  for (const year of yearsToCheck) {
+    const calendarStr = user[`y${year}`]?.submissionCalendar;
+    if (calendarStr) {
+      try {
+        const calendar = JSON.parse(calendarStr);
+        for (const [timestampStr, count] of Object.entries(calendar)) {
+          const timestamp = parseInt(timestampStr, 10);
+          if (timestamp >= sevenDaysAgoTs) {
+            weeklyContributions += count as number;
+          }
+        }
+      } catch (err) {
+        console.warn(`[lc-refresh] Error parsing calendar for year ${year}:`, err);
+      }
+    }
+  }
+
   const lcRank = user.profile?.ranking ?? 999999;
   const litPercentage = Math.min(0.92, Math.max(0.15, activeDays / 365));
   const realName = user.profile?.realName?.trim() || user.username;
@@ -117,6 +150,7 @@ async function upsertFullProfile(
       contributions_total: Math.round(litPercentage * 1000),
       total_stars: user.profile?.reputation ?? 0,
       public_repos: Math.max(0, 500000 - lcRank),
+      current_week_contributions: weeklyContributions,
       rank: lcRank,
       lc_global_rank: lcRank,
       fetched_at: new Date().toISOString(),

@@ -64,3 +64,63 @@ export function parseMaxStreak(matchedUser: any, currentYear: number): number {
     if (currentStreak > maxStreak) maxStreak = currentStreak;
     return maxStreak;
 }
+
+export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<number | null> {
+    try {
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgoYear = sevenDaysAgoDate.getFullYear();
+
+        const yearsToFetch = [currentYear];
+        if (sevenDaysAgoYear !== currentYear) {
+            yearsToFetch.push(sevenDaysAgoYear);
+        }
+
+        let totalWeeklyCount = 0;
+
+        for (const year of yearsToFetch) {
+            const res = await fetch("https://leetcode.com/graphql", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://leetcode.com/"
+                },
+                body: JSON.stringify({
+                    query: `
+              query getUserCalendar($username: String!, $year: Int) {
+                matchedUser(username: $username) {
+                  userCalendar(year: $year) {
+                    submissionCalendar
+                  }
+                }
+              }
+            `,
+                    variables: { username, year }
+                })
+            });
+
+            if (!res.ok) continue;
+            const data = await res.json();
+            const calendarStr = data?.data?.matchedUser?.userCalendar?.submissionCalendar;
+            if (!calendarStr) continue;
+
+            const calendar = JSON.parse(calendarStr);
+            now.setHours(0, 0, 0, 0);
+            const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
+
+            for (const [timestampStr, count] of Object.entries(calendar)) {
+                const timestamp = parseInt(timestampStr, 10);
+                if (timestamp >= sevenDaysAgoTs) {
+                    totalWeeklyCount += count as number;
+                }
+            }
+        }
+
+        return totalWeeklyCount;
+    } catch (err) {
+        console.error("[lib/leetcode.ts] error fetching weekly submissions:", err);
+        return 0;
+    }
+}
