@@ -85,6 +85,26 @@ jobs:
             core.setOutput('pr_title', pr.title);
             core.setOutput('pr_author', pr.user.login);
 
+      - name: Assign Ixotic27 as Reviewer
+        if: steps.get-pr.outputs.pr_number != ''
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
+            console.log(`Requesting Ixotic27 as reviewer for PR #${prNumber}...`);
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                reviewers: ['Ixotic27']
+              });
+              console.log('Successfully assigned Ixotic27 as reviewer!');
+            } catch (err) {
+              console.error('Failed to assign reviewer:', err.message);
+            }
+
       - name: Approve PR as Ixotic27
         if: steps.get-pr.outputs.pr_number != ''
         uses: actions/github-script@v7

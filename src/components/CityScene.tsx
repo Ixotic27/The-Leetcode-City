@@ -51,7 +51,6 @@ const createInitialRainState = (centerX: number, centerZ: number) => {
   return { positions, speeds, anchorX, anchorZ, respawnCycles };
 };
 
-// Pre-allocated temp vector for focus info projection
 const _position = new THREE.Vector3();
 
 export interface FocusInfo {
@@ -60,14 +59,15 @@ export interface FocusInfo {
   screenY: number;
 }
 
-// ─── Spatial Grid ───────────────────────────────────────────────
-
 interface GridIndex {
   cells: Map<string, number[]>;
   cellSize: number;
 }
 
-function buildSpatialGrid(buildings: CityBuilding[], cellSize: number): GridIndex {
+function buildSpatialGrid(
+  buildings: CityBuilding[],
+  cellSize: number,
+): GridIndex {
   const cells = new Map<string, number[]>();
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
@@ -84,8 +84,6 @@ function buildSpatialGrid(buildings: CityBuilding[], cellSize: number): GridInde
   return { cells, cellSize };
 }
 
-// ─── Pre-computed building data ─────────────────────────────────
-
 interface BuildingLookup {
   indexByLogin: Map<string, number>;
 }
@@ -98,8 +96,85 @@ function buildLookup(buildings: CityBuilding[]): BuildingLookup {
   return { indexByLogin };
 }
 
-// ─── Component ──────────────────────────────────────────────────
+// ─── Day/Night Environment (Sky, Sun, Moon & Stars) ─────────────
+function DayNightEnvironment({ colors }: { colors: BuildingColors }) {
+  const { scene } = useThree();
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const moonRef = useRef<THREE.DirectionalLight>(null);
+  const starsRef = useRef<THREE.Points>(null);
 
+  const starGeo = useMemo(() => {
+    const positions = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 4000;
+      positions[i * 3 + 1] = Math.random() * 1000 + 300;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 4000;
+    }
+    return positions;
+  }, []);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime * 0.05;
+    const timeOfDay = (Math.sin(t) + 1.0) / 2.0; // Matches InstancedBuildings cycle
+
+    const dayColor = new THREE.Color("#4a7cff");
+    const sunsetColor = new THREE.Color("#ff7b00");
+    const nightColor = new THREE.Color("#050814");
+
+    let currentColor = new THREE.Color();
+    if (timeOfDay > 0.5) {
+      currentColor.lerpColors(sunsetColor, dayColor, (timeOfDay - 0.5) * 2.0);
+    } else {
+      currentColor.lerpColors(nightColor, sunsetColor, timeOfDay * 2.0);
+    }
+
+    scene.background = currentColor;
+    if (scene.fog) {
+      scene.fog.color.copy(currentColor);
+    }
+
+    if (sunRef.current) {
+      sunRef.current.position.set(Math.cos(t) * 800, Math.sin(t) * 800, -400);
+      sunRef.current.intensity = Math.max(0, Math.sin(t)) * 2.5;
+    }
+    if (moonRef.current) {
+      moonRef.current.position.set(
+        Math.cos(t + Math.PI) * 800,
+        Math.sin(t + Math.PI) * 800,
+        -400,
+      );
+      moonRef.current.intensity = Math.max(0, Math.sin(t + Math.PI)) * 1.5;
+    }
+
+    if (starsRef.current) {
+      const mat = starsRef.current.material as THREE.PointsMaterial;
+      mat.opacity = Math.max(0, 1.0 - timeOfDay * 2.0);
+    }
+  });
+
+  return (
+    <group>
+      <directionalLight ref={sunRef} color="#ffeedd" />
+      <directionalLight ref={moonRef} color="#aaccff" />
+      <ambientLight intensity={0.2} />
+      <points ref={starsRef} frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[starGeo, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#ffffff"
+          size={2}
+          sizeAttenuation={false}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </points>
+    </group>
+  );
+}
+
+// ─── Component ──────────────────────────────────────────────────
 interface CitySceneProps {
   buildings: CityBuilding[];
   colors: BuildingColors;
@@ -164,7 +239,14 @@ function RainWeather() {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[initialState.positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color="#a7c7ff" size={4} sizeAttenuation={false} transparent opacity={0.6} depthWrite={false} />
+      <pointsMaterial
+        color="#a7c7ff"
+        size={4}
+        sizeAttenuation={false}
+        transparent
+        opacity={0.6}
+        depthWrite={false}
+      />
     </points>
   );
 }
@@ -185,20 +267,16 @@ export default function CityScene({
   liveByLogin,
   cityEnergy,
 }: CitySceneProps) {
-  // Single atlas texture for all building windows (created once per theme)
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
-
-  // Spatial grid for effects LOD
-  const grid = useMemo(() => buildSpatialGrid(buildings, GRID_CELL_SIZE), [buildings]);
-
-  // Lookup for focus info emission
+  const grid = useMemo(
+    () => buildSpatialGrid(buildings, GRID_CELL_SIZE),
+    [buildings],
+  );
   const lookup = useMemo(() => buildLookup(buildings), [buildings]);
 
-  // Cache focus names
   const focusedLower = focusedBuilding?.toLowerCase() ?? null;
   const focusedBLower = focusedBuildingB?.toLowerCase() ?? null;
 
-  // Focused building data (for FocusBeacon positioning)
   const focusedBuildingData = useMemo(() => {
     if (!focusedLower) return null;
     const idx = lookup.indexByLogin.get(focusedLower);
@@ -215,7 +293,6 @@ export default function CityScene({
 
   const lastFocusUpdate = useRef(-1);
 
-  // Emit focus info for focused buildings (throttled to 5Hz)
   useFrame(({ camera, clock, size }) => {
     const elapsed = clock.elapsedTime;
     if (elapsed - lastFocusUpdate.current < 0.2) return;
@@ -224,7 +301,9 @@ export default function CityScene({
     if (!onFocusInfo || (!focusedLower && !focusedBLower)) return;
 
     const fi = focusedLower ? lookup.indexByLogin.get(focusedLower) : undefined;
-    const fbi = focusedBLower ? lookup.indexByLogin.get(focusedBLower) : undefined;
+    const fbi = focusedBLower
+      ? lookup.indexByLogin.get(focusedBLower)
+      : undefined;
     const targetIdx = fi ?? fbi;
     if (targetIdx === undefined) return;
 
@@ -239,14 +318,12 @@ export default function CityScene({
     onFocusInfo({ dist, screenX, screenY });
   });
 
-  // Dispose atlas on theme change
   useEffect(() => {
     return () => atlasTexture.dispose();
   }, [atlasTexture]);
 
   return (
     <>
-      {/* All buildings: single instanced draw call with custom shader */}
       <InstancedBuildings
         buildings={buildings}
         colors={colors}
@@ -260,12 +337,13 @@ export default function CityScene({
         cityEnergy={cityEnergy}
       />
 
-      {/* Live presence dots above active buildings */}
+      {/* Renders Day, Night, Stars dynamically */}
+      <DayNightEnvironment colors={colors} />
+
       {liveByLogin && liveByLogin.size > 0 && (
         <LiveDots buildings={buildings} liveByLogin={liveByLogin} />
       )}
 
-      {/* All labels: single instanced draw call with billboard shader */}
       <InstancedLabels
         buildings={buildings}
         introMode={introMode}
@@ -274,7 +352,6 @@ export default function CityScene({
         focusedBuildingB={focusedBuildingB}
       />
 
-      {/* Effects: React components only for nearby buildings with items */}
       <EffectsLayer
         buildings={buildings}
         grid={grid}
@@ -290,9 +367,14 @@ export default function CityScene({
 
       {!introMode && <RainWeather />}
 
-      {/* FocusBeacon: standalone, only when a building is focused */}
       {!introMode && focusedBuildingData && (
-        <group position={[focusedBuildingData.position[0], 0, focusedBuildingData.position[2]]}>
+        <group
+          position={[
+            focusedBuildingData.position[0],
+            0,
+            focusedBuildingData.position[2],
+          ]}
+        >
           <FocusBeacon
             height={focusedBuildingData.height}
             width={focusedBuildingData.width}
@@ -302,16 +384,24 @@ export default function CityScene({
         </group>
       )}
 
-      {!introMode && focusedBuildingBData && focusedBuildingBData !== focusedBuildingData && (
-        <group position={[focusedBuildingBData.position[0], 0, focusedBuildingBData.position[2]]}>
-          <FocusBeacon
-            height={focusedBuildingBData.height}
-            width={focusedBuildingBData.width}
-            depth={focusedBuildingBData.depth}
-            accentColor={accentColor ?? "#ffa116"}
-          />
-        </group>
-      )}
+      {!introMode &&
+        focusedBuildingBData &&
+        focusedBuildingBData !== focusedBuildingData && (
+          <group
+            position={[
+              focusedBuildingBData.position[0],
+              0,
+              focusedBuildingBData.position[2],
+            ]}
+          >
+            <FocusBeacon
+              height={focusedBuildingBData.height}
+              width={focusedBuildingBData.width}
+              depth={focusedBuildingBData.depth}
+              accentColor={accentColor ?? "#ffa116"}
+            />
+          </group>
+        )}
     </>
   );
 }
