@@ -57,7 +57,6 @@ export async function POST(request: Request) {
       .from("developers")
       .select("id, claimed_by")
       .eq("github_login", githubLogin)
-      .is("claimed_by", null)
       .limit(1)
       .maybeSingle();
 

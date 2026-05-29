@@ -32,8 +32,9 @@ export async function GET(request: Request) {
     const { data: dev } = await admin
       .from("developers")
       .select("id")
-      .eq("github_login", githubLogin)
-      .single();
+      .eq("claimed_by", user.id)
+      .limit(1)
+      .maybeSingle();
     if (dev) developerId = dev.id;
   }
 
@@ -79,10 +80,11 @@ export async function POST(request: Request) {
   const { data: dev } = await admin
     .from("developers")
     .select("id, claimed, claimed_by")
-    .eq("github_login", githubLogin)
-    .single();
+    .eq("claimed_by", user.id)
+    .limit(1)
+    .maybeSingle();
 
-  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+  if (!dev || !dev.claimed) {
     return NextResponse.json({ error: "Must own a claimed building" }, { status: 403 });
   }
 
