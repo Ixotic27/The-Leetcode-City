@@ -21,7 +21,7 @@ async function test() {
   const user = data?.data?.matchedUser;
   if (!user) return console.log("Not found");
   
-  let allTimestamps: number[] = [];
+  const allTimestamps: number[] = [];
   for (let y = 2015; y <= currentYear; y++) {
       if (user[`y${y}`] && user[`y${y}`].submissionCalendar) {
          const subCal = JSON.parse(user[`y${y}`].submissionCalendar);

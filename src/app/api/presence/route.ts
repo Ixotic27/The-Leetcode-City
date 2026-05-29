@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const sb = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - 5 * 60_000).toISOString();
@@ -47,7 +49,7 @@ export async function GET() {
     { count: developers.length, developers },
     {
       headers: {
-        "Cache-Control": "s-maxage=10, stale-while-revalidate=20",
+        "Cache-Control": "no-store",
       },
     },
   );

@@ -87,7 +87,7 @@ export default async function LeaderboardPage({
   const orderAscending = activeTab === "lc_rank";
 
   let devs: Developer[] = [];
-  let achieverCounts: Record<string, number> = {};
+  const achieverCounts: Record<string, number> = {};
 
   if (activeTab === "achievers") {
     // DB-side aggregation: get top 50 devs by achievement count

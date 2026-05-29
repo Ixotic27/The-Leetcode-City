@@ -496,7 +496,7 @@ function CameraFocus({
     if (controlsRef.current) {
       controlsRef.current.autoRotate = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [focusedBuilding, focusedBuildingB, camera, controlsRef]);
 
   useFrame((_, delta) => {

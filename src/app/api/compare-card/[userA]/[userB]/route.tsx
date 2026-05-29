@@ -117,6 +117,10 @@ function renderWindows(bHeight: number, color: string) {
 }
 
 // ─── GET ──────────────────────────────────────────────────────
+/**
+ * @param {import('next/server').NextRequest} request
+ * @param {{ params: any }} context
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userA: string; userB: string }> }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const developerId = searchParams.get("developer_id");

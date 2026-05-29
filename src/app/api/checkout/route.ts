@@ -12,6 +12,9 @@ import { createCryptoInvoice } from "@/lib/nowpayments";
 // the middleware already provides the primary protection layer.
 const lastCheckout = new Map<string, number>();
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Auth required
   const supabase = await createServerSupabase();

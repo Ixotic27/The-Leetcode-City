@@ -112,6 +112,10 @@ async function fetchLeetCodeUser(username: string) {
    }
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ * @param {{ params: any }} context
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
@@ -247,7 +251,7 @@ export async function GET(
 
     // We must merge new Base XP with existing Base XP safely. 
     // Wait to upsert until we check if the user exists so we know what to append.
-    let mergeRecord = { ...record, xp_github: newBaseXp, xp_total: newBaseXp };
+    const mergeRecord = { ...record, xp_github: newBaseXp, xp_total: newBaseXp };
     
     if (cached) {
         mergeRecord.xp_total = (cached.xp_total - cached.xp_github) + newBaseXp;

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const developerId = parseInt(searchParams.get("developer_id") ?? "", 10);
@@ -49,6 +52,9 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Auth required
   const supabase = await createServerSupabase();
