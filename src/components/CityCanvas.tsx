@@ -170,6 +170,13 @@ function SkyDome({ stops }: { stops: [number, string][] }) {
     ctx.fillRect(0, 0, 4, 512);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
     return new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false });
   }, [stops]);
 
@@ -1649,6 +1656,10 @@ function RiverText({ river }: { river: CityRiver }) {
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
     texRef.current = tex;
     return tex;
   }, [fontReady]);
@@ -1947,7 +1958,32 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
   return (
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 0.5, far: 4000 }}
-      dpr={dpr}
+      dpr={Array.isArray(dpr) ? dpr : [dpr, dpr]}
+      onCreated={({ gl, scene }) => {
+        try {
+          gl.setPixelRatio(1);
+          if (gl.domElement && gl.domElement.style) gl.domElement.style.imageRendering = "pixelated";
+          // Ensure any already-created textures favor nearest filtering for a pixel-art look
+          scene.traverse((obj: any) => {
+            if (obj.isMesh && obj.material) {
+              const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+              for (const m of mats) {
+                const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
+                for (const tx of maps) {
+                  if (tx && tx instanceof THREE.Texture) {
+                    tx.magFilter = THREE.NearestFilter;
+                    tx.minFilter = THREE.NearestFilter;
+                    tx.generateMipmaps = false;
+                    tx.needsUpdate = true;
+                  }
+                }
+              }
+            }
+          });
+        } catch (e) {
+          // swallow - best-effort
+        }
+      }}
       gl={{ antialias: false, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
