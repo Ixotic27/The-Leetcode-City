@@ -38,6 +38,77 @@ jobs:
                   issue_number: issue.number,
                   body: `✅ **Admin Approved!**\n\nThis issue has been reviewed and approved by the project maintainers. It is now open for contribution! 🎉\n\nTo claim this issue, simply comment \`assign me\` along with your \`### Proposed Solution\`.`
                 });
+
+                // Auto-detect type and difficulty from issue content
+                const issueTitle = issue.title || '';
+                const issueBody = issue.body || '';
+                const allText = `${issueTitle} ${issueBody}`.toLowerCase();
+
+                let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issue']);
+
+                // 1. Detect Type
+                const prefixMapping = {
+                  'fix': 'type:bug', 'bug': 'type:bug', 'bugfix': 'type:bug', 'hotfix': 'type:bug',
+                  'feat': 'type:feature', 'feature': 'type:feature',
+                  'docs': 'type:docs', 'doc': 'type:docs',
+                  'test': 'type:testing', 'testing': 'type:testing',
+                  'security': 'type:security', 'sec': 'type:security',
+                  'perf': 'type:performance', 'performance': 'type:performance',
+                  'style': 'type:design', 'design': 'type:design', 'ui': 'type:design', 'css': 'type:design',
+                  'refactor': 'type:refactor', 'cleanup': 'type:refactor',
+                };
+
+                let detectedType = null;
+                const conventionalRegex = /^\s*\[?(?:bug|feature|docs|test|security|perf|style|refactor|fix|feat|ui)\]?\s*[:-]/i;
+                const match = issueTitle.match(conventionalRegex);
+                if (match) {
+                  const prefix = match[0].replace(/[^a-zA-Z]/g, '').toLowerCase();
+                  if (prefixMapping[prefix]) detectedType = prefixMapping[prefix];
+                }
+                if (!detectedType) {
+                  const clean = issueTitle.toLowerCase().trim();
+                  for (const [key, label] of Object.entries(prefixMapping)) {
+                    if (clean.includes(`[${key}]`) || clean.startsWith(key + ':') || clean.startsWith(key + ' -')) {
+                      detectedType = label;
+                      break;
+                    }
+                  }
+                }
+                if (detectedType) labelsToAdd.add(detectedType);
+
+                // 2. Detect Difficulty
+                const currentLabels = issue.labels.map(l => l.name);
+                const hasDifficulty = currentLabels.some(l => l.startsWith('level:'));
+                
+                if (!hasDifficulty) {
+                  const difficultyKeywords = {
+                    'level:critical':     ['critical', 'urgent', 'hotfix', 'fatal', 'broken'],
+                    'level:advanced':     ['advanced', 'complex', 'architecture', 'security', 'migration', 'database', 'restructure'],
+                    'level:intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration', 'api endpoint', 'middleware'],
+                    'level:beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge', 'color', 'text change'],
+                  };
+
+                  let detectedDifficulty = null;
+                  for (const [level, keywords] of Object.entries(difficultyKeywords)) {
+                    if (keywords.some(kw => allText.includes(kw))) {
+                      detectedDifficulty = level;
+                      break;
+                    }
+                  }
+                  labelsToAdd.add(detectedDifficulty || 'level:beginner');
+                }
+
+                // Filter out labels the issue already has
+                const finalLabels = Array.from(labelsToAdd).filter(l => !currentLabels.includes(l));
+
+                if (finalLabels.length > 0) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    labels: finalLabels
+                  });
+                }
               }
               return;
             }
