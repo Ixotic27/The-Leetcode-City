@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getDailyMissions, getTodayStr } from "@/lib/dailies";
 import { checkAchievements } from "@/lib/achievements";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -41,8 +41,18 @@ export async function POST() {
     return NextResponse.json({ error: "Already claimed today" }, { status: 400 });
   }
 
+  // Read isMobile from request body so the server uses the same mission
+  // set the client was assigned (mobile excludes desktopOnly missions)
+  let isMobile = false;
+  try {
+    const body = await request.json();
+    isMobile = body?.mobile === true;
+  } catch {
+    // no body or invalid json — default to desktop
+  }
+
   // Verify all 3 missions are completed
-  const missions = getDailyMissions(dev.id, today);
+  const missions = getDailyMissions(dev.id, today, isMobile);
   const { data: progressRows } = await admin
     .from("daily_mission_progress")
     .select("mission_id, completed")
