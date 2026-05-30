@@ -22,6 +22,7 @@ import {
   getIsoWeekStartDateString,
   getUtcDateString,
 } from "@/lib/week";
+import { findRaidAttackerForUser } from "@/lib/raid-attacker";
 
 type RaidDeveloper = {
   id: number;
@@ -78,21 +79,10 @@ export async function POST(request: Request) {
 
   const admin = getSupabaseAdmin();
 
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
-
   // Fetch attacker + defender in parallel
   const raidColumns = "id, claimed, github_login, avatar_url, contributions, public_repos, total_stars, kudos_count, app_streak, raid_xp, xp_level, current_week_contributions, current_week_kudos_given, current_week_kudos_received, last_raided_at, active_defenses";
-  const [initialAttackerRes, defenderRes] = await Promise.all([
-    admin
-      .from("developers")
-      .select(raidColumns)
-      .eq("claimed_by", user.id)
-      .limit(1)
-      .maybeSingle(),
+  const [attacker, defenderRes] = await Promise.all([
+    findRaidAttackerForUser(admin, user, raidColumns),
     admin
       .from("developers")
       .select(raidColumns)
@@ -100,41 +90,7 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle(),
   ]);
-  let attackerRes = initialAttackerRes;
-
-  let attacker = attackerRes.data as RaidDeveloper | null;
   const defender = defenderRes.data as RaidDeveloper | null;
-
-  // Auto-claim logic if building exists but not claimed by user yet
-  if (!attacker && githubLogin) {
-    const { data: unclaimedBuilding } = await admin
-      .from("developers")
-      .select("id, claimed_by")
-      .eq("github_login", githubLogin)
-      .limit(1)
-      .maybeSingle();
-
-    if (unclaimedBuilding) {
-      await admin
-        .from("developers")
-        .update({
-          claimed: true,
-          claimed_by: user.id,
-          claimed_at: new Date().toISOString(),
-          fetch_priority: 1,
-        })
-        .eq("id", unclaimedBuilding.id);
-      
-      attackerRes = await admin
-        .from("developers")
-        .select(raidColumns)
-        .eq("claimed_by", user.id)
-        .limit(1)
-        .maybeSingle();
-      attacker = attackerRes.data as RaidDeveloper | null;
-    }
-  }
-
   if (!attacker || !attacker.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
   }

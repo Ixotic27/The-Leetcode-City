@@ -9,6 +9,7 @@ import {
   MAX_RAIDS_PER_DAY,
 } from "@/lib/raid";
 import type { RaidBoostItem } from "@/lib/raid";
+import { findRaidAttackerForUser } from "@/lib/raid-attacker";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -34,52 +35,10 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
+  const attackerColumns = "id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items";
 
   // Fetch attacker
-  let attackerRes = await admin
-    .from("developers")
-    .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
-    .eq("claimed_by", user.id)
-    .limit(1)
-    .maybeSingle();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let attacker = attackerRes.data as Record<string, any> | null;
-
-  // Auto-claim logic if building exists but not claimed by user yet
-  if (!attacker && githubLogin) {
-    const { data: unclaimedBuilding } = await admin
-      .from("developers")
-      .select("id, claimed_by")
-      .eq("github_login", githubLogin)
-      .limit(1)
-      .maybeSingle();
-
-    if (unclaimedBuilding) {
-      await admin
-        .from("developers")
-        .update({
-          claimed: true,
-          claimed_by: user.id,
-          claimed_at: new Date().toISOString(),
-          fetch_priority: 1,
-        })
-        .eq("id", unclaimedBuilding.id);
-      
-      attackerRes = await admin
-        .from("developers")
-        .select("id, claimed, app_streak, github_login, avatar_url, current_week_contributions, current_week_kudos_given, owned_items")
-        .eq("claimed_by", user.id)
-        .limit(1)
-        .maybeSingle();
-      attacker = attackerRes.data as Record<string, any> | null;
-    }
-  }
+  const attacker = await findRaidAttackerForUser(admin, user, attackerColumns);
 
   if (!attacker || !attacker.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
