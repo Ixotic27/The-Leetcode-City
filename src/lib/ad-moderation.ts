@@ -57,12 +57,24 @@ const SUSPICIOUS_LINK_PATTERNS = [
   /account[.-](?:verify|secure|update|recovery)/i,
   /github[.-](?:verify|secure|auth|login)(?!\.com)/i,
   // Known scam TLDs
-  /\.(?:xyz|top|buzz|click|link|gq|ml|tk|cf|ga)$/i,
   // IP-based URLs
   /https?:\/\/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/,
   // Excessive subdomains (common in phishing)
   /https?:\/\/(?:[^/]*\.){4,}/,
 ];
+
+const SUSPICIOUS_TLDS = new Set([
+  "xyz",
+  "top",
+  "buzz",
+  "click",
+  "link",
+  "gq",
+  "ml",
+  "tk",
+  "cf",
+  "ga",
+]);
 
 export function containsBlockedContent(
   text: string,
@@ -85,6 +97,14 @@ export function containsBlockedContent(
 }
 
 export function isSuspiciousLink(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    const tld = hostname.split(".").pop();
+    if (tld && SUSPICIOUS_TLDS.has(tld)) return true;
+  } catch {
+    // Keep malformed values on the existing pattern-only path.
+  }
+
   for (const pattern of SUSPICIOUS_LINK_PATTERNS) {
     if (pattern.test(url)) return true;
   }
