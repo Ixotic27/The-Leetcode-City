@@ -24,6 +24,8 @@ describe('ad-moderation utilities (pure)', () => {
   it('isSuspiciousLink detects suspicious TLDs with paths and query strings', () => {
     expect(isSuspiciousLink('https://promo.xyz/path')).toBe(true);
     expect(isSuspiciousLink('https://promo.top/?campaign=1')).toBe(true);
+    expect(isSuspiciousLink('promo.xyz/path')).toBe(true);
+    expect(isSuspiciousLink('www.promo.top')).toBe(true);
     expect(isSuspiciousLink('https://safe.example.com/path')).toBe(false);
   });
 });
