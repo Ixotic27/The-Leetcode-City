@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Find developers with streak >= 3 who haven't checked in today
     const { data: devs } = await sb
       .from("developers")
-      .select("id, github_login, app_streak, streak_freeze_count, last_checkin_date")
+      .select("id, github_login, app_streak, streak_freezes_available, last_checkin_date")
       .eq("claimed", true)
       .not("email", "is", null)
       .gte("app_streak", 3)
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        const hasFreezeAvailable = (dev.streak_freeze_count ?? 0) > 0;
+        const hasFreezeAvailable = (dev.streak_freezes_available ?? 0) > 0;
 
         sendStreakReminderNotification(
           dev.id,
