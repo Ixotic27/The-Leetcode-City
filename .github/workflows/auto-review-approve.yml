@@ -5,6 +5,12 @@ on:
     workflows: ["CI Pipeline"]
     types: [completed]
 
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+  actions: read
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -12,10 +18,10 @@ jobs:
   auto-review:
     name: Auto-approve after CI passes
     runs-on: ubuntu-latest
-    # Only run when CI succeeded and only for PRs (not direct pushes to main)
+    # Only run when CI succeeded and it was triggered by a PR
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request_target'
+      (github.event.workflow_run.event == 'pull_request_target' || github.event.workflow_run.event == 'pull_request')
 
     steps:
       - name: Get PR number from workflow run
@@ -36,10 +42,11 @@ jobs:
             if (prsFromRun && prsFromRun.length > 0) {
               pr = prsFromRun[0];
               console.log(`Found PR #${pr.number} directly in workflow run payload.`);
-            } else {
-              console.log(`workflow_run.pull_requests is empty. Falling back to search open PRs...`);
-              
-              // 2. Fallback: search open PRs for matching head SHA or head branch
+            }
+
+            // 2. Fallback: search open PRs by SHA or branch
+            if (!pr) {
+              console.log(`workflow_run.pull_requests is empty (common for forks). Searching open PRs...`);
               const { data: openPRs } = await github.rest.pulls.list({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -47,12 +54,34 @@ jobs:
                 per_page: 100
               });
 
-              // Try finding by exact SHA match
+              // Try by exact SHA
               pr = openPRs.find(p => p.head.sha === headSha);
 
-              // If not found by SHA, try matching by head branch name
+              // Try by branch name
               if (!pr && headBranch) {
                 pr = openPRs.find(p => p.head.ref === headBranch);
+              }
+
+              // Try by checking recent commits on each open PR
+              if (!pr) {
+                console.log('SHA/branch match failed. Checking recent PR commits...');
+                for (const candidate of openPRs.slice(0, 20)) {
+                  try {
+                    const { data: commits } = await github.rest.pulls.listCommits({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: candidate.number,
+                      per_page: 5
+                    });
+                    if (commits.some(c => c.sha === headSha)) {
+                      pr = candidate;
+                      console.log(`Found PR #${candidate.number} via commit history match.`);
+                      break;
+                    }
+                  } catch (e) {
+                    // skip
+                  }
+                }
               }
             }
 
@@ -62,38 +91,47 @@ jobs:
               return;
             }
 
-            // Fetch full PR data to ensure we have the correct user login (in case it came from run.pull_requests which might be minimal)
-            if (!pr.user) {
-              const { data: fullPR } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-              });
-              pr = fullPR;
-            }
+            // Fetch full PR data
+            const { data: fullPR } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+            });
 
-            console.log(`Found PR #${pr.number}: "${pr.title}" by @${pr.user.login}`);
+            console.log(`Found PR #${fullPR.number}: "${fullPR.title}" by @${fullPR.user.login}`);
 
             // Skip if the PR author is Ixotic27 (don't self-review)
-            if (pr.user.login === 'Ixotic27') {
+            if (fullPR.user.login === 'Ixotic27') {
               console.log('PR author is Ixotic27. Skipping self-review.');
               core.setOutput('pr_number', '');
               return;
             }
 
-            core.setOutput('pr_number', pr.number.toString());
-            core.setOutput('pr_title', pr.title);
-            core.setOutput('pr_author', pr.user.login);
+            core.setOutput('pr_number', fullPR.number.toString());
+            core.setOutput('pr_title', fullPR.title);
+            core.setOutput('pr_author', fullPR.user.login);
 
       - name: Assign Ixotic27 as Reviewer
         if: steps.get-pr.outputs.pr_number != ''
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.REVIEWER_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
             console.log(`Requesting Ixotic27 as reviewer for PR #${prNumber}...`);
             try {
+              // Check if already requested
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              const alreadyRequested = pr.requested_reviewers?.some(r => r.login === 'Ixotic27');
+              if (alreadyRequested) {
+                console.log('Ixotic27 already requested as reviewer. Skipping.');
+                return;
+              }
+
               await github.rest.pulls.requestReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -103,14 +141,15 @@ jobs:
               console.log('Successfully assigned Ixotic27 as reviewer!');
             } catch (err) {
               console.error('Failed to assign reviewer:', err.message);
+              // Non-fatal — continue to approval step
             }
 
       - name: Approve PR as Ixotic27
         if: steps.get-pr.outputs.pr_number != ''
         uses: actions/github-script@v7
         with:
-          # Use the maintainer's PAT so the review is attributed to Ixotic27
-          github-token: ${{ secrets.REVIEWER_PAT }}
+          # Use REVIEWER_PAT so the review is attributed to Ixotic27, fall back to GITHUB_TOKEN
+          github-token: ${{ secrets.REVIEWER_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
             const prTitle = `${{ steps.get-pr.outputs.pr_title }}`;
@@ -127,7 +166,7 @@ jobs:
               });
 
               const alreadyApproved = reviews.some(
-                r => r.user.login === 'Ixotic27' && r.state === 'APPROVED'
+                r => r.user?.login === 'Ixotic27' && r.state === 'APPROVED'
               );
 
               if (alreadyApproved) {
