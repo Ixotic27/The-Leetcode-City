@@ -44,7 +44,8 @@ export default function ActivityPanel({ initialEvents, open, onClose, onNavigate
       const data = await res.json();
       setEvents((prev) => [...prev, ...data.events]);
       setHasMore(data.has_more);
-    } catch {
+    } catch (err) {
+      console.warn("[components/ActivityPanel.tsx] error:", err);
       // ignore
     } finally {
       setLoading(false);

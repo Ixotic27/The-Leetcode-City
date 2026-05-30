@@ -7,6 +7,9 @@ import { sendDailiesReminderNotification } from "@/lib/notification-senders/dail
  * Cron: Daily 20:00 UTC - Remind developers who haven't checked in today
  * and have a streak >= 3.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -63,7 +66,8 @@ export async function GET(request: NextRequest) {
           today,
         );
         results.reminded++;
-      } catch {
+      } catch (err) {
+        console.warn("[app/api/cron/streak-reminder/route.ts] error:", err);
         results.errors++;
       }
     }
@@ -74,7 +78,7 @@ export async function GET(request: NextRequest) {
 
   // ─── Dailies reminders: users with 1-2 missions done but not 3 ────
   const dailiesResults = { reminded: 0, skipped: 0 };
-  let dailiesOffset = 0;
+  const dailiesOffset = 0;
 
   while (true) {
     // Find devs who have some (but not all) missions done today
@@ -115,7 +119,8 @@ export async function GET(request: NextRequest) {
         const completedCount = countMap.get(dev.id) ?? 0;
         sendDailiesReminderNotification(dev.id, dev.github_login, completedCount, today);
         dailiesResults.reminded++;
-      } catch {
+      } catch (err) {
+        console.warn("[app/api/cron/streak-reminder/route.ts] error:", err);
         dailiesResults.skipped++;
       }
     }

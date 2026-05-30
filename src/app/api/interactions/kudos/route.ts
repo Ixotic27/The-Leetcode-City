@@ -6,6 +6,9 @@ import { checkAchievements } from "@/lib/achievements";
 import { touchLastActive } from "@/lib/notification-helpers";
 import { trackDailyMission } from "@/lib/dailies";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -132,10 +135,9 @@ export async function POST(request: Request) {
         p_giver_id: giver.id,
         p_receiver_id: receiver.id,
       });
-    } catch {
-      // RPC may not exist yet before migration 015
+    } catch (err) {
+      console.warn("[app/api/interactions/kudos/route.ts] non-critical error:", err);
     }
-
     // Check kudos streak achievements
     await checkAchievements(giver.id, {
       contributions: giver.contributions ?? 0,

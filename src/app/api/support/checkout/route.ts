@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 
 const MIN_AMOUNT = 1;
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 // Simple IP-based rate limit (1 request per 5 seconds)
 const lastRequest = new Map<string, number>();
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -28,10 +26,8 @@ export async function POST(request: Request) {
   let body: { amount: number };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/support/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const { amount } = body;
 
   if (!Number.isFinite(amount) || amount < MIN_AMOUNT || Math.floor(amount) !== amount) {

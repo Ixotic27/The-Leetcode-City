@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
  * Handles bounces, complaints, delivery confirmations, and opens/clicks.
  * Updates notification_log delivery lifecycle and notification_suppressions.
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Verify webhook secret (set in Resend dashboard)
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
@@ -23,10 +26,8 @@ export async function POST(request: Request) {
   let body: { type: string; data: Record<string, unknown> };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/webhooks/resend/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
 

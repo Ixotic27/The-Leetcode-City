@@ -1,5 +1,5 @@
 -- ============================================================
--- Git City — Add claimed columns for GitHub OAuth
+-- LeetCode City — Add claimed columns for GitHub OAuth
 -- ============================================================
 
 alter table developers

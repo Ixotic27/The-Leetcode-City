@@ -17,7 +17,34 @@ import {
   XP_LOSE_DEFENDER,
 } from "@/lib/raid";
 import { ITEM_UNLOCK_LEVELS } from "@/lib/zones";
+import {
+  getIsoWeekStart,
+  getIsoWeekStartDateString,
+  getUtcDateString,
+} from "@/lib/week";
 
+type RaidDeveloper = {
+  id: number;
+  claimed: boolean;
+  github_login: string;
+  avatar_url?: string | null;
+  contributions?: number | null;
+  public_repos?: number | null;
+  total_stars?: number | null;
+  kudos_count?: number | null;
+  app_streak?: number | null;
+  raid_xp?: number | null;
+  xp_level?: number | null;
+  current_week_contributions?: number | null;
+  current_week_kudos_given?: number | null;
+  current_week_kudos_received?: number | null;
+  last_raided_at?: string | null;
+  active_defenses?: unknown;
+};
+
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -59,23 +86,54 @@ export async function POST(request: Request) {
 
   // Fetch attacker + defender in parallel
   const raidColumns = "id, claimed, github_login, avatar_url, contributions, public_repos, total_stars, kudos_count, app_streak, raid_xp, xp_level, current_week_contributions, current_week_kudos_given, current_week_kudos_received, last_raided_at, active_defenses";
-  const [attackerRes, defenderRes] = await Promise.all([
+  const [initialAttackerRes, defenderRes] = await Promise.all([
     admin
       .from("developers")
       .select(raidColumns)
       .eq("claimed_by", user.id)
-      .single(),
+      .limit(1)
+      .maybeSingle(),
     admin
       .from("developers")
       .select(raidColumns)
       .eq("github_login", target_login.toLowerCase())
-      .single(),
+      .limit(1)
+      .maybeSingle(),
   ]);
+  let attackerRes = initialAttackerRes;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const attacker = attackerRes.data as Record<string, any> | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const defender = defenderRes.data as Record<string, any> | null;
+  let attacker = attackerRes.data as RaidDeveloper | null;
+  const defender = defenderRes.data as RaidDeveloper | null;
+
+  // Auto-claim logic if building exists but not claimed by user yet
+  if (!attacker && githubLogin) {
+    const { data: unclaimedBuilding } = await admin
+      .from("developers")
+      .select("id, claimed_by")
+      .eq("github_login", githubLogin)
+      .limit(1)
+      .maybeSingle();
+
+    if (unclaimedBuilding) {
+      await admin
+        .from("developers")
+        .update({
+          claimed: true,
+          claimed_by: user.id,
+          claimed_at: new Date().toISOString(),
+          fetch_priority: 1,
+        })
+        .eq("id", unclaimedBuilding.id);
+      
+      attackerRes = await admin
+        .from("developers")
+        .select(raidColumns)
+        .eq("claimed_by", user.id)
+        .limit(1)
+        .maybeSingle();
+      attacker = attackerRes.data as RaidDeveloper | null;
+    }
+  }
 
   if (!attacker || !attacker.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
@@ -111,11 +169,8 @@ export async function POST(request: Request) {
     }
 
     // Check weekly cooldown
-    const now = new Date();
-    const isoWeekStart = new Date(now);
-    const dayOfWeek = now.getDay();
-    isoWeekStart.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-    isoWeekStart.setHours(0, 0, 0, 0);
+    // Raid limits use UTC ISO weeks to stay aligned with persisted UTC timestamps.
+    const isoWeekStart = getIsoWeekStart();
 
     const { count: weeklyPairCount } = await admin
       .from("raids")
@@ -127,10 +182,9 @@ export async function POST(request: Request) {
     if ((weeklyPairCount ?? 0) > 0) {
       return NextResponse.json({ error: "Already raided this target this week" }, { status: 429 });
     }
-  } catch {
-    // raids table may not exist yet - allow raid
+  } catch (err) {
+    console.warn("[app/api/raid/execute/route.ts] non-critical error:", err);
   }
-
   // Determine vehicle + tag style from saved loadout (or override from request)
   const [{ data: raidLoadoutRow }, { data: ownedVehiclePurchases }] = await Promise.all([
     admin
@@ -176,6 +230,8 @@ export async function POST(request: Request) {
   let attackerConsumableItemId: string | null = null;
   
   if (consumable_item_id) {
+    const currentWeekStr = getIsoWeekStartDateString();
+
     // Check developer_consumables for the new items
     const { data: consumable } = await admin
       .from("developer_consumables")
@@ -183,13 +239,12 @@ export async function POST(request: Request) {
       .eq("developer_id", attacker.id)
       .eq("item_id", consumable_item_id)
       .single();
+    const resetWeekStr = consumable?.last_reset_week
+      ? getUtcDateString(consumable.last_reset_week)
+      : null;
       
     if (consumable && consumable.quantity > 0) {
       // Check weekly uses
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
-      const resetWeekStr = new Date(consumable.last_reset_week).toISOString().split('T')[0];
-      
       let currentUses = consumable.weekly_uses;
       if (currentWeekStr !== resetWeekStr) {
         currentUses = 0; // It's a new week
@@ -204,16 +259,19 @@ export async function POST(request: Request) {
       const isLevelUnlocked = reqLevel && xpLevel >= reqLevel;
       
       // Exception for scouting satellite which has a quest requirement
-      let isAllowed = isLevelUnlocked;
+      const isAllowed = isLevelUnlocked;
       if (consumable_item_id === "scouting_satellite") {
-        const metReqs = (attacker.contributions ?? 0) >= 10; // Simple fallback check for tests, or wait, actual quest is medium>=10 or hard>=5 (which we don't have readily available in this table right now)
         // Since we don't have leetcode stats synced in `developers` table perfectly for this exact condition without a full check, we will just trust the frontend for satellite if they don't have a row...
         // Actually, we can check `attacker.raid_xp` or something, but let's just let it pass here since it's just a consumable
       }
       
       if (isAllowed || consumable_item_id === "scouting_satellite") {
-        if (!consumable || consumable.weekly_uses < 3 || new Date(consumable.last_reset_week).toISOString().split('T')[0] !== new Date().toISOString().split('T')[0]) {
-           attackerConsumableItemId = consumable_item_id;
+        if (
+          !consumable ||
+          consumable.weekly_uses < 3 ||
+          resetWeekStr !== currentWeekStr
+        ) {
+          attackerConsumableItemId = consumable_item_id;
         }
       }
     }
@@ -252,12 +310,11 @@ export async function POST(request: Request) {
       .gt("quantity", 0);
       
     if (availableDefenses && availableDefenses.length > 0) {
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
+      const currentWeekStr = getIsoWeekStartDateString();
       
       for (const def of availableDefenses) {
         let currentUses = def.weekly_uses;
-        if (new Date(def.last_reset_week).toISOString().split('T')[0] !== currentWeekStr) {
+        if (getUtcDateString(def.last_reset_week) !== currentWeekStr) {
           currentUses = 0;
         }
         if (currentUses < 3) {
@@ -386,9 +443,8 @@ export async function POST(request: Request) {
         .single();
         
       if (!inv) return;
-      const now = new Date();
-      const currentWeekStr = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))).toISOString().split('T')[0];
-      const resetWeekStr = new Date(inv.last_reset_week).toISOString().split('T')[0];
+      const currentWeekStr = getIsoWeekStartDateString();
+      const resetWeekStr = getUtcDateString(inv.last_reset_week);
       let currentUses = inv.weekly_uses;
       if (currentWeekStr !== resetWeekStr) currentUses = 0;
       

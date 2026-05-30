@@ -6,7 +6,7 @@ const STORAGE_PATH = "snapshot.json";
 const PAGE_SIZE = 1000; // Supabase PostgREST caps at 1000 rows per request
 
 /** Paginate through all rows of a table. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function fetchAll<T>(
   sb: ReturnType<typeof getSupabaseAdmin>,
   table: string,
@@ -32,6 +32,9 @@ async function fetchAll<T>(
   return all;
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest) {
         sb,
         "developer_customizations",
         "developer_id, item_id, config",
-        (q) => q.in("item_id", ["custom_color", "billboard", "loadout"]),
+        (q) => q.in("item_id", ["custom_color", "billboard", "loadout", "led_banner"]),
       ),
       fetchAll<{ developer_id: number; achievement_id: string }>(
         sb,
@@ -98,7 +101,8 @@ export async function GET(request: NextRequest) {
   // Build customization maps
   const customColorMap: Record<number, string> = {};
   const billboardImagesMap: Record<number, string[]> = {};
-  const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null }> = {};
+  const ledBannerTextMap: Record<number, string> = {};
+  const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
   for (const row of customizations) {
     const config = row.config;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -116,7 +120,11 @@ export async function GET(request: NextRequest) {
         crown: (config?.crown as string) ?? null,
         roof: (config?.roof as string) ?? null,
         aura: (config?.aura as string) ?? null,
+        faces: (config?.faces as string) ?? null,
       };
+    }
+    if (row.item_id === "led_banner" && typeof config?.text === "string") {
+      ledBannerTextMap[row.developer_id] = config.text as string;
     }
   }
 
@@ -144,6 +152,7 @@ export async function GET(request: NextRequest) {
     owned_items: ownedItemsMap[dev.id] ?? [],
     custom_color: customColorMap[dev.id] ?? null,
     billboard_images: billboardImagesMap[dev.id] ?? [],
+    led_banner_text: ledBannerTextMap[dev.id] ?? null,
     achievements: achievementsMap[dev.id] ?? [],
     loadout: loadoutMap[dev.id] ?? null,
     app_streak: dev.app_streak ?? 0,

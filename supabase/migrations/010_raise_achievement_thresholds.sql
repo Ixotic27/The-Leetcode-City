@@ -27,12 +27,12 @@ update achievements set description = 'Reach 2,500 contributions'         where 
 update achievements set description = 'Have 25 public repositories'       where id = 'builder';
 update achievements set description = 'Have 75 public repositories'       where id = 'architect';
 update achievements set description = 'Collect 100 stars across repos'    where id = 'rising_star';
-update achievements set description = 'Refer 10 developers to Git City'  where id = 'recruiter';
+update achievements set description = 'Refer 10 developers to LeetCode City'  where id = 'recruiter';
 update achievements set description = 'Reach 5,000 contributions'         where id = 'machine';
 update achievements set description = 'Reach 15,000 contributions'        where id = 'legend';
 update achievements set description = 'Reach 30,000 contributions'        where id = 'god_mode';
 update achievements set description = 'Have 150 public repositories'      where id = 'factory';
 update achievements set description = 'Collect 500 stars across repos'    where id = 'popular';
 update achievements set description = 'Collect 5,000 stars across repos'  where id = 'famous';
-update achievements set description = 'Refer 30 developers to Git City'  where id = 'influencer';
-update achievements set description = 'Refer 100 developers to Git City' where id = 'mayor';
+update achievements set description = 'Refer 30 developers to LeetCode City'  where id = 'influencer';
+update achievements set description = 'Refer 100 developers to LeetCode City' where id = 'mayor';

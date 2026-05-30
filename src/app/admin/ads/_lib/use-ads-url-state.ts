@@ -20,9 +20,8 @@ function loadLocalStorage(): Partial<AdsFilters> | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] error:", err); return null;
+   }
 }
 
 function parseParams(params: URLSearchParams): Partial<AdsFilters> {
@@ -109,8 +108,7 @@ export function useAdsUrlState() {
       // Persist to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {}
-
+      } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:", err); }
       // Debounce search query, immediate for everything else
       if (key === "q") {
         clearTimeout(debounceRef.current);
@@ -132,7 +130,7 @@ export function useAdsUrlState() {
         const next = { ...filters, sort: key, dir: "desc" as SortDir };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {}
+        } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:", err); }
         router.replace(`/admin/ads${filtersToParams(next)}`);
       }
     },

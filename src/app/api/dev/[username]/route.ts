@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createServerSupabase } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 async function hashKey(key: string): Promise<string> {
   const data = new TextEncoder().encode(key + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""));
   const buf = await crypto.subtle.digest("SHA-256", data);
@@ -11,6 +13,7 @@ async function hashKey(key: string): Promise<string> {
 }
 
 async function isRateLimited(key: string): Promise<boolean> {
+  const RATE_LIMIT = parseInt(process.env.RATE_LIMIT_PER_HOUR ?? "15");
   const sb = getSupabaseAdmin();
   const ipHash = await hashKey(key);
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -21,7 +24,7 @@ async function isRateLimited(key: string): Promise<boolean> {
     .eq("ip_hash", ipHash)
     .gte("created_at", oneHourAgo);
 
-  return (count ?? 0) >= 15; // increased limit
+  return (count ?? 0) >= RATE_LIMIT; // increased limit
 }
 
 async function recordRateLimitRequest(key: string): Promise<void> {
@@ -85,8 +88,8 @@ async function fetchLeetCodeUser(username: string) {
     }
     const rawText = await res.text();
     let json: any;
-    try { json = JSON.parse(rawText); } catch { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`);
+    try { json = JSON.parse(rawText); } catch (err) { 
+      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
       return null;
     }
     if (!json?.data?.matchedUser) {
@@ -107,11 +110,14 @@ async function fetchLeetCodeUser(username: string) {
       mu.maxStreak = parseMaxStreak(mu, currentYear);
     }
     return json?.data ?? null;
-  } catch {
-    return null;
-  }
+  } catch (err) { console.warn("[app/api/dev/[username]/route.ts] error:", err); return null;
+   }
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ * @param {{ params: any }} context
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
@@ -129,8 +135,9 @@ export async function GET(
     .single();
 
   if (cached) {
+    const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_HOURS ?? "12") * 3600000;
     const age = Date.now() - new Date(cached.fetched_at).getTime();
-    if (!forceRefresh && age < 12 * 60 * 60 * 1000) { // 12h cache
+    if (!forceRefresh && age < CACHE_TTL_MS) {  // 12h cache
       cachedRecord = cached;
     }
   }
@@ -148,7 +155,8 @@ export async function GET(
       key = user ? `user:${user.id}` : (
         request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
       );
-    } catch {
+    } catch (err) {
+      console.warn("[app/api/dev/[username]/route.ts] error:", err);
       key = "unknown";
     }
     rateLimitKey = key;
@@ -245,7 +253,7 @@ export async function GET(
 
     // We must merge new Base XP with existing Base XP safely. 
     // Wait to upsert until we check if the user exists so we know what to append.
-    let mergeRecord = { ...record, xp_github: newBaseXp, xp_total: newBaseXp };
+    const mergeRecord = { ...record, xp_github: newBaseXp, xp_total: newBaseXp };
     
     if (cached) {
         mergeRecord.xp_total = (cached.xp_total - cached.xp_github) + newBaseXp;
@@ -280,7 +288,7 @@ export async function GET(
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", upserted.id)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style"]),
+      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
     sb
       .from("raid_tags")
       .select("attacker_login, tag_style, expires_at")
@@ -301,7 +309,10 @@ export async function GET(
     crown: loadoutConfig.crown ?? null,
     roof: loadoutConfig.roof ?? null,
     aura: loadoutConfig.aura ?? null,
+    faces: loadoutConfig.faces ?? null,
   } : null;
+
+  const ledBannerText = (customizationsResult.data ?? []).find(c => c.item_id === "led_banner")?.config?.text ?? null;
 
   const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
 
@@ -310,6 +321,7 @@ export async function GET(
     owned_items: ownedItems,
     custom_color: customColor,
     billboard_images: billboardImages,
+    led_banner_text: ledBannerText,
     loadout: loadout,
     building_style: buildingStyle,
     active_raid_tag: raidTagsResult.data?.[0] ?? null,

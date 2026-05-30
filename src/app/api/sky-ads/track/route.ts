@@ -21,6 +21,9 @@ async function hashIP(ip: string): Promise<string> {
     .join("");
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   // ── Origin validation ──
   const origin = request.headers.get("origin") ?? request.headers.get("referer");
@@ -30,9 +33,8 @@ export async function POST(request: NextRequest) {
       if (!ALLOWED_ORIGINS.has(url.origin)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-    } catch {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    } catch (err) { console.warn("[app/api/sky-ads/track/route.ts] error:", err); return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+     }
   }
 
   // ── Bot filtering ──
@@ -59,10 +61,8 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/sky-ads/track/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { ad_id, github_login } = body;
   if (!ad_id || typeof ad_id !== "string") {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });

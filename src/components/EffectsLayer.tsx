@@ -2,14 +2,75 @@
 
 import { useState, useRef, useMemo, memo } from "react";
 import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
 import { ClaimedGlow, BuildingItemEffects } from "./Building3D";
-import { StreakFlame, NeonOutline, ParticleAura, SpotlightEffect } from "./BuildingEffects";
+import {
+  StreakFlame,
+  NeonOutline,
+  ParticleAura,
+  SpotlightEffect,
+} from "./BuildingEffects";
 import RaidTag3D from "./RaidTag3D";
 
-// ─── Memoized per-building effects ────────────────────────────
+// ─── Fake StreetLight Component ─────────────────────────────
+function StreetLight({ position }: { position: [number, number, number] }) {
+  const bulbRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
 
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime * 0.05;
+    const timeOfDay = (Math.sin(t) + 1.0) / 2.0;
+
+    // Turns on fully when timeOfDay goes towards 0 (night)
+    const intensity = timeOfDay < 0.4 ? 1.0 - timeOfDay / 0.4 : 0;
+
+    if (bulbRef.current) {
+      (bulbRef.current.material as THREE.MeshBasicMaterial).opacity = intensity;
+    }
+    if (glowRef.current) {
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
+        intensity * 0.4;
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Pole */}
+      <mesh position={[0, 3, 0]}>
+        <cylinderGeometry args={[0.08, 0.1, 6]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* Arm */}
+      <mesh position={[0.4, 6, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.8]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* Bulb Glow */}
+      <mesh ref={bulbRef} position={[0.8, 5.9, 0]}>
+        <sphereGeometry args={[0.2]} />
+        <meshBasicMaterial color="#ffddaa" transparent opacity={0} />
+      </mesh>
+      {/* Floor Glow (Fake PointLight for better performance) */}
+      <mesh
+        ref={glowRef}
+        position={[0.8, 0.05, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
+        <circleGeometry args={[4, 16]} />
+        <meshBasicMaterial
+          color="#ffddaa"
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Memoized per-building effects ────────────────────────────
 const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
   building,
   accentColor,
@@ -26,24 +87,59 @@ const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
   ghostEffectId: number;
 }) {
   return (
-    <group position={[building.position[0], 0, building.position[2]]} visible={!isDimmed}>
+    <group
+      position={[building.position[0], 0, building.position[2]]}
+      visible={!isDimmed}
+    >
       {building.claimed && (
-        <ClaimedGlow height={building.height} width={building.width} depth={building.depth} />
+        <ClaimedGlow
+          height={building.height}
+          width={building.width}
+          depth={building.depth}
+        />
       )}
+
+      {/* Streetlight near the building corner */}
+      <StreetLight
+        position={[building.width / 2 + 1, 0, building.depth / 2 + 1]}
+      />
+
       <BuildingItemEffects
         building={building}
         accentColor={accentColor}
         focused={isFocused}
       />
-      {isGhostTarget && (
-        ghostEffectId === 0
-          ? <NeonOutline width={building.width} height={building.height} depth={building.depth} color={accentColor} />
-          : ghostEffectId === 1
-          ? <ParticleAura width={building.width} height={building.height} depth={building.depth} color={accentColor} />
-          : <SpotlightEffect height={building.height} width={building.width} depth={building.depth} color={accentColor} />
-      )}
+      {isGhostTarget &&
+        (ghostEffectId === 0 ? (
+          <NeonOutline
+            width={building.width}
+            height={building.height}
+            depth={building.depth}
+            color={accentColor}
+          />
+        ) : ghostEffectId === 1 ? (
+          <ParticleAura
+            width={building.width}
+            height={building.height}
+            depth={building.depth}
+            color={accentColor}
+          />
+        ) : (
+          <SpotlightEffect
+            height={building.height}
+            width={building.width}
+            depth={building.depth}
+            color={accentColor}
+          />
+        ))}
       {building.app_streak > 0 && (
-        <StreakFlame height={building.height} width={building.width} depth={building.depth} streakDays={building.app_streak} color={accentColor} />
+        <StreakFlame
+          height={building.height}
+          width={building.width}
+          depth={building.depth}
+          streakDays={building.app_streak}
+          color={accentColor}
+        />
       )}
       {building.active_raid_tag && (
         <RaidTag3D
@@ -58,14 +154,18 @@ const ActiveBuildingEffects = memo(function ActiveBuildingEffects({
   );
 });
 
-// ─── Spatial Grid (same structure as CityScene) ────────────────
-
+// ─── Spatial Grid ────────────────
 interface GridIndex {
   cells: Map<string, number[]>;
   cellSize: number;
 }
 
-function querySpatialGrid(grid: GridIndex, x: number, z: number, radius: number): number[] {
+function querySpatialGrid(
+  grid: GridIndex,
+  x: number,
+  z: number,
+  radius: number,
+): number[] {
   const result: number[] = [];
   const minCx = Math.floor((x - radius) / grid.cellSize);
   const maxCx = Math.floor((x + radius) / grid.cellSize);
@@ -84,15 +184,12 @@ function querySpatialGrid(grid: GridIndex, x: number, z: number, radius: number)
   return result;
 }
 
-// ─── Constants ─────────────────────────────────────────────────
-
 const EFFECTS_RADIUS = 300;
 const EFFECTS_RADIUS_HYSTERESIS = 380;
 const EFFECTS_UPDATE_INTERVAL = 0.3; // seconds
 const MAX_ACTIVE_EFFECTS = 25;
 
 // ─── Component ─────────────────────────────────────────────────
-
 interface EffectsLayerProps {
   buildings: CityBuilding[];
   grid: GridIndex;
@@ -128,6 +225,7 @@ export default function EffectsLayer({
   const focusedLower = focusedBuilding?.toLowerCase() ?? null;
   const focusedBLower = focusedBuildingB?.toLowerCase() ?? null;
   const hideLower = hideEffectsFor?.toLowerCase() ?? null;
+
   const loginToIdx = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < buildings.length; i++) {
@@ -137,7 +235,7 @@ export default function EffectsLayer({
   }, [buildings]);
 
   useFrame(({ camera, clock }) => {
-    if (introMode) return; // Skip effects during intro
+    if (introMode) return;
 
     const elapsed = clock.elapsedTime;
     const interval = flyMode ? 0.15 : EFFECTS_UPDATE_INTERVAL;
@@ -149,12 +247,10 @@ export default function EffectsLayer({
     let cx = rawCx;
     let cz = rawCz;
 
-    // In fly mode, predict ahead using smoothed velocity so effects pre-load without flickering
     const dt = elapsed - prevCamTime.current;
     if (flyMode && dt > 0.01) {
       const vxRaw = (rawCx - prevCamPos.current[0]) / dt;
       const vzRaw = (rawCz - prevCamPos.current[1]) / dt;
-      // Exponential moving average to avoid jitter on turns
       const SMOOTH = 0.3;
       smoothVel.current[0] += (vxRaw - smoothVel.current[0]) * SMOOTH;
       smoothVel.current[1] += (vzRaw - smoothVel.current[1]) * SMOOTH;
@@ -166,7 +262,6 @@ export default function EffectsLayer({
     prevCamPos.current[1] = rawCz;
     prevCamTime.current = elapsed;
 
-    // Wider hysteresis in fly mode so buildings stay active longer once loaded
     const flyHyst = flyMode ? 450 : EFFECTS_RADIUS_HYSTERESIS;
     const candidates = querySpatialGrid(grid, cx, cz, flyHyst);
 
@@ -178,8 +273,12 @@ export default function EffectsLayer({
       const idx = candidates[c];
       const b = buildings[idx];
 
-      // Only buildings that have something to render
-      const hasEffects = b.claimed || (b.owned_items && b.owned_items.length > 0) || (b.app_streak > 0) || !!b.active_raid_tag || b.rabbit_completed;
+      const hasEffects =
+        b.claimed ||
+        (b.owned_items && b.owned_items.length > 0) ||
+        b.app_streak > 0 ||
+        !!b.active_raid_tag ||
+        b.rabbit_completed;
       if (!hasEffects) continue;
 
       const dx = cx - b.position[0];
@@ -192,7 +291,6 @@ export default function EffectsLayer({
       }
     }
 
-    // Always include focused buildings
     if (focusedLower) {
       const fi = loginToIdx.get(focusedLower);
       if (fi !== undefined) newSet.add(fi);
@@ -202,7 +300,6 @@ export default function EffectsLayer({
       if (fi !== undefined) newSet.add(fi);
     }
 
-    // Cap at MAX_ACTIVE_EFFECTS — keep closest buildings
     if (newSet.size > MAX_ACTIVE_EFFECTS) {
       const withDist = Array.from(newSet).map((idx) => {
         const b = buildings[idx];
@@ -215,7 +312,6 @@ export default function EffectsLayer({
       for (let i = 0; i < MAX_ACTIVE_EFFECTS && i < withDist.length; i++) {
         newSet.add(withDist[i].idx);
       }
-      // Re-add focused buildings (always visible)
       if (focusedLower) {
         const fi = loginToIdx.get(focusedLower);
         if (fi !== undefined) newSet.add(fi);
@@ -226,7 +322,6 @@ export default function EffectsLayer({
       }
     }
 
-    // Check if changed
     let changed = newSet.size !== activeSetRef.current.size;
     if (!changed) {
       for (const idx of newSet) {
@@ -243,15 +338,15 @@ export default function EffectsLayer({
     }
   });
 
-  // A8: Ghost preview — pick a random aura effect based on login hash
   const ghostLower = ghostPreviewLogin?.toLowerCase() ?? null;
   const ghostIdx = ghostLower ? loginToIdx.get(ghostLower) : undefined;
   const ghostBuilding = ghostIdx != null ? buildings[ghostIdx] : null;
   const ghostEffectId = useMemo(() => {
     if (!ghostLower) return 0;
     let h = 0;
-    for (let i = 0; i < ghostLower.length; i++) h = (h * 31 + ghostLower.charCodeAt(i)) | 0;
-    return Math.abs(h) % 3; // 0=NeonOutline, 1=ParticleAura, 2=Spotlight
+    for (let i = 0; i < ghostLower.length; i++)
+      h = (h * 31 + ghostLower.charCodeAt(i)) | 0;
+    return Math.abs(h) % 3;
   }, [ghostLower]);
 
   if (introMode) return null;
@@ -263,7 +358,8 @@ export default function EffectsLayer({
         if (!b) return null;
         const loginLower = b.login.toLowerCase();
         if (hideLower === loginLower) return null;
-        const isFocused = focusedLower === loginLower || focusedBLower === loginLower;
+        const isFocused =
+          focusedLower === loginLower || focusedBLower === loginLower;
         const isDimmed = !!focusedLower && !isFocused;
         const isGhostTarget = ghostLower === loginLower;
         return (
@@ -278,17 +374,36 @@ export default function EffectsLayer({
           />
         );
       })}
-      {/* A8: Ghost preview for building not in active set (force render) */}
-      {ghostBuilding && ghostIdx != null && !activeIndices.includes(ghostIdx) && (
-        <group position={[ghostBuilding.position[0], 0, ghostBuilding.position[2]]}>
-          {ghostEffectId === 0
-            ? <NeonOutline width={ghostBuilding.width} height={ghostBuilding.height} depth={ghostBuilding.depth} color={accentColor} />
-            : ghostEffectId === 1
-            ? <ParticleAura width={ghostBuilding.width} height={ghostBuilding.height} depth={ghostBuilding.depth} color={accentColor} />
-            : <SpotlightEffect height={ghostBuilding.height} width={ghostBuilding.width} depth={ghostBuilding.depth} color={accentColor} />
-          }
-        </group>
-      )}
+      {ghostBuilding &&
+        ghostIdx != null &&
+        !activeIndices.includes(ghostIdx) && (
+          <group
+            position={[ghostBuilding.position[0], 0, ghostBuilding.position[2]]}
+          >
+            {ghostEffectId === 0 ? (
+              <NeonOutline
+                width={ghostBuilding.width}
+                height={ghostBuilding.height}
+                depth={ghostBuilding.depth}
+                color={accentColor}
+              />
+            ) : ghostEffectId === 1 ? (
+              <ParticleAura
+                width={ghostBuilding.width}
+                height={ghostBuilding.height}
+                depth={ghostBuilding.depth}
+                color={accentColor}
+              />
+            ) : (
+              <SpotlightEffect
+                height={ghostBuilding.height}
+                width={ghostBuilding.width}
+                depth={ghostBuilding.depth}
+                color={accentColor}
+              />
+            )}
+          </group>
+        )}
     </>
   );
 }

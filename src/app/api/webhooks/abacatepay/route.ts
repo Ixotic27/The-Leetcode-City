@@ -15,6 +15,9 @@ function extractPixId(data: any): string | undefined {
 }
 
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   // Layer 1: Validate webhook secret via query string
   const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;
@@ -34,10 +37,8 @@ export async function POST(request: Request) {
   let body: any;
   try {
     body = JSON.parse(rawBody);
-  } catch {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/webhooks/abacatepay/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+   }
   const sb = getSupabaseAdmin();
   const pixId = extractPixId(body.data);
 

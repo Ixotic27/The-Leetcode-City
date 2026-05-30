@@ -3,6 +3,8 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 function hashKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
@@ -18,17 +20,29 @@ async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: str
     ""
   ).toLowerCase();
 
-  if (!githubLogin) return { error: "No LeetCode login found", status: 400 };
-
   const sb = getSupabaseAdmin();
-  const { data: dev } = await sb
+
+  // Try 1: match by claimed_by (Highest priority: explicitly claimed building, usually Leetcode verified)
+  const { data: claimedDev } = await sb
     .from("developers")
     .select("id")
-    .eq("github_login", githubLogin)
-    .single();
+    .eq("claimed_by", user.id)
+    .limit(1)
+    .maybeSingle();
+  if (claimedDev) return { devId: claimedDev.id };
 
-  if (!dev) return { error: "Developer not found", status: 404 };
-  return { devId: dev.id };
+  // Try 2: match by github_login (Fallback for legacy GitHub-native developers)
+  if (githubLogin) {
+    const { data: dev } = await sb
+      .from("developers")
+      .select("id")
+      .eq("github_login", githubLogin)
+      .limit(1)
+      .maybeSingle();
+    if (dev) return { devId: dev.id };
+  }
+
+  return { error: "Developer not found. Claim your building first.", status: 404 };
 }
 
 export async function GET() {
@@ -42,7 +56,8 @@ export async function GET() {
     .from("developers")
     .select("vscode_api_key_hash")
     .eq("id", auth.devId)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   return NextResponse.json({ hasKey: !!dev?.vscode_api_key_hash });
 }

@@ -58,6 +58,9 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
 
 // ── Route ───────────────────────────────────────────────────────────────────
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
   if (!apiKey) {
@@ -70,7 +73,8 @@ export async function POST(request: NextRequest) {
     .from("developers")
     .select("id, github_login, avatar_url")
     .eq("vscode_api_key_hash", hashKey(apiKey))
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (devErr || !dev) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
@@ -79,10 +83,8 @@ export async function POST(request: NextRequest) {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/heartbeats/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+   }
   const rawList = Array.isArray(rawBody) ? rawBody : [rawBody];
   if (rawList.length === 0) {
     return NextResponse.json({ accepted: 0, rejected: 0 });

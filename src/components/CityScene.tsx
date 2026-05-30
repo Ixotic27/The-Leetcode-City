@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useMemo, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useRef, useMemo, useState, useEffect } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { createWindowAtlas, FocusBeacon } from "./Building3D";
 import InstancedBuildings from "./InstancedBuildings";
@@ -15,19 +15,42 @@ import type { BuildingColors } from "./CityCanvas";
 const GRID_CELL_SIZE = 200;
 const WEATHER_PARTICLE_COUNT = 900;
 const WEATHER_AREA = 2200;
+const WEATHER_HALF_AREA = WEATHER_AREA / 2;
 const WEATHER_TOP = 420;
 const WEATHER_BOTTOM = 10;
-const WEATHER_RESPAWN_TICK_RATE = 60;
 const WEATHER_RESPAWN_X_SEED = 17;
 const WEATHER_RESPAWN_Z_SEED = 19;
+const WEATHER_RESPAWN_CYCLE_SEED = 31;
 const PRNG_MULTIPLIER = 12.9898;
 const PRNG_SCALE = 43758.5453123;
 const pseudoRandom = (seed: number) => {
   const x = Math.sin(seed * PRNG_MULTIPLIER) * PRNG_SCALE;
   return x - Math.floor(x);
 };
+const wrapAroundCenter = (value: number, center: number) => {
+  const wrapped = ((value - center + WEATHER_HALF_AREA) % WEATHER_AREA + WEATHER_AREA) % WEATHER_AREA;
+  return center + wrapped - WEATHER_HALF_AREA;
+};
+const createInitialRainState = (centerX: number, centerZ: number) => {
+  const positions = new Float32Array(WEATHER_PARTICLE_COUNT * 3);
+  const speeds = new Float32Array(WEATHER_PARTICLE_COUNT);
+  const anchorX = new Float32Array(WEATHER_PARTICLE_COUNT);
+  const anchorZ = new Float32Array(WEATHER_PARTICLE_COUNT);
+  const respawnCycles = new Uint32Array(WEATHER_PARTICLE_COUNT);
 
-// Pre-allocated temp vector for focus info projection
+  for (let i = 0; i < WEATHER_PARTICLE_COUNT; i++) {
+    const base = i * 3;
+    anchorX[i] = centerX + (pseudoRandom(i * 3 + 1) - 0.5) * WEATHER_AREA;
+    anchorZ[i] = centerZ + (pseudoRandom(i * 3 + 3) - 0.5) * WEATHER_AREA;
+    positions[base] = anchorX[i];
+    positions[base + 1] = WEATHER_BOTTOM + pseudoRandom(i * 3 + 2) * (WEATHER_TOP - WEATHER_BOTTOM);
+    positions[base + 2] = anchorZ[i];
+    speeds[i] = 120 + pseudoRandom(i * 3 + 4) * 150;
+  }
+
+  return { positions, speeds, anchorX, anchorZ, respawnCycles };
+};
+
 const _position = new THREE.Vector3();
 
 export interface FocusInfo {
@@ -36,14 +59,15 @@ export interface FocusInfo {
   screenY: number;
 }
 
-// ─── Spatial Grid ───────────────────────────────────────────────
-
 interface GridIndex {
   cells: Map<string, number[]>;
   cellSize: number;
 }
 
-function buildSpatialGrid(buildings: CityBuilding[], cellSize: number): GridIndex {
+function buildSpatialGrid(
+  buildings: CityBuilding[],
+  cellSize: number,
+): GridIndex {
   const cells = new Map<string, number[]>();
   for (let i = 0; i < buildings.length; i++) {
     const b = buildings[i];
@@ -60,8 +84,6 @@ function buildSpatialGrid(buildings: CityBuilding[], cellSize: number): GridInde
   return { cells, cellSize };
 }
 
-// ─── Pre-computed building data ─────────────────────────────────
-
 interface BuildingLookup {
   indexByLogin: Map<string, number>;
 }
@@ -74,8 +96,85 @@ function buildLookup(buildings: CityBuilding[]): BuildingLookup {
   return { indexByLogin };
 }
 
-// ─── Component ──────────────────────────────────────────────────
+// ─── Day/Night Environment (Sky, Sun, Moon & Stars) ─────────────
+function DayNightEnvironment({ colors }: { colors: BuildingColors }) {
+  const { scene } = useThree();
+  const sunRef = useRef<THREE.DirectionalLight>(null);
+  const moonRef = useRef<THREE.DirectionalLight>(null);
+  const starsRef = useRef<THREE.Points>(null);
 
+  const starGeo = useMemo(() => {
+    const positions = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 4000;
+      positions[i * 3 + 1] = Math.random() * 1000 + 300;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 4000;
+    }
+    return positions;
+  }, []);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime * 0.05;
+    const timeOfDay = (Math.sin(t) + 1.0) / 2.0; // Matches InstancedBuildings cycle
+
+    const dayColor = new THREE.Color("#4a7cff");
+    const sunsetColor = new THREE.Color("#ff7b00");
+    const nightColor = new THREE.Color("#050814");
+
+    let currentColor = new THREE.Color();
+    if (timeOfDay > 0.5) {
+      currentColor.lerpColors(sunsetColor, dayColor, (timeOfDay - 0.5) * 2.0);
+    } else {
+      currentColor.lerpColors(nightColor, sunsetColor, timeOfDay * 2.0);
+    }
+
+    scene.background = currentColor;
+    if (scene.fog) {
+      scene.fog.color.copy(currentColor);
+    }
+
+    if (sunRef.current) {
+      sunRef.current.position.set(Math.cos(t) * 800, Math.sin(t) * 800, -400);
+      sunRef.current.intensity = Math.max(0, Math.sin(t)) * 2.5;
+    }
+    if (moonRef.current) {
+      moonRef.current.position.set(
+        Math.cos(t + Math.PI) * 800,
+        Math.sin(t + Math.PI) * 800,
+        -400,
+      );
+      moonRef.current.intensity = Math.max(0, Math.sin(t + Math.PI)) * 1.5;
+    }
+
+    if (starsRef.current) {
+      const mat = starsRef.current.material as THREE.PointsMaterial;
+      mat.opacity = Math.max(0, 1.0 - timeOfDay * 2.0);
+    }
+  });
+
+  return (
+    <group>
+      <directionalLight ref={sunRef} color="#ffeedd" />
+      <directionalLight ref={moonRef} color="#aaccff" />
+      <ambientLight intensity={0.2} />
+      <points ref={starsRef} frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[starGeo, 3]} />
+        </bufferGeometry>
+        <pointsMaterial
+          color="#ffffff"
+          size={2}
+          sizeAttenuation={false}
+          transparent
+          opacity={0}
+          depthWrite={false}
+        />
+      </points>
+    </group>
+  );
+}
+
+// ─── Component ──────────────────────────────────────────────────
 interface CitySceneProps {
   buildings: CityBuilding[];
   colors: BuildingColors;
@@ -95,31 +194,41 @@ interface CitySceneProps {
 
 function RainWeather() {
   const pointsRef = useRef<THREE.Points>(null);
-  const { positions, speeds } = useMemo(() => {
-    const positions = new Float32Array(WEATHER_PARTICLE_COUNT * 3);
-    const speeds = new Float32Array(WEATHER_PARTICLE_COUNT);
-    for (let i = 0; i < WEATHER_PARTICLE_COUNT; i++) {
-      const base = i * 3;
-      positions[base] = (pseudoRandom(i * 3 + 1) - 0.5) * WEATHER_AREA;
-      positions[base + 1] = WEATHER_BOTTOM + pseudoRandom(i * 3 + 2) * (WEATHER_TOP - WEATHER_BOTTOM);
-      positions[base + 2] = (pseudoRandom(i * 3 + 3) - 0.5) * WEATHER_AREA;
-      speeds[i] = 120 + pseudoRandom(i * 3 + 4) * 150;
-    }
-    return { positions, speeds };
-  }, []);
+  const { camera } = useThree();
+  const [initialState] = useState<{
+    positions: Float32Array;
+    speeds: Float32Array;
+    anchorX: Float32Array;
+    anchorZ: Float32Array;
+    respawnCycles: Uint32Array;
+  }>(() => createInitialRainState(camera.position.x, camera.position.z));
+
+  const anchorXRef = useRef(initialState.anchorX);
+  const anchorZRef = useRef(initialState.anchorZ);
+  const respawnCyclesRef = useRef(initialState.respawnCycles);
 
   useFrame((state, delta) => {
     const pts = pointsRef.current;
     if (!pts) return;
     const positionArray = (pts.geometry.attributes.position.array as Float32Array);
-    const tick = Math.floor(state.clock.elapsedTime * WEATHER_RESPAWN_TICK_RATE);
+    const { speeds } = initialState;
+    const anchorX = anchorXRef.current;
+    const anchorZ = anchorZRef.current;
+    const respawnCycles = respawnCyclesRef.current;
+    const centerX = state.camera.position.x;
+    const centerZ = state.camera.position.z;
     for (let i = 0; i < WEATHER_PARTICLE_COUNT; i++) {
       const base = i * 3;
+      positionArray[base] = wrapAroundCenter(anchorX[i], centerX);
+      positionArray[base + 2] = wrapAroundCenter(anchorZ[i], centerZ);
       positionArray[base + 1] -= speeds[i] * delta;
       if (positionArray[base + 1] < WEATHER_BOTTOM) {
-        positionArray[base] = (pseudoRandom(i * WEATHER_RESPAWN_X_SEED + tick) - 0.5) * WEATHER_AREA;
+        respawnCycles[i] += 1;
+        anchorX[i] = centerX + (pseudoRandom(i * WEATHER_RESPAWN_X_SEED + respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED) - 0.5) * WEATHER_AREA;
+        anchorZ[i] = centerZ + (pseudoRandom(i * WEATHER_RESPAWN_Z_SEED + respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED * 2) - 0.5) * WEATHER_AREA;
+        positionArray[base] = wrapAroundCenter(anchorX[i], centerX);
         positionArray[base + 1] = WEATHER_TOP;
-        positionArray[base + 2] = (pseudoRandom(i * WEATHER_RESPAWN_Z_SEED + tick * 2) - 0.5) * WEATHER_AREA;
+        positionArray[base + 2] = wrapAroundCenter(anchorZ[i], centerZ);
       }
     }
     pts.geometry.attributes.position.needsUpdate = true;
@@ -128,9 +237,16 @@ function RainWeather() {
   return (
     <points ref={pointsRef} frustumCulled={false}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-position" args={[initialState.positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial color="#a7c7ff" size={4} sizeAttenuation={false} transparent opacity={0.6} depthWrite={false} />
+      <pointsMaterial
+        color="#a7c7ff"
+        size={4}
+        sizeAttenuation={false}
+        transparent
+        opacity={0.6}
+        depthWrite={false}
+      />
     </points>
   );
 }
@@ -151,20 +267,16 @@ export default function CityScene({
   liveByLogin,
   cityEnergy,
 }: CitySceneProps) {
-  // Single atlas texture for all building windows (created once per theme)
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
-
-  // Spatial grid for effects LOD
-  const grid = useMemo(() => buildSpatialGrid(buildings, GRID_CELL_SIZE), [buildings]);
-
-  // Lookup for focus info emission
+  const grid = useMemo(
+    () => buildSpatialGrid(buildings, GRID_CELL_SIZE),
+    [buildings],
+  );
   const lookup = useMemo(() => buildLookup(buildings), [buildings]);
 
-  // Cache focus names
   const focusedLower = focusedBuilding?.toLowerCase() ?? null;
   const focusedBLower = focusedBuildingB?.toLowerCase() ?? null;
 
-  // Focused building data (for FocusBeacon positioning)
   const focusedBuildingData = useMemo(() => {
     if (!focusedLower) return null;
     const idx = lookup.indexByLogin.get(focusedLower);
@@ -181,7 +293,6 @@ export default function CityScene({
 
   const lastFocusUpdate = useRef(-1);
 
-  // Emit focus info for focused buildings (throttled to 5Hz)
   useFrame(({ camera, clock, size }) => {
     const elapsed = clock.elapsedTime;
     if (elapsed - lastFocusUpdate.current < 0.2) return;
@@ -190,7 +301,9 @@ export default function CityScene({
     if (!onFocusInfo || (!focusedLower && !focusedBLower)) return;
 
     const fi = focusedLower ? lookup.indexByLogin.get(focusedLower) : undefined;
-    const fbi = focusedBLower ? lookup.indexByLogin.get(focusedBLower) : undefined;
+    const fbi = focusedBLower
+      ? lookup.indexByLogin.get(focusedBLower)
+      : undefined;
     const targetIdx = fi ?? fbi;
     if (targetIdx === undefined) return;
 
@@ -205,14 +318,12 @@ export default function CityScene({
     onFocusInfo({ dist, screenX, screenY });
   });
 
-  // Dispose atlas on theme change
   useEffect(() => {
     return () => atlasTexture.dispose();
   }, [atlasTexture]);
 
   return (
     <>
-      {/* All buildings: single instanced draw call with custom shader */}
       <InstancedBuildings
         buildings={buildings}
         colors={colors}
@@ -226,12 +337,13 @@ export default function CityScene({
         cityEnergy={cityEnergy}
       />
 
-      {/* Live presence dots above active buildings */}
+      {/* Renders Day, Night, Stars dynamically */}
+      <DayNightEnvironment colors={colors} />
+
       {liveByLogin && liveByLogin.size > 0 && (
         <LiveDots buildings={buildings} liveByLogin={liveByLogin} />
       )}
 
-      {/* All labels: single instanced draw call with billboard shader */}
       <InstancedLabels
         buildings={buildings}
         introMode={introMode}
@@ -240,7 +352,6 @@ export default function CityScene({
         focusedBuildingB={focusedBuildingB}
       />
 
-      {/* Effects: React components only for nearby buildings with items */}
       <EffectsLayer
         buildings={buildings}
         grid={grid}
@@ -256,9 +367,14 @@ export default function CityScene({
 
       {!introMode && <RainWeather />}
 
-      {/* FocusBeacon: standalone, only when a building is focused */}
       {!introMode && focusedBuildingData && (
-        <group position={[focusedBuildingData.position[0], 0, focusedBuildingData.position[2]]}>
+        <group
+          position={[
+            focusedBuildingData.position[0],
+            0,
+            focusedBuildingData.position[2],
+          ]}
+        >
           <FocusBeacon
             height={focusedBuildingData.height}
             width={focusedBuildingData.width}
@@ -268,16 +384,24 @@ export default function CityScene({
         </group>
       )}
 
-      {!introMode && focusedBuildingBData && focusedBuildingBData !== focusedBuildingData && (
-        <group position={[focusedBuildingBData.position[0], 0, focusedBuildingBData.position[2]]}>
-          <FocusBeacon
-            height={focusedBuildingBData.height}
-            width={focusedBuildingBData.width}
-            depth={focusedBuildingBData.depth}
-            accentColor={accentColor ?? "#ffa116"}
-          />
-        </group>
-      )}
+      {!introMode &&
+        focusedBuildingBData &&
+        focusedBuildingBData !== focusedBuildingData && (
+          <group
+            position={[
+              focusedBuildingBData.position[0],
+              0,
+              focusedBuildingBData.position[2],
+            ]}
+          >
+            <FocusBeacon
+              height={focusedBuildingBData.height}
+              width={focusedBuildingBData.width}
+              depth={focusedBuildingBData.depth}
+              accentColor={accentColor ?? "#ffa116"}
+            />
+          </group>
+        )}
     </>
   );
 }

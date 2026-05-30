@@ -3,6 +3,11 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ZONE_ITEMS } from "@/lib/zones";
 
+export const dynamic = "force-dynamic";
+
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const devId = searchParams.get("developer_id");
@@ -24,6 +29,9 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -49,10 +57,11 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { crown, roof, aura } = body as {
+  const { crown, roof, aura, faces } = body as {
     crown?: string | null;
     roof?: string | null;
     aura?: string | null;
+    faces?: string | null;
   };
 
   // Fetch owned items
@@ -65,12 +74,13 @@ export async function POST(request: Request) {
   const ownedSet = new Set((purchases ?? []).map((p) => p.item_id));
 
   // Validate each equipped item is owned and belongs to the correct zone
-  const config: Record<string, string | null> = { crown: null, roof: null, aura: null };
+  const config: Record<string, string | null> = { crown: null, roof: null, aura: null, faces: null };
 
   for (const [zone, itemId] of [
     ["crown", crown],
     ["roof", roof],
     ["aura", aura],
+    ["faces", faces],
   ] as const) {
     if (itemId === null || itemId === undefined) {
       config[zone] = null;
@@ -98,7 +108,7 @@ export async function POST(request: Request) {
     .eq("developer_id", dev.id)
     .eq("item_id", "loadout")
     .maybeSingle();
-  const prev = (currentLoadout?.config ?? { crown: null, roof: null, aura: null }) as Record<string, string | null>;
+  const prev = (currentLoadout?.config ?? { crown: null, roof: null, aura: null, faces: null }) as Record<string, string | null>;
 
   // Upsert loadout
   await admin.from("developer_customizations").upsert(
@@ -112,7 +122,7 @@ export async function POST(request: Request) {
   );
 
   // Feed event for newly equipped items
-  for (const zone of ["crown", "roof", "aura"] as const) {
+  for (const zone of ["crown", "roof", "aura", "faces"] as const) {
     if (config[zone] && config[zone] !== prev[zone]) {
       await admin.from("activity_feed").insert({
         event_type: "item_equipped",

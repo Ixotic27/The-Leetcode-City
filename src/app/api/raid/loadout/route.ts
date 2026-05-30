@@ -3,6 +3,9 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { RAID_VEHICLE_ITEMS, RAID_TAG_ITEMS } from "@/lib/zones";
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const devId = searchParams.get("developer_id");
@@ -21,16 +24,13 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    const githubLogin = (
-      user.user_metadata.user_name ??
-      user.user_metadata.preferred_username ??
-      ""
-    ).toLowerCase();
+
     const { data: dev } = await admin
       .from("developers")
       .select("id")
-      .eq("github_login", githubLogin)
-      .single();
+      .eq("claimed_by", user.id)
+      .limit(1)
+      .maybeSingle();
     if (dev) developerId = dev.id;
   }
 
@@ -53,6 +53,9 @@ export async function GET(request: Request) {
   });
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -64,19 +67,16 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
+
 
   const { data: dev } = await admin
     .from("developers")
     .select("id, claimed, claimed_by")
-    .eq("github_login", githubLogin)
-    .single();
+    .eq("claimed_by", user.id)
+    .limit(1)
+    .maybeSingle();
 
-  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+  if (!dev || !dev.claimed) {
     return NextResponse.json({ error: "Must own a claimed building" }, { status: 403 });
   }
 

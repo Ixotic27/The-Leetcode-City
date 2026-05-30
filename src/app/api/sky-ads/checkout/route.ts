@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SKY_AD_PLANS, isValidPlanId, getPriceCents, type AdCurrency } from "@/lib/skyAdPlans";
@@ -9,12 +10,6 @@ import { createPixQrCodeRaw } from "@/lib/abacatepay";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 function generateToken(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let token = "";
@@ -23,6 +18,9 @@ function generateToken(): string {
   return token;
 }
 
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
@@ -47,10 +45,8 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/sky-ads/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { plan_id, text, color, bgColor } = body;
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.

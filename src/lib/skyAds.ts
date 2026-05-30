@@ -60,9 +60,8 @@ export function buildAdLink(ad: SkyAd): string | undefined {
     url.searchParams.set("utm_campaign", ad.id);
     url.searchParams.set("utm_content", ad.vehicle);
     return url.toString();
-  } catch {
-    return ad.link;
-  }
+  } catch (err) { console.warn("[lib/skyAds.ts] error:", err); return ad.link;
+   }
 }
 
 /** Fire a tracking beacon to the sky-ads track API (non-blocking). */

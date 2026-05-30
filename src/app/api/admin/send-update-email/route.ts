@@ -15,6 +15,9 @@ const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
  *
  * Body: { subject: string, html: string, slug: string }
  */
+/**
+ * @param {import('next/server').NextRequest} request
+ */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -24,10 +27,8 @@ export async function POST(request: NextRequest) {
   let body: { subject?: string; html?: string; slug?: string };
   try {
     body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  } catch (err) { console.warn("[app/api/admin/send-update-email/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+   }
   const { subject, html, slug } = body;
   if (!subject || !html || !slug) {
     return NextResponse.json(
