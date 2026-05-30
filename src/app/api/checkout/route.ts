@@ -4,14 +4,13 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { createCheckoutSession } from "@/lib/stripe";
 import { createPixQrCode } from "@/lib/abacatepay";
 import { createCryptoInvoice } from "@/lib/nowpayments";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
 // middleware rate limit.  This one is keyed by Supabase user ID so it
 // catches authenticated abuse even when requests come from different IPs.
 // Note: in-memory – resets on deploy / cold-start.  Acceptable because
 // the middleware already provides the primary protection layer.
-const lastCheckout = new Map<string, number>();
-
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -27,12 +26,10 @@ export async function POST(request: Request) {
   }
 
   // Rate limit: 1 checkout per 10 seconds per user
-  const now = Date.now();
-  const last = lastCheckout.get(user.id);
-  if (last && now - last < 10_000) {
+  const { ok } = rateLimit(`checkout:${user.id}`, 1, 10_000);
+  if (!ok) {
     return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
   }
-  lastCheckout.set(user.id, now);
 
   const sb = getSupabaseAdmin();
 
@@ -309,9 +306,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 
-      const { invoiceUrl, invoiceId } = await createCryptoInvoice(item_id, dev.id, githubLogin);
+      const { invoiceUrl } = await createCryptoInvoice(item_id, dev.id, githubLogin);
 
-      // Save invoice ID as provider_tx_id so webhook can find this purchase
+      // Save lookup key as provider_tx_id so webhook can find this purchase
       await sb
         .from("purchases")
         .update({ provider_tx_id: `${dev.id}:${item_id}` })
