@@ -169,6 +169,7 @@ export async function POST(request: Request) {
     }
 
     // Check weekly cooldown
+    // Raid limits use UTC ISO weeks to stay aligned with persisted UTC timestamps.
     const isoWeekStart = getIsoWeekStart();
 
     const { count: weeklyPairCount } = await admin
@@ -238,11 +239,12 @@ export async function POST(request: Request) {
       .eq("developer_id", attacker.id)
       .eq("item_id", consumable_item_id)
       .single();
+    const resetWeekStr = consumable?.last_reset_week
+      ? getUtcDateString(consumable.last_reset_week)
+      : null;
       
     if (consumable && consumable.quantity > 0) {
       // Check weekly uses
-      const resetWeekStr = getUtcDateString(consumable.last_reset_week);
-      
       let currentUses = consumable.weekly_uses;
       if (currentWeekStr !== resetWeekStr) {
         currentUses = 0; // It's a new week
@@ -267,7 +269,7 @@ export async function POST(request: Request) {
         if (
           !consumable ||
           consumable.weekly_uses < 3 ||
-          getUtcDateString(consumable.last_reset_week) !== currentWeekStr
+          resetWeekStr !== currentWeekStr
         ) {
           attackerConsumableItemId = consumable_item_id;
         }

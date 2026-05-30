@@ -10,9 +10,9 @@ export function getIsoWeekStart(referenceDate = new Date()): Date {
 }
 
 export function getIsoWeekStartDateString(referenceDate = new Date()): string {
-  return getIsoWeekStart(referenceDate).toISOString().split("T")[0];
+  return getIsoWeekStart(referenceDate).toISOString().slice(0, 10);
 }
 
 export function getUtcDateString(referenceDate: Date | string): string {
-  return new Date(referenceDate).toISOString().split("T")[0];
+  return new Date(referenceDate).toISOString().slice(0, 10);
 }
