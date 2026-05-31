@@ -230,12 +230,7 @@ export function useRaidSequence(): [RaidState, RaidActions] {
           };
         });
 
-        // Start audio
-        preloadRaidAudio();
-        playRaidSound("takeoff");
-
-        // Auto-advance intro -> flight
-        timerRef.current = setTimeout(() => setPhase("flight"), 4500);
+        
       } catch (err) {
         console.warn("[lib/useRaidSequence.ts] error:", err);
         setState((prev) => ({
