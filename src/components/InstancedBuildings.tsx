@@ -220,7 +220,6 @@ export default memo(function InstancedBuildings({
   }, [buildings]);
 
   const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-
   const material = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -232,22 +231,22 @@ export default memo(function InstancedBuildings({
         uFogFar: { value: 3500 },
         uFocusedId: { value: -1.0 },
         uFocusedIdB: { value: -1.0 },
-        uDimOpacity: { value: 0.6 },
-        uDimEmissive: { value: 0.5 },
-        uCityEnergy: { value: 0.15 },
-        uTimeOfDay: { value: 1.0 }, // New uniform added
+        uDimOpacity: { value: dimOpacity },
+        uDimEmissive: { value: dimEmissive },
+        uCityEnergy: { value: cityEnergy },
+        uTimeOfDay: { value: 1.0 },
       },
       vertexShader,
       fragmentShader,
     });
-  }, []);
-
-  useEffect(() => {
-    material.uniforms.uAtlas.value = atlasTexture;
-    material.uniforms.uRoofColor.value.set(colors.roof);
-    material.uniforms.uFaceColor.value.set(colors.face);
-    material.needsUpdate = true;
-  }, [material, atlasTexture, colors.roof, colors.face]);
+  }, [
+    atlasTexture,
+    colors.roof,
+    colors.face,
+    dimOpacity,
+    dimEmissive,
+    cityEnergy,
+  ]);
 
   const { uvFrontData, uvSideData, riseData, tintData, lcData } =
     useMemo(() => {
