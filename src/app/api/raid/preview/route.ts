@@ -82,6 +82,7 @@ export async function POST(request: Request) {
     }
 
     // Check weekly cooldown for this target
+    const now = new Date();
     const isoWeekStart = getIsoWeekStart();
 
     const { count: weeklyPairCount } = await admin
