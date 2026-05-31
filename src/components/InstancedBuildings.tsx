@@ -467,7 +467,7 @@ export default memo(function InstancedBuildings({
     for (let i = 0; i < count; i++) {
       const login = buildings[i].login.toLowerCase();
       arr[i] = liveByLogin?.has(login)
-        ? login === "Ixotic27"
+        ? login === "ixotic27"
           ? 1.5
           : 1.0
         : 0.0;
