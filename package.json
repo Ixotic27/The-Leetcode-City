@@ -33,7 +33,7 @@
     "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts",
     "setup": "node scripts/setup.mjs",
     "setup:check": "node scripts/setup.mjs --check",
-    "test" : "vitest"
+    "test": "vitest"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -61,6 +61,7 @@
     "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
