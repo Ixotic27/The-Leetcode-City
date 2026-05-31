@@ -96,11 +96,11 @@ export function getTodayStr(): string {
 export async function trackDailyMission(
   developerId: number,
   missionId: string,
-  extra?: { score?: number },
+  extra?: { score?: number; isMobile?: boolean },
 ): Promise<void> {
   try {
     const today = getTodayStr();
-    const missions = getDailyMissions(developerId, today);
+    const missions = getDailyMissions(developerId, today, extra?.isMobile ?? false);    
     const mission = missions.find((m) => m.id === missionId);
     if (!mission) return; // not assigned today, skip
 

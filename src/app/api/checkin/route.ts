@@ -90,7 +90,7 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
   return fetchLeetCodeWeeklySubmissions(login);
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -146,7 +146,8 @@ export async function POST() {
 
   // Track activity
   await touchLastActive(dev.id);
-  await trackDailyMission(dev.id, "checkin");
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(request.headers.get("user-agent") ?? "");
+  await trackDailyMission(dev.id, "checkin", { isMobile });
 
   // Detect streak broken: previous streak was >= 7, now reset to 1, and freeze didn't save them
   const previousStreak = dev.app_streak ?? 0;

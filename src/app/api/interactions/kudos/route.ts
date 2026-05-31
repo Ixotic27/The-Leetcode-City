@@ -89,8 +89,9 @@ export async function POST(request: Request) {
 
   // Track activity
   await touchLastActive(giver.id);
-  await trackDailyMission(giver.id, "give_kudos");
-  await trackDailyMission(giver.id, "give_kudos_3");
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(request.headers.get("user-agent") ?? "");
+  await trackDailyMission(giver.id, "give_kudos", { isMobile });
+  await trackDailyMission(giver.id, "give_kudos_3", { isMobile });
 
   // Only increment + feed if the insert actually happened (no conflict)
   if (!insertError) {
