@@ -3,7 +3,6 @@ import {
   xpDeltaForLevel,
   levelFromXp,
   tierFromLevel,
-  rankFromLevel,
   levelProgress,
   calculateLeetcodeXp,
   xpForAchievementTier,
@@ -106,6 +105,18 @@ describe("calculateLeetcodeXp", () => {
         easy_solved: 0,
         medium_solved: 0,
         hard_solved: 0,
+        contest_rating: 0,
+        lc_streak: 0,
+      })
+    ).toBe(0);
+  });
+
+  it("does not award solved XP for invalid negative solved counts", () => {
+    expect(
+      calculateLeetcodeXp({
+        easy_solved: -1,
+        medium_solved: -2,
+        hard_solved: -3,
         contest_rating: 0,
         lc_streak: 0,
       })
