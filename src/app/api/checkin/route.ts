@@ -146,8 +146,7 @@ export async function POST(request: Request) {
 
   // Track activity
   await touchLastActive(dev.id);
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(request.headers.get("user-agent") ?? "");
-  await trackDailyMission(dev.id, "checkin", { isMobile });
+  await trackDailyMission(dev.id, "checkin");
 
   // Detect streak broken: previous streak was >= 7, now reset to 1, and freeze didn't save them
   const previousStreak = dev.app_streak ?? 0;

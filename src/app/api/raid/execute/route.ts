@@ -486,8 +486,8 @@ export async function POST(request: Request) {
 
     // Track activity + notify defender
     await touchLastActive(attacker.id);
-    await trackDailyMission(attacker.id, "attempt_battle", { isMobile: false });
-    if (success) await trackDailyMission(attacker.id, "win_battle", { isMobile: false });
+    await trackDailyMission(attacker.id, "attempt_battle");
+    if (success) await trackDailyMission(attacker.id, "win_battle");
     sendRaidAlertNotification(
       defender.id,
       defender.github_login,

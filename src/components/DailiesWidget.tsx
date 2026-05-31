@@ -178,8 +178,18 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
                 )}
               </div>
 
-              {/* Action shortcut (e.g. Fly) */}
-              {!m.completed && onStartFly && m.id.startsWith("fly_") && (
+              {/* Desktop-only badge shown to mobile users */}
+              {isMobile && m.desktopOnly && !m.completed && (
+                <span
+                  title="This mission can only be completed on a PC, not on a phone."
+                  className="ml-1 shrink-0 border border-muted/40 bg-muted/10 px-1.5 py-0.5 text-[8px] leading-tight text-muted"
+                >
+                  PC only
+                </span>
+              )}
+
+              {/* Action shortcut (e.g. Fly) — hidden on mobile since fly is desktop-only */}
+              {!m.completed && onStartFly && m.id.startsWith("fly_") && !isMobile && (
                 <button
                   onClick={onStartFly}
                   className="btn-press ml-1 border border-cream/20 bg-cream/5 px-2 py-1 text-[9px] font-bold text-cream transition-colors hover:border-cream/40"

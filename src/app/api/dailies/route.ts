@@ -56,11 +56,11 @@ export async function GET(request: Request) {
       title: m.title,
       description: m.description,
       threshold: m.threshold,
+      desktopOnly: m.desktopOnly ?? false,
       progress: prog?.progress ?? 0,
       completed: prog?.completed ?? false,
     };
   });
-
   const completedCount = missionData.filter((m) => m.completed).length;
   const allCompleted = completedCount === 3;
   const alreadyClaimedToday = dev.last_dailies_date === today;

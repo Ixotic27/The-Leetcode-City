@@ -61,9 +61,8 @@ export async function POST(request: Request) {
 
   // Track activity
   await touchLastActive(visitor.id);
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(request.headers.get("user-agent") ?? "");
-  await trackDailyMission(visitor.id, "visit_building", { isMobile });
-  await trackDailyMission(visitor.id, "visit_3_buildings", { isMobile });
+  await trackDailyMission(visitor.id, "visit_building");
+  await trackDailyMission(visitor.id, "visit_3_buildings");
 
   // No self-visits
   if (visitor.id === building.id) {
