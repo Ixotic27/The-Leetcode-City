@@ -10,6 +10,7 @@ import {
 } from "@/lib/raid";
 import type { RaidBoostItem } from "@/lib/raid";
 import { findRaidAttackerForUser } from "@/lib/raid-attacker";
+import { getIsoWeekStart } from "@/lib/week";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -81,11 +82,7 @@ export async function POST(request: Request) {
     }
 
     // Check weekly cooldown for this target
-    const now = new Date();
-    const isoWeekStart = new Date(now);
-    const dayOfWeek = now.getDay();
-    isoWeekStart.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-    isoWeekStart.setHours(0, 0, 0, 0);
+    const isoWeekStart = getIsoWeekStart();
 
     const { count: weeklyPairCount } = await admin
       .from("raids")
@@ -206,12 +203,7 @@ export async function POST(request: Request) {
   const defenderHeight = Math.max(20, Math.min(300, defender.contributions * 0.15));
 
   // Compute available offensive consumables (must have qty > 0 and < 3 weekly uses)
-  const now2 = new Date();
-  const isoWeekStart2 = new Date(now2);
-  const dow2 = now2.getDay();
-  isoWeekStart2.setDate(now2.getDate() - dow2 + (dow2 === 0 ? -6 : 1));
-  isoWeekStart2.setHours(0, 0, 0, 0);
-  const currentWeekStr = isoWeekStart2.toISOString().split('T')[0];
+  const currentWeekStr = getIsoWeekStart().toISOString().split('T')[0];
   const availableOffensiveItems = (offensiveConsumables ?? []).filter(c => {
     if (c.quantity <= 0) return false;
     const lastReset = c.last_reset_week ? new Date(c.last_reset_week).toISOString().split('T')[0] : null;
