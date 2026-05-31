@@ -64,6 +64,11 @@ jobs:
                 await new Promise(resolve => setTimeout(resolve, 5000));
               }
 
+              if (fullPR.mergeable === null) {
+                core.warning(`PR #${pr.number}: mergeable is still null after retries. Skipping.`);
+                continue;
+              }
+
               const isConflicting = fullPR.mergeable === false;
               const currentLabels = fullPR.labels.map(l => l.name);
               const alreadyLabeled = currentLabels.includes(label);

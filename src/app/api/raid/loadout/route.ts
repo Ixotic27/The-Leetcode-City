@@ -24,11 +24,7 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    const githubLogin = (
-      user.user_metadata.user_name ??
-      user.user_metadata.preferred_username ??
-      ""
-    ).toLowerCase();
+
     const { data: dev } = await admin
       .from("developers")
       .select("id")
@@ -71,11 +67,7 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
+
 
   const { data: dev } = await admin
     .from("developers")

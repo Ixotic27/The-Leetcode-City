@@ -1,0 +1,89 @@
+name: Issue Label Enforcer
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  enforce-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove unauthorized labels from users
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = context.actor;
+            const issueNumber = context.issue.number;
+            const eventName = context.eventName;
+            const action = context.payload.action;
+            
+            // Allow bots and the maintainer (Ixotic27) to do anything
+            if (actor.includes('[bot]') || actor === 'Ixotic27' || actor === 'github-actions') {
+              console.log(`Action performed by allowed user/bot: ${actor}. Exiting.`);
+              return;
+            }
+            
+            // Get current labels on the issue
+            const issueData = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+            
+            const currentLabels = issueData.data.labels.map(l => l.name);
+            console.log(`Current labels: ${currentLabels.join(', ')}`);
+            
+            const unauthorizedLabels = [];
+            
+            // Check all current labels to see if any are unauthorized
+            for (const label of currentLabels) {
+              const labelLower = label.toLowerCase();
+              
+              // Allowed: starts with 'type:' or is exactly 'gssoc 26'
+              const isType = labelLower.startsWith('type:');
+              const isGssoc = labelLower === 'gssoc 26';
+              // We also allow needs-triage as it is often added by default issue templates or bots, 
+              // but if the user adds it manually, it's harmless as it puts it into a queue.
+              const isNeedsTriage = labelLower === 'needs-triage';
+              
+              if (!isType && !isGssoc && !isNeedsTriage) {
+                unauthorizedLabels.push(label);
+              }
+            }
+            
+            if (unauthorizedLabels.length === 0) {
+              console.log('No unauthorized labels found.');
+              return;
+            }
+            
+            console.log(`Found unauthorized labels added by ${actor}: ${unauthorizedLabels.join(', ')}`);
+            
+            // Remove all unauthorized labels
+            for (const label of unauthorizedLabels) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  name: label
+                });
+                console.log(`Successfully removed unauthorized label: ${label}`);
+              } catch (e) {
+                console.log(`Failed to remove label ${label}: ${e.message}`);
+              }
+            }
+            
+            // Add a polite comment explaining why
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `👋 Hi @${actor}!\n\nPlease note that contributors are only allowed to add \`type:*\` and \`Gssoc 26\` labels. \n\nI have automatically removed the other labels you applied (\`${unauthorizedLabels.join('\`, \`')}\`). Difficulty levels, approval labels, and other meta-tags will be evaluated and assigned by the maintainers or bots. Thanks!`
+            });

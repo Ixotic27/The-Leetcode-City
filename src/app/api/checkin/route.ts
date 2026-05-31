@@ -50,8 +50,22 @@ async function grantStreakReward(
       ? unowned[Math.floor(Math.random() * unowned.length)]
       : tier.pool[Math.floor(Math.random() * tier.pool.length)]; // fallback: grant anyway
 
+    // Record the reward first — upsert guards against concurrent duplicate grants.
+    // If another request already inserted this milestone, do nothing and skip.
+    const { data: rewardInserted } = await sb
+      .from("streak_rewards")
+      .upsert(
+        { developer_id: developerId, milestone: tier.milestone, item_id: itemId },
+        { onConflict: "developer_id,milestone", ignoreDuplicates: true }
+      )
+      .select("id")
+      .maybeSingle();
+
+    // Only grant the item if we actually inserted the reward row (not a duplicate)
+    if (!rewardInserted) continue;
+
     // Grant the item
-    await sb.from("purchases").insert({
+    await sb.from("purchases").upsert({
       developer_id: developerId,
       item_id: itemId,
       provider: "free",
@@ -59,14 +73,7 @@ async function grantStreakReward(
       amount_cents: 0,
       currency: "usd",
       status: "completed",
-    });
-
-    // Record the reward
-    await sb.from("streak_rewards").insert({
-      developer_id: developerId,
-      milestone: tier.milestone,
-      item_id: itemId,
-    });
+    }, { onConflict: "provider_tx_id", ignoreDuplicates: true });
 
     return {
       milestone: tier.milestone,

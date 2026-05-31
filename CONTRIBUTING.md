@@ -59,23 +59,25 @@ Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.l
 
 ## 🏷️ Getting Assigned to an Issue
 
-1. Find an open, unassigned issue
-2. Comment `assign me` (or `I want to work on this`, `can I take this`, etc.) **AND include a "Proposed Solution" heading**.
+1. Find an open, unassigned issue that has been approved (i.e., the `needs-triage` label has been removed).
+2. If **you created the issue**, you do not need to ask for assignment! Once an admin reviews and removes the `needs-triage` tag, the bot will **automatically assign you** and lock the issue (as long as you have less than 3 active issues).
+3. If someone else created it but was over their limit, comment `assign me` (or `can I take this`, etc.) **AND include a "Proposed Solution" heading**.
    - Example:
      ```markdown
      assign me!
      ### Proposed Solution
      I will update the components to use the new API structure...
      ```
-3. The bot will automatically assign you (first-come, first-served) if your comment includes a proposed solution.
-4. You have **48 hours** to submit a PR
-5. The issue conversation is locked — further discussion happens in your PR
+4. The bot will automatically assign you (first-come, first-served) if your comment includes a proposed solution and the issue is approved.
+5. You have **48 hours** from the moment of assignment to submit a PR.
+6. The issue conversation is locked — further discussion happens in your PR.
 
 ### Assignment Rules
 
-- **Maximum 3 open issues** per contributor at a time
-- Must submit a PR within **48 hours** or be unassigned
-- Already-assigned issues are not available
+- **Wait for Approval:** The bot will reject assignment requests on issues that still have the `needs-triage` label.
+- **Maximum 3 open issues** per contributor at a time.
+- Must submit a PR within **48 hours** or be unassigned.
+- Already-assigned issues are not available.
 
 ## Code Style
 
@@ -105,8 +107,9 @@ Every PR automatically gets:
 - 🔍 **Security scan** checks for dangerous patterns (regex-based, zero AI tokens)
 - 🏷️ **Auto-labeling** detects type from title/branch and inherits issue labels
 - ✅ **CI checks** run `npm run lint` and `npm run build`
+- 🚀 **Vercel Preview** automatically deploys a live preview of your PR branch. The admin approval workflow strictly waits for this deployment to succeed before automatically approving your PR.
 
-If CI fails, the bot adds a `status:blocked` label and posts instructions on how to fix it.
+If CI or Vercel fails, the bot adds a `status:blocked` label and posts instructions on how to fix it.
 
 ## Commit Messages
 

@@ -187,6 +187,59 @@ async function upsertFullProfile(
   return !error;
 }
 
+async function discoverAndInsertNewUsers(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  page: number,
+): Promise<number> {
+  const query = `
+    query globalRanking($page: Int!) {
+      globalRanking(page: $page) {
+        rankingNodes { user { username } }
+      }
+    }
+  `;
+  try {
+    const res = await fetch("https://leetcode.com/graphql", {
+      method: "POST",
+      headers: LC_HEADERS,
+      body: JSON.stringify({ query, variables: { page } }),
+    });
+    const json = await res.json();
+    const usernames: string[] = (json?.data?.globalRanking?.rankingNodes ?? [])
+      .map((n: any) => n.user.username.toLowerCase());
+
+    if (usernames.length === 0) return 0;
+
+    // Filter to only usernames not already in DB
+    const { data: existing } = await sb
+      .from("developers")
+      .select("github_login")
+      .in("github_login", usernames);
+
+    const existingSet = new Set((existing ?? []).map((d: any) => d.github_login));
+    const newUsers = usernames.filter((u) => !existingSet.has(u));
+
+    if (newUsers.length === 0) return 0;
+
+    // Stub-insert new users so they get picked up by the next refresh cycle
+    const stubs = newUsers.map((login) => ({
+      github_login: login,
+      github_id: Math.abs(login.split("").reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0)),
+      fetched_at: new Date(0).toISOString(), // epoch — will be picked as most stale immediately
+    }));
+
+    const { error } = await sb
+      .from("developers")
+      .upsert(stubs, { onConflict: "github_login", ignoreDuplicates: true });
+
+    if (error) console.warn("[lc-refresh] discovery insert error:", error.message);
+    return error ? 0 : newUsers.length;
+  } catch (err) {
+    console.warn("[lc-refresh] discovery fetch error:", err);
+    return 0;
+  }
+}
+
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -199,6 +252,12 @@ export async function GET(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
   const results = { refreshed: 0, skipped: 0, failed: 0, users: [] as string[] };
+
+  // ── Discovery: insert new users from ranking page ──
+  // Rotate through pages using Unix hour as cursor — no DB state needed
+  const discoveryPage = (Math.floor(Date.now() / 3_600_000) % 50) + 1;
+  const discovered = await discoverAndInsertNewUsers(sb, discoveryPage);
+  console.log(`[lc-refresh] Discovery: ${discovered} new users inserted from page ${discoveryPage}`);
 
   // ── Pick most-stale developers (claimed first, then unclaimed) ──
   const staleClaimedCutoff = new Date(Date.now() - 6 * 3600_000).toISOString();   // 6h
@@ -233,8 +292,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, message: "All profiles are fresh", ...results });
   }
 
-  // ── Refresh each user sequentially (respects LC rate limits) ──
-  for (const username of logins) {
+  // ── Refresh users in concurrent chunks (5× throughput vs sequential) ──
+  // Chunks of 5 with 3s between chunks — stays within LC rate limits
+  // while fitting comfortably inside Vercel's 60s Pro timeout
+  const CHUNK_SIZE = 5;
+  const CHUNK_DELAY_MS = 3000;
+
+  async function fetchAndUpsert(username: string): Promise<void> {
     const data = await fetchLCFullProfile(username);
     if (!data?.matchedUser) {
       results.skipped++;
@@ -247,8 +311,14 @@ export async function GET(request: NextRequest) {
         results.failed++;
       }
     }
-    // 1.2s delay between LC requests — keeps us well within rate limits
-    await new Promise((r) => setTimeout(r, 1200));
+  }
+
+  for (let i = 0; i < logins.length; i += CHUNK_SIZE) {
+    const chunk = logins.slice(i, i + CHUNK_SIZE);
+    await Promise.allSettled(chunk.map(fetchAndUpsert));
+    if (i + CHUNK_SIZE < logins.length) {
+      await new Promise((r) => setTimeout(r, CHUNK_DELAY_MS));
+    }
   }
 
   console.log(`[lc-refresh] Done: ${results.refreshed} refreshed, ${results.skipped} skipped, ${results.failed} failed`);

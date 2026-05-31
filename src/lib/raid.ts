@@ -32,7 +32,6 @@ export interface AttackInputs {
   appStreak: number;
   weeklyKudosGiven: number;
   boostBonus?: number;
-  stealthCloakActive?: boolean;
   empShieldActive?: boolean;
 }
 
@@ -60,8 +59,7 @@ export function calculateAttackScore(inputs: AttackInputs): {
   breakdown: ScoreBreakdown;
 } {
   const commits = inputs.weeklyContributions * 3;
-  // Stealth cloak caps attacker streak contribution to 0
-  const streak = inputs.stealthCloakActive ? 0 : inputs.appStreak * 1;
+  const streak = inputs.appStreak * 1;
   const kudos = inputs.weeklyKudosGiven * 2;
   const boost = inputs.boostBonus ?? 0;
   

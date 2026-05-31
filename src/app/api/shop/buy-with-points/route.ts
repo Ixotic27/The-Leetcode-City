@@ -78,15 +78,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // 4. Atomic transaction via RPC or sequence
-    // We'll use a transactionally-safe approach: deduct points then insert purchase
-    const { error: deductError } = await admin
+    // 4. Atomic conditional deduction — only succeeds if balance is still sufficient
+    // Optimistic lock: WHERE points >= price_points ensures concurrent requests
+    // that both passed the JS balance check cannot both land this update
+    const { data: deducted, error: deductError } = await admin
         .from("developers")
         .update({ points: dev.points - item.price_points })
-        .eq("id", dev.id);
+        .eq("id", dev.id)
+        .gte("points", item.price_points) // guard — race condition loses here
+        .eq("points", dev.points)         // optimistic lock on exact snapshot value
+        .select("points")
+        .maybeSingle();
 
-    if (deductError) {
-        return NextResponse.json({ error: "Failed to deduct points" }, { status: 500 });
+    if (deductError || !deducted) {
+        return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
     }
 
     const { data: purchase, error: purchaseError } = await admin
@@ -103,8 +108,11 @@ export async function POST(request: Request) {
         .single();
 
     if (purchaseError) {
-        // Rollback points if purchase insertion fails
-        await admin.from("developers").update({ points: dev.points }).eq("id", dev.id);
+        // Safe rollback: add price back to current DB value, not snapshot
+        await admin
+            .from("developers")
+            .update({ points: deducted.points + item.price_points })
+            .eq("id", dev.id);
         return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
     }
 
@@ -124,5 +132,5 @@ export async function POST(request: Request) {
         metadata: { login: dev.github_login, item_id, provider: "points" },
     });
 
-    return NextResponse.json({ ok: true, points_remaining: dev.points - item.price_points });
+    return NextResponse.json({ ok: true, points_remaining: deducted.points });
 }

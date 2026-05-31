@@ -910,6 +910,7 @@ export default function ShopClient({
             JSON.stringify({ developerId, loadout: payload, ts: Date.now() }),
           );
         } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); } 
+        window.dispatchEvent(new CustomEvent("leetcodecity:loadout-saved"));
       } else {
         setError("Failed to save. Try again.");
       }

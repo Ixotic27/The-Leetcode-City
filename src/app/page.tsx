@@ -877,6 +877,7 @@ function HomeContent() {
   const [linkedLeetCodeUsername, setLinkedLeetCodeUsername] = useState<
     string | null
   >(null);
+  const [linkStatusResolved, setLinkStatusResolved] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [confirmedUsername, setConfirmedUsername] = useState("");
@@ -894,6 +895,7 @@ function HomeContent() {
     const updateSession = async (s: Session | null) => {
       setSession(s);
       if (s) {
+        setLinkStatusResolved(false);
         const login = (
           s.user?.user_metadata?.user_name ??
           s.user?.user_metadata?.preferred_username ??
@@ -911,9 +913,12 @@ function HomeContent() {
           setLinkedLeetCodeUsername(data.leetcode_username || null);
         } catch {
           setLinkedLeetCodeUsername(null);
+        } finally {
+          setLinkStatusResolved(true);
         }
       } else {
         setLinkedLeetCodeUsername(null);
+        setLinkStatusResolved(true);
       }
     };
 
@@ -1029,14 +1034,13 @@ function HomeContent() {
     session?.user?.user_metadata?.full_name ??
     ""
   ).toLowerCase();
+  const selfLogin = (linkedLeetCodeUsername ?? authLogin).toLowerCase();
+  const identityResolved = !session || linkStatusResolved;
 
   // Extra guard: check if selected building is own by comparing linked account
   const isOwnBuilding =
     !!selectedBuilding &&
-    ((authLogin !== "" && selectedBuilding.login.toLowerCase() === authLogin) ||
-      (!!linkedLeetCodeUsername &&
-        selectedBuilding.login.toLowerCase() ===
-          linkedLeetCodeUsername.toLowerCase()));
+    selectedBuilding.login.toLowerCase() === selfLogin;
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1202,7 +1206,7 @@ function HomeContent() {
   // Kudos handler
   const handleGiveKudos = useCallback(async () => {
     if (!selectedBuilding || kudosSending || kudosSent || !session) return;
-    if (selectedBuilding.login.toLowerCase() === authLogin) return;
+    if (selectedBuilding.login.toLowerCase() === selfLogin) return;
     setKudosSending(true);
     setKudosError(null);
     try {
@@ -1238,7 +1242,7 @@ function HomeContent() {
     } finally {
       setKudosSending(false);
     }
-  }, [selectedBuilding, kudosSending, kudosSent, session, authLogin]);
+  }, [selectedBuilding, kudosSending, kudosSent, session, selfLogin]);
 
   // Gift: open modal with available items
   const handleOpenGift = useCallback(async () => {
@@ -2094,6 +2098,13 @@ function HomeContent() {
       return () => clearTimeout(timer);
     }
   }, [giftedParam, userParam, buildings, reloadCity]);
+
+  // Reload city immediately when loadout is saved from the shop
+  useEffect(() => {
+    const handler = () => reloadCity(true);
+    window.addEventListener("leetcodecity:loadout-saved", handler);
+    return () => window.removeEventListener("leetcodecity:loadout-saved", handler);
+  }, [reloadCity]);
 
   const searchUser = useCallback(async () => {
     const trimmed = username.trim().toLowerCase();
@@ -4787,9 +4798,9 @@ function HomeContent() {
                             </span>
                           )}
                         </div>
-                        {session && !isOwnBuilding && (
+                        {identityResolved && session && !isOwnBuilding && (
                           <Link
-                            href={`/shop/${authLogin}`}
+                            href={`/shop/${selfLogin}`}
                             className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
                             style={{
                               backgroundColor: theme.accent,
@@ -4804,7 +4815,7 @@ function HomeContent() {
                   })()}
 
                 {/* Kudos: give kudos (other's building, logged in) */}
-                {session && !isOwnBuilding && (
+                {identityResolved && session && !isOwnBuilding && (
                   <div className="relative mx-4 mb-3">
                     {/* Floating emoji animation on success */}
                     {kudosSent && (
@@ -4886,7 +4897,7 @@ function HomeContent() {
                 )}
 
                 {/* A3: Disabled action buttons for non-logged users */}
-                {!session && (
+                {identityResolved && !session && (
                   <div className="mx-4 mb-3 space-y-1.5">
                     <button
                       onClick={() => {
@@ -4919,12 +4930,12 @@ function HomeContent() {
                 )}
 
                 {/* Own building: copy invite link */}
-                {selectedBuilding.login.toLowerCase() === authLogin && (
+                {identityResolved && selectedBuilding.login.toLowerCase() === selfLogin && (
                   <div className="mx-4 mb-3">
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          `${window.location.origin}/?ref=${authLogin}`,
+                          `${window.location.origin}/?ref=${selfLogin}`,
                         );
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
@@ -4937,7 +4948,7 @@ function HomeContent() {
                 )}
 
                 {/* Compare button */}
-                {!flyMode && !isOwnBuilding && (
+                {identityResolved && !flyMode && !isOwnBuilding && (
                   <div className="mx-4 mb-3">
                     <button
                       onClick={() => {
@@ -4954,10 +4965,10 @@ function HomeContent() {
 
                 {/* Actions */}
                 <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                  {selectedBuilding.login.toLowerCase() === authLogin ? (
+                  {selectedBuilding.login.toLowerCase() === selfLogin ? (
                     <>
                       <Link
-                        href={`/shop/${selectedBuilding.login}?tab=loadout`}
+                        href={`/shop/${selfLogin}?tab=loadout`}
                         className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
                         style={{
                           backgroundColor: theme.accent,
@@ -4967,7 +4978,7 @@ function HomeContent() {
                         Loadout
                       </Link>
                       <Link
-                        href={`/dev/${selectedBuilding.login}`}
+                        href={`/dev/${selfLogin}`}
                         className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
                       >
                         Profile

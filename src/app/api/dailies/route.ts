@@ -3,7 +3,7 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getDailyMissions, getTodayStr, trackDailyMission } from "@/lib/dailies";
 
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -34,7 +34,9 @@ export async function GET() {
     await trackDailyMission(dev.id, "checkin");
   }
 
-  const missions = getDailyMissions(dev.id, today);
+  const { searchParams } = new URL(request.url);
+  const isMobile = searchParams.get("mobile") === "1";
+  const missions = getDailyMissions(dev.id, today, isMobile);
 
   // Fetch today's progress
   const { data: progressRows } = await admin

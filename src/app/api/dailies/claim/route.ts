@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getDailyMissions, getTodayStr } from "@/lib/dailies";
 import { checkAchievements } from "@/lib/achievements";
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -41,8 +41,18 @@ export async function POST() {
     return NextResponse.json({ error: "Already claimed today" }, { status: 400 });
   }
 
+  // Read isMobile from request body so the server uses the same mission
+  // set the client was assigned (mobile excludes desktopOnly missions)
+  let isMobile = false;
+  try {
+    const body = await request.json();
+    isMobile = body?.mobile === true;
+  } catch {
+    // no body or invalid json — default to desktop
+  }
+
   // Verify all 3 missions are completed
-  const missions = getDailyMissions(dev.id, today);
+  const missions = getDailyMissions(dev.id, today, isMobile);
   const { data: progressRows } = await admin
     .from("daily_mission_progress")
     .select("mission_id, completed")
@@ -87,11 +97,11 @@ export async function POST() {
   if (claimResult.total % 7 === 0) {
     const { data: devFreeze } = await admin
       .from("developers")
-      .select("streak_freeze_count")
+      .select("streak_freezes_available")
       .eq("id", dev.id)
       .single();
 
-    if ((devFreeze?.streak_freeze_count ?? 0) < 2) {
+    if ((devFreeze?.streak_freezes_available ?? 0) < 2) {
       await admin.rpc("grant_streak_freeze", { p_developer_id: dev.id });
       await admin.from("streak_freeze_log").insert({
         developer_id: dev.id,

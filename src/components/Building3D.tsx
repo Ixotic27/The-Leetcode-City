@@ -476,10 +476,10 @@ export const BuildingItemEffects = memo(function BuildingItemEffects({ building,
 
   // Without a loadout, only render flag (free claim item). All other items require explicit equip.
   const hasLoadout = loadout && (loadout.crown || loadout.roof || loadout.aura || loadout.faces);
-  const crownItem = hasLoadout ? loadout.crown : (items.includes("flag") ? "flag" : null);
-  const roofItem = hasLoadout ? loadout.roof : null;
-  const auraItem = hasLoadout ? loadout.aura : null;
-  const facesItem = hasLoadout ? loadout.faces : null;
+  const crownItem = hasLoadout && crownItems.includes(loadout.crown!) ? loadout.crown : (items.includes("flag") ? "flag" : null);
+  const roofItem = hasLoadout && roofItems.includes(loadout.roof!) ? loadout.roof : null;
+  const auraItem = hasLoadout && auraItems.includes(loadout.aura!) ? loadout.aura : null;
+  const facesItem = hasLoadout && facesItems.includes(loadout.faces!) ? loadout.faces : null;
 
   const shouldRenderZone = (itemId: string) => {
     if (!items.includes(itemId)) return false;

@@ -3,9 +3,10 @@ import { sendHeartbeats } from "./client";
 import { FLUSH_INTERVAL_MS, MAX_BATCH_SIZE, QUEUE_STORAGE_KEY } from "../constants";
 import type { RawHeartbeat } from "../privacy/sanitizer";
 
-const queue: RawHeartbeat[] = [];
+let queue: RawHeartbeat[] = [];
 let flushTimer: ReturnType<typeof setInterval> | undefined;
 let globalState: vscode.Memento;
+let isFlushing = false;
 
 export function initQueue(context: vscode.ExtensionContext) {
   globalState = context.globalState;
@@ -24,7 +25,8 @@ export function enqueue(heartbeat: RawHeartbeat) {
   queue.push(heartbeat);
   persist();
   // Flush immediately when first heartbeat arrives (instant feedback)
-  if (wasEmpty) {
+  // Skip if a flush is already in-flight — interval will pick it up
+  if (wasEmpty && !isFlushing) {
     flush();
   }
 }
@@ -46,17 +48,26 @@ function startFlushing() {
 }
 
 async function flush() {
-  if (queue.length === 0) return;
+  // Guard against concurrent flush invocations.
+  // Without this, setInterval and enqueue() can both call flush() simultaneously.
+  // Across the await boundary, a failed batch could be unshifted back into the queue
+  // while another flush already persisted a state without it — causing permanent loss.
+  if (isFlushing || queue.length === 0) return;
 
+  isFlushing = true;
   const batch = queue.splice(0, MAX_BATCH_SIZE);
-  const ok = await sendHeartbeats(batch);
 
-  if (!ok) {
-    // Put failed batch back at front
-    queue.unshift(...batch);
+  try {
+    const ok = await sendHeartbeats(batch);
+
+    if (!ok) {
+      // Put failed batch back at front so it retries on the next flush
+      queue.unshift(...batch);
+    }
+  } finally {
+    isFlushing = false;
+    persist();
   }
-
-  persist();
 }
 
 function persist() {

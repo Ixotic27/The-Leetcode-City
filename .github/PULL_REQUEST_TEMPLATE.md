@@ -16,3 +16,4 @@
 - [ ] Tested locally
 - [ ] No secrets or .env values committed
 - [ ] I acknowledge that an automated AI Reviewer will perform a preliminary review of this PR.
+- [ ] ⭐ **I have starred this repository!** (We prioritize PRs and assignments for stargazers)

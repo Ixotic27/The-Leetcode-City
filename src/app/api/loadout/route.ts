@@ -24,9 +24,10 @@ export async function GET(request: Request) {
     .eq("item_id", "loadout")
     .maybeSingle();
 
-  return NextResponse.json({
-    loadout: data?.config ?? null,
-  });
+  return NextResponse.json(
+    { loadout: data?.config ?? null },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 /**

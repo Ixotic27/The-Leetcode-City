@@ -111,7 +111,12 @@ jobs:
               const alreadyWarned = comments.some(c => c.body?.includes(BOT_WARNING_MARKER));
               const alreadyUnassigned = comments.some(c => c.body?.includes(BOT_UNASSIGN_MARKER));
 
-              // ── PHASE 2: 48+ hours → Unassign ──
+              // Determine deadline based on difficulty label
+              const isCritical = issue.labels.some(l => l.name === 'level:critical');
+              const DEADLINE_HOURS = isCritical ? 96 : 48; // 4 days for critical, 48 hours for others
+              const WARNING_HOURS = isCritical ? 72 : 36;  // Warn 24 hours before deadline for critical, 12 hours for others
+
+              // ── PHASE 2: Deadline reached → Unassign ──
               if (hoursElapsed >= DEADLINE_HOURS && !alreadyUnassigned) {
                 console.log(`#${issue.number} (@${assignee}): ${hoursElapsed.toFixed(1)}h elapsed → UNASSIGNING`);
 
@@ -126,14 +131,14 @@ jobs:
                 await github.rest.issues.createComment({
                   owner, repo,
                   issue_number: issue.number,
-                  body: `${BOT_UNASSIGN_MARKER}\n⏰ **Assignment Expired**\n\nHey @${assignee}, the **48-hour deadline** for this issue has passed without a linked Pull Request.\n\nYou have been **unassigned** and this issue is now **open for other contributors** to claim.\n\n---\n\n🟢 **This issue is available!** If you'd like to work on it, comment below and you'll be assigned.\n\n> _Tip: When you start working, name your branch \`${issue.number}-your-feature-name\` so it auto-links to this issue._`,
+                  body: `${BOT_UNASSIGN_MARKER}\n⏰ **Assignment Expired**\n\nHey @${assignee}, the **${DEADLINE_HOURS}-hour deadline** for this issue has passed without a linked Pull Request.\n\nYou have been **unassigned** and this issue is now **open for other contributors** to claim.\n\n---\n\n🟢 **This issue is available!** If you'd like to work on it, comment below and you'll be assigned.\n\n> _Tip: When you start working, name your branch \`${issue.number}-your-feature-name\` so it auto-links to this issue._`,
                 });
 
                 unassigned++;
                 continue;
               }
 
-              // ── PHASE 1: 36+ hours → Warning ──
+              // ── PHASE 1: Warning time reached → Warning ──
               if (hoursElapsed >= WARNING_HOURS && !alreadyWarned) {
                 const remainingHours = Math.max(0, Math.ceil(DEADLINE_HOURS - hoursElapsed));
                 console.log(`#${issue.number} (@${assignee}): ${hoursElapsed.toFixed(1)}h elapsed → WARNING (${remainingHours}h left)`);

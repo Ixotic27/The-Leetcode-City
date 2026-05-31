@@ -17,7 +17,7 @@ jobs:
   assign-to-milestone:
     if: >
       (github.event_name == 'issues' && github.event.label.name == 'GSSoC 2026' && github.event.issue.pull_request == null) ||
-      (github.event_name == 'pull_request_target' && github.event.label.name == 'gssoc:verified')
+      (github.event_name == 'pull_request_target' && github.event.label.name == 'gssoc:approved')
     runs-on: ubuntu-latest
     steps:
       - name: Assign to GSSoC 2026 Milestone
