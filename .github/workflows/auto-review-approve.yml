@@ -4,12 +4,15 @@ on:
   workflow_run:
     workflows: ["CI Pipeline"]
     types: [completed]
+  status:
 
 permissions:
   pull-requests: write
   issues: write
   contents: read
   actions: read
+  statuses: read
+  checks: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -18,35 +21,39 @@ jobs:
   auto-review:
     name: Auto-approve after CI passes
     runs-on: ubuntu-latest
-    # Only run when CI succeeded and it was triggered by a PR
     if: >
-      github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.event == 'pull_request_target' || github.event.workflow_run.event == 'pull_request')
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && (github.event.workflow_run.event == 'pull_request_target' || github.event.workflow_run.event == 'pull_request')) ||
+      (github.event_name == 'status' && contains(github.event.context, 'Vercel') && github.event.state == 'success')
 
     steps:
-      - name: Get PR number from workflow run
+      - name: Get PR number
         id: get-pr
         uses: actions/github-script@v7
         with:
           script: |
-            const run = context.payload.workflow_run;
-            const headSha = run.head_sha;
-            const headBranch = run.head_branch;
+            let headSha;
+            let headBranch = null;
 
-            console.log(`CI passed for SHA: ${headSha}, branch: ${headBranch}`);
+            if (context.eventName === 'workflow_run') {
+              headSha = context.payload.workflow_run.head_sha;
+              headBranch = context.payload.workflow_run.head_branch;
+            } else if (context.eventName === 'status') {
+              headSha = context.payload.sha;
+            }
+
+            console.log(`Event: ${context.eventName}, SHA: ${headSha}, branch: ${headBranch}`);
 
             let pr = null;
 
             // 1. Try retrieving from run.pull_requests
-            const prsFromRun = run.pull_requests;
-            if (prsFromRun && prsFromRun.length > 0) {
-              pr = prsFromRun[0];
+            if (context.eventName === 'workflow_run' && context.payload.workflow_run.pull_requests.length > 0) {
+              pr = context.payload.workflow_run.pull_requests[0];
               console.log(`Found PR #${pr.number} directly in workflow run payload.`);
             }
 
             // 2. Fallback: search open PRs by SHA or branch
             if (!pr) {
-              console.log(`workflow_run.pull_requests is empty (common for forks). Searching open PRs...`);
+              console.log(`Searching open PRs for SHA ${headSha}...`);
               const { data: openPRs } = await github.rest.pulls.list({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -86,7 +93,7 @@ jobs:
             }
 
             if (!pr) {
-              console.log('No open PR found matching this workflow run. Skipping.');
+              console.log('No open PR found matching this event. Skipping.');
               core.setOutput('pr_number', '');
               return;
             }
@@ -112,44 +119,85 @@ jobs:
             core.setOutput('pr_author', fullPR.user.login);
             core.setOutput('head_sha', headSha);
 
-      - name: Wait for Vercel Preview
+      - name: Verify Vercel and CI Status
         if: steps.get-pr.outputs.pr_number != ''
         uses: actions/github-script@v7
         with:
           script: |
             const headSha = '${{ steps.get-pr.outputs.head_sha }}';
-            console.log(`Waiting for Vercel deployment on SHA ${headSha}...`);
+            console.log(`Checking status for SHA ${headSha}...`);
             
             const maxRetries = 30; // 7.5 minutes total
             const delayMs = 15000;
             
             for (let i = 0; i < maxRetries; i++) {
+              // 1. Check Vercel Status
               const { data: commitStatus } = await github.rest.repos.getCombinedStatusForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: headSha
               });
               
-              const vercelStatus = commitStatus.statuses.find(s => s.context === 'Vercel');
-              
+              const vercelStatus = commitStatus.statuses.find(s => s.context.includes('Vercel'));
+              let vercelSuccess = false;
+              let vercelFailed = false;
+
               if (vercelStatus) {
-                console.log(`Vercel status: ${vercelStatus.state}`);
                 if (vercelStatus.state === 'success') {
-                  console.log('Vercel preview successfully deployed!');
-                  return;
+                  vercelSuccess = true;
                 } else if (vercelStatus.state === 'error' || vercelStatus.state === 'failure') {
-                  core.setFailed('Vercel deployment failed. Aborting auto-approval.');
-                  return;
+                  vercelFailed = true;
                 }
-              } else {
-                console.log('Vercel status not yet reported for this commit.');
               }
-              
+
+              // 2. Check CI Pipeline Status (Check Runs)
+              const { data: checks } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: headSha
+              });
+
+              const requiredChecks = ['Lint · Build', 'Production Build'];
+              let ciSuccess = true;
+              let ciFailed = false;
+              let ciPending = false;
+
+              for (const checkName of requiredChecks) {
+                const run = checks.check_runs.find(cr => cr.name === checkName);
+                if (!run) {
+                  ciPending = true;
+                  ciSuccess = false;
+                } else if (run.status !== 'completed') {
+                  ciPending = true;
+                  ciSuccess = false;
+                } else if (run.conclusion !== 'success' && run.conclusion !== 'skipped') {
+                  ciFailed = true;
+                  ciSuccess = false;
+                }
+              }
+
+              console.log(`Vercel: ${vercelStatus ? vercelStatus.state : 'pending'}, CI: ${ciSuccess ? 'success' : (ciFailed ? 'failed' : 'pending')}`);
+
+              if (vercelSuccess && ciSuccess) {
+                console.log('Both Vercel and CI are successful!');
+                return;
+              }
+
+              if (ciFailed) {
+                 core.setFailed('CI checks failed. Aborting auto-approval.');
+                 return;
+              }
+
+              if (vercelFailed) {
+                 core.setFailed('Vercel deployment failed or requires auth. Aborting. Will retry automatically when Vercel succeeds.');
+                 return;
+              }
+
               console.log(`Sleeping for 15 seconds... (Attempt ${i + 1}/${maxRetries})`);
               await new Promise(r => setTimeout(r, delayMs));
             }
             
-            core.setFailed('Timed out waiting for Vercel preview deployment.');
+            core.setFailed('Timed out waiting for checks to complete.');
 
       - name: Assign Ixotic27 as Reviewer
         if: steps.get-pr.outputs.pr_number != ''
@@ -160,7 +208,6 @@ jobs:
             const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
             console.log(`Requesting Ixotic27 as reviewer for PR #${prNumber}...`);
             try {
-              // Check if already requested
               const { data: pr } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -171,7 +218,6 @@ jobs:
                 console.log('Ixotic27 already requested as reviewer. Skipping.');
                 return;
               }
-
               await github.rest.pulls.requestReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -181,14 +227,12 @@ jobs:
               console.log('Successfully assigned Ixotic27 as reviewer!');
             } catch (err) {
               console.error('Failed to assign reviewer:', err.message);
-              // Non-fatal — continue to approval step
             }
 
       - name: Approve PR as Ixotic27
         if: steps.get-pr.outputs.pr_number != ''
         uses: actions/github-script@v7
         with:
-          # Use REVIEWER_PAT so the review is attributed to Ixotic27, fall back to GITHUB_TOKEN
           github-token: ${{ secrets.REVIEWER_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const prNumber = parseInt('${{ steps.get-pr.outputs.pr_number }}', 10);
@@ -198,7 +242,6 @@ jobs:
             console.log(`Approving PR #${prNumber} ("${prTitle}") by @${prAuthor}...`);
 
             try {
-              // Check if already reviewed to avoid duplicate approvals
               const { data: reviews } = await github.rest.pulls.listReviews({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -214,7 +257,6 @@ jobs:
                 return;
               }
 
-              // Submit the approval review
               await github.rest.pulls.createReview({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
