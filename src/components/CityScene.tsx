@@ -11,6 +11,7 @@ import LiveDots from "./LiveDots";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
+import { DynamicSky } from "./DynamicSky";
 
 const GRID_CELL_SIZE = 200;
 const WEATHER_PARTICLE_COUNT = 900;
@@ -152,7 +153,7 @@ function DayNightEnvironment({ colors }: { colors: BuildingColors }) {
     }
   });
 
-  return (
+ return (
     <group>
       <directionalLight ref={sunRef} color="#ffeedd" />
       <directionalLight ref={moonRef} color="#aaccff" />
@@ -170,6 +171,8 @@ function DayNightEnvironment({ colors }: { colors: BuildingColors }) {
           depthWrite={false}
         />
       </points>
+      <DynamicSky />
+      <DayNightEnvironment colors={colors} /> 
     </group>
   );
 }
