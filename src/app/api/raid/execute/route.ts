@@ -105,42 +105,50 @@ export async function POST(request: Request) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  try {
-    const { count: raidsToday } = await admin
-      .from("raids")
-      .select("id", { count: "exact", head: true })
-      .eq("attacker_id", attacker.id)
-      .gte("created_at", todayStart.toISOString());
+  // Daily cap check
+  const { count: raidsToday, error: dailyCheckError } = await admin
+    .from("raids")
+    .select("id", { count: "exact", head: true })
+    .eq("attacker_id", attacker.id)
+    .gte("created_at", todayStart.toISOString());
 
-    if ((raidsToday ?? 0) >= MAX_RAIDS_PER_DAY) {
-      return NextResponse.json({ error: "Daily raid limit reached" }, { status: 429 });
+  if (dailyCheckError) {
+    // Only tolerate missing-table errors (schema not yet migrated); fail closed on all others
+    if (!dailyCheckError.message?.includes("42P01")) {
+      console.error("[raid/execute] daily cap check failed:", dailyCheckError.message);
+      return NextResponse.json({ error: "Raid temporarily unavailable" }, { status: 500 });
     }
-
-    // Check 2-hour peace shield on defender
-    if (defender.last_raided_at) {
-      const shieldExpires = new Date(new Date(defender.last_raided_at).getTime() + 2 * 60 * 60 * 1000);
-      if (new Date() < shieldExpires) {
-        return NextResponse.json({ error: "Target has an active Peace Shield" }, { status: 429 });
-      }
-    }
-
-    // Check weekly cooldown
-    // Raid limits use UTC ISO weeks to stay aligned with persisted UTC timestamps.
-    const isoWeekStart = getIsoWeekStart();
-
-    const { count: weeklyPairCount } = await admin
-      .from("raids")
-      .select("id", { count: "exact", head: true })
-      .eq("attacker_id", attacker.id)
-      .eq("defender_id", defender.id)
-      .gte("created_at", isoWeekStart.toISOString());
-
-    if ((weeklyPairCount ?? 0) > 0) {
-      return NextResponse.json({ error: "Already raided this target this week" }, { status: 429 });
-    }
-  } catch (err) {
-    console.warn("[app/api/raid/execute/route.ts] non-critical error:", err);
+  } else if ((raidsToday ?? 0) >= MAX_RAIDS_PER_DAY) {
+    return NextResponse.json({ error: "Daily raid limit reached" }, { status: 429 });
   }
+
+  // 2-hour peace shield check
+  if (defender.last_raided_at) {
+    const shieldExpires = new Date(new Date(defender.last_raided_at).getTime() + 2 * 60 * 60 * 1000);
+    if (new Date() < shieldExpires) {
+      return NextResponse.json({ error: "Target has an active Peace Shield" }, { status: 429 });
+    }
+  }
+
+  // Weekly per-pair cooldown check
+  const isoWeekStart = getIsoWeekStart();
+
+  const { count: weeklyPairCount, error: weeklyCheckError } = await admin
+    .from("raids")
+    .select("id", { count: "exact", head: true })
+    .eq("attacker_id", attacker.id)
+    .eq("defender_id", defender.id)
+    .gte("created_at", isoWeekStart.toISOString());
+
+  if (weeklyCheckError) {
+    if (!weeklyCheckError.message?.includes("42P01")) {
+      console.error("[raid/execute] weekly cooldown check failed:", weeklyCheckError.message);
+      return NextResponse.json({ error: "Raid temporarily unavailable" }, { status: 500 });
+    }
+  } else if ((weeklyPairCount ?? 0) > 0) {
+    return NextResponse.json({ error: "Already raided this target this week" }, { status: 429 });
+  }
+  
   // Determine vehicle + tag style from saved loadout (or override from request)
   const [{ data: raidLoadoutRow }, { data: ownedVehiclePurchases }] = await Promise.all([
     admin
