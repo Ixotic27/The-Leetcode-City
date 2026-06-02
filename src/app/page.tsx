@@ -1075,7 +1075,8 @@ function HomeContent() {
   // Extra guard: check if selected building is own by comparing linked account
   const isOwnBuilding =
     !!selectedBuilding &&
-    selectedBuilding.login.toLowerCase() === selfLogin;
+    !!linkedLeetCodeUsername &&
+    selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase();
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1241,7 +1242,7 @@ function HomeContent() {
   // Kudos handler
   const handleGiveKudos = useCallback(async () => {
     if (!selectedBuilding || kudosSending || kudosSent || !session) return;
-    if (selectedBuilding.login.toLowerCase() === selfLogin) return;
+    if (isOwnBuilding) return;
     setKudosSending(true);
     setKudosError(null);
     try {
@@ -1277,7 +1278,7 @@ function HomeContent() {
     } finally {
       setKudosSending(false);
     }
-  }, [selectedBuilding, kudosSending, kudosSent, session, selfLogin]);
+  }, [selectedBuilding, kudosSending, kudosSent, session, isOwnBuilding]);
 
   // Gift: open modal with available items
   const handleOpenGift = useCallback(async () => {
@@ -5059,7 +5060,7 @@ function HomeContent() {
                 )}
 
                 {/* Own building: copy invite link */}
-                {identityResolved && selectedBuilding.login.toLowerCase() === selfLogin && (
+                {identityResolved && isOwnBuilding && (
                   <div className="mx-4 mb-3">
                     <button
                       onClick={() => {
@@ -5094,7 +5095,7 @@ function HomeContent() {
 
                 {/* Actions */}
                 <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                  {selectedBuilding.login.toLowerCase() === selfLogin ? (
+                  {isOwnBuilding ? (
                     <>
                       <Link
                         href={`/shop/${selfLogin}?tab=loadout`}
