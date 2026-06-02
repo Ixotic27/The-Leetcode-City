@@ -122,16 +122,18 @@ jobs:
               if (!warned) {
                 await github.rest.issues.createComment({
                   owner, repo, issue_number: prNumber,
-                  body: `👋 Hey @${prAuthor}! Thanks for opening this PR! 🎉
-
-                  ${SENTINEL_VISUALS_WARN}
-                  We noticed that this PR is linked to issue **#${triggeringIssue}**, which requires **visual proof** (screenshots, GIFs, or videos of the changes working).
-
-                  However, your PR description currently does not contain any visual proof.
-
-                  ⚠️ **You have 12 hours from now to update your PR description with relevant visual proof.** If you do not provide it, this PR may be closed automatically and the issue reopened for other contributors.
-
-                  Please edit your description to include your visual proof! Thank you! 🚀`
+                  body: [
+                    `👋 Hey @${prAuthor}! Thanks for opening this PR! 🎉`,
+                    ``,
+                    `${SENTINEL_VISUALS_WARN}`,
+                    `We noticed that this PR is linked to issue **#${triggeringIssue}**, which requires **visual proof** (screenshots, GIFs, or videos of the changes working).`,
+                    ``,
+                    `However, your PR description currently does not contain any visual proof.`,
+                    ``,
+                    `⚠️ **You have 12 hours from now to update your PR description with relevant visual proof.** If you do not provide it, this PR may be closed automatically and the issue reopened for other contributors.`,
+                    ``,
+                    `Please edit your description to include your visual proof! Thank you! 🚀`
+                  ].join('\n')
                 });
               }
             } else {

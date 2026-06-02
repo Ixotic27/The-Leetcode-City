@@ -50,6 +50,25 @@ describe("calculateAttackScore", () => {
 
     expect(withEmp).toBe(Math.floor(base * 0.8));
   });
+
+  it("calculates vehicle bonuses correctly", () => {
+    const { total: totalTank, breakdown } = calculateAttackScore({
+      weeklyContributions: 0,
+      appStreak: 0,
+      weeklyKudosGiven: 0,
+      vehicle: "vehicle_tank",
+    });
+    expect(totalTank).toBe(10);
+    expect(breakdown.vehicle_bonus).toBe(10);
+
+    const { total: totalUFO } = calculateAttackScore({
+      weeklyContributions: 0,
+      appStreak: 0,
+      weeklyKudosGiven: 0,
+      vehicle: "raid_ufo",
+    });
+    expect(totalUFO).toBe(35);
+  });
 });
 
 describe("calculateDefenseScore", () => {
