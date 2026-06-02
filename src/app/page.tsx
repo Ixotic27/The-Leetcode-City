@@ -753,7 +753,7 @@ function HomeContent() {
 
   // Monitor fly score for mission quota
   useEffect(() => {
-    if (flyMode && !quotaNotified && flyScore.score >= 50) {
+    if (flyMode && !quotaNotified && flyScore.score > 50) {
       setQuotaReached(true);
       setQuotaNotified(true);
     }
@@ -1876,9 +1876,11 @@ function HomeContent() {
       const finalScore = currentScore.score + timeBonus;
 
       // Daily mission tracking (fly mode quota)
-      if (finalScore > 0) {
-        trackMissionRef.current("fly_score_50", finalScore);
-        trackMissionRef.current("fly_score_150", finalScore);
+      if (finalScore > 50) {
+        trackMissionRef.current("fly_score_50");
+      }
+      if (finalScore >= 150) {
+        trackMissionRef.current("fly_score_150");
       }
 
       // Read current PB fresh from localStorage (React state may be stale)
@@ -3030,7 +3032,7 @@ function HomeContent() {
                   MISSION QUOTA MATCHED!
                 </div>
                 <div className="text-[10px] text-cream/80">
-                  You&apos;ve reached 50 PX. Exit now to complete quest?
+                  You&apos;ve gathered more than 50 PX. Exit now to complete quest?
                 </div>
                 <div className="mt-2 flex gap-3">
                   <button
