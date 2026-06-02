@@ -8,8 +8,13 @@ type DeveloperRow = {
   claimed?: boolean | null;
   claimed_by?: string | null;
 
-  github_login?: string | null;
+  github_login: string;
   avatar_url?: string | null;
+
+  contributions?: number | null;
+  public_repos?: number | null;
+  total_stars?: number | null;
+  kudos_count?: number | null;
 
   app_streak?: number | null;
   raid_xp?: number | null;
@@ -21,6 +26,7 @@ type DeveloperRow = {
 
   owned_items?: string[];
 };
+
 type DeveloperResult = PromiseLike<{ data: DeveloperRow | null }>;
 type DeveloperQuery = {
   eq(column: string, value: string | number | boolean): DeveloperQuery;

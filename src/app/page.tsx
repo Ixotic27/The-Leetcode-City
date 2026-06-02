@@ -21,6 +21,7 @@ import {
   generateCityLayout,
   DISTRICT_NAMES,
   DISTRICT_COLORS,
+  type DeveloperRecord,
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
@@ -84,7 +85,19 @@ import {
 } from "@/lib/himetrica";
 
 import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
-import { CityDeveloper } from "./types/city";
+
+type CityDeveloperRecord = DeveloperRecord & {
+  loadout?: unknown;
+  custom_color?: string | null;
+  owned_items?: string[];
+  billboard_images?: string[];
+  building_style?: string | null;
+};
+interface CityStats {
+  total_developers: number;
+  total_contributions: number;
+  total_stars?: number;
+}
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
@@ -219,6 +232,7 @@ const DEV_CLASSES = [
   "404 Brain Not Found",
   "Sudo Make Me A Sandwich",
 ];
+
 function getDevClass(login: string) {
   let h = 0;
   for (let i = 0; i < login.length; i++)
@@ -227,18 +241,6 @@ function getDevClass(login: string) {
     ((h % DEV_CLASSES.length) + DEV_CLASSES.length) % DEV_CLASSES.length
   ];
 }
-
-interface CityStats {
-  total_developers: number;
-  total_contributions: number;
-  total_stars?: number;
-}
-
-type CityDeveloper = {
-  id: number;
-  github_login: string;
-  [key: string]: unknown;
-};
 
 // Milestones that trigger 24h celebration effects
 const CELEBRATION_MILESTONES = [
@@ -542,7 +544,7 @@ function HomeContent() {
   const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
-  const rawDevsRef = useRef<CityDeveloper[]>([]);
+  const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
   const [river, setRiver] = useState<CityRiver | null>(null);
@@ -1571,8 +1573,11 @@ function HomeContent() {
     if (bustCache) clearCityCache();
     const cacheBust = bustCache ? `?_t=${Date.now()}` : "";
 
-    let allDevs: CityDeveloper[] = [];
-    let cityStats: CityStats | null = null;
+    let allDevs: CityDeveloperRecord[] = [];
+    let cityStats: CityStats = {
+      total_developers: 0,
+      total_contributions: 0,
+    };
 
     // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
     // try {
@@ -1700,8 +1705,11 @@ function HomeContent() {
         setLoadProgress(10);
 
 
-        let allDevs: CityDeveloper[] = [];
-        let cityStats: CityStats | null = null;
+        let allDevs: CityDeveloperRecord[] = [];
+        let cityStats: CityStats = {
+          total_developers: 0,
+          total_contributions: 0,
+        };
 
         // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
         // try {

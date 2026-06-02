@@ -23,6 +23,9 @@ type RaidDefender = {
   current_week_kudos_received?: number | null;
   last_raided_at?: string | null;
   active_defenses?: unknown;
+  public_repos?: number | null;
+  total_stars?: number | null;
+  kudos_count?: number | null;
 };
 
 /**
@@ -234,7 +237,10 @@ export async function POST(request: Request) {
   }
 
   // Estimate building height from contributions
-  const defenderHeight = Math.max(20, Math.min(300, defender.contributions * 0.15));
+  const defenderHeight = Math.max(
+    20,
+    Math.min(300, (defender.contributions ?? 0) * 0.15)
+  );
 
   // Compute available offensive consumables (must have qty > 0 and < 3 weekly uses)
   const currentWeekStr = getIsoWeekStart().toISOString().split('T')[0];
@@ -264,7 +270,7 @@ export async function POST(request: Request) {
     defense_score: defense.total,
     attack_breakdown: attack.breakdown,
     defense_breakdown: defense.breakdown,
-    attacker_login: attacker.github_login,
+    attacker_login: attacker.github_login ?? "",
     defender_login: defender.github_login,
     attacker_avatar: attacker.avatar_url ?? null,
     defender_avatar: isStealthCloak ? null : defender.avatar_url ?? null,
