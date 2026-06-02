@@ -12,6 +12,22 @@ import type { RaidBoostItem } from "@/lib/raid";
 import { findRaidAttackerForUser } from "@/lib/raid-attacker";
 import { getIsoWeekStart } from "@/lib/week";
 
+type RaidDefender = {
+  id: number;
+  claimed: boolean;
+  app_streak?: number | null;
+  avatar_url?: string | null;
+  github_login: string;
+  contributions?: number | null;
+  current_week_contributions?: number | null;
+  current_week_kudos_received?: number | null;
+  last_raided_at?: string | null;
+  active_defenses?: unknown;
+  public_repos?: number | null;
+  total_stars?: number | null;
+  kudos_count?: number | null;
+};
+
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -71,8 +87,8 @@ export async function POST(request: Request) {
     .select("id, claimed, app_streak, avatar_url, github_login, contributions, current_week_contributions, current_week_kudos_received, last_raided_at, active_defenses")
     .eq("github_login", target_login.toLowerCase())
     .single();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const defender = defenderRes.data as Record<string, any> | null;
+
+  const defender = defenderRes.data as RaidDefender | null;
 
   if (!defender) {
     return NextResponse.json({ error: "Target not found" }, { status: 404 });
@@ -133,9 +149,9 @@ export async function POST(request: Request) {
   // Active Defenses
   const activeDefenses: string[] = Array.isArray(defender.active_defenses) ? defender.active_defenses : [];
   const hasSatellite = (attacker.owned_items ?? []).includes("scouting_satellite");
-  
+
   // If attacker has Tactical Satellite, reveal all defenses. Otherwise just the first one.
-  const defenderScoutedDefense = hasSatellite 
+  const defenderScoutedDefense = hasSatellite
     ? (activeDefenses.length > 0 ? activeDefenses.join(", ") : null)
     : (activeDefenses.length > 0 ? activeDefenses[0] : null);
   const isStealthCloak = defenderScoutedDefense?.includes("stealth_cloak") ?? false;
@@ -232,7 +248,10 @@ export async function POST(request: Request) {
   });
 
   // Estimate building height from contributions
-  const defenderHeight = Math.max(20, Math.min(300, defender.contributions * 0.15));
+  const defenderHeight = Math.max(
+    20,
+    Math.min(300, (defender.contributions ?? 0) * 0.15)
+  );
 
   // Compute available offensive consumables (must have qty > 0 and < 3 weekly uses)
   const currentWeekStr = getIsoWeekStart().toISOString().split('T')[0];
@@ -262,7 +281,7 @@ export async function POST(request: Request) {
     defense_score: defense.total,
     attack_breakdown: attack.breakdown,
     defense_breakdown: defense.breakdown,
-    attacker_login: attacker.github_login,
+    attacker_login: attacker.github_login ?? "",
     defender_login: defender.github_login,
     attacker_avatar: attacker.avatar_url ?? null,
     defender_avatar: isStealthCloak ? null : defender.avatar_url ?? null,

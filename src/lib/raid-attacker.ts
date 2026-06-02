@@ -2,12 +2,31 @@ import type { User } from "@supabase/supabase-js";
 
 type AuthUser = Pick<User, "id" | "user_metadata" | "identities">;
 // Supabase route handlers select different developer column sets for preview and execute.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DeveloperRow = Record<string, any> & {
+
+type DeveloperRow = {
   id: number;
   claimed?: boolean | null;
   claimed_by?: string | null;
+
+  github_login: string;
+  avatar_url?: string | null;
+
+  contributions?: number | null;
+  public_repos?: number | null;
+  total_stars?: number | null;
+  kudos_count?: number | null;
+
+  app_streak?: number | null;
+  raid_xp?: number | null;
+  xp_level?: number | null;
+
+  current_week_contributions?: number | null;
+  current_week_kudos_given?: number | null;
+  current_week_kudos_received?: number | null;
+
+  owned_items?: string[];
 };
+
 type DeveloperResult = PromiseLike<{ data: DeveloperRow | null }>;
 type DeveloperQuery = {
   eq(column: string, value: string | number | boolean): DeveloperQuery;
