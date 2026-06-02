@@ -3034,14 +3034,16 @@ function HomeContent() {
                 </div>
                 <div className="mt-2 flex gap-3">
                   <button
+                    type="button"
                     onClick={() => endFly(false)}
                     className="pointer-events-auto btn-press bg-[#4ade80] px-3 py-1.5 text-[10px] font-bold text-bg transition-all hover:brightness-110"
                   >
                     EXIT NOW
                   </button>
                   <button
+                    type="button"
                     onClick={() => setQuotaReached(false)}
-                    className="btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
+                    className="pointer-events-auto btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
                   >
                     KEEP FLYING
                   </button>
