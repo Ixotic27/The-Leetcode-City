@@ -1241,6 +1241,7 @@ function HomeContent() {
 
   // Kudos handler
   const handleGiveKudos = useCallback(async () => {
+    if (!identityResolved) return;
     if (!selectedBuilding || kudosSending || kudosSent || !session) return;
     if (isOwnBuilding) return;
     setKudosSending(true);
@@ -1278,11 +1279,11 @@ function HomeContent() {
     } finally {
       setKudosSending(false);
     }
-  }, [selectedBuilding, kudosSending, kudosSent, session, isOwnBuilding]);
+  }, [selectedBuilding, kudosSending, kudosSent, session, isOwnBuilding, identityResolved]);
 
   // Gift: open modal with available items
   const handleOpenGift = useCallback(async () => {
-    if (!selectedBuilding || !session) return;
+    if (!identityResolved || !selectedBuilding || !session) return;
     setGiftModalOpen(true);
     setGiftItems(null);
     try {
@@ -1300,7 +1301,7 @@ function HomeContent() {
     } catch {
       /* ignore */
     }
-  }, [selectedBuilding, session]);
+  }, [selectedBuilding, session, identityResolved]);
 
   // Gift: checkout for receiver
   const handleGiftCheckout = useCallback(
@@ -5094,49 +5095,51 @@ function HomeContent() {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                  {isOwnBuilding ? (
-                    <>
-                      <Link
-                        href={`/shop/${selfLogin}?tab=loadout`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        Loadout
-                      </Link>
-                      <Link
-                        href={`/dev/${selfLogin}`}
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        Profile
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href={`/dev/${selectedBuilding.login}`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        View Profile
-                      </Link>
-                      <a
-                        href={`https://leetcode.com/u/${selectedBuilding.login}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        LeetCode
-                      </a>
-                    </>
-                  )}
-                </div>
+                {identityResolved && (
+                  <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
+                    {isOwnBuilding ? (
+                      <>
+                        <Link
+                          href={`/shop/${selfLogin}?tab=loadout`}
+                          className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          Loadout
+                        </Link>
+                        <Link
+                          href={`/dev/${selfLogin}`}
+                          className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                        >
+                          Profile
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href={`/dev/${selectedBuilding.login}`}
+                          className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          View Profile
+                        </Link>
+                        <a
+                          href={`https://leetcode.com/u/${selectedBuilding.login}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                        >
+                          LeetCode
+                        </a>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>
