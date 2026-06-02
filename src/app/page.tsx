@@ -646,6 +646,7 @@ function HomeContent() {
   const [flyElapsedSec, setFlyElapsedSec] = useState(0);
   const [quotaReached, setQuotaReached] = useState(false);
   const [quotaNotified, setQuotaNotified] = useState(false);
+  const [quotaDismissed, setQuotaDismissed] = useState(false);
   const [stats, setStats] = useState<CityStats>({
     total_developers: 0,
     total_contributions: 0,
@@ -758,18 +759,6 @@ function HomeContent() {
 
   // XP level-up toast
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
-
-  // Monitor fly score for mission quota
-  useEffect(() => {
-    if (flyMode && !quotaNotified && flyScore.score >= 50) {
-      setQuotaReached(true);
-      setQuotaNotified(true);
-    }
-    if (!flyMode) {
-      setQuotaReached(false);
-      setQuotaNotified(false);
-    }
-  }, [flyMode, flyScore.score, quotaNotified]);
 
   // Fly onboarding
   const [showDailyNudge, setShowDailyNudge] = useState(false);
@@ -1967,6 +1956,7 @@ function HomeContent() {
       clearTimeout(announceTimerRef.current);
       setQuotaReached(false);
       setQuotaNotified(false);
+      setQuotaDismissed(false);
       setFlyElapsedSec(0);
       // Feature 4: Show post-flight results (rank fills in async)
       if (finalScore > 0) {
@@ -2495,6 +2485,35 @@ function HomeContent() {
   // Stable ref so closures (visit useEffect, kudos callback) always use latest
   const trackMissionRef = useRef(trackClientMission);
   trackMissionRef.current = trackClientMission;
+
+  const quotaMissionCompleted = dailiesData?.missions.some(
+    (mission) => mission.id === "fly_score_50" && mission.completed,
+  );
+
+  // Monitor fly score for mission quota
+  useEffect(() => {
+    if (
+      flyMode &&
+      !quotaNotified &&
+      !quotaDismissed &&
+      !quotaMissionCompleted &&
+      flyScore.score >= 50
+    ) {
+      setQuotaReached(true);
+      setQuotaNotified(true);
+    }
+    if (!flyMode) {
+      setQuotaReached(false);
+      setQuotaNotified(false);
+      setQuotaDismissed(false);
+    }
+  }, [
+    flyMode,
+    flyScore.score,
+    quotaDismissed,
+    quotaMissionCompleted,
+    quotaNotified,
+  ]);
 
   // Detect level-up from check-in XP result
   useEffect(() => {
@@ -3053,7 +3072,10 @@ function HomeContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setQuotaReached(false)}
+                    onClick={() => {
+                      setQuotaReached(false);
+                      setQuotaDismissed(true);
+                    }}
                     className="pointer-events-auto btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
                   >
                     KEEP FLYING
@@ -4058,6 +4080,9 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
+                        setQuotaReached(false);
+                        setQuotaNotified(false);
+                        setQuotaDismissed(false);
                         try {
                           setFlyPersonalBest(
                             parseInt(
@@ -4156,6 +4181,9 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
+                      setQuotaReached(false);
+                      setQuotaNotified(false);
+                      setQuotaDismissed(false);
                       try {
                         setFlyPersonalBest(
                           parseInt(
@@ -5780,6 +5808,7 @@ function HomeContent() {
               setFlyElapsedSec(0);
               setQuotaReached(false);
               setQuotaNotified(false);
+              setQuotaDismissed(false);
               setFlyMode(true);
             }}
           />
@@ -6066,6 +6095,9 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
+                  setQuotaReached(false);
+                  setQuotaNotified(false);
+                  setQuotaDismissed(false);
                   try {
                     setFlyPersonalBest(
                       parseInt(
