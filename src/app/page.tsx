@@ -84,6 +84,7 @@ import {
 } from "@/lib/himetrica";
 
 import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
+import { CityDeveloper } from "./types/city";
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
@@ -232,6 +233,12 @@ interface CityStats {
   total_contributions: number;
   total_stars?: number;
 }
+
+type CityDeveloper = {
+  id: number;
+  github_login: string;
+  [key: string]: unknown;
+};
 
 // Milestones that trigger 24h celebration effects
 const CELEBRATION_MILESTONES = [
@@ -535,8 +542,7 @@ function HomeContent() {
   const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawDevsRef = useRef<any[]>([]);
+  const rawDevsRef = useRef<CityDeveloper[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
   const [river, setRiver] = useState<CityRiver | null>(null);
@@ -551,13 +557,13 @@ function HomeContent() {
   const [feedback, setFeedback] = useState<{
     type: "loading" | "error";
     code?:
-      | "not-found"
-      | "org"
-      | "no-activity"
-      | "rate-limit"
-      | "github-rate-limit"
-      | "network"
-      | "generic";
+    | "not-found"
+    | "org"
+    | "no-activity"
+    | "rate-limit"
+    | "github-rate-limit"
+    | "network"
+    | "generic";
     username?: string;
     raw?: string;
   } | null>(null);
@@ -577,7 +583,7 @@ function HomeContent() {
     setWeatherMode(next);
     try {
       localStorage.setItem("leetcodecity_weather_mode", next);
-    } catch {}
+    } catch { }
   };
 
   useEffect(() => {
@@ -592,13 +598,13 @@ function HomeContent() {
       if (savedCycle === "0") {
         setDayNightCycleActive(false);
       }
-    } catch {}
+    } catch { }
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
         setWeatherMode(savedWeather as any);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
@@ -675,10 +681,10 @@ function HomeContent() {
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
               else localStorage.removeItem("leetcodecity_has_vscode_key");
-            } catch {}
+            } catch { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
@@ -804,7 +810,7 @@ function HomeContent() {
         .then((d) => {
           if (d?.stargazers_count != null) setGithubStars(d.stargazers_count);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     const fetchDiscord = () => {
       fetch("https://discord.com/api/v9/invites/tTq4wjfG?with_counts=true")
@@ -813,7 +819,7 @@ function HomeContent() {
           if (d?.approximate_member_count != null)
             setDiscordMembers(d.approximate_member_count);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     fetchStars();
     fetchDiscord();
@@ -850,13 +856,13 @@ function HomeContent() {
         prev.map((b) =>
           b.login === defenderLogin
             ? {
-                ...b,
-                active_raid_tag: {
-                  attacker_login: attackerLogin,
-                  tag_style: tagStyle,
-                  expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
-                },
-              }
+              ...b,
+              active_raid_tag: {
+                attacker_login: attackerLogin,
+                tag_style: tagStyle,
+                expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+              },
+            }
             : b,
         ),
       );
@@ -870,7 +876,7 @@ function HomeContent() {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setSkyAds(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Derived — second focused building for dual-focus camera
@@ -978,7 +984,7 @@ function HomeContent() {
                 // Small delay so the UI has settled after login redirect
                 setTimeout(() => setShowLinkModal(true), 800);
               }
-            } catch {}
+            } catch { }
           }
         }
       },
@@ -991,7 +997,7 @@ function HomeContent() {
   useEffect(() => {
     if (!session || !linkedLeetCodeUsername) return;
     const ping = () =>
-      fetch("/api/lc-pulse", { method: "POST" }).catch(() => {});
+      fetch("/api/lc-pulse", { method: "POST" }).catch(() => { });
     ping(); // fire immediately on account link / page load
     const id = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
     return () => clearInterval(id);
@@ -1109,7 +1115,7 @@ function HomeContent() {
       .then((data) => {
         if (data?.vehicle) setFlyVehicle(data.vehicle);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [sessionUserId]);
 
   // Load theme from DB when logged in (overrides localStorage)
@@ -1130,7 +1136,7 @@ function HomeContent() {
           localStorage.setItem("leetcodecity_theme", String(data.city_theme));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [sessionUserId]);
 
   // Cycle theme: save to localStorage + sync to DB if logged in
@@ -1143,7 +1149,7 @@ function HomeContent() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ city_theme: next }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
       return next;
     });
@@ -1495,7 +1501,7 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch {}
+      } catch { }
     })();
   }, [session]);
 
@@ -1565,10 +1571,8 @@ function HomeContent() {
     if (bustCache) clearCityCache();
     const cacheBust = bustCache ? `?_t=${Date.now()}` : "";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allDevs: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cityStats: any = null;
+    let allDevs: CityDeveloper[] = [];
+    let cityStats: CityStats | null = null;
 
     // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
     // try {
@@ -1617,7 +1621,7 @@ function HomeContent() {
     }
 
     if (allDevs.length === 0) return null;
- 
+
     // Apply localStorage overrides (style, color, billboard, loadout) — TTL 20 min
     applyLocalStorageOverrides(allDevs);
 
@@ -1695,10 +1699,9 @@ function HomeContent() {
         setLoadStage("fetching");
         setLoadProgress(10);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let allDevs: any[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let cityStats: any = null;
+
+        let allDevs: CityDeveloper[] = [];
+        let cityStats: CityStats | null = null;
 
         // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
         // try {
@@ -1888,7 +1891,7 @@ function HomeContent() {
           currentPB,
           parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0,
         );
-      } catch {}
+      } catch { }
       // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
       const isNewPB = currentPB > 0 && finalScore > currentPB;
       // Update personal best
@@ -1897,7 +1900,7 @@ function HomeContent() {
         flyPersonalBestRef.current = finalScore;
         try {
           localStorage.setItem("leetcodecity_fly_pb", String(finalScore));
-        } catch {}
+        } catch { }
       }
       // Update fly history (streak, days played, per-seed scores)
       if (finalScore > 0) {
@@ -1912,11 +1915,11 @@ function HomeContent() {
           const hist = raw
             ? JSON.parse(raw)
             : {
-                seeds: {},
-                currentStreak: 0,
-                longestStreak: 0,
-                lastPlayedSeed: "",
-              };
+              seeds: {},
+              currentStreak: 0,
+              longestStreak: 0,
+              lastPlayedSeed: "",
+            };
           const prev = hist.seeds[currentSeed];
           hist.seeds[currentSeed] = {
             bestScore: Math.max(prev?.bestScore ?? 0, finalScore),
@@ -1946,7 +1949,7 @@ function HomeContent() {
             "leetcodecity_fly_history",
             JSON.stringify(hist),
           );
-        } catch {}
+        } catch { }
       }
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
@@ -1997,7 +2000,7 @@ function HomeContent() {
                 );
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
     },
@@ -2441,8 +2444,8 @@ function HomeContent() {
   // Determine if the logged-in user has their synced building
   const myBuilding = linkedLeetCodeUsername
     ? buildings.find(
-        (b) => b.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase(),
-      )
+      (b) => b.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase(),
+    )
     : null;
 
   const needsToLink = !!session && !linkedLeetCodeUsername;
@@ -2536,7 +2539,7 @@ function HomeContent() {
       .then((data) => {
         if (Array.isArray(data)) setMilestoneCelebrations(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Record milestone when crossed
@@ -2567,7 +2570,7 @@ function HomeContent() {
           ]);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [stats.total_developers, milestoneCelebrations]);
 
   // Feature 1: Daily Challenge Nudge — show after load if user has history but hasn't played today
@@ -2591,7 +2594,7 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch {}
+      } catch { }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2615,7 +2618,7 @@ function HomeContent() {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch {}
+        } catch { }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -2761,7 +2764,7 @@ function HomeContent() {
         }}
         introMode={introMode}
         onIntroEnd={endIntro}
-        onFocusInfo={() => {}}
+        onFocusInfo={() => { }}
         ghostPreviewLogin={ghostPreviewLogin}
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
@@ -3205,7 +3208,7 @@ function HomeContent() {
                 setShowFlyControls(false);
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-                } catch {}
+                } catch { }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", {
@@ -3291,15 +3294,14 @@ function HomeContent() {
                   const next = !prev;
                   try {
                     localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
-                  } catch {}
+                  } catch { }
                   return next;
                 });
               }}
-              className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${
-                dayNightCycleActive
-                  ? "border-amber-500/80 bg-amber-500/10 text-amber-400 hover:border-amber-400"
-                  : "border-border bg-bg/70 text-cream hover:border-border-light"
-              }`}
+              className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${dayNightCycleActive
+                ? "border-amber-500/80 bg-amber-500/10 text-amber-400 hover:border-amber-400"
+                : "border-border bg-bg/70 text-cream hover:border-border-light"
+                }`}
             >
               <span style={{ color: theme.accent }}>&#9654;</span>
               <span>{dayNightCycleActive ? "CYCLE ON" : "CYCLE OFF"}</span>
@@ -3708,7 +3710,7 @@ function HomeContent() {
                                     if (data.key) {
                                       setVsCodeKey(data.key);
                                       setHasVsCodeKey(true);
-                                      try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch {}
+                                      try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
                                       setTimeout(
@@ -3797,117 +3799,117 @@ function HomeContent() {
             <div className="hidden sm:flex sm:justify-center w-full">
               {MILESTONE_MODE === "stars"
                 ? // ── LeetCode Stars mode ──
-                  (() => {
-                    const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
-                    const current = githubStars;
-                    const target = MILESTONES.find((m) => current < m) || 10000;
-                    const pct = Math.min(100, (current / target) * 100);
-                    const isDone = current >= target;
+                (() => {
+                  const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
+                  const current = githubStars;
+                  const target = MILESTONES.find((m) => current < m) || 10000;
+                  const pct = Math.min(100, (current / target) * 100);
+                  const isDone = current >= target;
 
-                    return (
-                      <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
-                        <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
-                          <span>
-                            {isDone
-                              ? "GOAL REACHED"
-                              : `ROAD TO ${target} STARS`}
+                  return (
+                    <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
+                      <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
+                        <span>
+                          {isDone
+                            ? "GOAL REACHED"
+                            : `ROAD TO ${target} STARS`}
+                        </span>
+                        <span style={{ color: theme.accent }}>
+                          {Math.max(0, target - current).toLocaleString()} TO
+                          GO
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: theme.accent,
+                            boxShadow: `0 0 10px ${theme.accent}`,
+                          }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[8px] text-dim uppercase tracking-wider">
+                        <span>
+                          {current.toLocaleString()} /{" "}
+                          {target.toLocaleString()}
+                        </span>
+                        <a
+                          href="https://github.com/Ixotic27/The-Leetcode-City"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#ffa116] hover:underline"
+                        >
+                          Source code
+                        </a>
+                        {" | "}
+                        <a
+                          href="https://github.com/srizzon/git-city"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#ffa116] hover:underline"
+                        >
+                          Original Repo
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })()
+                : // ── Total Developers mode ──
+                (() => {
+                  const MILESTONES = [10000, 20000, 50000, 100000];
+                  const count = stats.total_developers;
+                  if (count <= 0) return null;
+
+                  const target = MILESTONES.find((m) => count < m);
+                  if (!target) return null;
+                  const prev =
+                    MILESTONES[MILESTONES.indexOf(target) - 1] ?? 0;
+                  const progress = ((count - prev) / (target - prev)) * 100;
+                  const remaining = target - count;
+                  const label =
+                    target >= 1000
+                      ? `${target / 1000}K`
+                      : target.toLocaleString();
+                  return (
+                    <div className="w-full max-w-sm">
+                      <div className="border-[2px] border-border bg-bg/80 px-4 py-3 backdrop-blur-sm">
+                        <div className="mb-2 flex items-baseline justify-between">
+                          <span
+                            className="text-[9px] tracking-wider"
+                            style={{ color: theme.accent }}
+                          >
+                            ROAD TO {label}
                           </span>
-                          <span style={{ color: theme.accent }}>
-                            {Math.max(0, target - current).toLocaleString()} TO
-                            GO
+                          <span className="text-[9px] text-cream/60">
+                            {remaining.toLocaleString()} to go
                           </span>
                         </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div className="relative h-2.5 w-full overflow-hidden border-[2px] border-border bg-bg">
                           <div
-                            className="h-full rounded-full transition-all duration-1000 ease-out"
+                            className="absolute inset-y-0 left-0 transition-all duration-1000"
                             style={{
-                              width: `${pct}%`,
+                              width: `${progress}%`,
                               backgroundColor: theme.accent,
-                              boxShadow: `0 0 10px ${theme.accent}`,
+                              boxShadow: `0 0 8px ${theme.accent}60`,
                             }}
                           />
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-[8px] text-dim uppercase tracking-wider">
-                          <span>
-                            {current.toLocaleString()} /{" "}
-                            {target.toLocaleString()}
+                        <div className="mt-2 flex items-baseline justify-between">
+                          <span className="text-[10px] text-cream">
+                            {count.toLocaleString()}{" "}
+                            <span className="text-cream/40">
+                              / {target.toLocaleString()}
+                            </span>
                           </span>
-                          <a
-                            href="https://github.com/Ixotic27/The-Leetcode-City"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#ffa116] hover:underline"
-                          >
-                            Source code
-                          </a>
-                          {" | "}
-                          <a
-                            href="https://github.com/srizzon/git-city"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#ffa116] hover:underline"
-                          >
-                            Original Repo
-                          </a>
+                          <span className="text-[8px] text-cream/40 normal-case">
+                            Something unlocks at {label}...
+                          </span>
                         </div>
                       </div>
-                    );
-                  })()
-                : // ── Total Developers mode ──
-                  (() => {
-                    const MILESTONES = [10000, 20000, 50000, 100000];
-                    const count = stats.total_developers;
-                    if (count <= 0) return null;
-
-                    const target = MILESTONES.find((m) => count < m);
-                    if (!target) return null;
-                    const prev =
-                      MILESTONES[MILESTONES.indexOf(target) - 1] ?? 0;
-                    const progress = ((count - prev) / (target - prev)) * 100;
-                    const remaining = target - count;
-                    const label =
-                      target >= 1000
-                        ? `${target / 1000}K`
-                        : target.toLocaleString();
-                    return (
-                      <div className="w-full max-w-sm">
-                        <div className="border-[2px] border-border bg-bg/80 px-4 py-3 backdrop-blur-sm">
-                          <div className="mb-2 flex items-baseline justify-between">
-                            <span
-                              className="text-[9px] tracking-wider"
-                              style={{ color: theme.accent }}
-                            >
-                              ROAD TO {label}
-                            </span>
-                            <span className="text-[9px] text-cream/60">
-                              {remaining.toLocaleString()} to go
-                            </span>
-                          </div>
-                          <div className="relative h-2.5 w-full overflow-hidden border-[2px] border-border bg-bg">
-                            <div
-                              className="absolute inset-y-0 left-0 transition-all duration-1000"
-                              style={{
-                                width: `${progress}%`,
-                                backgroundColor: theme.accent,
-                                boxShadow: `0 0 8px ${theme.accent}60`,
-                              }}
-                            />
-                          </div>
-                          <div className="mt-2 flex items-baseline justify-between">
-                            <span className="text-[10px] text-cream">
-                              {count.toLocaleString()}{" "}
-                              <span className="text-cream/40">
-                                / {target.toLocaleString()}
-                              </span>
-                            </span>
-                            <span className="text-[8px] text-cream/40 normal-case">
-                              Something unlocks at {label}...
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                    </div>
+                  );
+                })()}
             </div>
 
             {/* Search / Welcome CTA takeover */}
@@ -4050,7 +4052,7 @@ function HomeContent() {
                           setFlyPersonalBest(
                             parseInt(
                               localStorage.getItem("leetcodecity_fly_pb") ||
-                                "0",
+                              "0",
                               10,
                             ) || 0,
                           );
@@ -4105,7 +4107,7 @@ function HomeContent() {
                                   "leetcodecity_fly_hint_seen",
                                   "1",
                                 );
-                              } catch {}
+                              } catch { }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -4254,8 +4256,8 @@ function HomeContent() {
                           className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
                           style={
                             streakData &&
-                            streakData.streak > 0 &&
-                            streakData.checked_in
+                              streakData.streak > 0 &&
+                              streakData.checked_in
                               ? { animation: "streak-pulse 1.5s ease-in-out 2" }
                               : undefined
                           }
@@ -4383,8 +4385,8 @@ function HomeContent() {
                       className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
                       style={
                         streakData &&
-                        streakData.streak > 0 &&
-                        streakData.checked_in
+                          streakData.streak > 0 &&
+                          streakData.checked_in
                           ? { animation: "streak-pulse 1.5s ease-in-out 2" }
                           : undefined
                       }
@@ -4771,13 +4773,13 @@ function HomeContent() {
                     { label: "Solved", value: solved.toLocaleString() },
                     ...(easySolved || medSolved || hardSolved
                       ? [
-                          { label: "Easy", value: easySolved.toLocaleString() },
-                          {
-                            label: "Medium",
-                            value: medSolved.toLocaleString(),
-                          },
-                          { label: "Hard", value: hardSolved.toLocaleString() },
-                        ]
+                        { label: "Easy", value: easySolved.toLocaleString() },
+                        {
+                          label: "Medium",
+                          value: medSolved.toLocaleString(),
+                        },
+                        { label: "Hard", value: hardSolved.toLocaleString() },
+                      ]
                       : []),
                     {
                       label: "Streak",
@@ -5208,12 +5210,12 @@ function HomeContent() {
             key: keyof CityBuilding;
             invert?: boolean;
           }[] = [
-            { label: "City Rank", key: "rank", invert: true },
-            { label: "Solved", key: "contributions" },
-            { label: "Reputation", key: "total_stars" },
-            { label: "LC Rank", key: "public_repos", invert: true },
-            { label: "Kudos", key: "kudos_count" },
-          ];
+              { label: "City Rank", key: "rank", invert: true },
+              { label: "Solved", key: "contributions" },
+              { label: "Reputation", key: "total_stars" },
+              { label: "LC Rank", key: "public_repos", invert: true },
+              { label: "Kudos", key: "kudos_count" },
+            ];
           let totalAWins = 0;
           let totalBWins = 0;
           const cmpRows = compareStatDefs.map((s) => {
