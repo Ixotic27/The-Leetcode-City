@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import { findRaidAttackerForUser, getAuthLoginCandidates } from "../raid-attacker";
 
 type DeveloperRow = {
@@ -20,6 +21,14 @@ function makeAdmin(rows: DeveloperRow[]) {
           const query = {
             eq(column: keyof DeveloperRow, value: string | number | boolean) {
               filters.push((row) => row[column] === value);
+              return query;
+            },
+            ilike(column: keyof DeveloperRow, value: string) {
+              filters.push((row) => {
+                const val = row[column];
+                if (typeof val !== "string") return false;
+                return val.toLowerCase() === value.toLowerCase();
+              });
               return query;
             },
             limit() {
@@ -61,7 +70,7 @@ describe("raid attacker lookup", () => {
           },
         },
       ],
-    });
+    } as any);
 
     expect(candidates).toEqual(["saurabhhhcodes"]);
   });

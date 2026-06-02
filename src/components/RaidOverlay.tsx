@@ -216,6 +216,7 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
                   <p>{raidData.attack_breakdown.streak} streak</p>
                   <p>{raidData.attack_breakdown.kudos} kudos</p>
                   {raidData.attack_breakdown.boost ? <p>{raidData.attack_breakdown.boost} boost</p> : null}
+                  {raidData.attack_breakdown.vehicle_bonus ? <p>{raidData.attack_breakdown.vehicle_bonus} vehicle bonus</p> : null}
                 </div>
               </div>
 

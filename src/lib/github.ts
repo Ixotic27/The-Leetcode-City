@@ -42,6 +42,13 @@ export interface DeveloperRecord {
   xp_level?: number;
   xp_github?: number;
   building_style?: string; // bungalow | tower
+  // LeetCode-specific fields
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  acceptance_rate?: number;
+  contest_rating?: number;
+  lc_streak?: number;
 }
 
 export interface TopRepo {

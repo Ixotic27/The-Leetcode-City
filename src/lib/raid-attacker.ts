@@ -11,6 +11,7 @@ type DeveloperRow = Record<string, any> & {
 type DeveloperResult = PromiseLike<{ data: DeveloperRow | null }>;
 type DeveloperQuery = {
   eq(column: string, value: string | number | boolean): DeveloperQuery;
+  ilike(column: string, value: string): DeveloperQuery;
   limit(count: number): DeveloperQuery;
   maybeSingle(): DeveloperResult;
 };
@@ -150,20 +151,20 @@ export async function findRaidAttackerForUser(
 
   for (const login of getAuthLoginCandidates(user)) {
     const loginMatchedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-      query.eq("github_login", login).limit(1).maybeSingle(),
+      query.ilike("github_login", login).limit(1).maybeSingle(),
     );
     const loginAttacker = await prepareAttacker(developerAdmin, loginMatchedDeveloper, user.id, false);
     if (loginAttacker) return loginAttacker;
 
     const lcUsernameMatchedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-      query.eq("lc_username", login).limit(1).maybeSingle(),
+      query.ilike("lc_username", login).limit(1).maybeSingle(),
     );
     const lcUsernameAttacker = await prepareAttacker(developerAdmin, lcUsernameMatchedDeveloper, user.id, false);
     if (lcUsernameAttacker) return lcUsernameAttacker;
 
     for (const profileUrl of getGitHubProfileVariants(login)) {
       const profileLinkedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-        query.eq("lc_github", profileUrl).limit(1).maybeSingle(),
+        query.ilike("lc_github", profileUrl).limit(1).maybeSingle(),
       );
       const profileLinkedAttacker = await prepareAttacker(developerAdmin, profileLinkedDeveloper, user.id, true);
       if (profileLinkedAttacker) return profileLinkedAttacker;

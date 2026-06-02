@@ -25,7 +25,7 @@ interface ExplosionData {
 
 // ─── Constants ────────────────────────────────────────────────
 
-const ATTACK_DURATION = 6;
+const ATTACK_DURATION = 4;
 const ORBIT_RADIUS = 55;
 const ORBIT_HEIGHT = 30;
 const ORBIT_SPEED = 0.8;
@@ -33,9 +33,14 @@ const PROJECTILE_COUNT = 15;
 const TANK_SHELL_COUNT = 6;
 const DEBRIS_COUNT = 50;
 const SMOKE_COUNT = 40;
-const TANK_FIRE_DELAY = 0.65;
-const TANK_FIRE_INTERVAL = 0.85;
+const TANK_FIRE_DELAY = 0.45;
+const TANK_FIRE_INTERVAL = 0.65;
 const TANK_FIRE_FLASH_DURATION = 0.16;
+
+// Ground vehicle constants
+const GROUND_FIRE_OFFSET = 85;
+const GROUND_VEHICLES = new Set(["vehicle_tank"]);
+const isGroundVehicle = (type: string) => GROUND_VEHICLES.has(type);
 
 // ─── Easing ───────────────────────────────────────────────────
 
@@ -294,7 +299,7 @@ function RocketMesh() {
   return (
     <group>
       {/* Nose cone */}
-      <mesh position={[0, 0, -3]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, -3]} rotation={[-Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.7, 1.8, 6]} />
         <meshStandardMaterial color="#cc3333" emissive="#aa2222" emissiveIntensity={0.8} />
       </mesh>
@@ -468,7 +473,7 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
   });
 
   return (
-    <group ref={tankRef} position={[0, -0.8, 0]}> {/* Offset down to simulate ground level */}
+    <group ref={tankRef} position={[0, 0.4, 0]}> {/* Offset up to set treads bottom at local Y=0 */}
       {/* Main Hull */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.5, 0.6, 2.5]} />
@@ -871,9 +876,10 @@ function SmokeTrail({ vehicleRef, active }: {
 
 // ─── Shockwave Ring ──────────────────────────────────────────
 
-function Shockwave({ active, position }: {
+function Shockwave({ active, position, isMissile = false }: {
   active: boolean;
   position: THREE.Vector3;
+  isMissile?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const timeRef = useRef(0);
@@ -887,7 +893,7 @@ function Shockwave({ active, position }: {
     timeRef.current += delta;
     const t = timeRef.current;
 
-    const scale = t * 60;
+    const scale = t * (isMissile ? 95 : 60);
     meshRef.current.scale.set(scale, scale, 1);
 
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
@@ -912,21 +918,35 @@ function Shockwave({ active, position }: {
 
 // ─── Projectile Pool (fires FROM vehicle) ────────────────────
 
-function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "vehicle" }: {
+function ProjectilePool({
+  active,
+  vehicleRef,
+  targetPos,
+  onImpact,
+  origin = "vehicle",
+  isDrone = false,
+  vehicleType,
+  flightDir,
+}: {
   active: boolean;
   vehicleRef: React.RefObject<THREE.Group | null>;
   targetPos: THREE.Vector3;
   onImpact: () => void;
   origin?: "vehicle" | "tank_cannon";
+  isDrone?: boolean;
+  vehicleType?: string;
+  flightDir?: THREE.Vector3;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const glowRef = useRef<THREE.InstancedMesh>(null);
   const isTankShell = origin === "tank_cannon";
+  const isBomber = vehicleType === "raid_b2_bomber";
   const projectileCount = isTankShell ? TANK_SHELL_COUNT : PROJECTILE_COUNT;
   const [explosions, setExplosions] = useState<ExplosionData[]>([]);
   const projectiles = useRef<{
     pos: THREE.Vector3;
     vel: THREE.Vector3;
+    target: THREE.Vector3;
     alive: boolean;
     spawned: boolean;
   }[]>([]);
@@ -940,19 +960,26 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
     projectiles.current = Array.from({ length: projectileCount }, () => ({
       pos: new THREE.Vector3(),
       vel: new THREE.Vector3(),
+      target: new THREE.Vector3(),
       alive: false,
       spawned: false,
     }));
     nextSpawnIdx.current = 0;
-    spawnTimer.current = isTankShell ? TANK_FIRE_INTERVAL - TANK_FIRE_DELAY : -1.8; // Delay before first projectile
+    if (isTankShell) {
+      spawnTimer.current = TANK_FIRE_INTERVAL - TANK_FIRE_DELAY;
+    } else if (isBomber) {
+      spawnTimer.current = -0.8; // Starts spawning at t = 0.8s
+    } else {
+      spawnTimer.current = -1.8; // Starts spawning at t = 1.8s
+    }
     impactCount.current = 0;
-  }, [active, projectileCount, isTankShell]);
+  }, [active, projectileCount, isTankShell, isBomber]);
 
   useFrame((_, delta) => {
     if (!active || !meshRef.current) return;
     spawnTimer.current += delta;
 
-    const spawnInterval = isTankShell ? TANK_FIRE_INTERVAL : 0.18;
+    const spawnInterval = isTankShell ? TANK_FIRE_INTERVAL : (isBomber ? 0.10 : 0.18);
     if (nextSpawnIdx.current < projectileCount && spawnTimer.current >= spawnInterval) {
       spawnTimer.current = 0;
       const p = projectiles.current[nextSpawnIdx.current];
@@ -968,8 +995,9 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
           if (aimDir.lengthSq() < 0.001) aimDir.set(0, 0, 1);
           aimDir.normalize();
           p.pos.addScaledVector(aimDir, 4.9);
-          p.pos.y -= 0.7;
+          p.pos.y = _worldPos.y + 1.7;
 
+          p.target.copy(targetPos);
           p.vel
             .copy(targetPos)
             .sub(p.pos)
@@ -980,7 +1008,39 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
               12 + Math.random() * 4,
               (Math.random() - 0.5) * 4,
             ));
+        } else if (isDrone) {
+          // Dual alternating wingtip lasers for the drone!
+          const sideOffset = nextSpawnIdx.current % 2 === 0 ? -1.2 : 1.2;
+          const _localOffset = new THREE.Vector3(sideOffset, -0.2, -0.8);
+          _localOffset.applyQuaternion(vehicleRef.current.quaternion);
+          p.pos.add(_localOffset);
+
+          p.target.copy(targetPos);
+          p.vel
+            .copy(targetPos)
+            .sub(p.pos)
+            .normalize()
+            .multiplyScalar(150)
+            .add(new THREE.Vector3(
+              (Math.random() - 0.5) * 6,
+              (Math.random() - 0.5) * 4,
+              (Math.random() - 0.5) * 6,
+            ));
+        } else if (isBomber) {
+          // B-2 Bomber bomb: drops from plane with physics/gravity
+          const T = 0.8 + Math.random() * 0.3; // duration of fall (staggered)
+          // Add a random offset on the roof of the building so they bomb different parts of it
+          const tPos = targetPos.clone().add(new THREE.Vector3(
+            (Math.random() - 0.5) * 14,
+            0,
+            (Math.random() - 0.5) * 14
+          ));
+          p.target.copy(tPos);
+          p.vel.x = (tPos.x - p.pos.x) / T;
+          p.vel.z = (tPos.z - p.pos.z) / T;
+          p.vel.y = (tPos.y - p.pos.y) / T + 0.5 * 20 * T; // Account for gravity acceleration of 20 units/s^2
         } else {
+          p.target.copy(targetPos);
           p.vel
             .copy(targetPos)
             .sub(p.pos)
@@ -1008,7 +1068,8 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
       p.vel.y -= (isTankShell ? 12 : 20) * delta;
       p.pos.addScaledVector(p.vel, delta);
 
-      if (p.pos.distanceTo(targetPos) < (isTankShell ? 12 : 10)) {
+      const checkDist = isTankShell ? 12 : (isBomber ? 3 : 10);
+      if (p.pos.distanceTo(p.target) < checkDist || (isBomber && p.pos.y <= p.target.y)) {
         p.alive = false;
         impactCount.current++;
         if (impactCount.current % 2 === 0) playRaidSound("impact");
@@ -1043,21 +1104,21 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
     <group>
       {/* Core — small bright bullet */}
       <instancedMesh ref={meshRef} args={[undefined, undefined, projectileCount]} frustumCulled={false}>
-        <sphereGeometry args={[isTankShell ? 0.45 : 0.6, 6, 6]} />
+        <sphereGeometry args={[isTankShell ? 0.45 : (isDrone ? 0.35 : (isBomber ? 0.85 : 0.6)), 6, 6]} />
         <meshStandardMaterial
-          color={isTankShell ? "#f5d08a" : "#ffaa00"}
-          emissive={isTankShell ? "#ff8c1a" : "#ff6600"}
-          emissiveIntensity={isTankShell ? 10 : 8}
+          color={isTankShell ? "#f5d08a" : (isDrone ? "#00f5ff" : (isBomber ? "#ff3333" : "#ffaa00"))}
+          emissive={isTankShell ? "#ff8c1a" : (isDrone ? "#0099ff" : (isBomber ? "#cc0000" : "#ff6600"))}
+          emissiveIntensity={isTankShell ? 10 : (isDrone ? 12 : 8)}
           toneMapped={false}
         />
       </instancedMesh>
       {/* Glow halo — larger, transparent, trails behind */}
       <instancedMesh ref={glowRef} args={[undefined, undefined, projectileCount]} frustumCulled={false}>
-        <sphereGeometry args={[isTankShell ? 1.35 : 2, 8, 8]} />
+        <sphereGeometry args={[isTankShell ? 1.35 : (isDrone ? 1.4 : (isBomber ? 2.5 : 2)), 8, 8]} />
         <meshBasicMaterial
-          color={isTankShell ? "#ffb347" : "#ff4400"}
+          color={isTankShell ? "#ffb347" : (isDrone ? "#00baff" : (isBomber ? "#ff1111" : "#ff4400"))}
           transparent
-          opacity={isTankShell ? 0.35 : 0.25}
+          opacity={isTankShell ? 0.35 : (isDrone ? 0.4 : (isBomber ? 0.35 : 0.25))}
           depthWrite={false}
         />
       </instancedMesh>
@@ -1067,6 +1128,7 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
         <ExplosionParticles
           key={exp.id}
           position={exp.position}
+          isDrone={isDrone}
           onComplete={() => {
             // Clean up the explosion state once the animation finishes
             setExplosions((prev) => prev.filter((e) => e.id !== exp.id));
@@ -1079,7 +1141,7 @@ function ProjectilePool({ active, vehicleRef, targetPos, onImpact, origin = "veh
 
 // ─── Debris Particles (enhanced with fire) ───────────────────
 
-function DebrisParticles({ active, origin }: { active: boolean; origin: THREE.Vector3 }) {
+function DebrisParticles({ active, origin, isMissile = false }: { active: boolean; origin: THREE.Vector3; isMissile?: boolean }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const glowRef = useRef<THREE.InstancedMesh>(null);
   const particles = useRef<{ pos: THREE.Vector3; vel: THREE.Vector3; alive: boolean; size: number }[]>([]);
@@ -1090,7 +1152,7 @@ function DebrisParticles({ active, origin }: { active: boolean; origin: THREE.Ve
     if (!active) return;
     particles.current = Array.from({ length: DEBRIS_COUNT }, () => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 15 + Math.random() * 30;
+      const speed = isMissile ? (28 + Math.random() * 42) : (15 + Math.random() * 30);
       return {
         pos: origin.clone().add(new THREE.Vector3(
           (Math.random() - 0.5) * 6,
@@ -1099,14 +1161,14 @@ function DebrisParticles({ active, origin }: { active: boolean; origin: THREE.Ve
         )),
         vel: new THREE.Vector3(
           Math.cos(angle) * speed,
-          Math.random() * 25 + 15,
+          Math.random() * (isMissile ? 45 : 25) + 15,
           Math.sin(angle) * speed,
         ),
         alive: true,
-        size: 0.2 + Math.random() * 0.5,
+        size: isMissile ? (0.4 + Math.random() * 0.9) : (0.2 + Math.random() * 0.5),
       };
     });
-  }, [active, origin]);
+  }, [active, origin, isMissile]);
 
   useFrame((_, delta) => {
     if (!active || !meshRef.current) return;
@@ -1155,7 +1217,7 @@ function DebrisParticles({ active, origin }: { active: boolean; origin: THREE.Ve
 
 // ─── Fire Glow (post-explosion light) ────────────────────────
 
-function FireGlow({ active, position }: { active: boolean; position: THREE.Vector3 }) {
+function FireGlow({ active, position, isMissile = false }: { active: boolean; position: THREE.Vector3; isMissile?: boolean }) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(({ clock }) => {
@@ -1164,7 +1226,7 @@ function FireGlow({ active, position }: { active: boolean; position: THREE.Vecto
       + Math.sin(clock.elapsedTime * 15) * 0.15
       + Math.sin(clock.elapsedTime * 23) * 0.1
       + Math.sin(clock.elapsedTime * 37) * 0.05;
-    lightRef.current.intensity = 30 * flicker;
+    lightRef.current.intensity = (isMissile ? 80 : 30) * flicker;
   });
 
   if (!active) return null;
@@ -1174,9 +1236,9 @@ function FireGlow({ active, position }: { active: boolean; position: THREE.Vecto
       ref={lightRef}
       position={[position.x, position.y + 5, position.z]}
       color="#ff4400"
-      intensity={30}
-      distance={80}
-      decay={2}
+      intensity={isMissile ? 80 : 30}
+      distance={isMissile ? 140 : 80}
+      decay={1.8}
     />
   );
 }
@@ -1261,6 +1323,16 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     return new THREE.Vector3(defender.position[0], defender.height + 5, defender.position[2]);
   }, [defender]);
 
+  const defenderMiddlePos = useMemo(() => {
+    if (!defender) return new THREE.Vector3(100, 40, 0);
+    return new THREE.Vector3(defender.position[0], defender.height * 0.5, defender.position[2]);
+  }, [defender]);
+
+  const defenderLowerPos = useMemo(() => {
+    if (!defender) return new THREE.Vector3(100, 15, 0);
+    return new THREE.Vector3(defender.position[0], Math.max(6, defender.height * 0.15), defender.position[2]);
+  }, [defender]);
+
   // Orbit entry: arrive from the attacker's direction
   const orbitStartAngle = useMemo(() => {
     return Math.atan2(
@@ -1279,12 +1351,27 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
   // Direction from attacker toward defender (horizontal)
   const flightDir = useMemo(() => {
-    return new THREE.Vector3(
+    const dir = new THREE.Vector3(
       defenderTopPos.x - attackerPos.x,
       0,
       defenderTopPos.z - attackerPos.z,
-    ).normalize();
+    );
+    if (dir.lengthSq() < 1.0) {
+      // Fallback direction if attacker and defender are at the same spot (e.g. self-attack)
+      return new THREE.Vector3(1, 0, 0);
+    }
+    return dir.normalize();
   }, [attackerPos, defenderTopPos]);
+
+  const rocketImpactPos = useMemo(() => {
+    if (!defender) return defenderTopPos;
+    const buildingRadius = Math.max(defender.width ?? 10, defender.depth ?? 10) * 0.5;
+    return new THREE.Vector3(
+      defender.position[0] - flightDir.x * buildingRadius,
+      defenderTopPos.y,
+      defender.position[2] - flightDir.z * buildingRadius
+    );
+  }, [defender, defenderTopPos, flightDir]);
 
   // Where the intro liftoff ends (must match intro phase final position)
   const liftEndPos = useMemo(() => {
@@ -1320,6 +1407,54 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       orbitEntryPos.clone(),
     ]);
   }, [liftEndPos, orbitEntryPos, flightDir]);
+
+  // Vehicle type detection
+  const vehicleType = raidData?.vehicle ?? "airplane";
+  const isGround = useMemo(() => isGroundVehicle(vehicleType), [vehicleType]);
+
+  // Ground vehicle positions: start at attacker ground level, drive to defender
+  const groundStartPos = useMemo(() => {
+    return new THREE.Vector3(
+      attackerPos.x,
+      0.35, // ground level (concrete walkways)
+      attackerPos.z,
+    );
+  }, [attackerPos]);
+
+  const groundFirePos = useMemo(() => {
+    // Fire position: on the ground, GROUND_FIRE_OFFSET away from defender
+    return new THREE.Vector3(
+      defenderTopPos.x - flightDir.x * GROUND_FIRE_OFFSET,
+      0.35, // ground level (concrete walkways)
+      defenderTopPos.z - flightDir.z * GROUND_FIRE_OFFSET,
+    );
+  }, [defenderTopPos, flightDir]);
+
+  const groundDriveEndPos = useMemo(() => {
+    // Where the intro drive-forward ends (ground level, 8 units forward)
+    return new THREE.Vector3(
+      attackerPos.x + flightDir.x * 8,
+      0.35, // ground level (concrete walkways)
+      attackerPos.z + flightDir.z * 8,
+    );
+  }, [attackerPos, flightDir]);
+
+  // Ground flight curve: straight line on the ground with slight approach curve
+  const groundFlightCurve = useMemo(() => {
+    const mid = new THREE.Vector3().lerpVectors(groundDriveEndPos, groundFirePos, 0.5);
+    mid.y = 0.35; // flat on walkway ground level
+    // Slight S-curve for visual interest (not a straight line)
+    const perpX = -flightDir.z;
+    const perpZ = flightDir.x;
+    mid.x += perpX * 8;
+    mid.z += perpZ * 8;
+
+    return new THREE.CatmullRomCurve3([
+      groundDriveEndPos.clone(),
+      mid,
+      groundFirePos.clone(),
+    ]);
+  }, [groundDriveEndPos, groundFirePos, flightDir]);
 
   // Defense strength
   const defenseStrength = useMemo((): "weak" | "medium" | "strong" => {
@@ -1364,6 +1499,17 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     phaseTimeRef.current += delta;
     const t = phaseTimeRef.current;
 
+    // Direct frame-perfect visibility control for the kamikaze rocket to keep it hidden/destroyed
+    if (vehicleRef.current) {
+      const shouldHideRocket = vehicleType === "raid_rocket" && (
+        climaxTriggered.current ||
+        phase === "outro_win" ||
+        phase === "outro_lose" ||
+        phase === "share"
+      );
+      vehicleRef.current.visible = !shouldHideRocket;
+    }
+
     // ── Camera Shake: sine oscillation with exponential decay ──
     const s = shakeRef.current;
     if (s.intensity > 0.01) {
@@ -1390,211 +1536,427 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     }
 
     switch (phase) {
-      // ───────── INTRO: camera focuses, vehicle parked, then lifts off ─────────
+      // ───────── INTRO: camera focuses, vehicle starts, then moves out ─────────
       case "intro": {
-        const rooftopY = attackerPos.y - 10; // attackerPos is height+10, rooftop is height
+        const rooftopY = attackerPos.y - 10;
 
-        // Phase 1 (0-2.5s): camera dolly in, vehicle parked on rooftop
-        // Phase 2 (2.5-4.5s): vehicle lifts off
-        const camProgress = Math.min(t / 2.5, 1);
-        const camEase = smoothstep(camProgress);
+        if (isGround) {
+          // ── GROUND INTRO: tank rumbles on the ground then drives forward ──
+          const camProgress = Math.min(t / 1.5, 1);
+          const camEase = smoothstep(camProgress);
 
-        // Camera: start behind attacker, dolly in
-        const camBehindX = -flightDir.x;
-        const camBehindZ = -flightDir.z;
-        const camStartDist = 90 - camEase * 45;
-        const camStartY = attackerPos.y + 50 - camEase * 25;
+          // Camera: low behind attacker, dolly in close to ground
+          const camBehindX = -flightDir.x;
+          const camBehindZ = -flightDir.z;
+          const camStartDist = 60 - camEase * 25;
+          const camStartY = 8 + camEase * 6;
 
-        _camTarget.set(
-          attackerPos.x + camBehindX * camStartDist,
-          camStartY,
-          attackerPos.z + camBehindZ * camStartDist,
-        );
+          _camTarget.set(
+            groundStartPos.x + camBehindX * camStartDist,
+            camStartY,
+            groundStartPos.z + camBehindZ * camStartDist,
+          );
 
-        // First frame: snap camera instantly (don't lerp from orbit controls position)
-        if (!cameraSnapped.current) {
-          cameraSnapped.current = true;
-          camera.position.copy(_camTarget);
+          if (!cameraSnapped.current) {
+            cameraSnapped.current = true;
+            camera.position.copy(_camTarget);
+          } else {
+            camera.position.lerp(_camTarget, 0.08);
+          }
+          camera.lookAt(groundStartPos);
+
+          if (vehicleRef.current) {
+            // Drive forward on the ground
+            const driveProgress = Math.max(0, Math.min((t - 1.0) / 1.5, 1));
+            const driveEase = smoothstep(driveProgress);
+
+            vehicleRef.current.position.set(
+              groundStartPos.x + flightDir.x * driveEase * 8,
+              0.35,
+              groundStartPos.z + flightDir.z * driveEase * 8,
+            );
+
+            // Face toward defender
+            _vehicleTarget.set(defenderTopPos.x, 0.35, defenderTopPos.z);
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.scale.setScalar(2);
+          }
+
+          if (t >= 3.0) onPhaseComplete("intro");
         } else {
-          camera.position.lerp(_camTarget, 0.06);
-        }
-        camera.lookAt(attackerPos);
+          // ── AIR INTRO: liftoff from rooftop ──
+          const camProgress = Math.min(t / 1.8, 1);
+          const camEase = smoothstep(camProgress);
 
-        // Vehicle: parked above rooftop until 2.5s, then gently lifts off forward
-        if (vehicleRef.current) {
-          const liftProgress = Math.max(0, Math.min((t - 2.5) / 2, 1));
-          const liftEase = smoothstep(liftProgress);
+          const camBehindX = -flightDir.x;
+          const camBehindZ = -flightDir.z;
+          const camStartDist = 90 - camEase * 45;
+          const camStartY = attackerPos.y + 50 - camEase * 25;
 
-          const startY = rooftopY + 6; // above rooftop, clear of items
-          vehicleRef.current.position.set(
-            attackerPos.x + flightDir.x * liftEase * 8,
-            startY + liftEase * 8,
-            attackerPos.z + flightDir.z * liftEase * 8,
+          _camTarget.set(
+            attackerPos.x + camBehindX * camStartDist,
+            camStartY,
+            attackerPos.z + camBehindZ * camStartDist,
           );
 
-          // Face toward defender
-          _vehicleTarget.set(
-            defenderTopPos.x,
-            rooftopY + liftEase * 10,
-            defenderTopPos.z,
-          );
-          vehicleRef.current.lookAt(_vehicleTarget);
-          vehicleRef.current.rotateY(Math.PI); // nose is -Z
-          vehicleRef.current.rotateX(liftProgress * 0.08); // slight nose-up tilt
-          vehicleRef.current.scale.setScalar(2);
-        }
+          if (!cameraSnapped.current) {
+            cameraSnapped.current = true;
+            camera.position.copy(_camTarget);
+          } else {
+            camera.position.lerp(_camTarget, 0.08);
+          }
+          camera.lookAt(attackerPos);
 
-        if (t >= 4.5) onPhaseComplete("intro");
+          if (vehicleRef.current) {
+            const liftProgress = Math.max(0, Math.min((t - 1.5) / 1.5, 1));
+            const liftEase = smoothstep(liftProgress);
+
+            const startY = rooftopY + 6;
+            vehicleRef.current.position.set(
+              attackerPos.x + flightDir.x * liftEase * 8,
+              startY + liftEase * 8,
+              attackerPos.z + flightDir.z * liftEase * 8,
+            );
+
+            _vehicleTarget.set(
+              defenderTopPos.x,
+              rooftopY + liftEase * 10,
+              defenderTopPos.z,
+            );
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.rotateX(liftProgress * 0.08);
+            vehicleRef.current.scale.setScalar(2);
+          }
+
+          if (t >= 3.5) onPhaseComplete("intro");
+        }
         break;
       }
 
       // ───────── FLIGHT: follow spline, trailing camera ─────────
       case "flight": {
-        flightProgress.current = Math.min(flightProgress.current + delta * 0.16, 1);
-        const fp = flightProgress.current;
-        const eased = smoothstep(fp);
+        if (isGround) {
+          // ── GROUND FLIGHT: drive along ground toward defender ──
+          flightProgress.current = Math.min(flightProgress.current + delta * 0.28, 1);
+          const fp = flightProgress.current;
+          const eased = smoothstep(fp);
 
-        const point = flightCurve.getPoint(eased);
-        const lookAhead = flightCurve.getPoint(Math.min(eased + 0.05, 0.99));
-        const tangent = flightCurve.getTangent(eased).normalize();
+          const point = groundFlightCurve.getPoint(eased);
+          const tangent = groundFlightCurve.getTangent(eased).normalize();
+          const lookTarget = point.clone().add(tangent);
 
-        if (vehicleRef.current) {
-          vehicleRef.current.position.copy(point);
-          vehicleRef.current.lookAt(lookAhead);
-          vehicleRef.current.rotateY(Math.PI); // flip: lookAt makes +Z face target, but nose is -Z
-          vehicleRef.current.scale.setScalar(2);
+          if (vehicleRef.current) {
+            vehicleRef.current.position.copy(point);
+            vehicleRef.current.position.y = 0; // stay on ground
+            vehicleRef.current.lookAt(lookTarget.x, 0, lookTarget.z);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.scale.setScalar(2);
+          }
 
-          // Banking: gentle lean during middle of flight (sign flipped due to rotateY)
-          const bankAmount = Math.sin(fp * Math.PI) * -0.12;
-          vehicleRef.current.rotateZ(bankAmount);
+          // Camera: low trailing shot, behind and slightly above
+          const hTangentLen = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
+          const hTanX = tangent.x / hTangentLen;
+          const hTanZ = tangent.z / hTangentLen;
+          const perpX = -hTanZ;
+          const perpZ = hTanX;
+
+          const trailDist = 30 + (1 - fp) * 15;
+          const trailHeight = 8 + Math.sin(fp * Math.PI) * 5;
+          const sideDist = 10 + Math.sin(fp * Math.PI) * 6;
+
+          _camTarget.set(
+            point.x - hTanX * trailDist + perpX * sideDist,
+            trailHeight,
+            point.z - hTanZ * trailDist + perpZ * sideDist,
+          );
+          camera.position.lerp(_camTarget, 0.12);
+
+          _tempVec.lerpVectors(point, lookTarget, 0.5);
+          _tempVec.y = 2;
+          camera.lookAt(_tempVec);
+
+          if (fp >= 1.0) onPhaseComplete("flight");
+        } else {
+          // ── AIR FLIGHT: follow spline, faster ──
+          flightProgress.current = Math.min(flightProgress.current + delta * 0.24, 1);
+          const fp = flightProgress.current;
+          const eased = smoothstep(fp);
+
+          const point = flightCurve.getPoint(eased);
+          const tangent = flightCurve.getTangent(eased).normalize();
+          const lookTarget = point.clone().add(tangent);
+
+          if (vehicleRef.current) {
+            vehicleRef.current.position.copy(point);
+            vehicleRef.current.lookAt(lookTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.scale.setScalar(2);
+
+            const bankAmount = Math.sin(fp * Math.PI) * -0.12;
+            vehicleRef.current.rotateZ(bankAmount);
+          }
+
+          const hTangentLen = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
+          const hTanX = tangent.x / hTangentLen;
+          const hTanZ = tangent.z / hTangentLen;
+          const perpX = -hTanZ;
+          const perpZ = hTanX;
+
+          const trailDist = 50 + (1 - fp) * 20;
+          const trailHeight = 20 + Math.sin(fp * Math.PI) * 15;
+          const sideDist = 20 + Math.sin(fp * Math.PI) * 10;
+
+          _camTarget.set(
+            point.x - hTanX * trailDist + perpX * sideDist,
+            point.y + trailHeight,
+            point.z - hTanZ * trailDist + perpZ * sideDist,
+          );
+          camera.position.lerp(_camTarget, 0.1);
+
+          _tempVec.lerpVectors(point, lookTarget, 0.5);
+          camera.lookAt(_tempVec);
+
+          if (fp >= 1.0) onPhaseComplete("flight");
         }
-
-        // Camera: behind-and-side, always above vehicle for clear view
-        // Use horizontal tangent only (ignore vertical component for camera trail)
-        const hTangentLen = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
-        const hTanX = tangent.x / hTangentLen;
-        const hTanZ = tangent.z / hTangentLen;
-        const perpX = -hTanZ;
-        const perpZ = hTanX;
-
-        const trailDist = 50 + (1 - fp) * 20;
-        const trailHeight = 20 + Math.sin(fp * Math.PI) * 15;
-        const sideDist = 20 + Math.sin(fp * Math.PI) * 10;
-
-        _camTarget.set(
-          point.x - hTanX * trailDist + perpX * sideDist,
-          point.y + trailHeight,
-          point.z - hTanZ * trailDist + perpZ * sideDist,
-        );
-        camera.position.lerp(_camTarget, 0.1);
-
-        // Look slightly ahead of the vehicle
-        _tempVec.lerpVectors(point, lookAhead, 0.5);
-        camera.lookAt(_tempVec);
-
-        if (fp >= 1.0) onPhaseComplete("flight");
         break;
       }
 
-      // ───────── ATTACK: orbiting gun run ─────────
+      // ───────── ATTACK: vehicle-specific attack pattern ─────────
       case "attack": {
         const topX = defenderTopPos.x;
         const topY = defenderTopPos.y;
         const topZ = defenderTopPos.z;
-
-        // Vehicle position on orbit circle
-        const orbitAngle = orbitStartAngle - t * ORBIT_SPEED;
-        const vehicleX = topX + Math.cos(orbitAngle) * ORBIT_RADIUS;
-        const vehicleZ = topZ + Math.sin(orbitAngle) * ORBIT_RADIUS;
-        const vehicleY = topY + ORBIT_HEIGHT + Math.sin(t * 2) * 3;
-
-        // Orbit tangent (direction of travel for counter-clockwise)
-        const tangentX = Math.sin(orbitAngle);
-        const tangentZ = -Math.cos(orbitAngle);
-
-        if (vehicleRef.current) {
-          vehicleRef.current.position.set(vehicleX, vehicleY, vehicleZ);
-          vehicleRef.current.scale.setScalar(2);
-
-          // Look along orbit tangent (direction of travel)
-          _vehicleTarget.set(
-            vehicleX + tangentX * 30,
-            vehicleY - 2,
-            vehicleZ + tangentZ * 30,
-          );
-          vehicleRef.current.lookAt(_vehicleTarget);
-          vehicleRef.current.rotateY(Math.PI); // flip: nose faces travel direction
-
-          // Bank into the turn (sign flipped due to rotateY)
-          vehicleRef.current.rotateZ(0.25);
-        }
-
-        // ── Smooth continuous camera (no discrete act jumps) ──
         const ap = t / ATTACK_DURATION; // 0 → 1
 
-        // Camera orbit: offset behind vehicle, slowly sweeping
-        const camOrbitOffset = Math.PI * 0.5;
-        const camAngle = orbitAngle + camOrbitOffset + ap * Math.PI * 0.25;
+        if (isGround) {
+          // ── GROUND ATTACK: tank parked on ground, fires shells at building ──
+          if (vehicleRef.current) {
+            // Tank is stationary at fire position, slight recoil shake
+            const recoilPulse = getTankFirePulse(t);
+            const recoilX = recoilPulse * (-flightDir.x) * 0.3;
+            const recoilZ = recoilPulse * (-flightDir.z) * 0.3;
 
-        // Camera distance: wide enough to see over neighboring buildings
-        const camDist = ORBIT_RADIUS * 1.5;
+            vehicleRef.current.position.set(
+              groundFirePos.x + recoilX,
+              0.35,
+              groundFirePos.z + recoilZ,
+            );
 
-        // Camera height: above building top to clear skyline, cinematic angle ~20-25°
-        const camY = topY + 30 + ap * 10;
+            // Face the defender building
+            _vehicleTarget.set(topX, 0.35, topZ);
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.scale.setScalar(2);
+          }
 
-        _camTarget.set(
-          topX + Math.cos(camAngle) * camDist,
-          camY,
-          topZ + Math.sin(camAngle) * camDist,
-        );
-        camera.position.lerp(_camTarget, 0.06);
+          // Camera: over-the-shoulder behind the tank on its level, looking at the middle of the building
+          const behindDist = 26 - ap * 5; // Dolly in from 26 to 21
+          const camY = 5.5 - ap * 1.5;    // Keep it low, slowly lowering from 5.5 to 4.0
+          const perpX = -flightDir.z;
+          const perpZ = flightDir.x;
+          // Slight offset to the side for a gorgeous over-the-shoulder composition
+          const sideOffset = 3.5;
 
-        // LookAt: always toward defender building (slight vehicle blend early on)
-        const vehicleBlend = Math.max(0, 0.25 - ap * 0.4);
-        _tempVec.set(
-          vehicleX * vehicleBlend + topX * (1 - vehicleBlend),
-          vehicleY * vehicleBlend + topY * (1 - vehicleBlend),
-          vehicleZ * vehicleBlend + topZ * (1 - vehicleBlend),
-        );
-        camera.lookAt(_tempVec);
+          _camTarget.set(
+            groundFirePos.x - flightDir.x * behindDist + perpX * sideOffset,
+            camY,
+            groundFirePos.z - flightDir.z * behindDist + perpZ * sideOffset,
+          );
+          camera.position.lerp(_camTarget, 0.08);
 
-        // ── Event triggers (don't affect camera smoothness) ──
+          // Focus on the lower midpoint between tank and building base to keep tank fully in frame
+          _tempVec.set(
+            (groundFirePos.x + topX) * 0.5,
+            Math.max(6, topY * 0.15),
+            (groundFirePos.z + topZ) * 0.5,
+          );
+          camera.lookAt(_tempVec);
 
-        // Sound at 1s
-        if (t >= 1.0 && !soundPlayed.current) {
+        } else {
+          // ── AIR ATTACK: vehicle-specific trajectories ──
+          let vehicleX = topX;
+          let vehicleY = topY + ORBIT_HEIGHT;
+          let vehicleZ = topZ;
+          let lookAtTarget = defenderTopPos.clone();
+          let extraRotateZ = 0;
+          let extraRotateX = 0;
+
+          if (vehicleType === "raid_helicopter") {
+            // Hover gunship pattern: flies to position, hovers with sway
+            const hoverX = topX - flightDir.x * 28;
+            const hoverZ = topZ - flightDir.z * 28;
+            const hoverY = topY + 12 + Math.sin(t * 3) * 1.5;
+
+            vehicleX = hoverX + Math.sin(t * 1.5) * 2;
+            vehicleY = hoverY;
+            vehicleZ = hoverZ + Math.cos(t * 1.5) * 2;
+            lookAtTarget.copy(defenderTopPos);
+            extraRotateX = 0.08; // slightly nose down
+          } 
+          else if (vehicleType === "raid_drone") {
+            // Stealth Drone: hovers close, slides left and right
+            const slideWidth = Math.sin(t * 2.5) * 8;
+            const perpX = -flightDir.z;
+            const perpZ = flightDir.x;
+
+            vehicleX = topX - flightDir.x * 22 + perpX * slideWidth;
+            vehicleY = topY + 16 + Math.sin(t * 4) * 0.8;
+            vehicleZ = topZ - flightDir.z * 22 + perpZ * slideWidth;
+            lookAtTarget.copy(defenderTopPos);
+          }
+          else if (vehicleType === "raid_ufo") {
+            // UFO: hovers directly above the building, slowly spinning
+            vehicleX = topX;
+            vehicleY = topY + 28 + Math.sin(t * 2) * 1.0;
+            vehicleZ = topZ;
+            // Face straight forward relative to original path, spin is inside UFOMesh
+            lookAtTarget.set(topX + flightDir.x * 10, vehicleY, topZ + flightDir.z * 10);
+          }
+          else if (vehicleType === "raid_b2_bomber") {
+            // B-2 Bomber: high-altitude straight bombing run
+            const startPos = defenderTopPos.clone().sub(flightDir.clone().multiplyScalar(50)).setY(topY + 35);
+            const endPos = defenderTopPos.clone().add(flightDir.clone().multiplyScalar(50)).setY(topY + 35);
+            const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, ap);
+
+            vehicleX = currentPos.x;
+            vehicleY = currentPos.y;
+            vehicleZ = currentPos.z;
+            lookAtTarget.copy(currentPos).add(flightDir);
+          }
+          else if (vehicleType === "raid_rocket") {
+            // Rocket: high-speed kamikaze charge, impacts at ap = 0.8
+            const startPos = orbitEntryPos.clone().setY(topY + 20);
+            // Hit defender building facade instead of center to avoid clipping!
+            const currentPos = new THREE.Vector3().lerpVectors(startPos, rocketImpactPos, Math.min(ap * 1.25, 1));
+
+            vehicleX = currentPos.x;
+            vehicleY = currentPos.y;
+            vehicleZ = currentPos.z;
+            const rocketDir = new THREE.Vector3().subVectors(rocketImpactPos, startPos).normalize();
+            lookAtTarget.copy(currentPos).add(rocketDir);
+          }
+          else if (vehicleType === "futuristic_jet") {
+            // Futuristic Jet: supersonic swooping strafing run
+            const swoopHeight = topY + 8 + Math.pow(ap - 0.5, 2) * 90;
+            const startX = topX - flightDir.x * 60;
+            const endX = topX + flightDir.x * 60;
+            const currentX = THREE.MathUtils.lerp(startX, endX, ap);
+            const startZ = topZ - flightDir.z * 60;
+            const endZ = topZ + flightDir.z * 60;
+            const currentZ = THREE.MathUtils.lerp(startZ, endZ, ap);
+
+            vehicleX = currentX;
+            vehicleY = swoopHeight;
+            vehicleZ = currentZ;
+            lookAtTarget.set(currentX + flightDir.x * 10, swoopHeight - (ap - 0.5) * 15, currentZ + flightDir.z * 10);
+            extraRotateZ = Math.sin(t * 8) * 0.15; // supersonic wings wobble
+          }
+          else {
+            // Default Airplane: Orbiting gun run
+            const orbitAngle = orbitStartAngle - t * ORBIT_SPEED;
+            vehicleX = topX + Math.cos(orbitAngle) * ORBIT_RADIUS;
+            vehicleZ = topZ + Math.sin(orbitAngle) * ORBIT_RADIUS;
+            vehicleY = topY + ORBIT_HEIGHT + Math.sin(t * 2) * 3;
+
+            const tangentX = Math.sin(orbitAngle);
+            const tangentZ = -Math.cos(orbitAngle);
+
+            lookAtTarget.set(
+              vehicleX + tangentX * 30,
+              vehicleY - 2,
+              vehicleZ + tangentZ * 30,
+            );
+            extraRotateZ = 0.25;
+          }
+
+          if (vehicleRef.current) {
+            vehicleRef.current.position.set(vehicleX, vehicleY, vehicleZ);
+            vehicleRef.current.scale.setScalar(2);
+            vehicleRef.current.lookAt(lookAtTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            if (extraRotateZ) vehicleRef.current.rotateZ(extraRotateZ);
+            if (extraRotateX) vehicleRef.current.rotateX(extraRotateX);
+          }
+
+          // Camera: Orbiting dynamic view
+          const orbitAngle = orbitStartAngle - t * ORBIT_SPEED;
+          const camOrbitOffset = Math.PI * 0.5;
+          const camAngle = orbitAngle + camOrbitOffset + ap * Math.PI * 0.25;
+          const camDist = ORBIT_RADIUS * 1.5;
+          const camY = topY + 30 + ap * 10;
+
+          _camTarget.set(
+            topX + Math.cos(camAngle) * camDist,
+            camY,
+            topZ + Math.sin(camAngle) * camDist,
+          );
+          camera.position.lerp(_camTarget, 0.06);
+
+          const vehicleBlend = Math.max(0, 0.25 - ap * 0.4);
+          _tempVec.set(
+            vehicleX * vehicleBlend + topX * (1 - vehicleBlend),
+            vehicleY * vehicleBlend + topY * (1 - vehicleBlend),
+            vehicleZ * vehicleBlend + topZ * (1 - vehicleBlend),
+          );
+          camera.lookAt(_tempVec);
+        }
+
+        // ── Event triggers (shared for all vehicle types) ──
+
+        // Sound at 0.8s
+        if (t >= 0.8 && !soundPlayed.current) {
           soundPlayed.current = true;
           playRaidSound("shoot");
         }
 
-        // Progressive shake during strafing (2s+)
-        if (t >= 2.0 && t < 4.5) {
-          const strafeProgress = (t - 2.0) / 2.5;
+        // Progressive shake during strafing (1.5s+)
+        if (t >= 1.5 && t < 3.2) {
+          const strafeProgress = (t - 1.5) / 1.7;
           triggerShake((0.15 + strafeProgress * 0.4) * delta * 8);
         }
 
-        // Climax at 4.5s
-        if (t >= 4.5 && !climaxTriggered.current) {
+        // Climax at 3.2s (adjusted for 4s duration)
+        if (t >= 3.2 && !climaxTriggered.current) {
           climaxTriggered.current = true;
+          const isMissile = vehicleType === "raid_rocket";
           if (raidData?.success) {
-            triggerShake(4.0);
+            triggerShake(isMissile ? 6.0 : 4.0);
             playRaidSound("explosion");
             debrisActive.current = true;
             shockwaveActive.current = true;
           } else {
-            triggerShake(1.5);
+            triggerShake(isMissile ? 3.5 : 1.5);
             playRaidSound("shield_hit");
             hitIntensityRef.current = 1;
           }
           forceRender(n => n + 1);
         }
 
-        // Vehicle rises after climax
+        // Vehicle reacts after climax
         if (climaxTriggered.current && vehicleRef.current) {
-          if (raidData?.success) {
-            vehicleRef.current.position.y += delta * 15;
+          if (isGround) {
+            // Tank: dramatic halt/recoil, no flying away
+            if (raidData?.success) {
+              // Tank stays but camera pulls up for dramatic reveal
+              vehicleRef.current.position.copy(groundFirePos);
+              vehicleRef.current.position.y = 0.35;
+              _vehicleTarget.set(defenderTopPos.x, 0.35, defenderTopPos.z);
+              vehicleRef.current.lookAt(_vehicleTarget);
+              vehicleRef.current.rotateY(Math.PI);
+              vehicleRef.current.scale.setScalar(2);
+            } else {
+              vehicleRef.current.rotation.z += Math.sin(t * 8) * delta * 0.5;
+            }
           } else {
-            vehicleRef.current.rotation.z += Math.sin(t * 12) * delta * 2;
-            vehicleRef.current.position.y += delta * 5;
+            // Air: vehicle rises/wobbles
+            if (raidData?.success) {
+              vehicleRef.current.position.y += delta * 15;
+            } else {
+              vehicleRef.current.rotation.z += Math.sin(t * 12) * delta * 2;
+              vehicleRef.current.position.y += delta * 5;
+            }
           }
         }
 
@@ -1604,67 +1966,157 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
       // ───────── OUTRO WIN: dramatic crane shot ─────────
       case "outro_win": {
-        const progress = Math.min(t / 3.5, 1);
+        const progress = Math.min(t / 3.0, 1);
         const ease = easeOutCubic(progress);
-        const riseY = defenderTopPos.y + 15 + ease * 35;
-        const slowAngle = t * 0.15;
-        const dist = ORBIT_RADIUS * 1.6;
 
-        _camTarget.set(
-          defenderTopPos.x + Math.cos(slowAngle) * dist,
-          riseY,
-          defenderTopPos.z + Math.sin(slowAngle) * dist,
-        );
-        camera.position.lerp(_camTarget, 0.07);
-        camera.lookAt(defenderTopPos);
+        if (isGround) {
+          // Tank stays on the ground, camera cranes up for dramatic reveal
+          if (vehicleRef.current) {
+            vehicleRef.current.position.copy(groundFirePos);
+            vehicleRef.current.position.y = 0.35;
+            _vehicleTarget.set(defenderTopPos.x, 0.35, defenderTopPos.z);
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+            vehicleRef.current.scale.setScalar(2);
+          }
 
-        // Vehicle circles in victory
-        if (vehicleRef.current) {
-          const victoryAngle = orbitStartAngle - (phaseTimeRef.current + ATTACK_DURATION) * ORBIT_SPEED * 0.3;
-          const victoryDist = ORBIT_RADIUS * 1.5;
-          vehicleRef.current.position.set(
-            defenderTopPos.x + Math.cos(victoryAngle) * victoryDist,
-            defenderTopPos.y + ORBIT_HEIGHT + 20 + t * 5,
-            defenderTopPos.z + Math.sin(victoryAngle) * victoryDist,
+          const riseY = 8 + ease * 40;
+          const slowAngle = t * 0.2;
+          const dist = GROUND_FIRE_OFFSET * 2;
+
+          _camTarget.set(
+            groundFirePos.x + Math.cos(slowAngle) * dist,
+            riseY,
+            groundFirePos.z + Math.sin(slowAngle) * dist,
           );
+          camera.position.lerp(_camTarget, 0.07);
+          camera.lookAt(defenderTopPos);
+        } else {
+          // Air: vehicle circles in victory
+          const topX = defenderTopPos.x;
+          const topY = defenderTopPos.y;
+          const topZ = defenderTopPos.z;
+          const riseY = defenderTopPos.y + 15 + ease * 35;
+          const slowAngle = t * 0.15;
+          const dist = ORBIT_RADIUS * 1.6;
 
-          const vTangentX = Math.sin(victoryAngle);
-          const vTangentZ = -Math.cos(victoryAngle);
-          _vehicleTarget.set(
-            vehicleRef.current.position.x + vTangentX * 30,
-            vehicleRef.current.position.y,
-            vehicleRef.current.position.z + vTangentZ * 30,
+          _camTarget.set(
+            defenderTopPos.x + Math.cos(slowAngle) * dist,
+            riseY,
+            defenderTopPos.z + Math.sin(slowAngle) * dist,
           );
-          vehicleRef.current.lookAt(_vehicleTarget);
-          vehicleRef.current.rotateY(Math.PI);
-          vehicleRef.current.rotateZ(0.15);
+          camera.position.lerp(_camTarget, 0.07);
+          camera.lookAt(defenderTopPos);
+
+          if (vehicleRef.current) {
+            if (vehicleType === "raid_ufo") {
+              // UFO: hovers directly above, pulsing tractor beam
+              vehicleRef.current.position.set(topX, topY + 28 + Math.sin(t * 1.5) * 0.5, topZ);
+              _vehicleTarget.set(topX + flightDir.x * 10, vehicleRef.current.position.y, topZ + flightDir.z * 10);
+              vehicleRef.current.lookAt(_vehicleTarget);
+              vehicleRef.current.rotateY(Math.PI);
+            }
+            else if (vehicleType === "raid_b2_bomber") {
+              // B-2: flies straight away into the distance
+              const startX = topX + flightDir.x * 50;
+              const startZ = topZ + flightDir.z * 50;
+              const currentX = startX + flightDir.x * t * 30;
+              const currentZ = startZ + flightDir.z * t * 30;
+              const lookAtTarget = new THREE.Vector3();
+              vehicleRef.current.position.set(currentX, topY + 35 + t * 4, currentZ);
+              lookAtTarget.set(currentX + flightDir.x * 10, topY + 35 + t * 4, currentZ + flightDir.z * 10);
+              vehicleRef.current.lookAt(lookAtTarget);
+              vehicleRef.current.rotateY(Math.PI);
+            }
+            else if (vehicleType === "raid_rocket") {
+              // Rocket is hidden/destroyed (visible logic handles this)
+            }
+            else if (vehicleType === "futuristic_jet") {
+              // Supersonic vertical climb!
+              const currentX = topX + flightDir.x * t * 25;
+              const currentZ = topZ + flightDir.z * t * 25;
+              const currentY = topY + 8 + t * 45;
+              const lookAtTarget = new THREE.Vector3();
+              vehicleRef.current.position.set(currentX, currentY, currentZ);
+
+              const climbDir = flightDir.clone().setY(2.2).normalize();
+              lookAtTarget.copy(vehicleRef.current.position).add(climbDir);
+              vehicleRef.current.lookAt(lookAtTarget);
+              vehicleRef.current.rotateY(Math.PI);
+            }
+            else if (vehicleType === "raid_helicopter") {
+              // Helicopter: hovers and slowly ascends while swaying
+              const hoverX = topX - flightDir.x * 28 + Math.sin(t * 2) * 3;
+              const hoverZ = topZ - flightDir.z * 28 + Math.cos(t * 2) * 3;
+              const hoverY = topY + 12 + t * 8;
+              vehicleRef.current.position.set(hoverX, hoverY, hoverZ);
+              vehicleRef.current.lookAt(defenderTopPos);
+              vehicleRef.current.rotateY(Math.PI);
+            }
+            else {
+              // Default airplane victory circle
+              const victoryAngle = orbitStartAngle - (phaseTimeRef.current + ATTACK_DURATION) * ORBIT_SPEED * 0.3;
+              const victoryDist = ORBIT_RADIUS * 1.5;
+              vehicleRef.current.position.set(
+                defenderTopPos.x + Math.cos(victoryAngle) * victoryDist,
+                defenderTopPos.y + ORBIT_HEIGHT + 20 + t * 5,
+                defenderTopPos.z + Math.sin(victoryAngle) * victoryDist,
+              );
+
+              const vTangentX = Math.sin(victoryAngle);
+              const vTangentZ = -Math.cos(victoryAngle);
+              _vehicleTarget.set(
+                vehicleRef.current.position.x + vTangentX * 30,
+                vehicleRef.current.position.y,
+                vehicleRef.current.position.z + vTangentZ * 30,
+              );
+              vehicleRef.current.lookAt(_vehicleTarget);
+              vehicleRef.current.rotateY(Math.PI);
+              vehicleRef.current.rotateZ(0.15);
+            }
+          }
+        }
+        if (t >= 3.0) {
+          onPhaseComplete("outro_win");
         }
         break;
       }
 
       // ───────── OUTRO LOSE: vehicle retreats ─────────
       case "outro_lose": {
-        const progress = Math.min(t / 3, 1);
+        const progress = Math.min(t / 2.5, 1);
 
         if (vehicleRef.current) {
-          // Fly away back towards attacker direction
           _tempVec.set(
             attackerPos.x - defenderTopPos.x,
             0,
             attackerPos.z - defenderTopPos.z,
           ).normalize();
 
-          vehicleRef.current.position.addScaledVector(_tempVec, delta * 40);
-          vehicleRef.current.position.y += delta * 8;
+          if (isGround) {
+            // Tank reverses on the ground
+            vehicleRef.current.position.addScaledVector(_tempVec, delta * 25);
+            vehicleRef.current.position.y = 0;
 
-          // Damaged wobble
-          vehicleRef.current.rotation.z = Math.sin(t * 8) * 0.3 * (1 - progress);
+            // Damaged smoking wobble on ground
+            vehicleRef.current.rotation.z = Math.sin(t * 6) * 0.08 * (1 - progress);
 
-          // Face retreat direction
-          _vehicleTarget.copy(vehicleRef.current.position).addScaledVector(_tempVec, 20);
-          _vehicleTarget.setY(vehicleRef.current.position.y);
-          vehicleRef.current.lookAt(_vehicleTarget);
-          vehicleRef.current.rotateY(Math.PI);
+            _vehicleTarget.copy(vehicleRef.current.position).addScaledVector(_tempVec, 20);
+            _vehicleTarget.setY(0);
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+          } else {
+            // Fly away back towards attacker direction
+            vehicleRef.current.position.addScaledVector(_tempVec, delta * 40);
+            vehicleRef.current.position.y += delta * 8;
+
+            vehicleRef.current.rotation.z = Math.sin(t * 8) * 0.3 * (1 - progress);
+
+            _vehicleTarget.copy(vehicleRef.current.position).addScaledVector(_tempVec, 20);
+            _vehicleTarget.setY(vehicleRef.current.position.y);
+            vehicleRef.current.lookAt(_vehicleTarget);
+            vehicleRef.current.rotateY(Math.PI);
+          }
 
           const scale = Math.max(0.01, 2 * (1 - progress * 0.5));
           vehicleRef.current.scale.setScalar(scale);
@@ -1674,10 +2126,10 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           }
         }
 
-        // Gentle rise + pull back for cinematic reveal
+        // Camera pull back
         const loseAngle = t * 0.12;
-        const loseDist = ORBIT_RADIUS * 1.4;
-        const loseY = defenderTopPos.y + 20 + progress * 25;
+        const loseDist = isGround ? GROUND_FIRE_OFFSET * 2 : ORBIT_RADIUS * 1.4;
+        const loseY = isGround ? 8 + progress * 20 : defenderTopPos.y + 20 + progress * 25;
         _camTarget.set(
           defenderTopPos.x + Math.cos(loseAngle) * loseDist,
           loseY,
@@ -1687,6 +2139,9 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
         if (progress > 0.6) {
           camera.lookAt(defenderTopPos);
+        }
+        if (t >= 2.5) {
+          onPhaseComplete("outro_lose");
         }
         break;
       }
@@ -1698,7 +2153,6 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
   if (phase === "idle" || phase === "preview" || phase === "done") return null;
 
-  const vehicleType = raidData?.vehicle ?? "airplane";
   const isTank = vehicleType === "vehicle_tank";
   const isAttack = phase === "attack";
   const isOutro = phase === "outro_win" || phase === "outro_lose";
@@ -1707,9 +2161,26 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
   return (
     <group>
       {/* Vehicle */}
-      <group ref={vehicleRef} position={[attackerPos.x, attackerPos.y - 4, attackerPos.z]} scale={2}>
-        <VehicleMesh type={vehicleType} isAttacking={isAttack} targetPos={defenderTopPos} />
+      <group
+        ref={vehicleRef}
+        scale={2}
+        visible={!(vehicleType === "raid_rocket" && (
+          climaxTriggered.current || 
+          phase === "outro_win" || 
+          phase === "outro_lose" || 
+          phase === "share"
+        ))}
+      >
+        <VehicleMesh type={vehicleType} isAttacking={isAttack} targetPos={isGround ? defenderLowerPos : defenderTopPos} />
       </group>
+
+      {/* UFO Tractor Beam */}
+      {isAttack && vehicleType === "raid_ufo" && (
+        <mesh position={[defenderTopPos.x, defenderTopPos.y + 12.5, defenderTopPos.z]}>
+          <cylinderGeometry args={[2.5, 4.5, 25, 16]} />
+          <meshBasicMaterial color="#10b981" transparent opacity={0.25 + Math.sin(phaseTimeRef.current * 18) * 0.12} depthWrite={false} />
+        </mesh>
+      )}
 
       {/* Smoke Trail */}
       <SmokeTrail vehicleRef={vehicleRef} active={showSmoke} />
@@ -1723,10 +2194,13 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
       {/* Projectiles from vehicle */}
       <ProjectilePool
-        active={isAttack}
+        active={isAttack && vehicleType !== "raid_rocket"}
         vehicleRef={vehicleRef}
-        targetPos={defenderTopPos}
+        targetPos={isGround ? defenderLowerPos : defenderTopPos}
         origin={isTank ? "tank_cannon" : "vehicle"}
+        isDrone={vehicleType === "raid_drone"}
+        vehicleType={vehicleType}
+        flightDir={flightDir}
         onImpact={() => {
           triggerShake(0.8);
           hitIntensityRef.current = 0.5;
@@ -1736,29 +2210,161 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       {/* Shield dome */}
       <ShieldDome
         active={isAttack && defenseStrength !== "weak"}
-        position={defenderTopPos}
+        position={isGround ? defenderMiddlePos : defenderTopPos}
         size={Math.max(defender?.width ?? 10, defender?.depth ?? 10)}
         strength={defenseStrength}
         hitIntensity={hitIntensityRef.current}
       />
 
       {/* Shockwave ring */}
-      <Shockwave active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} position={defenderTopPos} />
+      <Shockwave 
+        active={(isAttack || isOutro) && (!!raidData?.success || vehicleType === "raid_rocket") && climaxTriggered.current} 
+        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+        isMissile={vehicleType === "raid_rocket"}
+      />
 
       {/* Debris */}
-      <DebrisParticles active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} origin={defenderTopPos} />
+      <DebrisParticles 
+        active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} 
+        origin={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+        isMissile={vehicleType === "raid_rocket"}
+      />
 
       {/* Fire glow */}
-      <FireGlow active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} position={defenderTopPos} />
+      <FireGlow 
+        active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} 
+        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+        isMissile={vehicleType === "raid_rocket"}
+      />
+
+      {/* Climax Fireball Explosion (engulfs building) */}
+      <ClimaxExplosion 
+        active={(isAttack || isOutro) && (!!raidData?.success || vehicleType === "raid_rocket") && climaxTriggered.current} 
+        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)}
+        isMissile={vehicleType === "raid_rocket"}
+      />
     </group>
   );
 }
+interface ClimaxExplosionProps {
+  active: boolean;
+  position: THREE.Vector3;
+  isMissile?: boolean;
+}
+
+function ClimaxExplosion({ active, position, isMissile = false }: ClimaxExplosionProps) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const startTime = useRef<number | null>(null);
+  const particleCount = isMissile ? 35 : 20;
+  const particles = useRef<{
+    pos: THREE.Vector3;
+    vel: THREE.Vector3;
+    scale: number;
+    maxScale: number;
+    elapsed: number;
+    life: number;
+  }[]>([]);
+
+  const _matrix = useMemo(() => new THREE.Matrix4(), []);
+  const _scale = useMemo(() => new THREE.Vector3(), []);
+
+  useEffect(() => {
+    if (!active) {
+      startTime.current = null;
+      return;
+    }
+    if (startTime.current !== null) return;
+    startTime.current = Date.now();
+
+    particles.current = Array.from({ length: particleCount }, () => {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+      const speed = isMissile ? (8 + Math.random() * 26) : (5 + Math.random() * 12);
+      
+      const vel = new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta) * speed,
+        Math.sin(phi) * Math.sin(theta) * speed + (isMissile ? 7 : 3),
+        Math.cos(phi) * speed
+      );
+
+      const maxScale = isMissile ? (12.0 + Math.random() * 12.0) : (4.0 + Math.random() * 5.0);
+      
+      return {
+        pos: new THREE.Vector3(
+          (Math.random() - 0.5) * (isMissile ? 6 : 2),
+          (Math.random() - 0.5) * (isMissile ? 6 : 2),
+          (Math.random() - 0.5) * (isMissile ? 6 : 2)
+        ),
+        vel,
+        scale: 0.1,
+        maxScale,
+        elapsed: 0,
+        life: isMissile ? (1.5 + Math.random() * 0.9) : (0.8 + Math.random() * 0.5),
+      };
+    });
+  }, [active, isMissile, particleCount]);
+
+  useFrame((_, delta) => {
+    if (!active || !meshRef.current || startTime.current === null) return;
+
+    for (let i = 0; i < particles.current.length; i++) {
+      const p = particles.current[i];
+      if (!p) continue;
+
+      p.elapsed += delta;
+      const progress = p.elapsed / p.life;
+
+      if (progress >= 1.0) {
+        _matrix.makeScale(0, 0, 0);
+        meshRef.current.setMatrixAt(i, _matrix);
+        continue;
+      }
+
+      p.pos.addScaledVector(p.vel, delta);
+      p.vel.multiplyScalar(0.94);
+
+      let size = p.scale;
+      if (progress < 0.2) {
+        size = THREE.MathUtils.lerp(0.1, p.maxScale, progress / 0.2);
+      } else {
+        size = THREE.MathUtils.lerp(p.maxScale, 0.0, (progress - 0.2) / 0.8);
+      }
+      p.scale = size;
+
+      _matrix.makeTranslation(p.pos.x, p.pos.y, p.pos.z);
+      _scale.set(size, size, size);
+      _matrix.scale(_scale);
+      meshRef.current.setMatrixAt(i, _matrix);
+    }
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
+
+  if (!active) return null;
+
+  return (
+    <group position={position}>
+      <instancedMesh ref={meshRef} args={[undefined, undefined, particleCount]} frustumCulled={false}>
+        <sphereGeometry args={[1, 8, 8]} />
+        <meshStandardMaterial
+          color="#ff4500"
+          emissive="#ff8800"
+          emissiveIntensity={10}
+          transparent
+          opacity={0.8}
+          toneMapped={false}
+        />
+      </instancedMesh>
+    </group>
+  );
+}
+
 interface ExplosionParticlesProps {
   position: THREE.Vector3;
+  isDrone?: boolean;
   onComplete: () => void;
 }
 
-function ExplosionParticles({ position, onComplete }: ExplosionParticlesProps) {
+function ExplosionParticles({ position, isDrone = false, onComplete }: ExplosionParticlesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const startTime = useRef(Date.now());
   const particleCount = 15;
@@ -1823,8 +2429,8 @@ function ExplosionParticles({ position, onComplete }: ExplosionParticlesProps) {
       <instancedMesh ref={meshRef} args={[undefined, undefined, particleCount]}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial 
-          color="#ff4400" 
-          emissive="#ff1100" 
+          color={isDrone ? "#00e5ff" : "#ff4400"} 
+          emissive={isDrone ? "#0066ff" : "#ff1100"} 
           emissiveIntensity={3} 
           toneMapped={false} 
         />
