@@ -13,7 +13,7 @@ import { parseMaxStreak } from "../src/lib/leetcode";
 import fs from "fs";
 import path from "path";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ykqxkfazxsyantffjouf.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // ── CLI Args ──
@@ -30,8 +30,13 @@ if (pagesArg !== -1) {
   MAX_PAGES = parsed;
 }
 
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+if (!SUPABASE_URL) {
+    console.error("Error: NEXT_PUBLIC_SUPABASE_URL is missing. Set it or ensure the fallback is set.");
+    process.exit(1);
+}
+
+if (!SUPABASE_KEY) {
+    console.error("Error: SUPABASE_SERVICE_ROLE_KEY is missing. Please configure it in your environment or GitHub Secrets.");
     process.exit(1);
 }
 

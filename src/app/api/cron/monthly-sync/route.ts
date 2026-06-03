@@ -8,6 +8,10 @@ const DATASET_REPO = "Ixotic/coding-problems"; // Your HF Repo
 
 export async function GET(request: Request) {
   // 1. Verify Authorization (Vercel Cron Secret)
+  if (!process.env.CRON_SECRET) {
+    console.error("CRON_SECRET is not configured");
+    return new Response('Server Error: Missing CRON_SECRET', { status: 500 });
+  }
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 });
@@ -63,25 +67,32 @@ export async function GET(request: Request) {
     const selectedIds = new Set(selectedAll.map(p => p.source_id));
 
     // 5. Transform for Supabase schema
-    const formattedForSupabase = selectedAll.map(p => ({
-      source_id: String(p.source_id),
-      title: p.title,
-      description: p.description,
-      difficulty: p.difficulty,
-      tags: p.tags,
-      examples: p.examples,
-      input_format: p.input_format,
-      output_format: p.output_format,
-      hints: []
-    }));
+    const formattedForSupabase = selectedAll.map(p => {
+      let markdownDesc = `### Description\n\n${(p.description || "").trim()}\n\n`;
+      if (p.input_format) markdownDesc += `### Input Specification\n\n${p.input_format.trim()}\n\n`;
+      if (p.output_format) markdownDesc += `### Output Specification\n\n${p.output_format.trim()}\n\n`;
+      if (p.note) markdownDesc += `### Note\n\n${p.note.trim()}\n\n`;
+      markdownDesc = markdownDesc.trim();
+
+      return {
+        source_id: String(p.source_id),
+        source: p.source || "codeforces",
+        title: p.title,
+        description: markdownDesc,
+        difficulty: p.difficulty,
+        difficulty_rating: p.difficulty_rating || p.rating || 0,
+        tags: p.tags || [],
+        sample_tests: p.examples || [],
+        hidden_tests: p.hidden_tests || p.official_tests || [],
+        time_limit_ms: p.time_limit ? Math.round(p.time_limit * 1000) : 2000,
+        memory_limit_mb: p.memory_limit || 256,
+        hints: []
+      };
+    });
 
     // 6. Delete old problems from Supabase & Insert new ones
-    console.log("Emptying old problems from Supabase...");
-    const { error: delErr } = await sb.from("arena_problems").delete().neq("id", "00000000-0000-0000-0000-000000000000"); // deletes all
-    if (delErr) throw delErr;
-
-    console.log(`Inserting ${formattedForSupabase.length} new problems to Supabase...`);
-    const { error: insErr } = await sb.from("arena_problems").insert(formattedForSupabase);
+    console.log(`Upserting ${formattedForSupabase.length} problems to Supabase...`);
+    const { error: insErr } = await sb.from("arena_problems").upsert(formattedForSupabase, { onConflict: "source,source_id" });
     if (insErr) throw insErr;
 
     // 7. Update HF Dataset state in memory (mark seeded: true)

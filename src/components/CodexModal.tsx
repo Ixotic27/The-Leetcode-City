@@ -73,13 +73,25 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
     if (!isOpen) return;
     setLoading(true);
     fetch("/api/codex")
-      .then((res) => res.json())
-      .then((codexData) => {
+      .then(async (res) => {
+        const codexData = await res.json();
+        if (!res.ok || codexData.error || !Array.isArray(codexData.achievements) || !Array.isArray(codexData.items)) {
+          throw new Error(codexData.error || "Malformed codex data");
+        }
         setData(codexData);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to load Codex data:", err);
+        setData({
+          loggedIn: false,
+          stats: null,
+          unlockedAchievements: [],
+          ownedItems: [],
+          ownedTitles: [],
+          achievements: [],
+          items: [],
+        });
         setLoading(false);
       });
   }, [isOpen]);

@@ -361,9 +361,12 @@ export default memo(function InstancedBuildings({
       if (b.height > maxHeight) maxHeight = b.height;
     }
     const radius = Math.sqrt(maxDist * maxDist + maxHeight * maxHeight) + 100;
+    
+    // FIX: Increased bounding sphere radius by 50% to prevent buildings from being culled during fast camera movement
+    const expandedRadius = radius * 1.5;
     mesh.boundingSphere = new THREE.Sphere(
       new THREE.Vector3(0, maxHeight / 2, 0),
-      radius,
+      expandedRadius,
     );
     mesh.boundingBox = null;
 
@@ -666,6 +669,8 @@ export default memo(function InstancedBuildings({
       ref={meshRef}
       args={[geo, material, count]}
       frustumCulled={false}
+      receiveShadow={false}
+      castShadow={false}
     />
   );
 });

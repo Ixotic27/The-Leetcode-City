@@ -184,10 +184,10 @@ function querySpatialGrid(
   return result;
 }
 
-const EFFECTS_RADIUS = 300;
-const EFFECTS_RADIUS_HYSTERESIS = 380;
+const EFFECTS_RADIUS = 500;
+const EFFECTS_RADIUS_HYSTERESIS = 600;
 const EFFECTS_UPDATE_INTERVAL = 0.3; // seconds
-const MAX_ACTIVE_EFFECTS = 25;
+const MAX_ACTIVE_EFFECTS = 80;
 
 // ─── Component ─────────────────────────────────────────────────
 interface EffectsLayerProps {
@@ -254,7 +254,7 @@ export default function EffectsLayer({
       const SMOOTH = 0.3;
       smoothVel.current[0] += (vxRaw - smoothVel.current[0]) * SMOOTH;
       smoothVel.current[1] += (vzRaw - smoothVel.current[1]) * SMOOTH;
-      const LOOK_AHEAD_SECS = 2.0;
+      const LOOK_AHEAD_SECS = 0.5;
       cx += smoothVel.current[0] * LOOK_AHEAD_SECS;
       cz += smoothVel.current[1] * LOOK_AHEAD_SECS;
     }
@@ -262,7 +262,7 @@ export default function EffectsLayer({
     prevCamPos.current[1] = rawCz;
     prevCamTime.current = elapsed;
 
-    const flyHyst = flyMode ? 450 : EFFECTS_RADIUS_HYSTERESIS;
+    const flyHyst = flyMode ? 650 : EFFECTS_RADIUS_HYSTERESIS;
     const candidates = querySpatialGrid(grid, cx, cz, flyHyst);
 
     const nearSq = EFFECTS_RADIUS * EFFECTS_RADIUS;

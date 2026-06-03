@@ -109,11 +109,26 @@ export async function POST(request: Request) {
   const sb = getSupabaseAdmin();
 
   // Fetch developer (must be claimed)
-  const { data: dev } = await sb
+  let { data: devData } = await sb
     .from("developers")
-    .select("id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+    .select("id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date")
     .eq("claimed_by", user.id)
     .single();
+
+  let dev: any = devData;
+
+  try {
+    const { data: v2Data, error: v2Err } = await sb
+      .from("developers")
+      .select("easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+      .eq("claimed_by", user.id)
+      .maybeSingle();
+    if (!v2Err && dev && v2Data) {
+      dev = { ...dev, ...v2Data };
+    }
+  } catch (e) {
+    // Ignore schema errors if migration hasn't run yet
+  }
 
   const githubLogin = dev?.github_login ?? "";
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -13,6 +14,11 @@ export async function POST(request: Request) {
 
     if (!user) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const { ok } = rateLimit(`buy-points:${user.id}`, 1, 5_000);
+    if (!ok) {
+        return NextResponse.json({ error: "Too fast" }, { status: 429 });
     }
 
     const { item_id } = await request.json();

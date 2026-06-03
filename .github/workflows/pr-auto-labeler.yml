@@ -269,7 +269,7 @@ jobs:
             for (const pattern of suspiciousPatterns) {
               const matches = addedLines.filter(l => {
                 if (!pattern.regex.test(l)) return false;
-                // Exclude safe GitHub Actions secret references like ${{ secrets.FOO }}
+                // Exclude safe GitHub Actions secret references (e.g. secrets.SOMETHING)
                 if (pattern.name === 'hardcoded secret/key reference' && /\$\{\{\s*secrets\./.test(l)) return false;
                 return true;
               });

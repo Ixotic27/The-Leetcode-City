@@ -115,7 +115,7 @@ async function main() {
         const row = item.row as HFProblemRow;
         if (!row.contest_id || !row.index || !row.title) continue;
 
-        const sourceId = `${row.contest_id}${row.index}`;
+        const sourceId = `${row.contest_id}-${row.index}`;
         const rating = row.rating;
         if (rating === undefined || rating === null) continue;
 
@@ -221,7 +221,7 @@ async function main() {
   for (let i = 0; i < DAYS_TO_SCHEDULE; i++) {
     const futureDate = new Date(today);
     futureDate.setDate(today.getDate() + i);
-    const dateStr = futureDate.toISOString().split("T")[0];
+    const dateStr = futureDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
     if (existingDates.has(dateStr)) {
       continue; // Date already has challenges, skip

@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const { data: purchase } = await sb
       .from("purchases")
       .select("id")
-      .eq("developer_id", dev.id)
+      .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
       .eq("item_id", item_id)
       .eq("status", "completed")
       .maybeSingle();
@@ -139,25 +139,38 @@ export async function POST(request: Request) {
     }
 
     if (!isDevTitle) {
+      // Resolve item UUID from slug (arena items)
       const { data: itemData } = await sb
         .from("arena_items")
         .select("id")
         .eq("slug", slug)
-        .single();
-
-      if (!itemData) {
-        return NextResponse.json({ error: "Invalid title slug" }, { status: 400 });
-      }
-
-      const { data: ownsItem } = await sb
-        .from("arena_inventory")
-        .select("id")
-        .eq("user_id", dev.id)
-        .eq("item_id", itemData.id)
         .maybeSingle();
 
-      if (!ownsItem) {
-        return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
+      if (itemData) {
+        // Verify they own the item in arena_inventory
+        const { data: ownsItem } = await sb
+          .from("arena_inventory")
+          .select("id")
+          .eq("user_id", dev.id)
+          .eq("item_id", itemData.id)
+          .maybeSingle();
+
+        if (!ownsItem) {
+          return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
+        }
+      } else {
+        // It might be a shop-purchased title (like crown_of_code)
+        const { data: ownsShopItem } = await sb
+          .from("purchases")
+          .select("id")
+          .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
+          .eq("item_id", slug)
+          .eq("status", "completed")
+          .maybeSingle();
+          
+        if (!ownsShopItem) {
+           return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
+        }
       }
     }
 

@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { checkAchievements } from "@/lib/achievements";
 import { touchLastActive } from "@/lib/notification-helpers";
 import { trackDailyMission } from "@/lib/dailies";
+import { getUtcDateStrings } from "@/lib/utc-date";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -62,7 +63,9 @@ export async function POST(request: Request) {
   }
 
   // Check daily limit (5/day)
-  const today = new Date().toISOString().split("T")[0];
+  // Both `today` and `yesterday` are derived from the same Date instantiation
+  // so they can never drift relative to each other across a midnight boundary.
+  const { today, yesterday } = getUtcDateStrings();
   const { count } = await admin
     .from("developer_kudos")
     .select("giver_id", { count: "exact", head: true })
@@ -112,7 +115,6 @@ export async function POST(request: Request) {
 
     // Update kudos streak
     const lastKudosDate = giver.last_kudos_given_date as string | null;
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
     let newKudosStreak = giver.kudos_streak ?? 0;
 
     if (lastKudosDate === today) {

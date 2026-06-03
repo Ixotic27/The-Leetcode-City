@@ -18,7 +18,7 @@ export async function GET() {
     // Fetch all shop items
     const { data: allItems } = await sb
       .from("arena_items")
-      .select("id, name, slug, description, item_type, rarity, icon_path, max_stack")
+      .select("id, name, slug, description, item_type, rarity, icon_path, max_stack, price_points, price_usd_cents")
       .order("name", { ascending: true });
 
     // Default response for guest users
@@ -87,7 +87,7 @@ export async function GET() {
       .eq("user_id", dev.id);
     
     const ownedTitles = (arenaInvData ?? [])
-      .map((inv: any) => inv.arena_items?.slug)
+      .map((inv: any) => Array.isArray(inv.arena_items) ? inv.arena_items[0]?.slug : inv.arena_items?.slug)
       .filter((slug): slug is string => typeof slug === "string");
 
     const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());

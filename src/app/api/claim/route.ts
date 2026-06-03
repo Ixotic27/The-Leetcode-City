@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { grantFreeClaimItem } from "@/lib/items";
 
 export async function POST() {
   const supabase = await createServerSupabase();
@@ -70,7 +71,8 @@ export async function POST() {
     .eq("github_login", githubLogin)
     .single();
 
-  if (dev) {
+  if (dev) { 
+    await grantFreeClaimItem(dev.id);  
     await admin.from("activity_feed").insert({
       event_type: "building_claimed",
       actor_id: dev.id,

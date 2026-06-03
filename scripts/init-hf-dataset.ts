@@ -75,13 +75,15 @@ async function main() {
 
       // Append to JSONL file
       const newRow = {
-        source_id: `${row.contest_id}${row.index}`,
+        source_id: `${row.contest_id}-${row.index}`,
+        source: "codeforces",
         title: row.title,
         description: row.description || "",
         input_format: row.input_format || "",
         output_format: row.output_format || "",
         examples: row.examples || [],
-        rating: row.rating,
+        hidden_tests: row.official_tests || [],
+        difficulty_rating: row.rating,
         difficulty,
         tags: row.tags || [],
         seeded: false, // <--- Key addition!

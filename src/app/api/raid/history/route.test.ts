@@ -1,24 +1,29 @@
-import { parseRaidHistoryLimit } from "./limit";
+import { parsePagination } from "../../../../lib/parse-pagination";
 
-describe("parseRaidHistoryLimit", () => {
+describe("raid history pagination parsing", () => {
   it("defaults invalid limit values to 20", () => {
-    expect(parseRaidHistoryLimit("abc")).toBe(20);
+    expect(parsePagination("abc", null).limit).toBe(20);
   });
 
   it("defaults missing limit values to 20", () => {
-    expect(parseRaidHistoryLimit(null)).toBe(20);
+    expect(parsePagination(null, null).limit).toBe(20);
   });
 
   it("clamps negative and zero limits to the first valid page size", () => {
-    expect(parseRaidHistoryLimit("-5")).toBe(1);
-    expect(parseRaidHistoryLimit("0")).toBe(1);
+    expect(parsePagination("-5", null).limit).toBe(1);
+    expect(parsePagination("0", null).limit).toBe(1);
   });
 
   it("caps large limit values at the maximum page size", () => {
-    expect(parseRaidHistoryLimit("500")).toBe(50);
+    expect(parsePagination("500", null).limit).toBe(50);
   });
 
   it("keeps valid limit values unchanged", () => {
-    expect(parseRaidHistoryLimit("12")).toBe(12);
+    expect(parsePagination("12", null).limit).toBe(12);
+  });
+
+  it("defaults invalid offsets to 0", () => {
+    expect(parsePagination("12", "oops").offset).toBe(0);
+    expect(parsePagination("12", "-10").offset).toBe(0);
   });
 });

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { parseRaidHistoryLimit } from "./limit";
+import { parsePagination } from "@/lib/parse-pagination";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -8,8 +8,10 @@ import { parseRaidHistoryLimit } from "./limit";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const developerId = searchParams.get("developer_id");
-  const limit = parseRaidHistoryLimit(searchParams.get("limit"));
-  const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10));
+  const { limit, offset } = parsePagination(
+    searchParams.get("limit"),
+    searchParams.get("offset")
+  );
 
   if (!developerId) {
     return NextResponse.json({ error: "Missing developer_id" }, { status: 400 });

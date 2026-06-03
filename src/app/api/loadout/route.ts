@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ZONE_ITEMS } from "@/lib/zones";
+import { parseDeveloperId } from "./developer-id";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing developer_id" }, { status: 400 });
   }
 
+  const developerId = parseDeveloperId(devId);
+  if (developerId === null) {
+    return NextResponse.json({ error: "Invalid developer_id" }, { status: 400 });
+  }
+
   const admin = getSupabaseAdmin();
   const { data } = await admin
     .from("developer_customizations")
     .select("config")
-    .eq("developer_id", parseInt(devId, 10))
+    .eq("developer_id", developerId)
     .eq("item_id", "loadout")
     .maybeSingle();
 

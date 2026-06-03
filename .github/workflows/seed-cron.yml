@@ -30,9 +30,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check environment secrets
+        run: |
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then
+            echo "⚠️ NEXT_PUBLIC_SUPABASE_URL secret is empty, using fallback URL."
+          else
+            echo "✅ NEXT_PUBLIC_SUPABASE_URL secret is present."
+          fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ Error: SUPABASE_SERVICE_ROLE_KEY secret is not set! The seeder will fail."
+          else
+            echo "✅ SUPABASE_SERVICE_ROLE_KEY secret is present."
+          fi
+
       - name: Run seeder (5 pages ≈ 125 users)
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ykqxkfazxsyantffjouf.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/seed-lc-infinite.ts --pages 5
 
