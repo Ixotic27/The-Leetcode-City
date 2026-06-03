@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { parseRaidHistoryLimit } from "./limit";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -7,7 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const developerId = searchParams.get("developer_id");
-  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? "20", 10));
+  const limit = parseRaidHistoryLimit(searchParams.get("limit"));
   const offset = Math.max(0, parseInt(searchParams.get("offset") ?? "0", 10));
 
   if (!developerId) {
