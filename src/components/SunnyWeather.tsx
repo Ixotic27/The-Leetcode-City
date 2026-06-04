@@ -21,10 +21,13 @@ import * as THREE from "three";
 // --- 1. TYPE DEFINITIONS & CONSTANTS ---
 
 export interface WeatherProps {
+  mode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
   intensity?: number;
   sunPosition?: [number, number, number];
   isTransitioning?: boolean;
   onTransitionComplete?: () => void;
+  timeRef?: React.MutableRefObject<number>;
+  active?: boolean;
 }
 
 const HEAT_SHIMMER_SPEED = 1.4;
@@ -82,10 +85,20 @@ const ShimmerShader = {
 // --- 3. SUB-COMPONENTS ---
 
 /**
- * HeatShimmerPlane
+ * HeatShimmerVolume
  * Generates a bounded ground-volume mesh executing the displacement shader.
  */
-const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
+const HeatShimmerVolume = ({
+  intensity,
+  active,
+  timeRef,
+  mode,
+}: {
+  intensity: number;
+  active?: boolean;
+  timeRef?: React.MutableRefObject<number>;
+  mode?: string;
+}) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
   const uniforms = useMemo(() => ({
@@ -98,6 +111,35 @@ const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
     if (meshRef.current) {
       const mat = meshRef.current.material as THREE.ShaderMaterial;
       mat.uniforms.uTime.value = state.clock.getElapsedTime();
+
+      let strengthFactor = 1.0;
+      if (active && timeRef) {
+        const tVal = timeRef.current;
+        const theta = 2.0 * Math.PI * tVal - Math.PI / 2.0;
+        const sunY = Math.sin(theta);
+        
+        let sunriseIntensity = 0.0;
+        if (tVal >= 0.2083 && tVal <= 0.2917) {
+          sunriseIntensity = 1.0 - Math.abs(tVal - 0.25) / 0.0417;
+        }
+        
+        let sunsetIntensity = 0.0;
+        if (tVal >= 0.7083 && tVal <= 0.7917) {
+          sunsetIntensity = 1.0 - Math.abs(tVal - 0.75) / 0.0417;
+        }
+        
+        const localSunsetSunriseIntensity = Math.max(sunriseIntensity, sunsetIntensity);
+        const finalSunsetIntensity = Math.max(localSunsetSunriseIntensity, mode === "sunset" ? 1.0 : 0.0);
+        
+        const isAboveHorizon = sunY > 0;
+        const horizonFactor = isAboveHorizon ? sunY : 0.0;
+        
+        strengthFactor = horizonFactor * (1.0 - finalSunsetIntensity);
+      } else if (mode === "sunset") {
+        strengthFactor = 0.0;
+      }
+      
+      mat.uniforms.uStrength.value = HEAT_SHIMMER_STRENGTH * intensity * strengthFactor;
     }
   });
 
@@ -139,7 +181,7 @@ const SunLensFlare = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
     const projPos = sunPos.clone().project(camera);
     const isBehindCamera = projPos.z > 1;
 
-    if (isBehindCamera) {
+    if (isBehindCamera || sunPos.y < 0) {
       flareRef.current.visible = false;
       return;
     }
@@ -178,10 +220,13 @@ const SunLensFlare = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
 // --- 4. MAIN WEATHER SYSTEM CONTROLLER ---
 
 export const SunnyWeather = ({
+  mode = "sunny",
   intensity = 1.0,
   sunPosition = [600, 400, -300],
   isTransitioning = false,
-  onTransitionComplete
+  onTransitionComplete,
+  timeRef,
+  active = false,
 }: WeatherProps) => {
   const directionalLightRef = useRef<THREE.DirectionalLight>(null);
   const ambientLightRef = useRef<THREE.AmbientLight>(null);
@@ -197,14 +242,98 @@ export const SunnyWeather = ({
     }
   }, [isTransitioning, onTransitionComplete]);
 
+  useFrame(() => {
+    const isSunsetWeather = mode === "sunset";
+    let finalSunsetIntensity = isSunsetWeather ? 1.0 : 0.0;
+    let tVal = 0.0;
+
+    if (active && timeRef) {
+      tVal = timeRef.current;
+      const theta = 2.0 * Math.PI * tVal - Math.PI / 2.0;
+
+      const sunX = Math.cos(theta) * 600;
+      const sunY = Math.sin(theta) * 500;
+      const sunZ = -200;
+
+      parsedSunPos.set(sunX, sunY, sunZ);
+
+      // Sunrise: 5 AM - 7 AM (t between 0.2083 and 0.2917, peak at 0.25)
+      let sunriseIntensity = 0.0;
+      if (tVal >= 0.2083 && tVal <= 0.2917) {
+        sunriseIntensity = 1.0 - Math.abs(tVal - 0.25) / 0.0417;
+      }
+      
+      // Sunset: 5 PM - 7 PM (t between 0.7083 and 0.7917, peak at 0.75)
+      let sunsetIntensity = 0.0;
+      if (tVal >= 0.7083 && tVal <= 0.7917) {
+        sunsetIntensity = 1.0 - Math.abs(tVal - 0.75) / 0.0417;
+      }
+      
+      const localSunsetSunriseIntensity = Math.max(sunriseIntensity, sunsetIntensity);
+      finalSunsetIntensity = Math.max(localSunsetSunriseIntensity, isSunsetWeather ? 1.0 : 0.0);
+
+      // Interpolate colors
+      const sunColorObj = new THREE.Color("#fffaed").lerp(new THREE.Color("#ff7320"), finalSunsetIntensity);
+      const ambientColorObj = new THREE.Color("#ffebcc").lerp(new THREE.Color("#602c40"), finalSunsetIntensity);
+
+      // Scale by sun above horizon factor
+      const isAboveHorizon = sunY > 0;
+      const horizonFactor = isAboveHorizon ? Math.min(1.0, sunY / 100) : 0.0; // smooth fade in near horizon
+
+      const finalSunIntensity = isAboveHorizon
+        ? (2.8 * (1.0 - finalSunsetIntensity) + 3.0 * finalSunsetIntensity) * intensity * horizonFactor
+        : 0.0;
+
+      const finalAmbientIntensity = isAboveHorizon
+        ? (0.45 * (1.0 - finalSunsetIntensity) + 0.3 * finalSunsetIntensity) * intensity * horizonFactor
+        : 0.0;
+
+      if (directionalLightRef.current) {
+        directionalLightRef.current.position.copy(parsedSunPos);
+        directionalLightRef.current.color.copy(sunColorObj);
+        directionalLightRef.current.intensity = finalSunIntensity;
+      }
+
+      if (ambientLightRef.current) {
+        ambientLightRef.current.color.copy(ambientColorObj);
+        ambientLightRef.current.intensity = finalAmbientIntensity;
+      }
+    } else {
+      // Static override settings
+      const sunColorObj = new THREE.Color(isSunsetWeather ? "#ff7320" : "#fffaed");
+      const ambientColorObj = new THREE.Color(isSunsetWeather ? "#602c40" : "#ffebcc");
+      const finalSunIntensity = (isSunsetWeather ? 3.0 : 2.8) * intensity;
+      const finalAmbientIntensity = (isSunsetWeather ? 0.3 : 0.45) * intensity;
+
+      parsedSunPos.set(sunPosition[0], sunPosition[1], sunPosition[2]);
+
+      if (directionalLightRef.current) {
+        directionalLightRef.current.position.copy(parsedSunPos);
+        directionalLightRef.current.color.copy(sunColorObj);
+        directionalLightRef.current.intensity = finalSunIntensity;
+      }
+
+      if (ambientLightRef.current) {
+        ambientLightRef.current.color.copy(ambientColorObj);
+        ambientLightRef.current.intensity = finalAmbientIntensity;
+      }
+    }
+  });
+
+  const isSunset = mode === "sunset";
+  const initialSunColor = isSunset ? "#ff7320" : "#fffaed";
+  const initialSunIntensity = isSunset ? 3.0 * intensity : 2.8 * intensity;
+  const initialAmbientColor = isSunset ? "#602c40" : "#ffebcc";
+  const initialAmbientIntensity = isSunset ? 0.3 * intensity : 0.45 * intensity;
+
   return (
-    <group name="subsystem-sunny-weather">
+    <group name={isSunset ? "subsystem-sunset-weather" : "subsystem-sunny-weather"}>
       {/* Intense Golden Hour Directional Light System */}
       <directionalLight
         ref={directionalLightRef}
         position={parsedSunPos}
-        color="#fffaed"
-        intensity={2.8 * intensity}
+        color={initialSunColor}
+        intensity={initialSunIntensity}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -219,12 +348,12 @@ export const SunnyWeather = ({
       {/* Warm Ambient Reflection Secondary Bounce */}
       <ambientLight
         ref={ambientLightRef}
-        color="#ffebcc"
-        intensity={0.45 * intensity}
+        color={initialAmbientColor}
+        intensity={initialAmbientIntensity}
       />
 
       {/* High-Fidelity Rendering Layer Components */}
-      <HeatShimmerVolume intensity={intensity} />
+      <HeatShimmerVolume intensity={intensity} active={active} timeRef={timeRef} mode={mode} />
       <VolumetricGodRays sunPos={parsedSunPos} />
       <SunLensFlare sunPos={parsedSunPos} />
     </group>

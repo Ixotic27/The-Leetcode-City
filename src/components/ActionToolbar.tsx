@@ -12,7 +12,7 @@ interface ActionToolbarProps {
   isMounted: boolean;
   dayNightCycleActive: boolean;
   setDayNightCycleActive: React.Dispatch<React.SetStateAction<boolean>>;
-  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
   cycleWeather?: () => void;
 }
 

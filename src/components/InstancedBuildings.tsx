@@ -65,6 +65,7 @@ const fragmentShader = /* glsl */ `
   uniform float uDimOpacity;
   uniform float uDimEmissive;
   uniform float uCityEnergy;
+  uniform float uSunsetSilhouette; // 0.0 or 1.0
   uniform float uTimeOfDay; // 0.0 = Night, 1.0 = Day
   uniform float uSnowIntensity; // 0.0 to 1.0
 
@@ -127,6 +128,12 @@ const fragmentShader = /* glsl */ `
     vec3 liveBoost = vec3(1.4, 1.35, 1.2);
     wallFinal = mix(wallFinal, wallFinal * liveBoost, vLive);
 
+    if (uSunsetSilhouette > 0.5) {
+      float NdotL = dot(vNormal, normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5)));
+      float backlit = smoothstep(0.4, -0.1, NdotL);
+      wallFinal = mix(wallFinal, wallFinal * 0.15, backlit);
+    }
+
     vec3 roofFinal = uRoofColor * (ambientDay + 1.4 * uCityEnergy);
     vec3 snowColor = vec3(0.97, 0.98, 1.0);
     roofFinal = mix(roofFinal, snowColor * (ambientDay + 1.0), uSnowIntensity);
@@ -136,6 +143,13 @@ const fragmentShader = /* glsl */ `
     // Directional light changes based on time
     vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
     float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.5, uTimeOfDay) + mix(0.5, 0.8, uTimeOfDay);
+    
+    if (uSunsetSilhouette > 0.5) {
+      float NdotL = dot(vNormal, lightDir);
+      float backlit = smoothstep(0.4, -0.1, NdotL);
+      diffuse = mix(diffuse, diffuse * 0.18, backlit);
+    }
+
     color *= diffuse;
 
     float isFocused = step(abs(vInstanceId - uFocusedId), 0.5)
@@ -191,7 +205,9 @@ interface InstancedBuildingsProps {
   liveByLogin?: Map<string, unknown>;
   cityEnergy?: number;
   timeRef?: React.MutableRefObject<number>;
-  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
+  themeIndex?: number;
+  active?: boolean;
 }
 
 interface RiseState {
@@ -218,6 +234,8 @@ export default memo(function InstancedBuildings({
   cityEnergy = 1.0,
   timeRef,
   weatherMode = "sunny",
+  themeIndex = 0,
+  active = false,
 }: InstancedBuildingsProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = buildings.length;
@@ -247,6 +265,7 @@ export default memo(function InstancedBuildings({
         uCityEnergy: { value: cityEnergy },
         uTimeOfDay: { value: 1.0 },
         uSnowIntensity: { value: weatherMode === "snowy" ? 1.0 : 0.0 },
+        uSunsetSilhouette: { value: (weatherMode === "sunset" || (themeIndex === 1 && weatherMode === "sunny")) ? 1.0 : 0.0 },
       },
       vertexShader,
       fragmentShader,
@@ -263,8 +282,9 @@ export default memo(function InstancedBuildings({
     material.uniforms.uDimEmissive.value = dimEmissive;
     material.uniforms.uCityEnergy.value = cityEnergy;
     material.uniforms.uSnowIntensity.value = weatherMode === "snowy" ? 1.0 : 0.0;
+    material.uniforms.uSunsetSilhouette.value = (weatherMode === "sunset" || (themeIndex === 1 && weatherMode === "sunny")) ? 1.0 : 0.0;
     material.needsUpdate = true;
-  }, [atlasTexture, colors.roof, colors.face, dimOpacity, dimEmissive, cityEnergy, weatherMode, material]);
+  }, [atlasTexture, colors.roof, colors.face, dimOpacity, dimEmissive, cityEnergy, weatherMode, themeIndex, material]);
 
   const { uvFrontData, uvSideData, riseData, tintData, lcData } =
     useMemo(() => {
@@ -449,6 +469,26 @@ export default memo(function InstancedBuildings({
     // Map cycle progress [0, 1] to uTimeOfDay [0, 1] using cosine curve
     const uTimeVal = (1.0 - Math.cos(tVal * 2.0 * Math.PI)) / 2.0;
     material.uniforms.uTimeOfDay.value = uTimeVal;
+
+    const isSunsetWeather = weatherMode === "sunset";
+    const isSunsetTheme = themeIndex === 1 && weatherMode === "sunny";
+
+    let localSunsetSunriseIntensity = 0.0;
+    if (active) {
+      // Sunrise: 5 AM - 7 AM (t between 0.2083 and 0.2917, peak at 0.25)
+      let sunriseIntensity = 0.0;
+      if (tVal >= 0.2083 && tVal <= 0.2917) {
+        sunriseIntensity = 1.0 - Math.abs(tVal - 0.25) / 0.0417;
+      }
+      // Sunset: 5 PM - 7 PM (t between 0.7083 and 0.7917, peak at 0.75)
+      let sunsetIntensity = 0.0;
+      if (tVal >= 0.7083 && tVal <= 0.7917) {
+        sunsetIntensity = 1.0 - Math.abs(tVal - 0.75) / 0.0417;
+      }
+      localSunsetSunriseIntensity = Math.max(sunriseIntensity, sunsetIntensity);
+    }
+    const finalIntensity = Math.max(localSunsetSunriseIntensity, (isSunsetWeather || isSunsetTheme) ? 1.0 : 0.0);
+    material.uniforms.uSunsetSilhouette.value = finalIntensity;
 
     const lastFogColorHex = material.uniforms.uFogColor.value.getHex();
     const currentFogHex = fog.color.getHex();
@@ -671,6 +711,7 @@ export default memo(function InstancedBuildings({
       frustumCulled={false}
       receiveShadow={false}
       castShadow={false}
+      name="instanced-buildings"
     />
   );
 });

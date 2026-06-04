@@ -1065,7 +1065,7 @@ function Ground({ color, grid1, grid2 }: { color: string; grid1: string; grid2: 
   return null;
 }
 
-function CircularCityPlatform({ radius, color, weatherMode }: { radius: number; color: string; weatherMode?: string }) {
+function CircularCityPlatform({ radius, color, weatherMode }: { radius: number; color: string; weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy" }) {
   const platformRadius = radius + 120;
 
   const { supportColumns, concretePaths } = useMemo(() => {
@@ -1964,7 +1964,7 @@ interface Props {
   wallpaperSpeed?: number;
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
-  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -2141,6 +2141,8 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
         cityEnergy={cityEnergy}
         timeRef={timeRef}
         weatherMode={weatherMode}
+        themeIndex={themeIndex}
+        active={dayNightCycleActive ?? false}
       />
 
       <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />

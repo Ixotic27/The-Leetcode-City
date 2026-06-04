@@ -578,10 +578,10 @@ function HomeContent() {
   const [themeIndex, setThemeIndex] = useState(0);
   const [isCodexOpen, setIsCodexOpen] = useState(false);
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
-  const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
+  const [weatherMode, setWeatherMode] = useState<"sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
   const cycleWeather = () => {
-    const modes: ("sunny" | "rainy" | "windy" | "stormy" | "snowy")[] = ["sunny", "rainy", "windy", "stormy", "snowy"];
+    const modes: ("sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy")[] = ["sunny", "sunset", "rainy", "windy", "stormy", "snowy"];
     const idx = modes.indexOf(weatherMode);
     const next = modes[(idx + 1) % modes.length];
     setWeatherMode(next);
@@ -605,8 +605,8 @@ function HomeContent() {
     } catch { }
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
-      if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
-        setWeatherMode(savedWeather as any);
+      if (savedWeather === "sunny" || savedWeather === "sunset" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
+        setWeatherMode(savedWeather as "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy");
       }
     } catch { }
   }, []);

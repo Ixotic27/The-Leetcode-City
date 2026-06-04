@@ -247,9 +247,11 @@ interface CloudData {
 function VoxelClouds({
   active,
   timeRef,
+  weatherMode,
 }: {
   active: boolean;
   timeRef: React.MutableRefObject<number>;
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
 }) {
   const groupRef = useRef<THREE.Group>(null);
 
@@ -304,7 +306,7 @@ function VoxelClouds({
     });
 
     // 2. Interpolate cloud colors matching Midnight -> Dawn -> Noon -> Sunset -> Midnight
-    const t = active ? timeRef.current : 0.0;
+    const t = (active || weatherMode === "sunset") ? timeRef.current : 0.0;
     const numStates = ATMOSPHERE_STATES.length;
     const val = t * numStates;
     const idx1 = Math.floor(val) % numStates;
@@ -1249,7 +1251,7 @@ const sunGlowFragmentShader = `
 `;
 
 // ─── Starfield Component ───────────────────────────────────────
-function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number>; active: boolean }) {
+function Starfield({ timeRef, active, weatherMode }: { timeRef: React.MutableRefObject<number>; active: boolean; weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy" }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const { positions, sizes, phases } = useMemo(() => {
@@ -1333,9 +1335,11 @@ function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number
       pointsRef.current.position.copy(camera.position);
     }
 
-    const t = active ? timeRef.current : 0.0;
+    const t = (active || weatherMode === "sunset") ? timeRef.current : 0.0;
     let nightFactor = 0;
-    if (t < 0.25) {
+    if (weatherMode === "sunset") {
+      nightFactor = 0.25; // Keep stars slightly visible in the sunset purple sky
+    } else if (t < 0.25) {
       nightFactor = 1.0 - (t / 0.25);
     } else if (t > 0.75) {
       nightFactor = (t - 0.75) / 0.25;
@@ -1422,7 +1426,7 @@ interface AtmosphereCycleManagerProps {
   active: boolean;
   timeRef: React.MutableRefObject<number>;
   cityRadius?: number;
-  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
 }
 
 export default function AtmosphereCycleManager({
@@ -1574,24 +1578,26 @@ export default function AtmosphereCycleManager({
       }
     }
 
-    if (active) {
-      // Global Day/Night Cycle based on India Standard Time (IST: UTC+5:30)
-      const now = Date.now();
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      const istTime = new Date(now + istOffset);
-      
-      const hours = istTime.getUTCHours();
-      const minutes = istTime.getUTCMinutes();
-      const seconds = istTime.getUTCSeconds();
-      const ms = istTime.getUTCMilliseconds();
-      
-      const totalMs = 24 * 60 * 60 * 1000;
-      const elapsed = (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + ms;
-      
-      // t goes linearly from 0.0 (midnight) -> 0.25 (6 AM) -> 0.5 (noon) -> 0.75 (6 PM) -> 1.0 (midnight)
-      t = elapsed / totalMs;
-
-      timeRef.current = t;
+    const activeCycle = active || weatherMode === "sunset";
+    if (activeCycle) {
+      if (weatherMode === "sunset") {
+        // Slow sunset oscillation on the horizon
+        t = 0.745 + Math.sin(state.clock.elapsedTime * 0.03) * 0.015;
+        timeRef.current = t;
+      } else {
+        // Global Day/Night Cycle based on user's actual local browser time
+        const localTime = new Date();
+        const hours = localTime.getHours();
+        const minutes = localTime.getMinutes();
+        const seconds = localTime.getSeconds();
+        const ms = localTime.getMilliseconds();
+        
+        const totalMs = 24 * 60 * 60 * 1000;
+        const elapsed = (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + ms;
+        
+        t = elapsed / totalMs;
+        timeRef.current = t;
+      }
 
       // Interpolate atmosphere states
       const numStates = ATMOSPHERE_STATES.length;
@@ -1777,8 +1783,8 @@ export default function AtmosphereCycleManager({
       <directionalLight ref={fillLightRef} position={theme.fillPos} intensity={theme.fillIntensity * 3} color={theme.fillColor} />
       <hemisphereLight ref={hemiLightRef} args={[theme.hemiSky, theme.hemiGround, theme.hemiIntensity * 3.5]} />
 
-      <SkyDome timeRef={timeRef} theme={theme} active={active} />
-      <VoxelClouds active={active} timeRef={timeRef} />
+      <SkyDome timeRef={timeRef} theme={theme} active={active || weatherMode === "sunset"} />
+      <VoxelClouds active={active || weatherMode === "sunset"} timeRef={timeRef} weatherMode={weatherMode} />
       <AmbientOceanShips cityRadius={cityRadius ?? 800} />
       <FlyingCityShips cityRadius={cityRadius ?? 800} />
 
@@ -1827,7 +1833,7 @@ export default function AtmosphereCycleManager({
       </group>
 
       {/* Starfield for Night Sky */}
-      <Starfield timeRef={timeRef} active={active} />
+      <Starfield timeRef={timeRef} active={active || weatherMode === "sunset"} weatherMode={weatherMode} />
 
       {/* Moonlight Volumetric Rays and Lens Flare */}
       <VolumetricMoonRays moonGroupRef={moonGroupRef} />

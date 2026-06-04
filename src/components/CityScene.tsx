@@ -9,6 +9,7 @@ import InstancedLabels from "./InstancedLabels";
 import EffectsLayer from "./EffectsLayer";
 import LiveDots from "./LiveDots";
 import SunnyWeather from "./SunnyWeather";
+import InstancedShadows from "./InstancedShadows";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
@@ -116,10 +117,20 @@ interface CitySceneProps {
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
   timeRef?: React.MutableRefObject<number>;
-  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  weatherMode?: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
+  themeIndex?: number;
+  active?: boolean;
 }
 
-function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy" }) {
+function WeatherSystem({
+  weatherMode,
+  timeRef,
+  active,
+}: {
+  weatherMode: "sunny" | "sunset" | "rainy" | "windy" | "stormy" | "snowy";
+  timeRef?: React.MutableRefObject<number>;
+  active?: boolean;
+}) {
   const pointsRef = useRef<THREE.Points>(null);
   const leavesRef = useRef<THREE.Points>(null);
   const { camera } = useThree();
@@ -266,11 +277,14 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
     }
   });
 
-  if (weatherMode === "sunny") {
+  if (weatherMode === "sunny" || weatherMode === "sunset") {
     return (
       <SunnyWeather
+        mode={weatherMode}
         intensity={1.0}
-        sunPosition={[600, 400, -300]}
+        sunPosition={weatherMode === "sunset" ? [600, 50, -400] : [600, 400, -300]}
+        timeRef={timeRef}
+        active={active}
       />
     );
   }
@@ -347,6 +361,8 @@ export default function CityScene({
   cityEnergy,
   timeRef,
   weatherMode = "sunny",
+  themeIndex = 0,
+  active = false,
 }: CitySceneProps) {
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
   const grid = useMemo(
@@ -405,6 +421,14 @@ export default function CityScene({
 
   return (
     <>
+      <InstancedShadows
+        buildings={buildings}
+        timeRef={timeRef!}
+        weatherMode={weatherMode}
+        themeIndex={themeIndex}
+        active={active}
+      />
+
       <InstancedBuildings
         buildings={buildings}
         colors={colors}
@@ -418,6 +442,7 @@ export default function CityScene({
         cityEnergy={cityEnergy}
         timeRef={timeRef}
         weatherMode={weatherMode}
+        themeIndex={themeIndex}
       />
 
 
@@ -447,7 +472,7 @@ export default function CityScene({
         ghostPreviewLogin={ghostPreviewLogin}
       />
 
-      {!introMode && <WeatherSystem weatherMode={weatherMode} />}
+      {!introMode && <WeatherSystem weatherMode={weatherMode} timeRef={timeRef} active={active} />}
 
       {!introMode && focusedBuildingData && (
         <group
