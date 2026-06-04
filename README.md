@@ -191,6 +191,54 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 > **Need full access?** Ask [@Ixotic27](https://github.com/Ixotic27) for the service role key.
 
 ---
+## 🛠️ LeetCode Data Architecture & Sync Pipeline
+
+To help new contributors get up to speed with the backend, this section details how LeetCode data is sourced, processed, cached, and updated within the application.
+
+### 1. Data Source & Authentication
+Because LeetCode does not provide an official public REST API, our application interacts with LeetCode’s public **GraphQL API endpoint**:
+
+* **Endpoint:** `https://leetcode.com/graphql`
+* **Authentication:** Public data (user profiles, solved counts, submission history) is fetched via unauthenticated `POST` requests. 
+
+---
+
+### 2. Data Fetching & Sync Flow
+When a user requests a profile or a background sync is triggered, the system executes the following pipeline:
+
+1.  **Request Ingestion:** The backend receives a request containing the target LeetCode username.
+2.  **Cache Lookup:** The system checks Redis/Internal Cache first to see if a valid, unexpired profile exists.
+3.  **GraphQL Query Execution:** If a cache miss occurs, the backend dispatches a bundled GraphQL query requesting user profile stats, contest rankings, and recent submissions.
+
+---
+
+### 3. Caching & Rate Limiting Strategy
+To keep the application snappy and remain good citizens of the LeetCode ecosystem, we employ a strict caching strategy:
+
+* **Cache Tier:** Redis is used as the primary caching layer.
+* **Cache TTL (Time-to-Live):** Profile statistics are cached for **15 minutes**. 
+* **Rate Limiting:** If LeetCode returns a `429 Too Many Requests` status, the application falls back to stale cached data (if available) or throws a structured exception, keeping the backend from crashing.
+
+---
+
+### 4. Profile Generation & Data Pipeline
+Raw data from LeetCode's GraphQL API is processed via a dedicated pipeline:
+
+1.  **Sanitization:** Validates that the payload is complete and the user actually exists.
+2.  **Transformation (DTO Mapping):** Maps the raw JSON response to our internal domain models (e.g., converting LeetCode's raw submission array into an aggregated activity heatmap format).
+3.  **Metric Calculation:** Computes custom application metrics, such as badges earned or custom leaderboard scoring weights.
+4.  **Persistence:** Saves the newly structured data into the database to power historical tracking features.
+
+---
+
+### 5. Update Intervals (Data Freshness)
+Data isn't pulled live on every single page refresh. Instead, we use a hybrid approach to balance performance and freshness:
+
+| Trigger Type | Mechanism | Interval / Condition |
+| :--- | :--- | :--- |
+| **Passive Sync** | User visits their profile dashboard | Only triggers a LeetCode API call if the cache has expired (> 15 mins). |
+| **Active Sync** | Manual "Refresh" button click | Bypasses the cache tier, directly hitting LeetCode (limited to once every 5 minutes per user). |
+| **Background Cron** | Scheduled worker task | Runs during off-peak hours (e.g., daily at 00:00 UTC) to update inactive users or global leaderboards. |
 
 ## 🤝 Contributing
 
