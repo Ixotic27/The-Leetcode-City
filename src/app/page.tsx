@@ -40,6 +40,10 @@ import { useLiveUsers } from "@/lib/useLiveUsers";
 import { useCodingPresence } from "@/lib/useCodingPresence";
 import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
+import {
+  FLY_MISSION_QUOTA_POINTS,
+  hasExceededFlyMissionQuota,
+} from "@/lib/fly-quota";
 import DailiesWidget from "@/components/DailiesWidget";
 import RaidPreviewModal from "@/components/RaidPreviewModal";
 import RaidOverlay from "@/components/RaidOverlay";
@@ -2501,7 +2505,7 @@ function HomeContent() {
       !quotaNotified &&
       !quotaDismissed &&
       !quotaMissionCompleted &&
-      flyScore.score >= 50
+      hasExceededFlyMissionQuota(flyScore.score)
     ) {
       setQuotaReached(true);
       setQuotaNotified(true);
@@ -3064,7 +3068,8 @@ function HomeContent() {
                   MISSION QUOTA MATCHED!
                 </div>
                 <div className="text-[10px] text-cream/80">
-                  You&apos;ve reached 50 PX. Exit now to complete quest?
+                  You&apos;ve exceeded {FLY_MISSION_QUOTA_POINTS} PX. Exit now
+                  to complete quest?
                 </div>
                 <div className="mt-2 flex gap-3">
                   <button
