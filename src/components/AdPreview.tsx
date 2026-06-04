@@ -532,16 +532,32 @@ export default function AdPreview({
   const initPos: [number, number, number] = [initPreset.pos.x, initPreset.pos.y, initPreset.pos.z];
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
+  const canvasListenerCleanupRef = useRef<(() => void) | null>(null);
 
   const handleCreated = useCallback(({ gl }: { gl: THREE.WebGLRenderer }) => {
+    canvasListenerCleanupRef.current?.();
+
     const canvas = gl.domElement;
-    canvas.addEventListener("webglcontextlost", (e) => {
+    const handleContextLost = (e: Event) => {
       e.preventDefault();
       setContextLost(true);
-    });
-    canvas.addEventListener("webglcontextrestored", () => {
+    };
+    const handleContextRestored = () => {
       setContextLost(false);
-    });
+    };
+
+    canvas.addEventListener("webglcontextlost", handleContextLost);
+    canvas.addEventListener("webglcontextrestored", handleContextRestored);
+
+    canvasListenerCleanupRef.current = () => {
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      canvas.removeEventListener("webglcontextrestored", handleContextRestored);
+      canvasListenerCleanupRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => () => {
+    canvasListenerCleanupRef.current?.();
   }, []);
 
   // If context was lost, remount the Canvas after a short delay
