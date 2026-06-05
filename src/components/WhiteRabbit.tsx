@@ -80,11 +80,13 @@ export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbit
 
     canvas.addEventListener("pointerdown", onDown, true);
     window.addEventListener("pointerup", onUp, true);
+    window.addEventListener("pointercancel", onUp, true);
     if (onMove) canvas.addEventListener("pointermove", onMove, true);
 
     return () => {
       canvas.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("pointerup", onUp, true);
+      window.removeEventListener("pointercancel", onUp, true);
       if (onMove) canvas.removeEventListener("pointermove", onMove, true);
       (window as any).__rabbitClicked = false;
       (window as any).__rabbitCursor = false;

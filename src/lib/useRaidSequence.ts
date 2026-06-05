@@ -59,46 +59,20 @@ const PHASE_DURATIONS: Partial<Record<RaidPhase, number>> = {
 
 export function useRaidSequence(): [RaidState, RaidActions] {
   const [state, setState] = useState<RaidState>(INITIAL_STATE);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const targetLoginRef = useRef<string>("");
   const raidDataRef = useRef<RaidExecuteResponse | null>(null);
   const lastCompletedPhaseRef = useRef<RaidPhase | null>(null);
 
-  // Cleanup timers on unmount
+  // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
       stopAllRaidSounds();
     };
   }, []);
 
-  // Visibility change handling
-  useEffect(() => {
-    if (state.phase === "idle" || state.phase === "preview" || state.phase === "share") return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Pause timer
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [state.phase]);
-
   const setPhase = useCallback((phase: RaidPhase) => {
     lastCompletedPhaseRef.current = null;
     setState((prev) => ({ ...prev, phase, error: null }));
-
-    // Clear any pending timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
 
     // Audio triggers
     switch (phase) {
@@ -127,21 +101,6 @@ export function useRaidSequence(): [RaidState, RaidActions] {
       case "idle":
         stopAllRaidSounds();
         break;
-    }
-
-    // Auto-advance for timed phases
-    const duration = PHASE_DURATIONS[phase];
-    if (duration) {
-      timerRef.current = setTimeout(() => {
-        if (phase === "intro") setPhase("flight");
-        else if (phase === "flight") setPhase("attack");
-        else if (phase === "attack") {
-          const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
-          setPhase(nextPhase);
-        }
-        else if (phase === "outro_win") setPhase("share");
-        else if (phase === "outro_lose") setPhase("share");
-      }, duration);
     }
   }, []);
 
@@ -292,12 +251,54 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   }, [setPhase]);
 
   const exitRaid = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
     stopAllRaidSounds();
     raidDataRef.current = null;
     lastCompletedPhaseRef.current = null;
     setState(INITIAL_STATE);
   }, []);
+
+  // Auto-advance and visibility handling
+  useEffect(() => {
+    const phase = state.phase;
+    const duration = PHASE_DURATIONS[phase];
+    if (!duration) return;
+
+    let startTime = Date.now();
+    let remaining = duration;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    const startTimer = () => {
+      timerId = setTimeout(() => {
+        onPhaseComplete(phase);
+      }, remaining);
+    };
+
+    if (!document.hidden) {
+      startTimer();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (timerId) {
+          clearTimeout(timerId);
+          timerId = null;
+          remaining = Math.max(0, remaining - (Date.now() - startTime));
+        }
+      } else {
+        if (!timerId && remaining > 0) {
+          startTime = Date.now();
+          startTimer();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      if (timerId) clearTimeout(timerId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [state.phase, onPhaseComplete]);
 
   return [
     state,

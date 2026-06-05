@@ -593,11 +593,13 @@ function HomeContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem("leetcodecity_theme");
-    if (saved !== null) {
-      const n = parseInt(saved, 10);
-      if (n >= 0 && n <= 3) setThemeIndex(n);
-    }
+    try {
+      const saved = localStorage.getItem("leetcodecity_theme");
+      if (saved !== null) {
+        const n = parseInt(saved, 10);
+        if (!isNaN(n) && n >= 0 && n <= 3) setThemeIndex(n);
+      }
+    } catch { }
     try {
       const savedCycle = localStorage.getItem("leetcodecity_daynight_cycle");
       if (savedCycle === "0") {
