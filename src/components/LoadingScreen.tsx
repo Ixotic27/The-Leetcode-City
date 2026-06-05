@@ -43,7 +43,7 @@ export default function LoadingScreen({
 
   useEffect(() => {
     if (stage === "ready") {
-      setFading(true);
+      requestAnimationFrame(() => setFading(true));
     }
   }, [stage]);
 
