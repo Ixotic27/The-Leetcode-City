@@ -1155,13 +1155,43 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
     let selectedLanguage = 'py';
     let timerEnabled = true;
 
+    // Clear listeners from a previous webview script run before registering new ones.
+    if (window.__leetcodeCityArenaCleanup) {
+      window.__leetcodeCityArenaCleanup();
+    }
+
+    const cleanupListeners = [];
+    function cleanupArenaListeners() {
+      while (cleanupListeners.length > 0) {
+        const cleanup = cleanupListeners.pop();
+        try {
+          cleanup();
+        } catch (err) {
+          console.warn('Failed to clean up arena listener:', err);
+        }
+      }
+      if (window.__leetcodeCityArenaCleanup === cleanupArenaListeners) {
+        delete window.__leetcodeCityArenaCleanup;
+      }
+    }
+
+    window.__leetcodeCityArenaCleanup = cleanupArenaListeners;
+
+    const addManagedListener = (target, event, handler, options) => {
+      if (!target) return;
+      target.addEventListener(event, handler, options);
+      cleanupListeners.push(() => target.removeEventListener(event, handler, options));
+    };
+
+    addManagedListener(window, 'pagehide', cleanupArenaListeners, { once: true });
+
     // ── Init ──
     vscode.postMessage({ type: "requestState" });
 
     // ── Event Listeners ──
     const addListener = (id, event, handler) => {
       const el = document.getElementById(id);
-      if (el) el.addEventListener(event, handler);
+      addManagedListener(el, event, handler);
     };
 
     addListener('nav-back-btn', 'click', goBack);
@@ -1180,7 +1210,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
     // Set up toggle event listener for daily challenges
     const dailySection = document.getElementById('section-daily');
     if (dailySection) {
-      dailySection.addEventListener('toggle', () => {
+      addManagedListener(dailySection, 'toggle', () => {
         if (dailySection.open && dailyChallenges.length === 0) {
           vscode.postMessage({ type: "fetchDailyChallenges" });
         }
@@ -1619,7 +1649,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
     }
 
     // ── Message handler ──
-    window.addEventListener('message', (event) => {
+    addManagedListener(window, 'message', (event) => {
       const msg = event.data;
       switch (msg.type) {
         case 'dailyLoading':
