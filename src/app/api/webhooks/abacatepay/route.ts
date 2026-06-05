@@ -69,7 +69,8 @@ export async function POST(request: Request) {
                 starts_at: now.toISOString(),
                 ends_at: endsAt.toISOString(),
               })
-              .eq("id", ad.id);
+              .eq("id", ad.id)
+              .eq("active", false);
 
             if (plan.vehicle === "plane") {
               await sb
