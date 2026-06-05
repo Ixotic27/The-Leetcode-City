@@ -4,7 +4,7 @@ import { describe, it, expect } from "vitest";
 // verifies the application layer correctly interprets
 // execute_raid() RPC responses and maps them to HTTP codes.
 
-function mapRaidResult(result: { ok: boolean; error_code: string | null } | null) {
+function mapRaidResult(result: { ok: boolean; error_code: string | null } | null): { blocked: boolean; status: number; error?: string } {
   if (!result?.ok) {
     const errorMap: Record<string, { error: string; status: number }> = {
       cooldown:     { error: "Too fast, wait before raiding again", status: 429 },

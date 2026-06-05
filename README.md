@@ -113,6 +113,273 @@ Buildings switch detail level based on camera distance, computed per frame:
 
 This keeps frame rate stable regardless of city size — adding more buildings only affects the far-LOD bucket, which has near-zero per-building GPU cost.
 
+##  LeetCode Data Pipeline
+
+LeetCode City transforms real LeetCode activity into a fully rendered 3D city. This section explains how developer data is discovered, processed, stored, and ultimately converted into buildings.
+
+---
+
+##  The Journey of a Single Developer
+
+Imagine a LeetCode user with the following profile:
+
+| Metric | Value |
+|----------|----------|
+| Problems Solved | 1200 |
+| Contest Rating | 1850 |
+| Active Days | 310 |
+| Current Streak | 97 Days |
+
+Before appearing in the city, that profile travels through the entire data pipeline:
+
+```text
+LeetCode Profile
+       │
+       ▼
+LeetCode GraphQL API
+       │
+       ▼
+Seeder Scripts
+       │
+       ▼
+Supabase Database
+       │
+       ▼
+generateCityLayout()
+       │
+       ▼
+CityBuilding Object
+       │
+       ▼
+Three.js Renderer
+       │
+       ▼
+3D Building in LeetCode City
+```
+
+By the time rendering occurs, the raw profile data has been transformed into a complete building with its own dimensions, lighting, activity effects, and district placement.
+
+---
+
+##  Data Source
+
+Developer statistics are fetched directly from the LeetCode GraphQL API.
+
+The application retrieves:
+
+| Data | Purpose |
+|--------|----------|
+| Easy / Medium / Hard solved counts | Building generation |
+| Contest rating | Building dimensions |
+| Submission history | Activity analysis |
+| Active days | Lighting calculations |
+| Streak information | Activity effects |
+| Reputation & ranking | Progression metrics |
+
+### Primary Files
+
+```text
+scripts/seed-lc.ts
+scripts/seed-lc-mass.ts
+scripts/seed-lc-infinite.ts
+src/lib/leetcode.ts
+```
+
+---
+
+##  Data Collection Pipeline
+
+The city is populated using automated seeding scripts that continuously discover real LeetCode users.
+
+### Step 1 - Discover Users
+
+The seeder queries LeetCode's global ranking pages:
+
+```text
+Global Ranking Page
+        │
+        ▼
+Extract Usernames
+```
+
+### Step 2 - Fetch Detailed Statistics
+
+For each username, the system requests richer profile data:
+
+```text
+Username
+      │
+      ▼
+GraphQL Profile Query
+      │
+      ▼
+Solved Counts
+Contest Rating
+Submission Calendar
+Activity Data
+```
+
+### Step 3 - Normalize & Store
+
+Fetched statistics are transformed into a common format and written into Supabase.
+
+```text
+Raw API Response
+        │
+        ▼
+Normalize Fields
+        │
+        ▼
+Upsert Into
+developers Table
+```
+
+Using an upsert operation ensures:
+
+- Existing developers are updated
+- New developers are inserted automatically
+- Duplicate records are avoided
+
+---
+
+##  Rate Limiting & Reliability
+
+Because the project relies on public LeetCode APIs, requests are intentionally throttled.
+
+| Strategy | Purpose |
+|------------|-----------|
+| 1 second delay between profiles | Reduce API pressure |
+| 2 second delay between ranking pages | Prevent bursts |
+| Retry & backoff logic | Recover from temporary failures |
+| State persistence | Resume long imports |
+| Snapshot generation | Reduce runtime work |
+
+### Infinite Seeder Recovery
+
+`seed-lc-infinite.ts` stores progress in a local state file:
+
+```text
+seed-lc-state.json
+```
+
+If the process stops unexpectedly, the next run resumes from the last processed ranking page instead of starting over.
+
+---
+
+##  Database Layer
+
+Processed developer records are stored in the Supabase `developers` table.
+
+Important LeetCode-related fields include:
+
+```text
+easy_solved
+medium_solved
+hard_solved
+contest_rating
+acceptance_rate
+lc_streak
+active_days_last_year
+lc_global_rank
+```
+
+These fields later become inputs for city generation.
+
+---
+
+##  Building Generation
+
+After data is loaded from Supabase, `generateCityLayout()` transforms developer records into renderable city objects.
+
+```text
+Developer Record
+        │
+        ▼
+Height Calculation
+        │
+        ▼
+Width Calculation
+        │
+        ▼
+Depth Calculation
+        │
+        ▼
+Lighting Calculation
+        │
+        ▼
+CityBuilding
+```
+
+### How LeetCode Stats Affect Buildings
+
+| LeetCode Metric | Visual Result |
+|-----------------|---------------|
+| Total Problems Solved | Building Height |
+| Active Days | Building Width |
+| Contest Rating | Building Depth |
+| Submission Activity | Window Lighting |
+| Streak Length | Activity Effects |
+| Easy / Medium / Hard Distribution | Window Patterns |
+
+A building is not randomly generated. Every visual characteristic originates from real LeetCode activity.
+
+---
+
+##  City Rendering
+
+Client pages first attempt to load a pre-generated city snapshot.
+
+```text
+Snapshot Available?
+        │
+   ┌────┴────┐
+   │         │
+ Yes         No
+   │         │
+   ▼         ▼
+Load     Chunked API
+Snapshot  Requests
+```
+
+Once developer records are available:
+
+```text
+Developer Data
+       │
+       ▼
+generateCityLayout()
+       │
+       ▼
+Buildings
+Plazas
+Decorations
+Districts
+River
+Bridges
+       │
+       ▼
+CityCanvas
+       │
+       ▼
+Three.js Scene
+```
+
+The final output is the interactive city visible throughout the application.
+
+---
+
+## 📁 Key Files
+
+| File | Responsibility |
+|---------|----------------|
+| `scripts/seed-lc.ts` | Initial seeding |
+| `scripts/seed-lc-mass.ts` | Bulk imports |
+| `scripts/seed-lc-infinite.ts` | Continuous expansion |
+| `src/lib/leetcode.ts` | LeetCode utility functions |
+| `src/lib/github.ts` | Building generation pipeline |
+| `src/app/wallpaper/page.tsx` | Snapshot & city loading |
+| `src/components/CityCanvas.tsx` | Three.js rendering |
+
 ## Tech Stack
 
 - **Framework:** [Next.js](https://nextjs.org) 16 (App Router, Turbopack)
