@@ -543,7 +543,7 @@ function HomeContent() {
   const giftedParam = searchParams.get("gifted");
 
   const [username, setUsername] = useState("");
-  const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
+  const failedUsernamesRef = useRef<Map<string, { code: string; timestamp: number }>>(new Map());
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
   const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
@@ -2167,16 +2167,18 @@ function HomeContent() {
 
     trackSearchUsed(trimmed);
 
-    // Check if this username already failed with a permanent error
-    const cachedError = failedUsernamesRef.current.get(trimmed);
-    if (cachedError) {
+    // Check if this username already failed with a permanent error (60s TTL)
+    const cached = failedUsernamesRef.current.get(trimmed);
+    if (cached && Date.now() - cached.timestamp < 60_000) {
       setFeedback({
         type: "error",
-        code: cachedError as any,
+        code: cached.code as any,
         username: trimmed,
       });
       return;
     }
+    // Expired entry — remove and retry
+    if (cached) failedUsernamesRef.current.delete(trimmed);
 
     // Snapshot compare state before async work — ESC may clear it mid-flight
     const wasComparing = compareBuilding;
@@ -2224,9 +2226,9 @@ function HomeContent() {
           else if (devData.error?.includes("no public activity"))
             code = "no-activity";
         }
-        // Cache permanent errors so we don't re-fetch
+        // Cache permanent errors so we don't re-fetch (expires after 60s)
         if (PERMANENT_ERROR_CODES.has(code)) {
-          failedUsernamesRef.current.set(trimmed, code);
+          failedUsernamesRef.current.set(trimmed, { code, timestamp: Date.now() });
         }
         setFeedback({
           type: "error",
