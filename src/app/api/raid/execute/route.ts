@@ -242,7 +242,7 @@ export async function POST(request: Request) {
   const isAirAttack = vehicle !== "vehicle_tank";
   const isGroundAttack = vehicle === "vehicle_tank";
   const isStealthCloak = defenderEffectiveDefense === "stealth_cloak";
-  const isEmpShield = defenderEffectiveDefense === "emp_shield";
+  const isEmpShield = defenderEffectiveDefense === "emp_shield" && !isEmpDevice;
   const isAntiMissile = defenderEffectiveDefense === "anti_missile_system";
   const isAntiTank = defenderEffectiveDefense === "anti_tank_mines";
 
