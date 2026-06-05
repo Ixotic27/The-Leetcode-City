@@ -70,31 +70,43 @@ export function useCodingPresence() {
       .subscribe();
 
     // Periodically re-fetch to stay in sync with server state
-    const pruneInterval = setInterval(() => {
-      fetch("/api/presence")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.developers) {
-            const map = new Map<string, LiveSession>();
-            for (const d of data.developers) {
-              map.set(d.githubLogin, {
-                githubLogin: d.githubLogin,
-                avatarUrl: d.avatarUrl,
-                status: d.status,
-                language: d.language,
-              });
+    let pruneTimer: ReturnType<typeof setTimeout>;
+    const poll = (delay: number) => {
+      pruneTimer = setTimeout(() => {
+        fetch("/api/presence")
+          .then((r) => {
+            if (!r.ok) throw new Error("Fetch failed");
+            return r.json();
+          })
+          .then((data) => {
+            if (data.developers) {
+              const map = new Map<string, LiveSession>();
+              for (const d of data.developers) {
+                map.set(d.githubLogin, {
+                  githubLogin: d.githubLogin,
+                  avatarUrl: d.avatarUrl,
+                  status: d.status,
+                  language: d.language,
+                });
+              }
+              mapRef.current = map;
+              updateMap();
+              poll(30_000);
+            } else {
+              poll(5_000);
             }
-            mapRef.current = map;
-            updateMap();
-          }
-        })
-        .catch(() => {});
-    }, 30_000);
+          })
+          .catch(() => {
+            poll(5_000);
+          });
+      }, delay);
+    };
+    poll(30_000);
 
     return () => {
       channel.unsubscribe();
       channelRef.current = null;
-      clearInterval(pruneInterval);
+      clearTimeout(pruneTimer);
     };
   }, [updateMap]);
 
