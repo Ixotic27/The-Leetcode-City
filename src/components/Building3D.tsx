@@ -35,6 +35,7 @@ import {
 } from "./BuildingEffects";
 import { tierFromLevel } from "@/lib/xp";
 import { MiniWhiteRabbit } from "./WhiteRabbit";
+import { useWeather } from '@/context/WeatherContext';
 
 // Shared constants
 const WHITE = new THREE.Color("#ffffff");
@@ -568,6 +569,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
   const meshRef = useRef<THREE.Mesh>(null);
   const spriteRef = useRef<THREE.Sprite>(null);
   const pointerDown = useRef<{ x: number; y: number } | null>(null);
+  const { isRaining } = useWeather();
 
   // Compute actual dimensions based on style (matches ShopPreview logic)
   const isBungalow = building.building_style === "bungalow";
@@ -617,9 +619,37 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     side.offset.set(sideColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
     side.repeat.set(effWindowsD / ATLAS_COLS, effFloors / ATLAS_COLS);
 
-    return { front, side };
+return { front, side };
   }, [building, colors, atlasTexture, isBungalow, W, H, D]);
 
+  // 1. Move useFrame out here so it sits at the root level of the component!
+useFrame((state, delta) => {
+  if (!materials || materials.length === 0) return;
+
+  materials.forEach((mat, idx) => {
+    const isRoof = idx === 2 || idx === 3;
+    const baseRoughness = isRoof ? 0.6 : 0.85;
+    
+    const targetRoughness = isRaining ? 0.15 : baseRoughness;
+    const targetMetalness = isRaining ? 0.25 : 0.0;
+
+    // Optimization: Only run calculations if current roughness hasn't reached target yet
+    if (Math.abs(mat.roughness - targetRoughness) > 0.01) {
+      mat.roughness = THREE.MathUtils.lerp(mat.roughness, targetRoughness, delta * 2);
+    } else {
+      mat.roughness = targetRoughness; // Snap to target to stop wasting CPU cycles
+    }
+
+    // Optimization: Only run calculations if current metalness hasn't reached target yet
+    if (Math.abs(mat.metalness - targetMetalness) > 0.01) {
+      mat.metalness = THREE.MathUtils.lerp(mat.metalness, targetMetalness, delta * 2);
+    } else {
+      mat.metalness = targetMetalness; // Snap to target to stop wasting CPU cycles
+    }
+  });
+});
+
+  // 2. Keep useEffect strictly for cleaning up your canvas textures on unmount
   useEffect(() => {
     return () => {
       textures.front.dispose();

@@ -145,7 +145,7 @@ export async function autoEquipIfSolo(
   const config = (existing?.config ?? { crown: null, roof: null, aura: null }) as Record<string, string | null>;
   config[zone] = itemId;
 
-  await sb.from("developer_customizations").upsert(
+  const { error: upsertError } = await sb.from("developer_customizations").upsert(
     {
       developer_id: developerId,
       item_id: "loadout",
@@ -154,6 +154,11 @@ export async function autoEquipIfSolo(
     },
     { onConflict: "developer_id,item_id" }
   );
+
+  if (upsertError) {
+    console.error("[items.ts] autoEquipIfSolo: Failed to upsert loadout:", upsertError);
+  }
+
 }
 
 export async function getOwnedItemsForDevelopers(

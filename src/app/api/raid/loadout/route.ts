@@ -129,7 +129,7 @@ export async function POST(request: Request) {
   }
 
   // Upsert
-  await admin.from("developer_customizations").upsert(
+  const { error: upsertError } = await admin.from("developer_customizations").upsert(
     {
       developer_id: dev.id,
       item_id: "raid_loadout",
@@ -139,5 +139,14 @@ export async function POST(request: Request) {
     { onConflict: "developer_id,item_id" }
   );
 
+  if (upsertError) {
+    console.error("[api/raid/loadout] Failed to save raid loadout:", upsertError);
+    return NextResponse.json(
+      { error: "Database error saving raid loadout" },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({ ok: true, vehicle: config.vehicle, tag: config.tag });
+
 }

@@ -114,7 +114,7 @@ export async function POST(request: Request) {
   const prev = (currentLoadout?.config ?? { crown: null, roof: null, aura: null, faces: null }) as Record<string, string | null>;
 
   // Upsert loadout
-  await admin.from("developer_customizations").upsert(
+  const { error: upsertError } = await admin.from("developer_customizations").upsert(
     {
       developer_id: dev.id,
       item_id: "loadout",
@@ -123,6 +123,14 @@ export async function POST(request: Request) {
     },
     { onConflict: "developer_id,item_id" }
   );
+
+  if (upsertError) {
+    console.error("[api/loadout] Failed to save loadout:", upsertError);
+    return NextResponse.json(
+      { error: "Database error saving loadout" },
+      { status: 500 }
+    );
+  }
 
   // Feed event for newly equipped items
   for (const zone of ["crown", "roof", "aura", "faces"] as const) {
