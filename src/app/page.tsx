@@ -4,11 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
-<<<<<<< HEAD
 import ErrorBoundary from "@/components/ErrorBoundary";
-=======
-import { WeatherProvider } from '@/context/WeatherContext';
->>>>>>> origin/main
 
 import {
   useState,
