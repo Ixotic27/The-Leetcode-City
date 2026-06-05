@@ -25,15 +25,27 @@ export default function DailiesLeaderboard() {
   const authLogin = useLeaderboardAuth();
   const [leaderboard, setLeaderboard] = useState<DailiesEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const fetchLeaderboard = () => {
+    setLoading(true);
+    setError(false);
     fetch("/api/dailies/leaderboard")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
       .then((data) => {
         setLeaderboard(data.leaderboard ?? []);
       })
-      .catch(() => {})
+      .catch(() => {
+        setError(true);
+      })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
   }, []);
 
   // Find user in leaderboard
@@ -179,7 +191,19 @@ export default function DailiesLeaderboard() {
           </div>
         )}
 
-        {!loading && leaderboard.length === 0 && (
+        {error && !loading && (
+          <div className="px-5 py-8 text-center">
+            <p className="text-xs text-red-400 normal-case mb-3">Failed to load leaderboard</p>
+            <button 
+              onClick={fetchLeaderboard}
+              className="btn-press border-[2px] border-border px-3 py-1 text-[10px] text-cream hover:border-border-light transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && leaderboard.length === 0 && (
           <div className="px-5 py-8 text-center text-xs text-muted normal-case">
             No one has completed dailies yet. Be the first!
           </div>

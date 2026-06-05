@@ -1,0 +1,1 @@
+ALTER TABLE fly_scores ADD UNIQUE (developer_id, seed);
