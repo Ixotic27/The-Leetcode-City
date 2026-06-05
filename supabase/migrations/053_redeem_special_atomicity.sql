@@ -1,0 +1,1 @@
+ALTER TABLE purchases ADD UNIQUE (developer_id, item_id);

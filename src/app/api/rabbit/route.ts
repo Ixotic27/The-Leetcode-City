@@ -55,51 +55,66 @@ export async function POST(request: Request) {
   }
 
   if (sighting === 5) {
-    // Final sighting: complete the quest
-    const { error } = await admin
+    // Final sighting: complete the quest.
+    // Use an optimistic-lock WHERE clause so that only the first of any
+    // concurrent sighting-5 requests commits; the rest see rowCount = 0
+    // and return early before touching purchases.
+    const { data, error } = await admin
       .from("developers")
       .update({
         rabbit_progress: 5,
         rabbit_completed: true,
         rabbit_completed_at: new Date().toISOString(),
       })
-      .eq("id", dev.id);
+      .eq("id", dev.id)
+      .eq("rabbit_completed", false)   // optimistic lock: only win the race once
+      .select("id");
 
     if (error) {
       return NextResponse.json({ error: "Failed to update" }, { status: 500 });
     }
 
-    // Grant achievement
+    // Another concurrent request already completed the quest — nothing to do.
+    if (!data || data.length === 0) {
+      return NextResponse.json({ progress: 5, completed: true });
+    }
+
+    // Grant achievement (upsert is already idempotent via ON CONFLICT).
     await admin
       .from("developer_achievements")
-      .upsert({ developer_id: dev.id, achievement_id: "white_rabbit" }, { onConflict: "developer_id,achievement_id" });
+      .upsert(
+        { developer_id: dev.id, achievement_id: "white_rabbit" },
+        { onConflict: "developer_id,achievement_id" },
+      );
 
-    // Grant white_rabbit item (free purchase record, skip if already owned)
-    const { data: existingPurchase } = await admin
+    // Grant white_rabbit item atomically.
+    // INSERT ... ON CONFLICT DO NOTHING relies on the partial unique index
+    // idx_purchases_unique_completed (developer_id, item_id, coalesce(gifted_to,0))
+    // WHERE status = 'completed' — only the first insert wins; duplicates are
+    // silently dropped. No application-level SELECT is needed.
+    await admin
       .from("purchases")
-      .select("id")
-      .eq("developer_id", dev.id)
-      .eq("item_id", "white_rabbit")
-      .eq("status", "completed")
-      .maybeSingle();
-
-    if (!existingPurchase) {
-      await admin
-        .from("purchases")
-        .insert({
+      .upsert(
+        {
           developer_id: dev.id,
           item_id: "white_rabbit",
           provider: "system",
           amount_cents: 0,
           currency: "usd",
           status: "completed",
-        });
-    }
+        },
+        {
+          onConflict: "developer_id,item_id",
+          ignoreDuplicates: true,
+        }
+      );   // maps to ON CONFLICT DO NOTHING
 
     return NextResponse.json({ progress: 5, completed: true });
   }
 
   // Sightings 1-4
+  // For sighting 1, only set rabbit_started_at when it hasn't been set yet
+  // so concurrent first-sighting writes don't overwrite each other's timestamp.
   const updates: Record<string, unknown> = {
     rabbit_progress: sighting,
   };
@@ -110,7 +125,10 @@ export async function POST(request: Request) {
   const { error } = await admin
     .from("developers")
     .update(updates)
-    .eq("id", dev.id);
+    .eq("id", dev.id)
+    // Only advance progress forward; never regress if a concurrent request
+    // for a later sighting already moved the pointer past this one.
+    .lt("rabbit_progress", sighting);
 
   if (error) {
     return NextResponse.json({ error: "Failed to update" }, { status: 500 });

@@ -24,7 +24,7 @@ export interface PurchaseRecord {
   id: string;
   developer_id: number;
   item_id: string;
-  provider: "stripe" | "abacatepay" | "free" | "achievement";
+  provider: "stripe" | "abacatepay" | "cashfree" | "free" | "achievement";
   provider_tx_id: string | null;
   amount_cents: number;
   currency: "usd" | "brl";
@@ -145,7 +145,7 @@ export async function autoEquipIfSolo(
   const config = (existing?.config ?? { crown: null, roof: null, aura: null }) as Record<string, string | null>;
   config[zone] = itemId;
 
-  await sb.from("developer_customizations").upsert(
+  const { error: upsertError } = await sb.from("developer_customizations").upsert(
     {
       developer_id: developerId,
       item_id: "loadout",
@@ -154,6 +154,11 @@ export async function autoEquipIfSolo(
     },
     { onConflict: "developer_id,item_id" }
   );
+
+  if (upsertError) {
+    console.error("[items.ts] autoEquipIfSolo: Failed to upsert loadout:", upsertError);
+  }
+
 }
 
 export async function getOwnedItemsForDevelopers(

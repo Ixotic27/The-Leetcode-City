@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { createCheckoutSession } from "@/lib/stripe";
 import { createPixQrCode } from "@/lib/abacatepay";
 import { createCryptoInvoice } from "@/lib/nowpayments";
+import { createCashfreeCheckout } from "@/lib/cashfree";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
@@ -58,14 +59,14 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments"; gifted_to_login?: string };
+  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree"; gifted_to_login?: string };
   try {
     body = await request.json();
   } catch (err) { console.warn("[app/api/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
    }
   const { item_id, provider, gifted_to_login } = body;
 
-  if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments"].includes(provider)) {
+  if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments", "cashfree"].includes(provider)) {
     return NextResponse.json({ error: "Invalid item_id or provider" }, { status: 400 });
   }
 
@@ -315,6 +316,39 @@ export async function POST(request: Request) {
         .eq("id", purchase.id);
 
       return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });
+    } else if (provider === "cashfree") {
+      // Cashfree (INR via UPI / Cards / Wallets)
+      const USD_TO_INR = 85;
+      const amountCents = item.price_usd_cents;
+      const { data: purchase, error: purchaseError } = await sb
+        .from("purchases")
+        .insert({
+          developer_id: dev.id,
+          item_id,
+          provider: "cashfree",
+          amount_cents: amountCents,
+          currency: "usd",
+          status: "pending",
+          ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
+        })
+        .select("id")
+        .single();
+
+      if (purchaseError) {
+        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+      }
+
+      const { paymentSessionId, orderId } = await createCashfreeCheckout(
+        item_id, dev.id, githubLogin, user.email ?? undefined, giftedToDevId, gifted_to_login
+      );
+
+      // Save Cashfree order_id as provider_tx_id so webhook can find this purchase
+      await sb
+        .from("purchases")
+        .update({ provider_tx_id: orderId })
+        .eq("id", purchase.id);
+
+      return NextResponse.json({ paymentSessionId, cashfreeOrderId: orderId, purchase_id: purchase.id });
     } else {
       // AbacatePay
       const { data: purchase, error: purchaseError } = await sb

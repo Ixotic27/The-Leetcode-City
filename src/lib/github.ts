@@ -691,18 +691,18 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         d = Math.round(12 + seededRandom(seed1 + 99) * 16);
         litPercentage = 0.2 + composite * 0.7;
 
-        // BUNGALOW OVERRIDE
-        if (dev.building_style === "bungalow") {
-          w = 80;
-          d = 60;
-          height = 25;
-        }
-
         // For LC-claimed buildings: decode submission-frequency litPercentage
         // contributions_total is stored as Math.round(litPct * 1000) by verify-leetcode
         if (dev.claimed && dev.contributions_total && dev.contributions_total <= 1000) {
           litPercentage = dev.contributions_total / 1000;
         }
+      }
+
+      // BUNGALOW OVERRIDE
+      if (dev.building_style === "bungalow") {
+        w = 80;
+        d = 60;
+        height = 25;
       }
 
       // Safety guard: if any dimension is NaN or invalid, use safe defaults

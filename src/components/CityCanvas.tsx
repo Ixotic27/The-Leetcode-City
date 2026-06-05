@@ -20,6 +20,8 @@ import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
 import InfiniteWater from "./InfiniteWater";
 import AtmosphereCycleManager from "./AtmosphereCycleManager";
+import { useWeather } from '@/context/WeatherContext';
+import { RainParticles } from './weather/RainParticles';
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -1988,6 +1990,7 @@ function CityExposure({ cityEnergy }: { cityEnergy: number }) {
 const RABBIT_PLAZA_INDICES = [1, 2, 4, 7, 10]; // plazas[1]=slot3, [2]=slot7, [4]=slot18, [7]=slot42, [10]=slot75
 
 export default function CityCanvas({ buildings, plazas, decorations, river, bridges, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, dayNightCycleActive, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onClearFocus, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy, weatherMode = "sunny" }: Props) {
+  const { isRaining } = useWeather();
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
@@ -2158,6 +2161,14 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
           />
         </>
       )}
+      {isRaining && (
+        <>
+          <RainParticles />
+          <color attach="background" args={['#3a404a']} />
+          <fog attach="fog" args={['#3a404a', 30, 300]} /> 
+        </>
+      )}
+
     </Canvas>
   );
 }

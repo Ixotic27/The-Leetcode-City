@@ -4,7 +4,11 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
+<<<<<<< HEAD
 import ErrorBoundary from "@/components/ErrorBoundary";
+=======
+import { WeatherProvider } from '@/context/WeatherContext';
+>>>>>>> origin/main
 
 import {
   useState,
@@ -1011,7 +1015,8 @@ function HomeContent() {
     const silentRefresh = async () => {
       try {
         const res = await fetch(
-          `/api/dev/${encodeURIComponent(linkedLeetCodeUsername)}?refresh=true`,
+          `/api/dev/${encodeURIComponent(linkedLeetCodeUsername)}?refresh=true&t=${Date.now()}`,
+          { cache: "no-store" },
         );
         if (!res.ok) return;
         const devData = await res.json();
@@ -2092,7 +2097,11 @@ function HomeContent() {
         Boolean,
       );
       await Promise.all(
-        missing.map((login) => fetch(`/api/dev/${encodeURIComponent(login!)}`)),
+        missing.map((login) =>
+          fetch(`/api/dev/${encodeURIComponent(login!)}?t=${Date.now()}`, {
+            cache: "no-store",
+          }),
+        ),
       );
       const updated = await reloadCity(true);
       if (!updated) return;
@@ -2201,7 +2210,10 @@ function HomeContent() {
       );
 
       // Add/refresh the developer
-      const devRes = await fetch(`/api/dev/${encodeURIComponent(trimmed)}`);
+      const devRes = await fetch(
+        `/api/dev/${encodeURIComponent(trimmed)}?t=${Date.now()}`,
+        { cache: "no-store" },
+      );
       const devData = await devRes.json();
 
       if (!devRes.ok) {
@@ -2407,8 +2419,9 @@ function HomeContent() {
     if (!selectedBuilding) return;
     setRefreshingStats(true);
     try {
-      const res = await fetch(
-        `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true`,
+       const res = await fetch(
+        `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true&t=${Date.now()}`,
+        { cache: "no-store" },
       );
       if (!res.ok) throw new Error("Failed to refresh stats");
       const devData = await res.json();

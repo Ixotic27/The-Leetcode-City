@@ -670,7 +670,7 @@ export default function ShopClient({
   const [isTogglingStyle, setIsTogglingStyle] = useState(false);
   const [freezeCount, setFreezeCount] = useState(streakFreezesAvailable);
   const [buyingItem, setBuyingItem] = useState<string | null>(null);
-  const [buyingProvider, setBuyingProvider] = useState<"stripe" | "nowpayments" | "abacatepay" | "points" | null>(null);
+  const [buyingProvider, setBuyingProvider] = useState<"stripe" | "nowpayments" | "abacatepay" | "cashfree" | "points" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -686,6 +686,7 @@ export default function ShopClient({
   });
 
   const [isBrazil, setIsBrazil] = useState(false);
+  const [isIndia, setIsIndia] = useState(false);
   useEffect(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
@@ -699,9 +700,12 @@ export default function ShopClient({
         "America/Santarem",
       ]);
       setIsBrazil(brTimezones.has(tz));
+      // Indian IANA timezone
+      setIsIndia(tz === "Asia/Kolkata" || tz === "Asia/Calcutta");
     } catch (err) {
       console.warn("[components/ShopClient.tsx] error:", err);
       setIsBrazil(false);
+      setIsIndia(false);
     }
   }, []);
 
@@ -1094,7 +1098,7 @@ export default function ShopClient({
 
 
   const checkout = useCallback(
-    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" = "stripe") => {
+    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" | "cashfree" = "stripe") => {
       if (buyingItem) return;
       setBuyingItem(itemId);
       setBuyingProvider(provider);
@@ -1128,7 +1132,24 @@ export default function ShopClient({
           return;
         }
 
-        if (data.brCode) {
+        if (data.paymentSessionId) {
+          // Cashfree: load SDK and open checkout
+          try {
+            const { load } = await import("@cashfreepayments/cashfree-js");
+            const cashfreeEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+            const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
+            const result = await cashfree.checkout({
+              paymentSessionId: data.paymentSessionId,
+              redirectTarget: "_self",
+            });
+            if (result.error) {
+              setError(result.error.message || "Payment failed");
+            }
+          } catch (sdkErr) {
+            console.error("Cashfree SDK error:", sdkErr);
+            setError("Payment gateway failed to load. Try again.");
+          }
+        } else if (data.brCode) {
           const item = items.find((i) => i.id === itemId);
           setPixModal({
             brCode: data.brCode,
@@ -1371,7 +1392,7 @@ export default function ShopClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="border-[3px] border-border bg-bg p-6 text-center">
             <div className="mb-3 text-2xl animate-pulse">{ITEM_EMOJIS[buyingItem] ?? "🛒"}</div>
-            <p className="text-xs text-cream">{buyingProvider === "abacatepay" ? "Generating PIX..." : "Redirecting to checkout..."}</p>
+            <p className="text-xs text-cream">{buyingProvider === "abacatepay" ? "Generating PIX..." : buyingProvider === "cashfree" ? "Opening UPI..." : "Redirecting to checkout..."}</p>
             <p className="mt-1 text-[9px] text-muted normal-case">Please wait</p>
           </div>
         </div>
@@ -1751,6 +1772,16 @@ export default function ShopClient({
                                       {isBuying ? "..." : "Pay with PIX"}
                                     </button>
                                   )}
+                                  {isIndia && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "cashfree"); }}
+                                      disabled={isBuying}
+                                      className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
+                                      style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
+                                    >
+                                      {isBuying ? "..." : "Pay with UPI ₹"}
+                                    </button>
+                                  )}
                                   {shopItem && shopItem.price_points != null && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); handleBuyWithPoints(itemId); }}
@@ -1925,6 +1956,16 @@ export default function ShopClient({
                                   {isBuying ? "..." : "Pay with PIX"}
                                 </button>
                               )}
+                              {isIndia && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "cashfree"); }}
+                                  disabled={isBuying}
+                                  className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
+                                  style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
+                                >
+                                  {isBuying ? "..." : "Pay with UPI ₹"}
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -1936,7 +1977,7 @@ export default function ShopClient({
 
               {/* Payment note */}
               <p className="text-center text-[10px] text-dim normal-case">
-                Payment via Stripe
+                Payment via Stripe{isIndia ? ", UPI" : ""}{isBrazil ? ", PIX" : ""} & Crypto
               </p>
             </div>
           </div>

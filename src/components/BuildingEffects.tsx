@@ -1456,7 +1456,6 @@ export const LEDBanner = memo(function LEDBanner({
                   font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
                 >
                   {text}
-                  <meshBasicMaterial color={color} toneMapped={false} />
                 </Text>
               </group>
             </group>
