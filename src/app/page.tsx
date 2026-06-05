@@ -5,6 +5,7 @@ import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { WeatherProvider } from '@/context/WeatherContext';
 
 import {
   useState,
@@ -6610,7 +6611,6 @@ function HomeContent() {
     </main>
   );
 }
-
 export default function Home() {
   return (
     <ErrorBoundary fallback={
@@ -6626,15 +6626,17 @@ export default function Home() {
         </div>
       </div>
     }>
-      <Suspense fallback={
-        <div className="h-screen w-screen bg-black flex items-center justify-center">
-          <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
-            Loading...
+      <WeatherProvider>
+        <Suspense fallback={
+          <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+              Loading...
+            </div>
           </div>
-        </div>
-      }>
-        <HomeContent />
-      </Suspense>
+        }>
+          <HomeContent />
+        </Suspense>
+      </WeatherProvider>
     </ErrorBoundary>
   );
 }
