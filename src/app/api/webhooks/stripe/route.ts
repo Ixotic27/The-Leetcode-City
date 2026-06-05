@@ -92,7 +92,8 @@ export async function POST(request: Request) {
               ends_at: endsAt.toISOString(),
               purchaser_email: session.customer_details?.email ?? null,
             })
-            .eq("id", ad.id);
+            .eq("id", ad.id)
+            .eq("active", false);
 
           // Auto-deactivate the "advertise" placeholder if same vehicle type
           if (plan.vehicle === "plane") {
