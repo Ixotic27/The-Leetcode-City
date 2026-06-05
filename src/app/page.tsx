@@ -5346,7 +5346,8 @@ function HomeContent() {
                 <div
                   className="relative border-t-[3px] border-border bg-bg-raised/95 backdrop-blur-sm
               w-full sm:w-[380px] sm:border-[3px] sm:max-h-[85vh] sm:overflow-y-auto
-              max-h-[45vh] overflow-y-auto
+              max-h-[60vh] overflow-y-auto
+              md:max-h-[45vh]
               animate-[slide-up_0.2s_ease-out] sm:animate-none"
                 >
                   {/* Drag handle on mobile - swipe down to close */}
@@ -5368,7 +5369,7 @@ function HomeContent() {
                   </div>
 
                   {/* ── Header: Avatars + VS ── */}
-                  <div className="flex items-start justify-center gap-5 px-5 pt-1 pb-4 sm:pt-4">
+                  <div className="flex-row sm:flex-row flex items-start justify-center gap-5 px-5 pt-1 pb-4 sm:pt-4">
                     <Link
                       href={`/dev/${comparePair[0].login}`}
                       className="flex flex-col items-center gap-1.5 group w-[110px]"
@@ -5398,7 +5399,7 @@ function HomeContent() {
                     </Link>
 
                     <span
-                      className="text-base shrink-0 pt-4"
+                      className="text-base shrink-0 xs:pt-4"
                       style={{ color: theme.accent }}
                     >
                       VS
