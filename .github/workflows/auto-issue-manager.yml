@@ -48,7 +48,7 @@ jobs:
                   });
                   const openAssignedIssues = userAssignedIssues.filter(i => !i.pull_request && i.number !== issue.number);
                   
-                  if (openAssignedIssues.length < 3) {
+                  if (openAssignedIssues.length < 5) {
                     // Assign the author
                     await github.rest.issues.addAssignees({
                       owner: context.repo.owner,
@@ -62,11 +62,16 @@ jobs:
                     const isCritical = issue.labels.some(l => l.name === 'level:critical');
                     const deadlineText = isCritical ? '4 days (96 hours)' : '48 hours';
 
+                    let bonusText = '';
+                    if (openAssignedIssues.length >= 3) {
+                      bonusText = `\n\n✨ **Bonus Slot Used:** You already have ${openAssignedIssues.length} active assignments, but because you are the author of this issue, you get to use one of your +2 bonus slots!`;
+                    }
+
                     await github.rest.issues.createComment({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: issue.number,
-                      body: `✅ **Admin Approved!**\n\nHi @${authorLogin}, this issue has been reviewed and approved by the project maintainers. Since you raised this issue, you have been automatically assigned to it! 🚀\n\n⏰ **Deadline: You have ${deadlineText} from this exact moment to submit a Pull Request.**\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${issue.number}\`.\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
+                      body: `✅ **Admin Approved!**\n\nHi @${authorLogin}, this issue has been reviewed and approved by the project maintainers. Since you raised this issue, you have been automatically assigned to it! 🚀${bonusText}\n\n⏰ **Deadline: You have ${deadlineText} from this exact moment to submit a Pull Request.**\n\n**📝 Important - PR Submission Rules:**\n1. **Branch Name:** Please name your branch starting with the issue number (e.g., \`${issue.number}-feature-name\`).\n2. **PR Description:** Make sure your Pull Request description includes \`Fixes #${issue.number}\`.\n\n🔒 *This conversation will now be locked. Please use your Pull Request for any further discussion about this issue.*`
                     });
 
                     // Lock the issue
@@ -82,7 +87,7 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: issue.number,
-                      body: `✅ **Admin Approved!**\n\nHi @${authorLogin}, this issue has been reviewed and approved! We would normally auto-assign it to you, but you already have **${openAssignedIssues.length}/3** active assignments.\n\nThis issue is now open for contribution! 🎉 To claim this issue, simply comment \`assign me\` along with your \`### Proposed Solution\`.`
+                      body: `✅ **Admin Approved!**\n\nHi @${authorLogin}, this issue has been reviewed and approved! We would normally auto-assign it to you, but you already have **${openAssignedIssues.length}/5** active assignments (which includes your +2 bonus slots as the author).\n\nThis issue is now open for contribution! 🎉 To claim this issue, simply comment \`assign me\` along with your \`### Proposed Solution\`.`
                     });
                   }
                 }
@@ -293,17 +298,24 @@ jobs:
                 i => !i.pull_request && i.number !== context.issue.number
               );
 
-              if (openAssignedIssues.length >= 3) {
+              const isCreator = (commenter === issue.user.login);
+              const maxIssues = isCreator ? 5 : 3;
+
+              if (openAssignedIssues.length >= maxIssues) {
                 const issueList = openAssignedIssues
-                  .slice(0, 3)
+                  .slice(0, maxIssues)
                   .map(i => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
                   .join('\n');
+
+                const limitExplanation = isCreator 
+                  ? `(your maximum allowed limit of 5, which includes your +2 bonus slots for being the issue author)` 
+                  : `(the standard maximum allowed limit of 3. Note: If you were the original author of this issue, your limit would be 5)`;
 
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: context.issue.number,
-                  body: `Hi @${commenter}, thank you for your enthusiasm! 🙌\n\nHowever, you already have **${openAssignedIssues.length}/3** active assigned issues (the maximum allowed).\n\nPlease complete or close one of your current issues before requesting a new one:\n\n${issueList}\n\nThank you for understanding! 💙`
+                  body: `Hi @${commenter}, thank you for your enthusiasm! 🙌\n\nHowever, you already have **${openAssignedIssues.length}/${maxIssues}** active assigned issues ${limitExplanation}.\n\nPlease complete or close one of your current issues before requesting a new one:\n\n${issueList}\n\nThank you for understanding! 💙`
                 });
                 return;
               }

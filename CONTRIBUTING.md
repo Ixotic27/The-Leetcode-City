@@ -76,6 +76,7 @@ Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.l
 
 - **Wait for Approval:** The bot will reject assignment requests on issues that still have the `needs-triage` label.
 - **Maximum 3 open issues** per contributor at a time.
+  - **✨ Bonus:** If you are the original author who found and created the issue, you are granted **+2 bonus assignment slots** (for a maximum of 5). This ensures you can always work on the bugs you discover without them being snatched!
 - Must submit a PR within **48 hours** or be unassigned.
 - Already-assigned issues are not available.
 
