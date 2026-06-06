@@ -66,13 +66,13 @@ export async function GET(request: Request) {
   const [purchasesResult, giftPurchasesResult, customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
-      .select("developer_id, item_id")
+      .select("developer_id, item_id, provider, amount_cents")
       .in("developer_id", devIds)
       .is("gifted_to", null)
       .eq("status", "completed"),
     sb
       .from("purchases")
-      .select("gifted_to, item_id")
+      .select("gifted_to, item_id, provider, amount_cents")
       .in("gifted_to", devIds)
       .eq("status", "completed"),
     sb
@@ -94,10 +94,16 @@ export async function GET(request: Request) {
   // Build owned items map (direct purchases + received gifts)
   const ownedItemsMap: Record<number, string[]> = {};
   for (const row of purchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     if (!ownedItemsMap[row.developer_id]) ownedItemsMap[row.developer_id] = [];
     ownedItemsMap[row.developer_id].push(row.item_id);
   }
   for (const row of giftPurchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     const devId = row.gifted_to as number;
     if (!ownedItemsMap[devId]) ownedItemsMap[devId] = [];
     ownedItemsMap[devId].push(row.item_id);

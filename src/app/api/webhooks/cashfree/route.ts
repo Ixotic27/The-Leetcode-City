@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyCashfreeWebhook, getCashfreeOrderStatus } from "@/lib/cashfree";
-import { autoEquipIfSolo } from "@/lib/items";
+import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
+import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
+
 
 export const dynamic = "force-dynamic";
 
@@ -60,10 +62,48 @@ export async function POST(request: Request) {
           break;
         }
 
+        // Check if it is a sky ad purchase (linked to orderId)
+        let { data: ad } = await sb
+          .from("sky_ads")
+          .select("id, plan_id, active")
+          .eq("stripe_session_id", orderId)
+          .maybeSingle();
+
+        if (ad) {
+          if (!ad.active) {
+            const planId = ad.plan_id;
+            if (planId && isValidPlanId(planId)) {
+              const plan = SKY_AD_PLANS[planId];
+              const now = new Date();
+              const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+
+              await sb
+                .from("sky_ads")
+                .update({
+                  active: true,
+                  starts_at: now.toISOString(),
+                  ends_at: endsAt.toISOString(),
+                  purchaser_email: body.data?.customer_details?.customer_email ?? null,
+                })
+                .eq("id", ad.id)
+                .eq("active", false);
+
+              if (plan.vehicle === "plane") {
+                await sb
+                  .from("sky_ads")
+                  .update({ active: false })
+                  .eq("id", "advertise")
+                  .eq("active", true);
+              }
+            }
+          }
+          break;
+        }
+
         // Find the pending purchase by provider_tx_id
         const { data: purchase } = await sb
           .from("purchases")
-          .select("id, status")
+          .select("id, status, developer_id, item_id, gifted_to")
           .eq("provider_tx_id", orderId)
           .eq("provider", "cashfree")
           .maybeSingle();
@@ -78,18 +118,16 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Mark as completed
+        const ownerId = purchase.gifted_to ?? purchase.developer_id;
+        const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
+
+        // Mark as completed/delivered
         await sb
           .from("purchases")
-          .update({ status: "completed" })
+          .update({ status: purchaseStatus })
           .eq("id", purchase.id);
 
-        // Fetch full purchase data for post-purchase logic
-        const { data: fullPurchase } = await sb
-          .from("purchases")
-          .select("developer_id, item_id, gifted_to")
-          .eq("id", purchase.id)
-          .single();
+        const fullPurchase = purchase;
 
         if (fullPurchase) {
           // Auto-equip if it's the only item in its zone

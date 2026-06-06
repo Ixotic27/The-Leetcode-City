@@ -114,7 +114,7 @@ export function AdPurchaseForm() {
     bgColorValid &&
     !loading;
 
-  async function handleSubmit(provider: "stripe" | "abacatepay" = "stripe") {
+  async function handleSubmit(provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree" = "cashfree") {
     if (!canSubmit) return;
     setLoading(true);
     setError("");
@@ -128,8 +128,9 @@ export function AdPurchaseForm() {
           text: text.trim(),
           color,
           bgColor,
-          currency,
+          currency: "usd",
           provider,
+          dev_mode: typeof window !== "undefined" && localStorage.getItem("leetcodecity:dev_mode") === "true",
         }),
       });
       const data = await res.json();
@@ -138,8 +139,23 @@ export function AdPurchaseForm() {
         setLoading(false);
         return;
       }
-      if (data.brCode) {
-        setPixData({ brCode: data.brCode, brCodeBase64: data.brCodeBase64, trackingToken: data.trackingToken });
+      if (data.paymentSessionId) {
+        // Cashfree
+        try {
+          const { load } = await import("@cashfreepayments/cashfree-js");
+          const cashfreeEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+          const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
+          const result = await cashfree.checkout({
+            paymentSessionId: data.paymentSessionId,
+            redirectTarget: "_self",
+          });
+          if (result.error) {
+            setError(result.error.message || "Payment failed");
+          }
+        } catch (sdkErr) {
+          console.error("Cashfree SDK error:", sdkErr);
+          setError("Payment gateway failed to load. Try again.");
+        }
         setLoading(false);
       } else if (data.url) {
         window.location.href = data.url;
@@ -208,7 +224,7 @@ export function AdPurchaseForm() {
           </div>
         </div>
 
-        {/* Row 2: Duration + Currency + Price */}
+        {/* Row 2: Duration + Price */}
         <div className="mt-4 flex items-center gap-3">
           {/* Duration toggle */}
           <div className="flex border-[2px] border-border text-[9px]">
@@ -228,35 +244,15 @@ export function AdPurchaseForm() {
             ))}
           </div>
 
-          {/* Currency toggle */}
-          <div className="flex border-[2px] border-border text-[9px]">
-            {(["usd", "brl"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setCurrency(c)}
-                className="px-3 py-1.5 transition-colors"
-                style={{
-                  backgroundColor: currency === c ? ACCENT : "transparent",
-                  color: currency === c ? "#1a1018" : "var(--color-muted)",
-                }}
-              >
-                {c.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
           {/* Price */}
           <div className="ml-auto text-right">
             <span className="text-lg" style={{ color: ACCENT }}>
-              {priceLabel}
+              ₹{Math.round((getPriceCents(planId, "usd") / 100) * 85)}
             </span>
-            {hasDiscount && (
-              <span className="ml-2 text-[10px] text-muted line-through normal-case">
-                {formatPrice(fullPriceCents, currency)}
-              </span>
-            )}
-            <span className="ml-1 text-[9px] text-muted normal-case">
+            <span className="ml-2 text-[10px] text-muted normal-case font-pixel">
+              (~{formatPrice(getPriceCents(planId, "usd"), "usd")})
+            </span>
+            <span className="ml-1 text-[9px] text-muted normal-case font-pixel">
               / {plan.duration_days}d
             </span>
           </div>
@@ -393,32 +389,30 @@ export function AdPurchaseForm() {
             <div className="flex flex-col gap-2">
               <button
                 type="button"
-                onClick={() => handleSubmit("stripe")}
+                onClick={() => handleSubmit("cashfree")}
                 disabled={!canSubmit}
                 className="btn-press w-full py-3.5 text-sm text-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
                 style={{
-                  backgroundColor: ACCENT,
-                  boxShadow: "4px 4px 0 0 #5a7a00",
+                  backgroundColor: "#6739b7",
+                  boxShadow: "4px 4px 0 0 #4a2882",
                 }}
               >
-                {loading ? "Redirecting..." : `Buy for ${priceLabel}`}
+                {loading ? "Opening UPI..." : `Pay with UPI ₹ (${Math.round((getPriceCents(planId, "usd") / 100) * 85)})`}
               </button>
-              {isBrazil && (
-                <button
-                  type="button"
-                  onClick={() => handleSubmit("abacatepay")}
-                  disabled={!canSubmit}
-                  className="btn-press w-full py-2.5 text-xs text-bg transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{
-                    backgroundColor: "#32bcad",
-                    boxShadow: "3px 3px 0 0 #1a7a6e",
-                  }}
-                >
-                  {loading ? "..." : `Pay with PIX (${formatPrice(getPriceCents(planId, "brl"), "brl")})`}
-                </button>
+              <button
+                type="button"
+                disabled={true}
+                className="w-full py-2.5 text-xs text-muted border-[3px] border-dashed border-border cursor-not-allowed text-center bg-transparent"
+              >
+                Crypto (Coming Soon)
+              </button>
+              {typeof window !== "undefined" && localStorage.getItem("leetcodecity:dev_mode") === "true" && (
+                <p className="mt-1 text-center text-[10px] font-bold animate-pulse text-green-400">
+                  DEV MODE: FREE BYPASS ACTIVE
+                </p>
               )}
               <p className="mt-1 text-center text-[9px] text-muted normal-case">
-                Secure checkout. No account needed.
+                Secure checkout via Cashfree. No account needed.
               </p>
             </div>
           )}
