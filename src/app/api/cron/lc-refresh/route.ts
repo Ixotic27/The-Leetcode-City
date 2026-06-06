@@ -102,7 +102,7 @@ async function upsertFullProfile(
   }
 
   let weeklyContributions = 0;
-  now.setHours(0, 0, 0, 0);
+  now.setUTCHours(0, 0, 0, 0);
   const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
 
   for (const year of yearsToCheck) {
