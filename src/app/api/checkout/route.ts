@@ -7,6 +7,8 @@ import { createCryptoInvoice } from "@/lib/nowpayments";
 import { createCashfreeCheckout } from "@/lib/cashfree";
 import { rateLimit } from "@/lib/rate-limit";
 
+import { fulfillItemPurchase } from "@/lib/items";
+
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
 // middleware rate limit.  This one is keyed by Supabase user ID so it
 // catches authenticated abuse even when requests come from different IPs.
@@ -59,12 +61,12 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree"; gifted_to_login?: string };
+  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree"; gifted_to_login?: string; dev_mode?: boolean };
   try {
     body = await request.json();
   } catch (err) { console.warn("[app/api/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
    }
-  const { item_id, provider, gifted_to_login } = body;
+  const { item_id, provider, gifted_to_login, dev_mode } = body;
 
   if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments", "cashfree"].includes(provider)) {
     return NextResponse.json({ error: "Invalid item_id or provider" }, { status: 400 });
@@ -98,21 +100,28 @@ export async function POST(request: Request) {
     // Check receiver doesn't already own this item (bought or gifted)
     const { data: receiverOwnsBought } = await sb
       .from("purchases")
-      .select("id")
+      .select("id, amount_cents, provider")
       .eq("developer_id", receiver.id)
       .is("gifted_to", null)
       .eq("item_id", item_id)
-      .eq("status", "completed")
-      .maybeSingle();
+      .eq("status", "completed");
+
+    const realReceiverBought = (receiverOwnsBought ?? []).find(
+      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+    );
+
     const { data: receiverOwnsGifted } = await sb
       .from("purchases")
-      .select("id")
+      .select("id, amount_cents, provider")
       .eq("gifted_to", receiver.id)
       .eq("item_id", item_id)
-      .eq("status", "completed")
-      .maybeSingle();
+      .eq("status", "completed");
 
-    if (receiverOwnsBought || receiverOwnsGifted) {
+    const realReceiverGifted = (receiverOwnsGifted ?? []).find(
+      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+    );
+
+    if (realReceiverBought || realReceiverGifted) {
       return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
     }
 
@@ -145,6 +154,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This item is sold out" }, { status: 410 });
     }
   }
+
+  const isConsumable = item.category === "consumable";
 
   // Streak freeze: consumable with max 2 stored
   if (item_id === "streak_freeze") {
@@ -205,17 +216,21 @@ export async function POST(request: Request) {
         );
       }
     }
-  } else if (!giftedToDevId) {
-    // Non-billboard, non-gift items: check if buyer already owns it
-    const { data: existingPurchase } = await sb
+  } else if (!isConsumable && !giftedToDevId) {
+    // Non-consumable, non-billboard, non-gift items: check if buyer already owns it
+    // Exclude dev-mode purchases (amount_cents=0) so real purchases can proceed
+    const { data: existingPurchases } = await sb
       .from("purchases")
-      .select("id")
+      .select("id, amount_cents, provider")
       .eq("developer_id", dev.id)
       .eq("item_id", item_id)
-      .eq("status", "completed")
-      .maybeSingle();
+      .eq("status", "completed");
 
-    if (existingPurchase) {
+    const realPurchase = (existingPurchases ?? []).find(
+      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+    );
+
+    if (realPurchase) {
       return NextResponse.json({ error: "Already owned" }, { status: 409 });
     }
   }
@@ -234,11 +249,12 @@ export async function POST(request: Request) {
     await sb.from("purchases").delete().eq("id", pendingPurchase.id);
   }
 
-  // DEV BYPASS: Allow Ishant_27 to get items for free for testing
-  const isDev = githubLogin.toLowerCase() === "ishant_27";
+  // DEV BYPASS: Allow Ishant_27 / ixotic / ixotic27 to get items for free for testing
+  const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase()) && body.dev_mode === true;
 
   if (isDev) {
     console.log(`[DEV] Bypassing payment for ${githubLogin}`);
+    const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, sb);
     const { data: purchase, error: purchaseError } = await sb
       .from("purchases")
       .insert({
@@ -247,7 +263,7 @@ export async function POST(request: Request) {
         provider: "stripe",
         amount_cents: 0,
         currency: "usd",
-        status: "completed",
+        status: purchaseStatus,
         ...(giftedToDevId ? { gifted_to: giftedToDevId } : {}),
       })
       .select("id")

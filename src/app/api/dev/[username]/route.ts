@@ -277,13 +277,13 @@ export async function GET(
   const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("developer_id", upserted.id)
       .is("gifted_to", null)
       .eq("status", "completed"),
     sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("gifted_to", upserted.id)
       .eq("status", "completed"),
     sb
@@ -299,8 +299,12 @@ export async function GET(
   ]);
 
   const ownedItems = [
-    ...(purchasesResult.data ?? []).map(p => p.item_id),
-    ...(giftPurchasesResult.data ?? []).map(p => p.item_id),
+    ...(purchasesResult.data ?? [])
+      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+      .map(p => p.item_id),
+    ...(giftPurchasesResult.data ?? [])
+      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+      .map(p => p.item_id),
   ];
 
   const customColor = (customizationsResult.data ?? []).find(c => c.item_id === "custom_color")?.config?.color ?? null;

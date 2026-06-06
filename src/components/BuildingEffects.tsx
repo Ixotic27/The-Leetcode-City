@@ -229,6 +229,8 @@ export const Helipad = memo(function Helipad({
   const borderRef = useRef<THREE.Mesh>(null);
   const frameCount = useRef(0);
   const padSize = Math.min(width, depth) * 0.35;
+  const posX = -width / 2 + (padSize / 2 + 0.5);
+  const posZ = depth / 2 - (padSize / 2 + 0.5);
 
   useFrame((state) => {
     if (!borderRef.current) return;
@@ -239,7 +241,7 @@ export const Helipad = memo(function Helipad({
   });
 
   return (
-    <group position={[-width * 0.45, height + 0.5, depth * 0.45]}>
+    <group position={[posX, height + 0.5, posZ]}>
       {/* Glowing border ring */}
       <mesh ref={borderRef} position={[0, 0.3, 0]}>
         <torusGeometry args={[padSize / 2 + 0.3, 0.4, 8, 24]} />
@@ -452,9 +454,11 @@ export const Spire = memo(function Spire({
   const legH = 8;
   const tankR = 4;
   const tankH = 4;
+  const posX = -width / 2 + 3.5;
+  const posZ = -depth / 2 + 3.5;
 
   return (
-    <group position={[-width * 0.45, height, -depth * 0.45]}>
+    <group position={[posX, height, posZ]}>
       {/* 4 legs */}
       {[
         [1.5, 0, 1.5],
@@ -913,9 +917,11 @@ export const SatelliteDish = memo(function SatelliteDish({
   });
 
   const dishSize = Math.min(width, depth) * 0.25;
+  const posX = width / 2 - (dishSize * 0.6 + 0.8);
+  const posZ = -depth / 2 + (dishSize * 0.6 + 0.8);
 
   return (
-    <group position={[width * 0.45, height, -depth * 0.45]}>
+    <group position={[posX, height, posZ]}>
       {/* Support pole */}
       <mesh position={[0, 3, 0]}>
         <cylinderGeometry args={[0.5, 0.8, 6, 6]} />
@@ -1035,8 +1041,9 @@ export const PoolParty = memo(function PoolParty({
     mat.emissiveIntensity = 1.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
   });
 
-  const poolW = width * 0.7;
+  const poolW = Math.min(width * 0.7, width - 6.8);
   const poolD = depth * 0.5;
+  const chairOffsetX = width / 2 - 1.2;
 
   return (
     <group position={[0, height, 0]}>
@@ -1050,7 +1057,7 @@ export const PoolParty = memo(function PoolParty({
       </mesh>
       {/* Lounge chairs (pixelated blocks) */}
       {[-1, 1].map((side) => (
-        <group key={side} position={[side * (poolW / 2 + 2.5), 0.5, 0]}>
+        <group key={side} position={[side * chairOffsetX, 0.5, 0]}>
           <mesh position={[0, 0.5, 0]} geometry={_box} scale={[2, 0.4, 4]}>
             <meshStandardMaterial color="#e0d0a0" />
           </mesh>
@@ -1915,9 +1922,11 @@ export const BinaryTree = memo(function BinaryTree({
     if (!treeRef.current) return;
     treeRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
   });
+  const posX = Math.min(width * 0.35, width / 2 - 3);
+  const posZ = Math.max(-depth * 0.35, -depth / 2 + 3);
 
   return (
-    <group position={[width * 0.35, height, -depth * 0.35]} ref={treeRef}>
+    <group position={[posX, height, posZ]} ref={treeRef}>
       {/* Root */}
       <mesh position={[0, 3, 0]} geometry={_box} scale={[1.5, 6, 1.5]}>
         <meshStandardMaterial color="#5a3a1a" />
