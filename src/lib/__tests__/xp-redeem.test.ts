@@ -5,7 +5,7 @@ import { describe, it, expect } from "vitest";
 
 function mapRedeemResult(
   result: { ok: boolean; error_code: string | null; xp_amount: number } | null
-) {
+): { blocked: boolean; status: number; error?: string; xp_amount?: number } {
   if (!result?.ok) {
     const errorMap: Record<string, { error: string; status: number }> = {
       already_redeemed: { error: "You have already redeemed this code.", status: 409 },

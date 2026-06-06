@@ -32,7 +32,7 @@ interface FlyScoreLeaderboard {
   flight_ms: number;
   created_at: string;
   developer_id: number;
-  developers: { github_login: string; avatar_url: string } | null;
+  developers: any;
 }
 
 // Type for the raw data from Supabase (developers is an array)
