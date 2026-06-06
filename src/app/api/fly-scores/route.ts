@@ -35,6 +35,17 @@ interface FlyScoreLeaderboard {
   developers: any;
 }
 
+// Type for the raw data from Supabase (developers is an array)
+interface FlyScoreRaw {
+  score: number;
+  collected: number;
+  max_combo: number;
+  flight_ms: number;
+  created_at: string;
+  developer_id: number;
+  developers: { github_login: string; avatar_url: string }[] | null;
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -186,24 +197,22 @@ export async function GET(request: Request) {
   }
 
   const seen = new Set<number>();
-  const unique = (data ?? []).filter((row: FlyScoreLeaderboard) => {
+  // Use the raw type for filtering since developers comes as array
+  const unique = (data ?? []).filter((row: FlyScoreRaw) => {
     if (seen.has(row.developer_id)) return false;
     seen.add(row.developer_id);
     return true;
   });
 
-  const leaderboard = unique.slice(0, 20).map((row: FlyScoreLeaderboard) => {
-    const dev = Array.isArray(row.developers) ? row.developers[0] : row.developers;
-    return {
-      score: row.score,
-      collected: row.collected,
-      max_combo: row.max_combo,
-      flight_ms: row.flight_ms,
-      created_at: row.created_at,
-      github_login: dev?.github_login,
-      avatar_url: dev?.avatar_url,
-    };
-  });
+  const leaderboard = unique.slice(0, 20).map((row: FlyScoreRaw) => ({
+    score: row.score,
+    collected: row.collected,
+    max_combo: row.max_combo,
+    flight_ms: row.flight_ms,
+    created_at: row.created_at,
+    github_login: row.developers?.[0]?.github_login,
+    avatar_url: row.developers?.[0]?.avatar_url,
+  }));
 
   const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
 
