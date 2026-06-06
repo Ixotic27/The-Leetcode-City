@@ -89,7 +89,10 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
-    fetch("/api/codex")
+
+    const controller = new AbortController();
+
+    fetch("/api/codex", { signal: controller.signal })
       .then(async (res) => {
         const codexData = await res.json();
         if (!res.ok || codexData.error || !Array.isArray(codexData.achievements) || !Array.isArray(codexData.items)) {
@@ -100,6 +103,8 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
         setLoading(false);
       })
       .catch((err) => {
+        if (err.name === 'AbortError') return;
+
         console.error("Failed to load Codex data:", err);
         setData({
           loggedIn: false,
@@ -114,6 +119,10 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
         setSelectedTitle(null);
         setLoading(false);
       });
+
+    return () => {
+      controller.abort();
+    };
   }, [isOpen]);
 
   const handleEquipTitle = async (slug: string | null) => {

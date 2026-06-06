@@ -6,11 +6,15 @@ import { sendDirect } from "./api/client";
 import { initStatusBar, updateDisplay } from "./statusbar/item";
 import { getConfig } from "./config";
 import { ArenaProvider } from "./arena/ArenaProvider";
+import { checkForUpdates } from "./updater";
 
 export function activate(context: vscode.ExtensionContext) {
   initKeystore(context);
   initQueue(context);
   initStatusBar(context);
+
+  // Check for extension updates from GitHub
+  checkForUpdates(context);
 
   // Start tracker with status bar callback
   initTracker(context, (status) => {
