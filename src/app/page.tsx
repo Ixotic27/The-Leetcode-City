@@ -1101,9 +1101,11 @@ function HomeContent() {
     return () => clearInterval(id);
   }, [flyMode, flyPaused]);
 
-  // Dismiss fly onboarding overlays when entering fly mode
+  // Clear building selection and dismiss overlays when entering fly mode
   useEffect(() => {
     if (flyMode) {
+      setSelectedBuilding(null);
+      setFocusedBuilding(null);
       setShowDailyNudge(false);
       setShowFlyHint(false);
       setShowFlyResults(null);
