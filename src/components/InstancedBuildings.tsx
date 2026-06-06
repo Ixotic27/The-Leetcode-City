@@ -12,14 +12,21 @@ interface InstancedBuildingsProps {
     rotation?: [number, number, number];
     scale?: [number, number, number];
   }>;
+  colors?: any;
+  atlasTexture?: any;
+  focusedBuilding?: any;
   onInitComplete?: () => void;
-  [key: string]: any; // Open parameters block guarantees the production compiler will not break on unexpected keys
+  [key: string]: any;
 }
 
 export default function InstancedBuildings({
   cityLayoutId,
   buildings,
-  onInitComplete
+  colors,
+  atlasTexture,
+  focusedBuilding,
+  onInitComplete,
+  ...rest
 }: InstancedBuildingsProps) {
   
   const containerRef = useRef<HTMLDivElement>(null);
