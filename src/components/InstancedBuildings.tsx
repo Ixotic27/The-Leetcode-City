@@ -20,7 +20,7 @@ export default function InstancedBuildings({
   const containerRef = useRef<HTMLDivElement>(null);
   const meshRef = useRef<THREE.InstancedMesh | null>(null);
   
-  // 1. Core tracking ref to capture the asynchronous WebGL initialization macro-task timer safely
+  // Core tracking ref to capture the asynchronous WebGL initialization macro-task timer safely
   const initTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Memoize geometry structures to maximize WebGL pipeline resource efficiency
@@ -33,7 +33,7 @@ export default function InstancedBuildings({
     });
   }, []);
 
-  // 2. Primary Lifecycle Setup Effect Initialization Hook Block
+  // Primary Lifecycle Setup Effect Initialization Hook Block
   useEffect(() => {
     // Immediately clear any active background initialization queue frames from previous layout state loops
     if (initTimeoutRef.current) {
@@ -42,7 +42,7 @@ export default function InstancedBuildings({
 
     if (!containerRef.current || !buildings || buildings.length === 0) return;
 
-    // 3. Stagger the heavy 3D rendering setup configurations on a structural delay threshold execution frame
+    // Stagger the heavy 3D rendering setup configurations on a structural delay threshold execution frame
     initTimeoutRef.current = setTimeout(() => {
       try {
         const totalBuildings = buildings.length;
@@ -91,13 +91,13 @@ export default function InstancedBuildings({
       }
     }, 100);
 
-    // 4. Mandatory Cleanup Routine: Flush the pending macro-task queue safely upon unmount or dependency rotations
+    // Mandatory Cleanup Routine: Flush the pending macro-task queue safely upon unmount or dependency rotations
     return () => {
       if (initTimeoutRef.current) {
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [cityLayoutId, buildings, onInitComplete, boxGeometry, buildingMaterial]); // Updated tracking dependencies array grid
+  }, [cityLayoutId, buildings, onInitComplete, boxGeometry, buildingMaterial]);
 
   return (
     <div 
