@@ -12,14 +12,12 @@ interface InstancedBuildingsProps {
     rotation?: [number, number, number];
     scale?: [number, number, number];
   }>;
-  wasAdPointerConsumed?: boolean;
   onInitComplete?: () => void;
 }
 
 export default function InstancedBuildings({
   cityLayoutId,
   buildingData,
-  wasAdPointerConsumed,
   onInitComplete
 }: InstancedBuildingsProps) {
   
@@ -101,7 +99,7 @@ export default function InstancedBuildings({
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [cityLayoutId, buildingData, wasAdPointerConsumed, onInitComplete, boxGeometry, buildingMaterial]);
+  }, [cityLayoutId, buildingData, onInitComplete, boxGeometry, buildingMaterial]);
 
   return (
     <div 
