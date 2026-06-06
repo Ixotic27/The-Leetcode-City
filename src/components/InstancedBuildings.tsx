@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 interface InstancedBuildingsProps {
   cityLayoutId: string | number;
-  buildingData: Array<{
+  buildings: Array<{
     id: string;
     type: string;
     position: [number, number, number];
@@ -17,7 +17,7 @@ interface InstancedBuildingsProps {
 
 export default function InstancedBuildings({
   cityLayoutId,
-  buildingData,
+  buildings,
   onInitComplete
 }: InstancedBuildingsProps) {
   
@@ -44,12 +44,12 @@ export default function InstancedBuildings({
       clearTimeout(initTimeoutRef.current);
     }
 
-    if (!containerRef.current || !buildingData || buildingData.length === 0) return;
+    if (!containerRef.current || !buildings || buildings.length === 0) return;
 
     // 3. Stagger the heavy 3D rendering setup configurations on a structural delay threshold execution frame
     initTimeoutRef.current = setTimeout(() => {
       try {
-        const totalBuildings = buildingData.length;
+        const totalBuildings = buildings.length;
         const instancedMesh = new THREE.InstancedMesh(
           boxGeometry,
           buildingMaterial,
@@ -58,7 +58,7 @@ export default function InstancedBuildings({
 
         const dummyObject = new THREE.Object3D();
 
-        buildingData.forEach((building, index) => {
+        buildings.forEach((building, index) => {
           const [posX, posY, posZ] = building.position;
           dummyObject.position.set(posX, posY, posZ);
 
@@ -99,7 +99,7 @@ export default function InstancedBuildings({
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [cityLayoutId, buildingData, onInitComplete, boxGeometry, buildingMaterial]);
+  }, [cityLayoutId, buildings, onInitComplete, boxGeometry, buildingMaterial]);
 
   return (
     <div 
