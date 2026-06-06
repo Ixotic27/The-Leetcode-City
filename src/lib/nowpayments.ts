@@ -84,6 +84,63 @@ export async function createCryptoInvoice(
 }
 
 /**
+ * Create a raw NOWPayments invoice (without checking the items table).
+ */
+export async function createCryptoInvoiceRaw({
+  priceUsd,
+  orderId,
+  orderDescription,
+  successUrl,
+  cancelUrl,
+}: {
+  priceUsd: number;
+  orderId: string;
+  orderDescription: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<{ invoiceUrl: string; invoiceId: string }> {
+  const apiKey = process.env.NOWPAYMENTS_API_KEY;
+  if (!apiKey) {
+    throw new Error("NOWPAYMENTS_API_KEY is not set");
+  }
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.theleetcodecity.tech").replace(/\/+$/, "");
+
+  const res = await fetch(`${NOWPAYMENTS_API}/invoice`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      price_amount: priceUsd,
+      price_currency: "usd",
+      order_id: orderId,
+      order_description: orderDescription,
+      ipn_callback_url: `${siteUrl}/api/webhooks/nowpayments`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`NOWPayments error: ${res.status} ${text}`);
+  }
+
+  const data: InvoiceResponse = await res.json();
+
+  if (!data?.invoice_url || !data?.id) {
+    throw new Error(`NOWPayments: unexpected response: ${JSON.stringify(data)}`);
+  }
+
+  return {
+    invoiceUrl: data.invoice_url,
+    invoiceId: String(data.id),
+  };
+}
+
+/**
  * Verify NOWPayments IPN callback signature.
  * They use HMAC-SHA512 with sorted JSON body.
  */
@@ -116,3 +173,4 @@ function sortObject(obj: Record<string, unknown>): Record<string, unknown> {
       return result;
     }, {});
 }
+

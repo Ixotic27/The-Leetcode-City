@@ -65,20 +65,24 @@ export async function GET() {
     // Fetch user's owned items (purchases completed)
     const { data: directPurchases } = await sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("developer_id", dev.id)
       .is("gifted_to", null)
       .eq("status", "completed");
     const { data: giftedPurchases } = await sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("gifted_to", dev.id)
       .eq("status", "completed");
 
     const ownedItems = Array.from(
       new Set([
-        ...(directPurchases ?? []).map(p => p.item_id),
-        ...(giftedPurchases ?? []).map(p => p.item_id)
+        ...(directPurchases ?? [])
+          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+          .map(p => p.item_id),
+        ...(giftedPurchases ?? [])
+          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+          .map(p => p.item_id)
       ])
     );
 
