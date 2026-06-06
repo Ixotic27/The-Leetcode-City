@@ -5,10 +5,7 @@ import * as THREE from "three";
 
 interface InstancedBuildingsProps {
   cityLayoutId: string | number;
-  buildings: any[]; // Setting to any[] perfectly eliminates the CityBuilding type mismatch error
-  colors?: any;
-  atlasTexture?: any;
-  focusedBuilding?: any;
+  buildings: any[];
   onInitComplete?: () => void;
   [key: string]: any;
 }
@@ -16,9 +13,6 @@ interface InstancedBuildingsProps {
 export default function InstancedBuildings({
   cityLayoutId,
   buildings,
-  colors,
-  atlasTexture,
-  focusedBuilding,
   onInitComplete,
   ...rest
 }: InstancedBuildingsProps) {
