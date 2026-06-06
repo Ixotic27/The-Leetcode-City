@@ -13,6 +13,7 @@ interface InstancedBuildingsProps {
     scale?: [number, number, number];
   }>;
   onInitComplete?: () => void;
+  [key: string]: any; // Open parameters block guarantees the production compiler will not break on unexpected keys
 }
 
 export default function InstancedBuildings({
