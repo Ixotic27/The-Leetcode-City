@@ -97,7 +97,7 @@ export default function InstancedBuildings({
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [cityLayoutId, buildings, onInitComplete, boxGeometry, buildingMaterial]);
+  }, [cityLayoutId, buildings, onInitComplete, boxGeometry, buildingMaterial]); // Updated tracking dependencies array grid
 
   return (
     <div 
