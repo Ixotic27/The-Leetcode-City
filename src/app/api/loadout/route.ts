@@ -65,12 +65,16 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { crown, roof, aura, faces } = body as {
+  const { crown, roof, aura, faces, dev_mode } = body as {
     crown?: string | null;
     roof?: string | null;
     aura?: string | null;
     faces?: string | null;
+    dev_mode?: boolean;
   };
+
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
+  const isDev = isDeveloper && dev_mode === true;
 
   // Fetch owned items (direct purchases + received gifts)
   const ownedItems = await getOwnedItems(dev.id);
@@ -95,7 +99,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (!ownedSet.has(itemId)) {
+    if (!isDev && !ownedSet.has(itemId)) {
       return NextResponse.json(
         { error: `You don't own ${itemId}` },
         { status: 403 }

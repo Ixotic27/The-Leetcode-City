@@ -42,7 +42,7 @@ export async function getOwnedItems(developerId: number): Promise<string[]> {
   // Items bought directly (not gifts to others)
   const { data: ownData } = await sb
     .from("purchases")
-    .select("item_id")
+    .select("item_id, provider, amount_cents")
     .eq("developer_id", developerId)
     .is("gifted_to", null)
     .eq("status", "completed");
@@ -50,11 +50,19 @@ export async function getOwnedItems(developerId: number): Promise<string[]> {
   // Items received as gifts
   const { data: giftData } = await sb
     .from("purchases")
-    .select("item_id")
+    .select("item_id, provider, amount_cents")
     .eq("gifted_to", developerId)
     .eq("status", "completed");
 
-  return [...(ownData ?? []), ...(giftData ?? [])].map((row) => row.item_id);
+  const ownFiltered = (ownData ?? [])
+    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
+    .map((row) => row.item_id);
+
+  const giftFiltered = (giftData ?? [])
+    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
+    .map((row) => row.item_id);
+
+  return [...ownFiltered, ...giftFiltered];
 }
 
 /** Item granted for free when a developer first claims their building. */
@@ -171,7 +179,7 @@ export async function getOwnedItemsForDevelopers(
   // Items bought directly (not gifts)
   const { data: ownData } = await sb
     .from("purchases")
-    .select("developer_id, item_id")
+    .select("developer_id, item_id, provider, amount_cents")
     .in("developer_id", developerIds)
     .is("gifted_to", null)
     .eq("status", "completed");
@@ -179,19 +187,96 @@ export async function getOwnedItemsForDevelopers(
   // Items received as gifts
   const { data: giftData } = await sb
     .from("purchases")
-    .select("gifted_to, item_id")
+    .select("gifted_to, item_id, provider, amount_cents")
     .in("gifted_to", developerIds)
     .eq("status", "completed");
 
   const result: Record<number, string[]> = {};
   for (const row of ownData ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     if (!result[row.developer_id]) result[row.developer_id] = [];
     result[row.developer_id].push(row.item_id);
   }
   for (const row of giftData ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     const devId = row.gifted_to as number;
     if (!result[devId]) result[devId] = [];
     result[devId].push(row.item_id);
   }
   return result;
+}
+
+/**
+ * Fulfills/records the purchase of an item for a developer.
+ * Handles consumables (adds them to inventory/counters and returns 'delivered' to bypass unique index constraints).
+ * Returns the final status to use for the purchases table.
+ */
+export async function fulfillItemPurchase(
+  developerId: number,
+  itemId: string,
+  supabaseAdminClient?: any
+): Promise<{ status: "completed" | "delivered" }> {
+  const sb = supabaseAdminClient || getSupabaseAdmin();
+
+  // 1. Fetch item details to determine category
+  const { data: item } = await sb
+    .from("items")
+    .select("category")
+    .eq("id", itemId)
+    .single();
+
+  const isConsumable = item?.category === "consumable";
+
+  if (!isConsumable) {
+    return { status: "completed" };
+  }
+
+  // 2. Fulfill based on specific consumable type
+  if (itemId === "streak_freeze") {
+    // Increment streak freeze counter
+    await sb.rpc("grant_streak_freeze", { p_developer_id: developerId });
+    await sb.from("streak_freeze_log").insert({
+      developer_id: developerId,
+      action: "purchased",
+    });
+  } else {
+    // Battle consumable or other: increment quantity in developer_consumables
+    const BATTLE_CONSUMABLES = [
+      "anti_missile_system",
+      "anti_tank_mines",
+      "scouting_satellite",
+      "emp_shield",
+      "stealth_cloak",
+      "emp_device",
+      "sabotage_virus"
+    ];
+
+    if (BATTLE_CONSUMABLES.includes(itemId)) {
+      const { data: existing } = await sb
+        .from("developer_consumables")
+        .select("quantity")
+        .eq("developer_id", developerId)
+        .eq("item_id", itemId)
+        .maybeSingle();
+
+      const newQty = (existing?.quantity ?? 0) + 1;
+
+      await sb.from("developer_consumables").upsert(
+        {
+          developer_id: developerId,
+          item_id: itemId,
+          quantity: newQty,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id,item_id" }
+      );
+    }
+  }
+
+  // To bypass unique index constraints for completed purchases of consumables, we use 'delivered' status
+  return { status: "delivered" };
 }

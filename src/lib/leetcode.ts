@@ -107,7 +107,7 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
             if (!calendarStr) continue;
 
             const calendar = JSON.parse(calendarStr);
-            now.setHours(0, 0, 0, 0);
+            now.setUTCHours(0, 0, 0, 0);
             const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
 
             for (const [timestampStr, count] of Object.entries(calendar)) {
