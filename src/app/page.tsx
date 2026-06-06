@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
 
 import {
@@ -103,6 +104,13 @@ interface CityStats {
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
+  loading: () => (
+    <div className="h-screen w-screen bg-black flex items-center justify-center">
+      <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+        Loading City...
+      </div>
+    </div>
+  ),
 });
 
 // Feature flags — flip to switch milestone banner
@@ -6607,13 +6615,32 @@ function HomeContent() {
     </main>
   );
 }
-
 export default function Home() {
   return (
-    <Suspense>
+    <ErrorBoundary fallback={
+      <div className="h-screen w-screen bg-black flex items-center justify-center">
+        <div className="text-red-500 font-pixel text-center px-4">
+          Something went wrong loading the city.
+          <button 
+            onClick={() => window.location.reload()}
+            className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    }>
       <WeatherProvider>
-        <HomeContent />
+        <Suspense fallback={
+          <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+              Loading...
+            </div>
+          </div>
+        }>
+          <HomeContent />
+        </Suspense>
       </WeatherProvider>
-    </Suspense>
+    </ErrorBoundary>
   );
 }
