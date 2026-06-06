@@ -582,6 +582,8 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     const seed =
       building.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
+    const safeLitPct = typeof building.litPercentage === "number" && !isNaN(building.litPercentage) ? building.litPercentage : 0.3;
+
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {
       const blended = new THREE.Color(colors.face)
@@ -589,11 +591,11 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
       const blendedHex = '#' + blended.getHexString();
       const front = createWindowTexture(
         building.floors, building.windowsPerFloor,
-        building.litPercentage, seed, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed, colors.windowLit, colors.windowOff, blendedHex
       );
       const side = createWindowTexture(
         building.floors, building.sideWindowsPerFloor,
-        building.litPercentage, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
       );
       return { front, side };
     }
@@ -601,7 +603,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     // Atlas-based textures — litPercentage drives how many windows are lit.
     // For LC buildings litPercentage = active_days / 365 (set at claim time),
     // so a daily grinder has nearly all windows lit, a casual solver has fewer.
-    const bandIndex = Math.min(5, Math.max(0, Math.round(building.litPercentage * 5)));
+    const bandIndex = Math.min(5, Math.max(0, Math.round(safeLitPct * 5)));
     const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 
     // Adjust windows based on bungalow dims to keep aspect ratio mapping mostly correct

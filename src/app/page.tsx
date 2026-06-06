@@ -4857,6 +4857,8 @@ function HomeContent() {
                   const streak =
                     ((selectedBuilding as any).lc_streak as number) ?? 0;
                   const reputation = selectedBuilding.total_stars;
+                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
+                  const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
                     {
@@ -4865,6 +4867,13 @@ function HomeContent() {
                     },
                     { label: "LC Rank", value: lcRankStr },
                     { label: "Solved", value: solved.toLocaleString() },
+                    {
+                      label: "Acceptance",
+                      value:
+                        acceptanceRate >= 0
+                          ? `${(acceptanceRate * 100).toFixed(1)}%`
+                          : "--",
+                    },
                     ...(easySolved || medSolved || hardSolved
                       ? [
                         { label: "Easy", value: easySolved.toLocaleString() },
