@@ -20,6 +20,7 @@ import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
 import InfiniteWater from "./InfiniteWater";
 import AtmosphereCycleManager from "./AtmosphereCycleManager";
+import { CinematicDroneTour } from "./CinematicDroneTour";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 
@@ -1995,6 +1996,7 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
   const timeRef = useRef(0.0);
+  const droneActive = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("drone");
 
   const cityRadius = useMemo(() => {
     let max = 200;
@@ -2065,6 +2067,8 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
         cityRadius={cityRadius}
         weatherMode={weatherMode}
       />
+
+      <CinematicDroneTour active={droneActive} />
 
       {introMode && <IntroFlyover onEnd={onIntroEnd ?? (() => { })} />}
 
