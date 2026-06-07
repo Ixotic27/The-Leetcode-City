@@ -77,6 +77,11 @@ jobs:
             const author = fullPR.user.login;
             const currentLabels = fullPR.labels.map(l => l.name);
 
+            if (run.head_sha !== fullPR.head.sha) {
+              core.info(`Stale run detected: Workflow run SHA (${run.head_sha}) does not match current PR head (${fullPR.head.sha}). Skipping.`);
+              return;
+            }
+
             if (conclusion === 'failure') {
               core.info(`PR #${prNumber}: CI failed. Ensuring label '${label}' and comment are present.`);
               // Ensure the label exists in the repo

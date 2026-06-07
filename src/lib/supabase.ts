@@ -2,6 +2,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
 
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+// Cache the admin client, keyed by connection details to support env changes during tests
+let adminClient: SupabaseClient | null = null;
+let lastAdminKey: string | null = null;
+let lastAdminUrl: string | null = null;
 
 /**
  * Returns true when running without the service-role key.
@@ -31,6 +35,12 @@ export function createBrowserSupabase() {
 let adminClientWarned = false;
 export function getSupabaseAdmin(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+  // Return cached instance if credentials haven't changed
+  if (adminClient && lastAdminKey === key && lastAdminUrl === url) {
+    return adminClient;
+  }
 
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY && !adminClientWarned) {
     adminClientWarned = true;
@@ -40,11 +50,15 @@ export function getSupabaseAdmin(): SupabaseClient {
     );
   }
 
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  adminClient = createClient(
+    url,
     key!,
     { auth: { persistSession: false } }
   );
+  lastAdminKey = key ?? null;
+  lastAdminUrl = url;
+
+  return adminClient;
 }
 
 /**

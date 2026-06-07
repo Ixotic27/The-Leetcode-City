@@ -4,6 +4,60 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp } from "@/lib/xp";
 
+type TagProblem = {
+    tagName: string;
+    problemsSolved: number;
+};
+
+type LeetCodeUserStats = {
+    username?: string;
+    maxStreak?: number;
+    badges?: {
+        id: string;
+        name: string;
+        icon: string;
+        displayName: string;
+    }[];
+    profile?: {
+        realName?: string;
+        userAvatar?: string;
+        aboutMe?: string;
+        ranking?: number;
+        reputation?: number;
+        countryName?: string;
+        school?: string;
+        company?: string;
+        websites?: string[];
+        linkedinUrl?: string;
+        twitterUrl?: string;
+        githubUrl?: string;
+    };
+    submitStats?: {
+        acSubmissionNum?: { difficulty: string; count: number }[];
+        totalSubmissionNum?: { difficulty: string; count: number }[];
+    };
+    tagProblemCounts?: {
+        advanced?: TagProblem[];
+        intermediate?: TagProblem[];
+        fundamental?: TagProblem[];
+    };
+};
+
+type ContestStats = {
+    rating?: number;
+    globalRanking?: number;
+    attendedContestsCount?: number;
+    topPercentage?: number;
+    badge?: {
+        name?: string;
+    };
+};
+
+type StreakStats = {
+    streak?: number;
+    totalActiveDays?: number;
+};
+
 /**
  * @param {import('next/server').NextRequest} req
  */
@@ -51,9 +105,9 @@ export async function POST(req: Request) {
         }
 
         // Fetch full LC stats: easy/medium/hard, contest rating, streak
-        let lcUserStats: any = null;
-        let lcContestStats = null;
-        let lcStreakStats = null;
+        let lcUserStats: LeetCodeUserStats | null = null;
+        let lcContestStats: ContestStats | null = null;
+        let lcStreakStats: StreakStats | null = null;
         try {
             const currentYear = new Date().getFullYear();
             let aliases = "";
@@ -167,9 +221,9 @@ export async function POST(req: Request) {
             ...(tagCounts?.intermediate ?? []),
             ...(tagCounts?.fundamental ?? []),
         ]
-            .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+            .sort((a: TagProblem, b: TagProblem) => b.problemsSolved - a.problemsSolved)
             .slice(0, 20)
-            .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
+            .map((t: TagProblem) => ({ name: t.tagName, solved: t.problemsSolved }));
 
         // litPercentage = how lit the building windows are
         // For LC: active_days / 365 (capped at 1.0), same mechanic as LeetCode City uses commit frequency
@@ -267,7 +321,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, leetcode_username: leetcode_username.toLowerCase() });
 
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+    } catch (err: unknown) {
+        const message =
+            err instanceof Error ? err.message : "Internal server error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

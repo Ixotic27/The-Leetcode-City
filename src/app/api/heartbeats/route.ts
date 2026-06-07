@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     .from("developers")
     .select("id, github_login, avatar_url")
     .eq("vscode_api_key_hash", hashKey(apiKey))
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (devErr || !dev) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });

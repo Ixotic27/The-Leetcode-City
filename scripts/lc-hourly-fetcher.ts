@@ -168,6 +168,100 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
     return !error;
 }
 
+// ── Discovery: find new users from LC ranking pages ──────────
+
+async function fetchRankingPage(page: number): Promise<string[]> {
+  const query = `
+    query globalRanking($page: Int!) {
+      globalRanking(page: $page) {
+        rankingNodes {
+          user {
+            username
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await fetch("https://leetcode.com/graphql", {
+      method: "POST",
+      headers: LC_HEADERS,
+      body: JSON.stringify({ query, variables: { page } }),
+    });
+    const json = await res.json();
+    const nodes = json?.data?.globalRanking?.rankingNodes ?? [];
+    return nodes.map((n: { user: { username: string } }) => n.user.username);
+  } catch (err) {
+    console.error("Error fetching ranking page:", err);
+    return [];
+  }
+}
+
+async function filterNewUsernames(usernames: string[]): Promise<string[]> {
+  if (usernames.length === 0) return [];
+
+  const { data: existing } = await sb
+    .from("developers")
+    .select("github_login")
+    .in("github_login", usernames.map((u) => u.toLowerCase()));
+
+  const existingSet = new Set((existing ?? []).map((d: { github_login: string }) => d.github_login));
+  return usernames.filter((u) => !existingSet.has(u.toLowerCase()));
+}
+
+async function discoverNewUsers(pagesToScan: number): Promise<number> {
+  console.log(`\n  Discovery: scanning ${pagesToScan} ranking page(s) for new users...`);
+
+  let discovered = 0;
+
+  for (let page = 1; page <= pagesToScan; page++) {
+    const usernames = await fetchRankingPage(page);
+
+    if (usernames.length === 0) {
+      console.log("  ⚠️  No users found on ranking page. Rate limited?");
+      await sleep(10000);
+      continue;
+    }
+
+    const newUsernames = await filterNewUsernames(usernames);
+
+    if (newUsernames.length === 0) {
+      console.log(`  Page ${page}: all ${usernames.length} users already in DB`);
+      await sleep(2000);
+      continue;
+    }
+
+    console.log(`  Page ${page}: ${newUsernames.length} new users out of ${usernames.length}`);
+
+    for (const username of newUsernames) {
+      process.stdout.write(` Discovering ${username.padEnd(28)} `);
+
+      const data = await fetchLCFullProfile(username);
+
+      if (!data?.matchedUser) {
+        console.log("⚠️  not found / private");
+        await sleep(500);
+        continue;
+      }
+
+      const success = await upsertFullProfile(username, data);
+      if (success) {
+        const solved = data.matchedUser?.submitStats?.acSubmissionNum?.find((x: { difficulty: string }) => x.difficulty === "All")?.count ?? 0;
+        console.log(`✅  ${solved} solved`);
+        discovered++;
+      } else {
+        console.log("❌ DB error");
+      }
+
+      await sleep(1000);
+    }
+
+    await sleep(2000);
+  }
+
+  return discovered;
+}
+
 /** Pick the N most-stale developers (claimed first, then unclaimed) */
 async function pickStalestDevs(n: number): Promise<string[]> {
     // 1. Claimed users stale > 6 hours — top priority
@@ -179,7 +273,7 @@ async function pickStalestDevs(n: number): Promise<string[]> {
         .order("fetched_at", { ascending: true })
         .limit(n);
 
-    const claimedLogins = (claimed ?? []).map((d: any) => d.github_login);
+    const claimedLogins = (claimed ?? []).map((d: { github_login: string }) => d.github_login);
     const remaining = n - claimedLogins.length;
 
     if (remaining <= 0) return claimedLogins;
@@ -193,7 +287,7 @@ async function pickStalestDevs(n: number): Promise<string[]> {
         .order("fetched_at", { ascending: true })
         .limit(remaining);
 
-    return [...claimedLogins, ...(unclaimed ?? []).map((d: any) => d.github_login)];
+    return [...claimedLogins, ...(unclaimed ?? []).map((d: { github_login: string }) => d.github_login)];
 }
 
 async function runHourlyCycle(cycleNum: number) {
@@ -201,6 +295,9 @@ async function runHourlyCycle(cycleNum: number) {
     console.log(`\n${"═".repeat(60)}`);
     console.log(`  🔄  Hourly Cycle #${cycleNum} — ${now}`);
     console.log(`${"═".repeat(60)}\n`);
+
+    const discovered = await discoverNewUsers(2); // Scan 2 ranking pages (~50 users)
+    console.log(` Discovered ${discovered} new user(s)\n`);
 
     const logins = await pickStalestDevs(USERS_PER_HOUR);
 
@@ -225,7 +322,7 @@ async function runHourlyCycle(cycleNum: number) {
         } else {
             const success = await upsertFullProfile(username, data);
             if (success) {
-                const solved = data.matchedUser?.submitStats?.acSubmissionNum?.find((x: any) => x.difficulty === "All")?.count ?? 0;
+                const solved = data.matchedUser?.submitStats?.acSubmissionNum?.find((x: { difficulty: string }) => x.difficulty === "All")?.count ?? 0;
                 const streak = data.matchedUser?.maxStreak ?? 0;
                 console.log(`✅  ${solved} solved | streak ${streak}`);
                 ok++;
@@ -239,8 +336,7 @@ async function runHourlyCycle(cycleNum: number) {
         if (i < logins.length - 1) await sleep(DELAY_MS);
     }
 
-    console.log(`\n  ✅ Cycle #${cycleNum} done — ${ok} refreshed | ${skip} skipped | ${fail} failed`);
-}
+    console.log(`\n  ✅ Cycle #${cycleNum} done — ${discovered} discovered | ${ok} refreshed | ${skip} skipped | ${fail} failed`);}
 
 async function main() {
     console.log("\n🏙️  LC City Hourly Fetcher");

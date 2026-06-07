@@ -40,7 +40,7 @@ function getLimitForPath(pathname: string): {
   window: number;
   group: string;
 } {
-  // Webhooks are called by trusted third-parties (Stripe, AbacatePay) –
+  // Webhooks are called by trusted third-parties (Stripe, AbacatePay, Cashfree) –
   // they verify signatures, so we don't rate-limit them.
   if (pathname.startsWith("/api/webhooks")) {
     return { limit: 1000, window: WINDOW_1_MIN_MS, group: "webhooks" };

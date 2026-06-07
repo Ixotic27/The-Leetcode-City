@@ -2,7 +2,7 @@
   "name": "leetcode-city-pulse",
   "displayName": "LeetCode City: Pulse",
   "description": "Keep your city alive. When you code, your building glows and powers the signal. Privacy-first: you control what gets shared.",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "publisher": "leetcode-city",
   "license": "AGPL-3.0",
   "repository": {
@@ -25,6 +25,24 @@
   "main": "./dist/extension.js",
   "icon": "icon.png",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "leetcode-city-arena",
+          "title": "LeetCode City Arena",
+          "icon": "resources/arena-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "leetcode-city-arena": [
+        {
+          "type": "webview",
+          "id": "leetcodecity.arenaView",
+          "name": "Arena Challenges"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "leetcodecity.login",

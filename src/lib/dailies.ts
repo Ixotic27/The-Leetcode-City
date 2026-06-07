@@ -100,7 +100,7 @@ export async function trackDailyMission(
 ): Promise<void> {
   try {
     const today = getTodayStr();
-    const missions = getDailyMissions(developerId, today);
+    const missions = getDailyMissions(developerId, today);    
     const mission = missions.find((m) => m.id === missionId);
     if (!mission) return; // not assigned today, skip
 

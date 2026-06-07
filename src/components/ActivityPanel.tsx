@@ -27,6 +27,7 @@ interface Props {
 export default function ActivityPanel({ initialEvents, open, onClose, onNavigate }: Props) {
   const [events, setEvents] = useState<FeedEvent[]>(initialEvents);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -37,16 +38,17 @@ export default function ActivityPanel({ initialEvents, open, onClose, onNavigate
   const loadMore = useCallback(async () => {
     if (loading || !hasMore || events.length === 0) return;
     setLoading(true);
+    setError(false);
     try {
       const lastId = events[events.length - 1].id;
       const res = await fetch(`/api/feed?limit=20&before=${lastId}`);
-      if (!res.ok) return;
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setEvents((prev) => [...prev, ...data.events]);
       setHasMore(data.has_more);
     } catch (err) {
       console.warn("[components/ActivityPanel.tsx] error:", err);
-      // ignore
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -132,6 +134,18 @@ export default function ActivityPanel({ initialEvents, open, onClose, onNavigate
         {loading && (
           <div className="px-4 py-3 text-center text-[9px] text-dim animate-pulse">
             Loading...
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="px-4 py-4 text-center">
+            <p className="text-[9px] text-red-400 normal-case mb-2">Failed to load more activity</p>
+            <button 
+              onClick={loadMore}
+              className="border border-border px-2 py-0.5 text-[8px] text-cream hover:border-border-light transition-colors"
+            >
+              Retry
+            </button>
           </div>
         )}
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createServerSupabase } from "@/lib/supabase-server";
 
+export const dynamic = "force-dynamic";
+
 async function hashKey(key: string): Promise<string> {
   const data = new TextEncoder().encode(key + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""));
   const buf = await crypto.subtle.digest("SHA-256", data);
@@ -11,7 +13,8 @@ async function hashKey(key: string): Promise<string> {
 }
 
 async function isRateLimited(key: string): Promise<boolean> {
-  const RATE_LIMIT = parseInt(process.env.RATE_LIMIT_PER_HOUR ?? "15");
+  const rateLimitEnv = process.env.RATE_LIMIT_PER_HOUR ?? "15";
+  const RATE_LIMIT = parseInt(rateLimitEnv);
   const sb = getSupabaseAdmin();
   const ipHash = await hashKey(key);
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -133,7 +136,8 @@ export async function GET(
     .single();
 
   if (cached) {
-    const CACHE_TTL_MS = parseInt(process.env.CACHE_TTL_HOURS ?? "12") * 3600000;
+    const cacheTtlHours = process.env.CACHE_TTL_HOURS ?? "12";
+    const CACHE_TTL_MS = parseInt(cacheTtlHours) * 3600000;
     const age = Date.now() - new Date(cached.fetched_at).getTime();
     if (!forceRefresh && age < CACHE_TTL_MS) {  // 12h cache
       cachedRecord = cached;
@@ -169,8 +173,13 @@ export async function GET(
 
   if (!cachedRecord) {
     const data = await fetchLeetCodeUser(username);
-    if (!data?.matchedUser) {
-      if (cached) return NextResponse.json(cached); // return stale if LC fetch fails
+    if (!data) {
+      // Network/parsing error — return stale cached if available
+      if (cached) return NextResponse.json(cached);
+      return NextResponse.json({ error: "Failed to fetch LeetCode data" }, { status: 502 });
+    }
+    if (!data.matchedUser) {
+      // LeetCode explicitly says user doesn't exist — return 404 regardless of cache
       return NextResponse.json({ error: "User not found on LeetCode" }, { status: 404 });
     }
 
@@ -273,13 +282,13 @@ export async function GET(
   const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("developer_id", upserted.id)
       .is("gifted_to", null)
       .eq("status", "completed"),
     sb
       .from("purchases")
-      .select("item_id")
+      .select("item_id, provider, amount_cents")
       .eq("gifted_to", upserted.id)
       .eq("status", "completed"),
     sb
@@ -295,8 +304,12 @@ export async function GET(
   ]);
 
   const ownedItems = [
-    ...(purchasesResult.data ?? []).map(p => p.item_id),
-    ...(giftPurchasesResult.data ?? []).map(p => p.item_id),
+    ...(purchasesResult.data ?? [])
+      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+      .map(p => p.item_id),
+    ...(giftPurchasesResult.data ?? [])
+      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
+      .map(p => p.item_id),
   ];
 
   const customColor = (customizationsResult.data ?? []).find(c => c.item_id === "custom_color")?.config?.color ?? null;

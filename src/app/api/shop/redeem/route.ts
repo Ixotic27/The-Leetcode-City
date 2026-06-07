@@ -98,23 +98,33 @@ export async function POST(request: Request) {
     amount_cents: 0,
     currency: "usd",
     status: "completed",
-    provider_tx_id: code, // store which code was used
+    provider_tx_id: `${code}:${dev.id}`,
   });
 
   if (purchaseError) {
     return NextResponse.json({ error: "Failed to grant item. Please try again." }, { status: 500 });
   }
 
-  // Update or delete the code
-  const newUsedCount = redeemCode.used_count + 1;
-  const fullyUsed = redeemCode.max_uses !== -1 && newUsedCount >= redeemCode.max_uses;
+  // Atomically increment used_count — only succeeds if uses still remain
+  // This is the TOCTOU fix: the WHERE clause acts as a guard so concurrent
+  // requests that both passed the JS check above cannot both land this update
+  const { data: atomicUpdate } = await sb
+    .from("redeem_codes")
+    .update({ used_count: redeemCode.used_count + 1 })
+    .eq("id", redeemCode.id)
+    .eq("used_count", redeemCode.used_count) // optimistic lock — race condition loses here
+    .select("id, used_count, max_uses")
+    .maybeSingle();
 
+  if (!atomicUpdate) {
+    // Another concurrent request already incremented — this request loses the race
+    return NextResponse.json({ error: "This code has already been fully used." }, { status: 409 });
+  }
+
+  // Clean up if now fully exhausted
+  const fullyUsed = atomicUpdate.max_uses !== -1 && atomicUpdate.used_count >= atomicUpdate.max_uses;
   if (fullyUsed) {
-    // Single-use or fully exhausted → DELETE to keep table clean
-    await sb.from("redeem_codes").delete().eq("id", redeemCode.id);
-  } else {
-    // Multi-use → just increment
-    await sb.from("redeem_codes").update({ used_count: newUsedCount }).eq("id", redeemCode.id);
+    await sb.from("redeem_codes").delete().eq("id", atomicUpdate.id);
   }
 
   return NextResponse.json({

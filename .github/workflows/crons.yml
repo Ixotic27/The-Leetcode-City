@@ -1,0 +1,81 @@
+name: LC City Miscellaneous Crons
+
+on:
+  schedule:
+    - cron: "0 20 * * *" # streak-reminder (Daily at 20:00 UTC)
+    - cron: "0 10 * * 1" # weekly-digest (Weekly on Mondays at 10:00 UTC)
+    - cron: "0 10 1 * *" # monthly-digest (Monthly on the 1st at 10:00 UTC)
+    - cron: "0 14 * * *" # re-engagement (Daily at 14:00 UTC)
+    - cron: "0 2 * * *" # city-snapshot (Daily at 02:00 UTC)
+    - cron: "0 3 * * *" # cleanup-sessions (Daily at 03:00 UTC)
+    - cron: "0 6 * * *" # lc-refresh (Daily at 06:00 UTC)
+    - cron: "0 0 28 * *" # monthly-sync (Monthly on the 28th at 00:00 UTC)
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Cron Job to run manually"
+        required: true
+        default: "cleanup-sessions"
+        type: choice
+        options:
+          - streak-reminder
+          - weekly-digest
+          - monthly-digest
+          - re-engagement
+          - city-snapshot
+          - cleanup-sessions
+          - lc-refresh
+          - monthly-sync
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crons-${{ github.event.inputs.job || github.event.schedule || 'manual' }}
+  cancel-in-progress: true
+
+jobs:
+  run-cron:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Job
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ykqxkfazxsyantffjouf.supabase.co' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET || 'fallback-actions-secret-123' }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          HF_WRITE_TOKEN: ${{ secrets.HF_WRITE_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            JOB="${{ github.event.inputs.job }}"
+          else
+            cron="${{ github.event.schedule }}"
+            case "$cron" in
+              "0 20 * * *") JOB="streak-reminder" ;;
+              "0 10 * * 1") JOB="weekly-digest" ;;
+              "0 10 1 * *") JOB="monthly-digest" ;;
+              "0 14 * * *") JOB="re-engagement" ;;
+              "0 2 * * *")  JOB="city-snapshot" ;;
+              "0 3 * * *")  JOB="cleanup-sessions" ;;
+              "0 6 * * *")  JOB="lc-refresh" ;;
+              "0 0 28 * *") JOB="monthly-sync" ;;
+              *) echo "Unknown cron schedule: $cron"; exit 1 ;;
+            esac
+          fi
+
+          echo "🚀 Executing cron job: $JOB"
+          npx tsx scripts/run-cron.ts "$JOB"

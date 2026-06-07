@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { autoEquipIfSolo } from "@/lib/items";
+import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
@@ -92,7 +92,8 @@ export async function POST(request: Request) {
               ends_at: endsAt.toISOString(),
               purchaser_email: session.customer_details?.email ?? null,
             })
-            .eq("id", ad.id);
+            .eq("id", ad.id)
+            .eq("active", false);
 
           // Auto-deactivate the "advertise" placeholder if same vehicle type
           if (plan.vehicle === "plane") {
@@ -130,32 +131,19 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (pending) {
+          const giftedTo = session.metadata?.gifted_to;
+          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
+          const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+
           await sb
             .from("purchases")
             .update({
-              status: "completed",
+              status: purchaseStatus,
               provider_tx_id: paymentIntentId ?? session.id,
             })
             .eq("id", pending.id);
 
-          // Streak freeze: grant via RPC instead of normal item flow
-          if (itemId === "streak_freeze") {
-            await sb.rpc("grant_streak_freeze", { p_developer_id: Number(developerId) });
-            await sb.from("streak_freeze_log").insert({
-              developer_id: Number(developerId),
-              action: "purchased",
-            });
-            await sb.from("activity_feed").insert({
-              event_type: "item_purchased",
-              actor_id: Number(developerId),
-              metadata: { login: session.metadata?.github_login, item_id: "streak_freeze" },
-            });
-            break;
-          }
-
           // Auto-equip if solo item in zone
-          const giftedTo = session.metadata?.gifted_to;
-          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
           await autoEquipIfSolo(ownerId, itemId);
 
           // Insert feed event + send notifications
@@ -191,27 +179,31 @@ export async function POST(request: Request) {
             sendPurchaseNotification(Number(developerId), githubLogin ?? "", pending.id, itemId);
           }
         } else {
-          // Check if already completed (webhook duplicate)
+          // Check if already completed/processed (webhook duplicate)
+          const txId = paymentIntentId ?? session.id;
           const { data: existing } = await sb
             .from("purchases")
             .select("id")
-            .eq("developer_id", Number(developerId))
-            .eq("item_id", itemId)
-            .eq("status", "completed")
+            .eq("provider_tx_id", txId)
             .maybeSingle();
 
           if (!existing) {
-            // Create completed purchase directly (edge case: pending was cleaned up)
+            const giftedTo = session.metadata?.gifted_to;
+            const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
+            const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+
+            // Create purchase directly (edge case: pending was cleaned up)
             await sb.from("purchases").insert({
               developer_id: Number(developerId),
               item_id: itemId,
               provider: "stripe",
-              provider_tx_id: paymentIntentId ?? session.id,
+              provider_tx_id: txId,
               amount_cents: session.amount_total ?? 0,
               currency: session.currency ?? "usd",
-              status: "completed",
+              status: purchaseStatus,
+              ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
             });
-            await autoEquipIfSolo(Number(developerId), itemId);
+            await autoEquipIfSolo(ownerId, itemId);
           }
         }
         break;

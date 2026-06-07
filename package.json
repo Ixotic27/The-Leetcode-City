@@ -1,7 +1,10 @@
 {
   "name": "leetcode-city",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "description": "Your LeetCode profile as a 3D pixel art building in an interactive city",
   "homepage": "https://theleetcodecity.tech",
   "repository": {
@@ -33,9 +36,11 @@
     "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts",
     "setup": "node scripts/setup.mjs",
     "setup:check": "node scripts/setup.mjs --check",
-    "test" : "vitest"
+    "test": "vitest"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.7",
+    "@huggingface/hub": "^2.13.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
@@ -44,6 +49,8 @@
     "@types/three": "^0.183.0",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
+    "cashfree-pg": "^6.0.4",
+    "dotenv": "^17.4.2",
     "howler": "^2.2.4",
     "next": "16.1.6",
     "postprocessing": "^6.38.3",
@@ -52,15 +59,19 @@
     "resend": "^6.9.3",
     "server-only": "^0.0.1",
     "stripe": "^20.3.1",
+    "swr": "^2.4.1",
     "three": "^0.183.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@tailwindcss/postcss": "^4",
     "@types/howler": "^2.2.12",
     "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

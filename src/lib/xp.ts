@@ -144,11 +144,15 @@ export function calculateLeetcodeXp(dev: {
   contest_rating: number;
   lc_streak: number;
 }): number {
+  const easySolved = Math.max(dev.easy_solved, 0);
+  const mediumSolved = Math.max(dev.medium_solved, 0);
+  const hardSolved = Math.max(dev.hard_solved, 0);
+
   // Fairly distribute Base XP using logarithmic scaling
   const solvedXp =
-    Math.floor(Math.log2(Math.max(dev.easy_solved, 1) + 1) * 3) +
-    Math.floor(Math.log2(Math.max(dev.medium_solved, 1) + 1) * 6) +
-    Math.floor(Math.log2(Math.max(dev.hard_solved, 1) + 1) * 12);
+    Math.floor(Math.log2(easySolved + 1) * 3) +
+    Math.floor(Math.log2(mediumSolved + 1) * 6) +
+    Math.floor(Math.log2(hardSolved + 1) * 12);
   
   // High contest ratings exponentially scale better, but bounded realistically
   const ratingXp = dev.contest_rating > 1400 

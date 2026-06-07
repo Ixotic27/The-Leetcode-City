@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     try {
       const { data: dev } = await admin
         .from("developers")
-        .select("id, contributions, public_repos, total_stars, kudos_count, referral_count, referred_by")
+        .select("id, contributions, public_repos, total_stars, kudos_count, referral_count, referred_by, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
         .eq("github_login", githubLogin)
         .single();
 
@@ -101,7 +101,7 @@ export async function GET(request: Request) {
             // Check referral achievements for the referrer
             const { data: referrerFull } = await admin
               .from("developers")
-              .select("referral_count, kudos_count, contributions, public_repos, total_stars")
+              .select("referral_count, kudos_count, contributions, public_repos, total_stars, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
               .eq("id", referrer.id)
               .single();
 
@@ -116,6 +116,12 @@ export async function GET(request: Request) {
                 kudos_count: referrerFull.kudos_count,
                 gifts_sent: giftsSent,
                 gifts_received: giftsReceived,
+                easy_solved: referrerFull.easy_solved ?? 0,
+                medium_solved: referrerFull.medium_solved ?? 0,
+                hard_solved: referrerFull.hard_solved ?? 0,
+                contest_rating: referrerFull.contest_rating ?? 0,
+                lc_streak: referrerFull.lc_streak ?? 0,
+                total_prs: referrerFull.total_prs ?? 0,
               }, referrer.github_login);
             }
           }
@@ -132,6 +138,12 @@ export async function GET(request: Request) {
           kudos_count: dev.kudos_count ?? 0,
           gifts_sent: giftsSent,
           gifts_received: giftsReceived,
+          easy_solved: dev.easy_solved ?? 0,
+          medium_solved: dev.medium_solved ?? 0,
+          hard_solved: dev.hard_solved ?? 0,
+          contest_rating: dev.contest_rating ?? 0,
+          lc_streak: dev.lc_streak ?? 0,
+          total_prs: dev.total_prs ?? 0,
         }, githubLogin);
       }
     } catch (err) {

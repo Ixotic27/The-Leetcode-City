@@ -1,0 +1,156 @@
+name: PR Visuals Check
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  check-visuals:
+    name: Check Visual Proof Requirements
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify Visual Proof if required by Issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const prNumber = pr.number;
+            const prAuthor = pr.user.login;
+            const prBody = pr.body ?? '';
+
+            // ----------------------------------------------------------------
+            // 0. Bypass checks for bots and the maintainer
+            // ----------------------------------------------------------------
+            if (pr.user.type === 'Bot' || prAuthor === 'Ixotic27') {
+              core.info(`Skipping visuals check for ${prAuthor} (Bot/Maintainer).`);
+              return;
+            }
+
+            // ----------------------------------------------------------------
+            // 1. Parse linked issue numbers from the PR body
+            // ----------------------------------------------------------------
+            const BLOCK_REGEX = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?:\s*(?:and|,)?\s*#\d+)+/gi;
+            const issueNumbers = [];
+            let blockMatch;
+            while ((blockMatch = BLOCK_REGEX.exec(prBody)) !== null) {
+              const numRegex = /#(\d+)/g;
+              let numMatch;
+              while ((numMatch = numRegex.exec(blockMatch[0])) !== null) {
+                issueNumbers.push(parseInt(numMatch[1], 10));
+              }
+            }
+            const uniqueIssueNumbers = [...new Set(issueNumbers)];
+
+            if (uniqueIssueNumbers.length === 0) {
+              core.info("No linked issues found to check visuals requirement.");
+              return;
+            }
+
+            const SENTINEL_VISUALS_WARN = '<!-- pr-visuals-check: 12h-warning -->';
+
+            // Helper: fetch existing bot comments on this PR
+            async function getBotComments() {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner, repo, issue_number: prNumber, per_page: 100,
+              });
+              return comments.filter(c => c.user?.login === 'github-actions[bot]');
+            }
+
+            // Helper: check whether we already posted a warning
+            async function alreadyWarned() {
+              const comments = await getBotComments();
+              return comments.some(c => c.body?.includes(SENTINEL_VISUALS_WARN));
+            }
+
+            let needsVisuals = false;
+            let triggeringIssue = null;
+
+            // ----------------------------------------------------------------
+            // 2. Scan linked issue bodies to see if any require visuals
+            // ----------------------------------------------------------------
+            for (const issueNumber of uniqueIssueNumbers) {
+              try {
+                const { data: issue } = await github.rest.issues.get({
+                  owner, repo, issue_number: issueNumber,
+                });
+
+                // Check if the issue has the 'needs-visual-proof' label
+                const issueLabels = issue.labels.map(l => typeof l === 'string' ? l : l.name);
+                const requiresVisuals = issueLabels.includes('needs-visual-proof');
+
+                if (requiresVisuals) {
+                  needsVisuals = true;
+                  triggeringIssue = issueNumber;
+                  break;
+                }
+              } catch (err) {
+                core.error(`Failed to fetch issue #${issueNumber}: ${err.message}`);
+              }
+            }
+
+            if (!needsVisuals) {
+              core.info("None of the linked issues explicitly require visual proof. Skipping visuals check.");
+              return;
+            }
+
+            // ----------------------------------------------------------------
+            // 3. Verify if PR body contains any visual elements
+            // ----------------------------------------------------------------
+            const hasVisualProof = /!\[.*\]\(.*\)|<img|https:\/\/github\.com\/user-attachments\/assets\//i.test(prBody);
+
+            if (!hasVisualProof) {
+              core.info(`PR lacks visual proof, but linked issue #${triggeringIssue} requires it.`);
+
+              // Add label to PR indicating visual proof is missing
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: prNumber,
+                labels: ['needs-visual-proof'],
+              });
+
+              // Post warning message if we haven't already
+              const warned = await alreadyWarned();
+              if (!warned) {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: prNumber,
+                  body: [
+                    `👋 Hey @${prAuthor}! Thanks for opening this PR! 🎉`,
+                    ``,
+                    `${SENTINEL_VISUALS_WARN}`,
+                    `We noticed that this PR is linked to issue **#${triggeringIssue}**, which requires **visual proof** (screenshots, GIFs, or videos of the changes working).`,
+                    ``,
+                    `However, your PR description currently does not contain any visual proof.`,
+                    ``,
+                    `⚠️ **You have 12 hours from now to update your PR description with relevant visual proof.** If you do not provide it, this PR may be closed automatically and the issue reopened for other contributors.`,
+                    ``,
+                    `Please edit your description to include your visual proof! Thank you! 🚀`
+                  ].join('\n')
+                });
+              }
+            } else {
+              core.info("PR contains visual proof. Excellent!");
+              // If the label is currently on the PR, clean it up
+              try {
+                const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+                  owner, repo, issue_number: prNumber
+                });
+                if (currentLabels.some(l => l.name === 'needs-visual-proof')) {
+                  await github.rest.issues.removeLabel({
+                    owner, repo, issue_number: prNumber,
+                    name: 'needs-visual-proof'
+                  });
+                  core.info("Cleaned up 'needs-visual-proof' label since visual proof was added.");
+                }
+              } catch (e) {
+                core.warning(`Could not clean up labels: ${e.message}`);
+              }
+            }

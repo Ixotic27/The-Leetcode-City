@@ -5,11 +5,16 @@ import { initTracker, setPaused, isPaused, sendImmediateHeartbeat, sendOfflineSi
 import { sendDirect } from "./api/client";
 import { initStatusBar, updateDisplay } from "./statusbar/item";
 import { getConfig } from "./config";
+import { ArenaProvider } from "./arena/ArenaProvider";
+import { checkForUpdates } from "./updater";
 
 export function activate(context: vscode.ExtensionContext) {
   initKeystore(context);
   initQueue(context);
   initStatusBar(context);
+
+  // Check for extension updates from GitHub
+  checkForUpdates(context);
 
   // Start tracker with status bar callback
   initTracker(context, (status) => {
@@ -30,6 +35,55 @@ export function activate(context: vscode.ExtensionContext) {
       updateDisplay("active");
     }
   });
+
+  // Register Arena Sidebar Webview
+  const arenaProvider = new ArenaProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      ArenaProvider.viewType,
+      arenaProvider,
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true
+        }
+      }
+    )
+  );
+
+  // Command to open challenge
+  context.subscriptions.push(
+    vscode.commands.registerCommand("leetcodecity.openChallenge", (challengeId: string, origin?: string) => {
+      arenaProvider.loadChallengeById(challengeId, origin);
+    })
+  );
+
+  // Deep Link URI Handler (vscode://leetcode-city.leetcode-city-pulse/arena?challenge=xxx)
+  class ArenaUriHandler implements vscode.UriHandler {
+    handleUri(uri: vscode.Uri): vscode.ProviderResult<void> {
+      if (uri.path === "/arena" || uri.path === "arena") {
+        const queryParams = new URLSearchParams(uri.query);
+        const challengeId = queryParams.get("challenge");
+        const origin = queryParams.get("origin") || queryParams.get("apiUrl") || undefined;
+        
+        if (origin) {
+          const cfg = vscode.workspace.getConfiguration("leetcodecity");
+          if (cfg.get("apiUrl") !== origin) {
+            cfg.update("apiUrl", origin, vscode.ConfigurationTarget.Global).then(() => {
+              vscode.window.showInformationMessage(`LeetCode City API URL updated to: ${origin}`);
+            });
+          }
+        }
+
+        if (challengeId) {
+          vscode.commands.executeCommand("leetcodecity.openChallenge", challengeId, origin);
+        }
+      }
+    }
+  }
+
+  context.subscriptions.push(
+    vscode.window.registerUriHandler(new ArenaUriHandler())
+  );
 
   // Register commands
   context.subscriptions.push(

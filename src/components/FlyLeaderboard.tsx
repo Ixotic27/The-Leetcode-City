@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useLeaderboardAuth } from "@/components/LeaderboardYouBadge";
@@ -110,6 +110,7 @@ export default function FlyLeaderboard() {
   const [total, setTotal] = useState(0);
   const [viewingSeed, setViewingSeed] = useState(getTodaySeed);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [personalBest, setPersonalBest] = useState<number | null>(null);
   const [history, setHistory] = useState<FlyHistory | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -117,27 +118,38 @@ export default function FlyLeaderboard() {
   const todaySeed = getTodaySeed();
   const isToday = viewingSeed === todaySeed;
 
-  useEffect(() => {
+  const fetchScores = useCallback((seed: string) => {
     abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setLoading(true);
+    setError(false);
 
-    fetch(`/api/fly-scores?seed=${viewingSeed}`, { signal: ctrl.signal })
-      .then((r) => r.json())
+    fetch(`/api/fly-scores?seed=${seed}`, { signal: ctrl.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch");
+        return r.json();
+      })
       .then((data) => {
         if (!ctrl.signal.aborted) {
           setLeaderboard(data.leaderboard ?? []);
           setTotal(data.total ?? 0);
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setError(true);
+        }
+      })
       .finally(() => {
         if (!ctrl.signal.aborted) setLoading(false);
       });
+  }, []);
 
-    return () => ctrl.abort();
-  }, [viewingSeed]);
+  useEffect(() => {
+    fetchScores(viewingSeed);
+    return () => abortRef.current?.abort();
+  }, [viewingSeed, fetchScores]);
 
   useEffect(() => {
     try {
@@ -337,7 +349,19 @@ export default function FlyLeaderboard() {
           </div>
         )}
 
-        {!loading &&
+        {error && !loading && (
+          <div className="px-5 py-10 text-center">
+            <p className="text-xs text-red-400 normal-case mb-3">Failed to load pilot scores</p>
+            <button 
+              onClick={() => fetchScores(viewingSeed)}
+              className="btn-press border-[2px] border-border px-3 py-1 text-[10px] text-cream hover:border-border-light transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error &&
           leaderboard.map((entry, i) => {
             const pos = i + 1;
             const isYou =

@@ -176,15 +176,38 @@ export async function GET(
       "bronze"
       : null;
 
+  // Fetch selected custom title from developer_customizations
+  const { data: titleCustomization } = await supabase
+    .from("developer_customizations")
+    .select("config")
+    .eq("developer_id", dev.id)
+    .eq("item_id", "selected_title")
+    .maybeSingle();
+
+  const titleSlug =
+    (titleCustomization?.config as Record<string, unknown>)?.slug as string | null ?? null;
+
+  // Resolve slug to a human-readable display name via arena_items
+  let titleLabel: string | null = null;
+  if (titleSlug) {
+    const { data: titleItem } = await supabase
+      .from("arena_items")
+      .select("name")
+      .eq("slug", titleSlug)
+      .maybeSingle();
+    // Fall back to raw slug if the arena_items row is missing (e.g. developer-reserved titles)
+    titleLabel = titleItem?.name ?? titleSlug;
+  }
+
   // Effective contributions (matches rank calculation)
   const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
   const devEff = { ...dev, contributions: contribs };
 
   const t = i18n[lang];
   if (format === "stories") {
-    return renderStories(devEff, achievements, highestTier, fontData, t);
+    return renderStories(devEff, achievements, highestTier, titleLabel, fontData, t);
   }
-  return renderLandscape(devEff, achievements, highestTier, fontData, t);
+  return renderLandscape(devEff, achievements, highestTier, titleLabel, fontData, t);
 }
 
 // ─── Landscape (1200x675) ─────────────────────────────────────
@@ -192,6 +215,7 @@ function renderLandscape(
   dev: Record<string, unknown>,
   achievements: { name: string; tier: string }[],
   highestTier: string | null,
+  titleLabel: string | null,
   fontData: Buffer,
   t: typeof i18n.en
 ) {
@@ -290,6 +314,22 @@ function renderLandscape(
               >
                 {`@${dev.github_login}`}
               </div>
+              {/* Custom title badge — rendered between @username and rank pill */}
+              {titleLabel ? (
+                <div
+                  style={{
+                    display: "flex",
+                    fontSize: 16,
+                    color: accent,
+                    border: `2px solid ${accent}`,
+                    padding: "3px 12px",
+                    textTransform: "uppercase",
+                    marginTop: 2,
+                  }}
+                >
+                  {titleLabel}
+                </div>
+              ) : null}
               {dev.rank ? (
                 <div
                   style={{
@@ -455,7 +495,7 @@ function renderLandscape(
               textTransform: "uppercase",
             }}
           >
-            <span style={{ fontSize: 24, color: cream }}>GIT</span>
+            <span style={{ fontSize: 24, color: cream }}>LEETCODE</span>
             <span style={{ fontSize: 24, color: accent }}>CITY</span>
           </div>
           <div
@@ -464,8 +504,8 @@ function renderLandscape(
               fontSize: 16,
               color: muted,
               textTransform: "uppercase",
-                }}
-              >
+            }}
+          >
             theleetcodecity.tech/dev/{dev.github_login as string}
           </div>
         </div>
@@ -511,7 +551,7 @@ const TAUNTS: Record<Lang, { rank: [number, string][]; contribs: [number, string
 };
 
 function getTaunt(rank: number | null, contributions: number): string {
-  const t = TAUNTS["en"]; // Directly access the English dictionary
+  const t = TAUNTS["en"];
   if (rank) {
     for (const [threshold, phrase] of t.rank) {
       if (rank <= threshold) return phrase;
@@ -528,6 +568,7 @@ function renderStories(
   dev: Record<string, unknown>,
   achievements: { name: string; tier: string }[],
   highestTier: string | null,
+  titleLabel: string | null,
   fontData: Buffer,
   t: typeof i18n.en
 ) {
@@ -630,6 +671,22 @@ function renderStories(
           >
             @{dev.github_login as string}
           </div>
+          {/* Custom title badge — rendered between @username and rank/tier pills */}
+          {titleLabel ? (
+            <div
+              style={{
+                display: "flex",
+                fontSize: 18,
+                color: accent,
+                border: `2px solid ${accent}`,
+                padding: "4px 14px",
+                textTransform: "uppercase",
+                marginTop: 8,
+              }}
+            >
+              {titleLabel}
+            </div>
+          ) : null}
           <div
             style={{
               display: "flex",
@@ -806,7 +863,7 @@ function renderStories(
               textTransform: "uppercase",
             }}
           >
-            <span style={{ fontSize: 20, color: cream }}>GIT</span>
+            <span style={{ fontSize: 20, color: cream }}>LEETCODE</span>
             <span style={{ fontSize: 20, color: accent }}>CITY</span>
           </div>
         </div>

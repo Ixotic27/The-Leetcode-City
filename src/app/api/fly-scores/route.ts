@@ -12,22 +12,40 @@ function getTodaySeed() {
   return `${now.getFullYear()}-${dayOfYear}`;
 }
 
-// Max possible score for a given number of collected items, based on game mechanics:
-// - 2 epics (25pts), 8 rares (5pts), 30 commons (1pt) — all at max combo (3x)
-// - Time bonus: up to 50% of collection score
 function maxScoreForCollected(collected: number): number {
   if (collected <= 0) return 0;
   const epics = Math.min(collected, 2);
   const rares = Math.min(Math.max(collected - 2, 0), 8);
   const commons = Math.max(collected - 10, 0);
   const bestComboScore = epics * 75 + rares * 15 + commons * 3;
-  // +50% time bonus, +10% buffer for floating-point edge cases
   return Math.ceil(bestComboScore * 1.5 * 1.1);
 }
 
-/**
- * @param {import('next/server').NextRequest} request
- */
+interface FlyScoreDev {
+  developer_id: number;
+}
+
+interface FlyScoreLeaderboard {
+  score: number;
+  collected: number;
+  max_combo: number;
+  flight_ms: number;
+  created_at: string;
+  developer_id: number;
+  developers: any;
+}
+
+// Type for the raw data from Supabase (developers is an array)
+interface FlyScoreRaw {
+  score: number;
+  collected: number;
+  max_combo: number;
+  flight_ms: number;
+  created_at: string;
+  developer_id: number;
+  developers: { github_login: string; avatar_url: string }[] | null;
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -46,7 +64,6 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { score, collected, max_combo, flight_ms } = body;
 
-  // Anti-cheat validations
   if (typeof score !== "number" || score < 0 || score > 430) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
   }
@@ -60,18 +77,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid flight time" }, { status: 400 });
   }
 
-  // Cross-validation: score must be achievable with the claimed collected count
   const ceiling = maxScoreForCollected(collected);
   if (score > ceiling) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
   }
 
-  // Cross-validation: collecting items takes time — at least 500ms per item
   if (collected > 0 && flight_ms < collected * 500) {
     return NextResponse.json({ error: "Invalid flight time" }, { status: 400 });
   }
 
-  // No score without collecting anything
   if (collected === 0 && score > 0) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
   }
@@ -109,22 +123,29 @@ export async function POST(request: Request) {
     .select("id")
     .single();
 
-  if (insertError) {
+  if (insertError && insertError.code !== "23505") {
     return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 
-  // Grant XP for fly score (score * 0.1)
+  if (insertError?.code === "23505") {
+    const { data: existing } = await admin
+      .from("fly_scores")
+      .select("id")
+      .eq("developer_id", dev.id)
+      .eq("seed", seed)
+      .single();
+
+    return NextResponse.json({ id: existing?.id, score, rank_today: null, total: 0 });
+  }
+
   const flyXp = Math.floor(score * 0.1);
   if (flyXp > 0) {
     await admin.rpc("grant_xp", { p_developer_id: dev.id, p_source: "fly", p_amount: flyXp });
   }
 
-  // Track daily missions for fly scores
   await trackDailyMission(dev.id, "fly_score_50", { score });
   await trackDailyMission(dev.id, "fly_score_150", { score });
 
-  // Compute rank: count distinct developers who beat this score
-  // "Beat" = higher score, OR same score with faster time
   const { data: higherDevs } = await admin
     .from("fly_scores")
     .select("developer_id")
@@ -139,29 +160,24 @@ export async function POST(request: Request) {
     .lt("flight_ms", flight_ms);
 
   const uniqueHigher = new Set([
-    ...(higherDevs ?? []).map((r: any) => r.developer_id),
-    ...(tiedFasterDevs ?? []).map((r: any) => r.developer_id),
+    ...(higherDevs ?? []).map((r: FlyScoreDev) => r.developer_id),
+    ...(tiedFasterDevs ?? []).map((r: FlyScoreDev) => r.developer_id),
   ]);
-  uniqueHigher.delete(dev.id); // don't count own previous scores
+  uniqueHigher.delete(dev.id);
   const rank_today = uniqueHigher.size + 1;
 
-  // Total unique pilots for this seed (for post-flight results)
   const { data: allDevs } = await admin.from("fly_scores").select("developer_id").eq("seed", seed);
-  const total = new Set((allDevs ?? []).map((r: any) => r.developer_id)).size;
+  const total = new Set((allDevs ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
 
-  return NextResponse.json({ id: row.id, score, rank_today, total });
+  return NextResponse.json({ id: row?.id, score, rank_today, total });
 }
 
-/**
- * @param {import('next/server').NextRequest} request
- */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const seed = searchParams.get("seed") || getTodaySeed();
 
   const admin = getSupabaseAdmin();
 
-  // Fetch top 200 rows + all developer_ids for unique pilot count (in parallel)
   const [{ data, error }, { data: devIds }] = await Promise.all([
     admin
       .from("fly_scores")
@@ -180,27 +196,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 
-  // Keep only best score per developer (data is sorted by score desc,
-  // so first occurrence of each developer_id is their best)
   const seen = new Set<number>();
-  const unique = (data ?? []).filter((row: any) => {
+  // Use the raw type for filtering since developers comes as array
+  const unique = (data ?? []).filter((row: FlyScoreRaw) => {
     if (seen.has(row.developer_id)) return false;
     seen.add(row.developer_id);
     return true;
   });
 
-  const leaderboard = unique.slice(0, 20).map((row: any) => ({
+  const leaderboard = unique.slice(0, 20).map((row: FlyScoreRaw) => ({
     score: row.score,
     collected: row.collected,
     max_combo: row.max_combo,
     flight_ms: row.flight_ms,
     created_at: row.created_at,
-    github_login: row.developers?.github_login,
-    avatar_url: row.developers?.avatar_url,
+    github_login: row.developers?.[0]?.github_login,
+    avatar_url: row.developers?.[0]?.avatar_url,
   }));
 
-  // Total = unique pilots for this seed (for percentile calculation)
-  const total = new Set((devIds ?? []).map((r: any) => r.developer_id)).size;
+  const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
 
   return NextResponse.json(
     { seed, leaderboard, total },

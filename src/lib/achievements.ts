@@ -61,6 +61,12 @@ interface DevStats {
   /** Number of shop items purchased (paid or free). */
   purchases?: number;
   dailies_completed?: number;
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  contest_rating?: number;
+  lc_streak?: number;
+  total_prs?: number;
 }
 
 /**
@@ -121,6 +127,18 @@ export async function checkAchievements(
         return (stats.purchases ?? 0) >= a.threshold;
       case "dailies":
         return (stats.dailies_completed ?? 0) >= a.threshold;
+      case "easy_solved":
+        return (stats.easy_solved ?? 0) >= a.threshold;
+      case "medium_solved":
+        return (stats.medium_solved ?? 0) >= a.threshold;
+      case "hard_solved":
+        return (stats.hard_solved ?? 0) >= a.threshold;
+      case "contest_rating":
+        return (stats.contest_rating ?? 0) >= a.threshold;
+      case "lc_streak":
+        return (stats.lc_streak ?? 0) >= a.threshold;
+      case "contributors":
+        return (stats.total_prs ?? 0) >= a.threshold;
       default:
         return false;
     }

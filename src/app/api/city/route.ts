@@ -4,6 +4,28 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 /**
  * @param {import('next/server').NextRequest} request
  */
+
+type DeveloperRow = {
+  id: number;
+
+  kudos_count?: number | null;
+  visit_count?: number | null;
+
+  app_streak?: number | null;
+  raid_xp?: number | null;
+
+  current_week_contributions?: number | null;
+  current_week_kudos_given?: number | null;
+  current_week_kudos_received?: number | null;
+
+  rabbit_completed?: boolean | null;
+
+  xp_total?: number | null;
+  xp_level?: number | null;
+
+  [key: string]: unknown;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = Math.max(0, parseInt(searchParams.get("from") ?? "0", 10));
@@ -27,9 +49,8 @@ export async function GET(request: Request) {
     sb.from("city_stats").select("*").eq("id", 1).single(),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const devs = (devsResult.data ?? []) as Record<string, any>[];
-  const devIds = devs.map((d: Record<string, any>) => d.id);
+  const devs = (devsResult.data ?? []) as DeveloperRow[];
+  const devIds = devs.map((d) => d.id);
 
   if (devIds.length === 0) {
     return NextResponse.json(
@@ -45,13 +66,13 @@ export async function GET(request: Request) {
   const [purchasesResult, giftPurchasesResult, customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
-      .select("developer_id, item_id")
+      .select("developer_id, item_id, provider, amount_cents")
       .in("developer_id", devIds)
       .is("gifted_to", null)
       .eq("status", "completed"),
     sb
       .from("purchases")
-      .select("gifted_to, item_id")
+      .select("gifted_to, item_id, provider, amount_cents")
       .in("gifted_to", devIds)
       .eq("status", "completed"),
     sb
@@ -73,10 +94,16 @@ export async function GET(request: Request) {
   // Build owned items map (direct purchases + received gifts)
   const ownedItemsMap: Record<number, string[]> = {};
   for (const row of purchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     if (!ownedItemsMap[row.developer_id]) ownedItemsMap[row.developer_id] = [];
     ownedItemsMap[row.developer_id].push(row.item_id);
   }
   for (const row of giftPurchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     const devId = row.gifted_to as number;
     if (!ownedItemsMap[devId]) ownedItemsMap[devId] = [];
     ownedItemsMap[devId].push(row.item_id);
@@ -118,8 +145,9 @@ export async function GET(request: Request) {
   // Build a quick style map
   const styleMap: Record<number, string> = {};
   for (const row of customizationsResult.data ?? []) {
-    if (row.item_id === "building_style" && typeof (row.config as any)?.style === "string") {
-      styleMap[row.developer_id] = (row.config as any).style;
+    const config = row.config as Record<string, unknown>;
+    if (row.item_id === "building_style" && typeof config.style === "string") {
+      styleMap[row.developer_id] = config.style;
     }
   }
 

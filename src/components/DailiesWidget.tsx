@@ -27,6 +27,7 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
   const [claiming, setClaiming] = useState(false);
   const [claimResult, setClaimResult] = useState<{ freeze_granted: boolean } | null>(null);
   const [timeLeft, setTimeLeft] = useState(getTimeUntilReset);
+  const [desktopOnlyAlert, setDesktopOnlyAlert] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -178,8 +179,18 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
                 )}
               </div>
 
-              {/* Action shortcut (e.g. Fly) */}
-              {!m.completed && onStartFly && m.id.startsWith("fly_") && (
+              {/* Desktop-only badge + alert trigger for mobile users */}
+              {isMobile && (m as any).desktopOnly && !m.completed && (
+                <button
+                  onClick={() => setDesktopOnlyAlert(true)}
+                  className="ml-1 shrink-0 border border-yellow-500/40 bg-yellow-500/10 px-1.5 py-0.5 text-[8px] leading-tight text-yellow-400"
+                >
+                  PC only
+                </button>
+              )}
+
+              {/* Action shortcut (e.g. Fly) — desktop only */}
+              {!m.completed && onStartFly && m.id.startsWith("fly_") && !isMobile && (
                 <button
                   onClick={onStartFly}
                   className="btn-press ml-1 border border-cream/20 bg-cream/5 px-2 py-1 text-[9px] font-bold text-cream transition-colors hover:border-cream/40"
@@ -256,6 +267,32 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
           )}
         </div>
       </div>
+    {/* Desktop-only mission alert modal */}
+      {desktopOnlyAlert && (
+        <div
+          className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-bg/70 px-6 backdrop-blur-sm"
+          onClick={() => setDesktopOnlyAlert(false)}
+        >
+          <div
+            className="w-full max-w-xs border-[2px] border-yellow-500/60 bg-bg-raised p-5 text-center shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 text-2xl">🖥️</div>
+            <div className="mb-1 text-[13px] font-bold text-yellow-400">
+              PC Only Mission
+            </div>
+            <div className="mb-4 text-[11px] leading-relaxed text-muted">
+              This mission can only be completed on a PC, not on a phone. Open LeetCode City on your desktop to complete the flying task.
+            </div>
+            <button
+              onClick={() => setDesktopOnlyAlert(false)}
+              className="btn-press border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-[11px] font-bold text-yellow-400 transition-colors hover:bg-yellow-500/20"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

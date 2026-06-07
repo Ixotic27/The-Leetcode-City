@@ -24,6 +24,7 @@ const sb = createClient(
 interface Achievement {
   id: string;
   category: string;
+  name: string;
   threshold: number;
   tier: string;
   reward_type: string;
@@ -46,7 +47,7 @@ async function main() {
   // 2. Load all devs with stats
   const { data: devs, error: devErr } = await sb
     .from("developers")
-    .select("id, github_login, contributions, public_repos, total_stars, kudos_count, referral_count")
+    .select("id, github_login, contributions, public_repos, total_stars, kudos_count, referral_count, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
     .order("rank");
 
   if (devErr || !devs) {
@@ -113,6 +114,12 @@ async function main() {
       kudos_count: dev.kudos_count ?? 0,
       gifts_sent: giftsSentMap[dev.id] ?? 0,
       gifts_received: giftsReceivedMap[dev.id] ?? 0,
+      easy_solved: dev.easy_solved ?? 0,
+      medium_solved: dev.medium_solved ?? 0,
+      hard_solved: dev.hard_solved ?? 0,
+      contest_rating: dev.contest_rating ?? 0,
+      lc_streak: dev.lc_streak ?? 0,
+      total_prs: dev.total_prs ?? 0,
     };
 
     const newUnlocks: Achievement[] = [];
@@ -130,6 +137,12 @@ async function main() {
         case "kudos": qualifies = stats.kudos_count >= a.threshold; break;
         case "gifts_sent": qualifies = stats.gifts_sent >= a.threshold; break;
         case "gifts_received": qualifies = stats.gifts_received >= a.threshold; break;
+        case "easy_solved": qualifies = (stats.easy_solved ?? 0) >= a.threshold; break;
+        case "medium_solved": qualifies = (stats.medium_solved ?? 0) >= a.threshold; break;
+        case "hard_solved": qualifies = (stats.hard_solved ?? 0) >= a.threshold; break;
+        case "contest_rating": qualifies = (stats.contest_rating ?? 0) >= a.threshold; break;
+        case "lc_streak": qualifies = (stats.lc_streak ?? 0) >= a.threshold; break;
+        case "contributors": qualifies = (stats.total_prs ?? 0) >= a.threshold; break;
       }
 
       if (qualifies) newUnlocks.push(a);

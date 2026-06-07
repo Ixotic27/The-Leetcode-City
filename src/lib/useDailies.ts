@@ -10,6 +10,7 @@ export interface DailyMission {
   threshold: number;
   progress: number;
   completed: boolean;
+  desktopOnly?: boolean;
 }
 
 export interface DailiesData {
