@@ -4314,7 +4314,7 @@ function HomeContent() {
                         }}
                       >
                         Link LeetCode
-                      </button>
+                     </button>
                     <button
                       onClick={() => {
                         if (typeof window === "undefined") return;
