@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "This item cannot be bought with points" }, { status: 400 });
     }
 
-    // 2. Check if already owned (unless consumable like streak_freeze)
+    // 2. Check if already owned
     if (item_id !== "streak_freeze") {
         const { data: existing } = await admin
             .from("purchases")
@@ -67,7 +67,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Already owned" }, { status: 409 });
         }
     } else {
-        // For streak freeze, check max cap
         const { data: devFreeze } = await admin
             .from("developers")
             .select("streak_freezes_available")
@@ -84,45 +83,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // 4. Atomic conditional deduction — only succeeds if balance is still sufficient
-    // Optimistic lock: WHERE points >= price_points ensures concurrent requests
-    // that both passed the JS balance check cannot both land this update
-    const { data: deducted, error: deductError } = await admin
-        .from("developers")
-        .update({ points: dev.points - item.price_points })
-        .eq("id", dev.id)
-        .gte("points", item.price_points) // guard — race condition loses here
-        .eq("points", dev.points)         // optimistic lock on exact snapshot value
-        .select("points")
-        .maybeSingle();
+    // 4. Atomic call to the new RPC
+    const { data: pointsRemaining, error: rpcError } = await admin.rpc('process_purchase', {
+        p_user_id: dev.id,
+        p_item_id: item.id,
+        p_price: item.price_points
+    });
 
-    if (deductError || !deducted) {
-        return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
+    if (rpcError || pointsRemaining === null) {
+        return NextResponse.json({ 
+            error: "Purchase failed. Either you don't have enough points or a concurrent purchase occurred." 
+        }, { status: 409 });
     }
 
-    const { data: purchase, error: purchaseError } = await admin
-        .from("purchases")
-        .insert({
-            developer_id: dev.id,
-            item_id: item_id,
-            provider: "points",
-            amount_cents: 0,
-            currency: "usd",
-            status: "completed",
-        })
-        .select("id")
-        .single();
-
-    if (purchaseError) {
-        // Safe rollback: add price back to current DB value, not snapshot
-        await admin
-            .from("developers")
-            .update({ points: deducted.points + item.price_points })
-            .eq("id", dev.id);
-        return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
-    }
-
-    // Special handling for streak freeze: increment the counter
+    // 5. Handle side effects
     if (item_id === "streak_freeze") {
         await admin.rpc("grant_streak_freeze", { p_developer_id: dev.id });
         await admin.from("streak_freeze_log").insert({
@@ -131,12 +105,12 @@ export async function POST(request: Request) {
         });
     }
 
-    // Insert activity feed
+    // 6. Insert activity feed
     await admin.from("activity_feed").insert({
         event_type: "item_purchased",
         actor_id: dev.id,
         metadata: { login: dev.github_login, item_id, provider: "points" },
     });
 
-    return NextResponse.json({ ok: true, points_remaining: deducted.points });
+    return NextResponse.json({ ok: true, points_remaining: pointsRemaining });
 }
