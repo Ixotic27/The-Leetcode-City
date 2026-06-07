@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+// Prevent Next.js from prerendering this API route at build time since it
+// requires a server-side Supabase key which may not be available during static
+// builds. Force dynamic handling so runtime env vars are used.
+export const dynamic = "force-dynamic";
 export const revalidate = 300; // ISR: regenerate every 5 min
 
 export async function GET() {
