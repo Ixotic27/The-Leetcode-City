@@ -90,14 +90,14 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { item_id: string; color?: string | null; text?: string | null; slug?: string | null };
+  let body: { item_id: string; color?: string | null; text?: string | null; slug?: string | null; dev_mode?: boolean };
   try {
     body = await request.json();
   } catch (err) {
     console.warn("[app/api/customizations/route.ts] error:", err);
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
-  const { item_id, color, text, slug } = body;
+  const { item_id, color, text, slug, dev_mode } = body;
 
   if (item_id !== "custom_color" && item_id !== "led_banner" && item_id !== "selected_title") {
     return NextResponse.json(
@@ -106,20 +106,27 @@ export async function POST(request: Request) {
     );
   }
 
-  if (item_id !== "selected_title") {
-    const { data: purchase } = await sb
-      .from("purchases")
-      .select("id")
-      .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
-      .eq("item_id", item_id)
-      .eq("status", "completed")
-      .maybeSingle();
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
+  const isDev = isDeveloper && dev_mode === true;
 
-    if (!purchase) {
-      return NextResponse.json(
-        { error: "You don't own this item" },
-        { status: 403 }
-      );
+  if (item_id !== "selected_title") {
+    if (!isDev) {
+      const { data: purchase } = await sb
+        .from("purchases")
+        .select("id, provider, amount_cents")
+        .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
+        .eq("item_id", item_id)
+        .eq("status", "completed")
+        .maybeSingle();
+
+      const ownsReal = purchase && !(purchase.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(purchase.provider));
+
+      if (!ownsReal) {
+        return NextResponse.json(
+          { error: "You don't own this item" },
+          { status: 403 }
+        );
+      }
     }
   }
 
@@ -131,7 +138,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, slug: null });
     }
 
-    const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
     const isDevTitle = ["title_creator", "title_lead_dev", "title_sys_op"].includes(slug);
 
     if (isDevTitle && !isDeveloper) {
@@ -139,37 +145,41 @@ export async function POST(request: Request) {
     }
 
     if (!isDevTitle) {
-      // Resolve item UUID from slug (arena items)
-      const { data: itemData } = await sb
-        .from("arena_items")
-        .select("id")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (itemData) {
-        // Verify they own the item in arena_inventory
-        const { data: ownsItem } = await sb
-          .from("arena_inventory")
+      if (!isDev) {
+        // Resolve item UUID from slug (arena items)
+        const { data: itemData } = await sb
+          .from("arena_items")
           .select("id")
-          .eq("user_id", dev.id)
-          .eq("item_id", itemData.id)
+          .eq("slug", slug)
           .maybeSingle();
 
-        if (!ownsItem) {
-          return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
-        }
-      } else {
-        // It might be a shop-purchased title (like crown_of_code)
-        const { data: ownsShopItem } = await sb
-          .from("purchases")
-          .select("id")
-          .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
-          .eq("item_id", slug)
-          .eq("status", "completed")
-          .maybeSingle();
-          
-        if (!ownsShopItem) {
-           return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
+        if (itemData) {
+          // Verify they own the item in arena_inventory
+          const { data: ownsItem } = await sb
+            .from("arena_inventory")
+            .select("id")
+            .eq("user_id", dev.id)
+            .eq("item_id", itemData.id)
+            .maybeSingle();
+
+          if (!ownsItem) {
+            return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
+          }
+        } else {
+          // It might be a shop-purchased title (like crown_of_code)
+          const { data: ownsShopItem } = await sb
+            .from("purchases")
+            .select("id, provider, amount_cents")
+            .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
+            .eq("item_id", slug)
+            .eq("status", "completed")
+            .maybeSingle();
+            
+          const ownsReal = ownsShopItem && !(ownsShopItem.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(ownsShopItem.provider));
+
+          if (!ownsReal) {
+             return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
+          }
         }
       }
     }

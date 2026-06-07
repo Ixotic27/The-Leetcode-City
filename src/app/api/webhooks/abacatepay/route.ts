@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { autoEquipIfSolo } from "@/lib/items";
+import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
@@ -69,7 +69,8 @@ export async function POST(request: Request) {
                 starts_at: now.toISOString(),
                 ends_at: endsAt.toISOString(),
               })
-              .eq("id", ad.id);
+              .eq("id", ad.id)
+              .eq("active", false);
 
             if (plan.vehicle === "plane") {
               await sb
@@ -85,22 +86,21 @@ export async function POST(request: Request) {
         // --- Shop item purchase ---
         const { data: purchase } = await sb
           .from("purchases")
-          .select("id, status")
+          .select("id, status, developer_id, item_id, gifted_to")
           .eq("provider_tx_id", pixId)
           .eq("provider", "abacatepay")
           .maybeSingle();
 
         if (purchase && purchase.status === "pending") {
+          const ownerId = purchase.gifted_to ?? purchase.developer_id;
+          const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
+
           await sb
             .from("purchases")
-            .update({ status: "completed" })
+            .update({ status: purchaseStatus })
             .eq("id", purchase.id);
 
-          const { data: fullPurchase } = await sb
-            .from("purchases")
-            .select("developer_id, item_id, gifted_to")
-            .eq("id", purchase.id)
-            .single();
+          const fullPurchase = purchase;
 
           if (fullPurchase) {
             const itemOwner = fullPurchase.gifted_to ?? fullPurchase.developer_id;

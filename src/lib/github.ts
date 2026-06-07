@@ -416,6 +416,11 @@ function applyCircularCityLayout(buildings: CityBuilding[]): number {
       MIN_BUILDING_HEIGHT,
       Math.round(building.height * (0.94 + slot.scale * 0.06)),
     );
+
+    const floorH = 6;
+    building.floors = Math.max(3, Math.floor(building.height / floorH));
+    building.windowsPerFloor = Math.max(3, Math.floor(building.width / 5));
+    building.sideWindowsPerFloor = Math.max(3, Math.floor(building.depth / 5));
   }
 
   return cityRadius;

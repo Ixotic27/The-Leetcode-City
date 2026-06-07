@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
 
 import {
@@ -103,6 +104,13 @@ interface CityStats {
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
+  loading: () => (
+    <div className="h-screen w-screen bg-black flex items-center justify-center">
+      <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+        Loading City...
+      </div>
+    </div>
+  ),
 });
 
 // Feature flags — flip to switch milestone banner
@@ -543,7 +551,7 @@ function HomeContent() {
   const giftedParam = searchParams.get("gifted");
 
   const [username, setUsername] = useState("");
-  const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
+  const failedUsernamesRef = useRef<Map<string, { code: string; timestamp: number }>>(new Map());
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
   const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
@@ -694,6 +702,7 @@ function HomeContent() {
     }
   }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionResolved, setSessionResolved] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<CityBuilding | null>(
@@ -950,10 +959,12 @@ function HomeContent() {
           setLinkedLeetCodeUsername(null);
         } finally {
           setLinkStatusResolved(true);
+          setSessionResolved(true);
         }
       } else {
         setLinkedLeetCodeUsername(null);
         setLinkStatusResolved(true);
+        setSessionResolved(true);
       }
     };
 
@@ -1071,7 +1082,7 @@ function HomeContent() {
     ""
   ).toLowerCase();
   const selfLogin = (linkedLeetCodeUsername ?? authLogin).toLowerCase();
-  const identityResolved = !session || linkStatusResolved;
+  const identityResolved = sessionResolved && (!session || linkStatusResolved);
 
   // Extra guard: check if selected building is own by comparing linked account
   const isOwnBuilding =
@@ -1090,9 +1101,11 @@ function HomeContent() {
     return () => clearInterval(id);
   }, [flyMode, flyPaused]);
 
-  // Dismiss fly onboarding overlays when entering fly mode
+  // Clear building selection and dismiss overlays when entering fly mode
   useEffect(() => {
     if (flyMode) {
+      setSelectedBuilding(null);
+      setFocusedBuilding(null);
       setShowDailyNudge(false);
       setShowFlyHint(false);
       setShowFlyResults(null);
@@ -2164,16 +2177,18 @@ function HomeContent() {
 
     trackSearchUsed(trimmed);
 
-    // Check if this username already failed with a permanent error
-    const cachedError = failedUsernamesRef.current.get(trimmed);
-    if (cachedError) {
+    // Check if this username already failed with a permanent error (60s TTL)
+    const cached = failedUsernamesRef.current.get(trimmed);
+    if (cached && Date.now() - cached.timestamp < 60_000) {
       setFeedback({
         type: "error",
-        code: cachedError as any,
+        code: cached.code as any,
         username: trimmed,
       });
       return;
     }
+    // Expired entry — remove and retry
+    if (cached) failedUsernamesRef.current.delete(trimmed);
 
     // Snapshot compare state before async work — ESC may clear it mid-flight
     const wasComparing = compareBuilding;
@@ -2221,9 +2236,9 @@ function HomeContent() {
           else if (devData.error?.includes("no public activity"))
             code = "no-activity";
         }
-        // Cache permanent errors so we don't re-fetch
+        // Cache permanent errors so we don't re-fetch (expires after 60s)
         if (PERMANENT_ERROR_CODES.has(code)) {
-          failedUsernamesRef.current.set(trimmed, code);
+          failedUsernamesRef.current.set(trimmed, { code, timestamp: Date.now() });
         }
         setFeedback({
           type: "error",
@@ -4842,6 +4857,8 @@ function HomeContent() {
                   const streak =
                     ((selectedBuilding as any).lc_streak as number) ?? 0;
                   const reputation = selectedBuilding.total_stars;
+                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
+                  const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
                     {
@@ -4850,6 +4867,13 @@ function HomeContent() {
                     },
                     { label: "LC Rank", value: lcRankStr },
                     { label: "Solved", value: solved.toLocaleString() },
+                    {
+                      label: "Acceptance",
+                      value:
+                        acceptanceRate >= 0
+                          ? `${(acceptanceRate * 100).toFixed(1)}%`
+                          : "--",
+                    },
                     ...(easySolved || medSolved || hardSolved
                       ? [
                         { label: "Easy", value: easySolved.toLocaleString() },
@@ -4964,7 +4988,8 @@ function HomeContent() {
                   )}
 
                 {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
-                {!isOwnBuilding &&
+                {identityResolved &&
+                  !isOwnBuilding &&
                   (() => {
                     const equipped: string[] = [];
                     if (selectedBuilding.loadout?.crown)
@@ -6603,13 +6628,32 @@ function HomeContent() {
     </main>
   );
 }
-
 export default function Home() {
   return (
-    <Suspense>
+    <ErrorBoundary fallback={
+      <div className="h-screen w-screen bg-black flex items-center justify-center">
+        <div className="text-red-500 font-pixel text-center px-4">
+          Something went wrong loading the city.
+          <button 
+            onClick={() => window.location.reload()}
+            className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    }>
       <WeatherProvider>
-        <HomeContent />
+        <Suspense fallback={
+          <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+              Loading...
+            </div>
+          </div>
+        }>
+          <HomeContent />
+        </Suspense>
       </WeatherProvider>
-    </Suspense>
+    </ErrorBoundary>
   );
 }
