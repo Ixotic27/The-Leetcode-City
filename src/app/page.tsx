@@ -4305,41 +4305,43 @@ function HomeContent() {
                 ) : (
                   <>
                     {needsToLink && (
-                      <button
-                        onClick={() => setShowLinkModal(true)}
-                        className="btn-press px-3 py-1.5 text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        Link LeetCode
-                     </button>
-                    <button
-                      onClick={() => {
-                        if (typeof window === "undefined") return;
-                        try {
-                          const url = new URL(window.location.href);
-                          const params = url.searchParams;
-                          if (params.has("drone")) params.delete("drone");
-                          else params.set("drone", "1");
-                          const newUrl = url.pathname + (params.toString() ? `?${params.toString()}` : "") + url.hash;
-                          window.history.replaceState({}, "", newUrl);
-                        } catch (e) {
-                          // ignore
-                        }
-                      }}
-                      className="btn-press px-5 py-3 text-xs sm:py-3.5 sm:text-sm text-bg"
-                      style={{
-                        backgroundColor: theme.accent,
-                        boxShadow: `4px 4px 0 0 ${theme.shadow}`,
-                      }}
-                    >
-                      <span className="relative">🎥 Drone</span>
-                      <span className="block text-[8px] opacity-60 normal-case">
-                        Cinematic Tour
-                      </span>
-                    </button>
+                      <>
+                        <button
+                          onClick={() => setShowLinkModal(true)}
+                          className="btn-press px-3 py-1.5 text-[10px] text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          Link LeetCode
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (typeof window === "undefined") return;
+                            try {
+                              const url = new URL(window.location.href);
+                              const params = url.searchParams;
+                              if (params.has("drone")) params.delete("drone");
+                              else params.set("drone", "1");
+                              const newUrl = url.pathname + (params.toString() ? `?${params.toString()}` : "") + url.hash;
+                              window.history.replaceState({}, "", newUrl);
+                            } catch (e) {
+                              // ignore
+                            }
+                          }}
+                          className="btn-press px-5 py-3 text-xs sm:py-3.5 sm:text-sm text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `4px 4px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          <span className="relative">🎥 Drone</span>
+                          <span className="block text-[8px] opacity-60 normal-case">
+                            Cinematic Tour
+                          </span>
+                        </button>
+                      </>
                     )}
                     {linkedLeetCodeUsername && (
                       <>
