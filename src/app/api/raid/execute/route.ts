@@ -11,8 +11,6 @@ import {
   getRaidTitle,
   RAID_TAG_DURATION_DAYS,
   XP_WIN_ATTACKER,
-  XP_WIN_DEFENDER,
-  XP_LOSE_DEFENDER,
 } from "@/lib/raid";
 import { ITEM_UNLOCK_LEVELS } from "@/lib/zones";
 import {
@@ -334,6 +332,12 @@ export async function POST(request: Request) {
   if (attackerConsumableItemId) await consumeDeveloperItem(attacker.id, attackerConsumableItemId);
   if (defenderItemUsed && activeDefenses.length > 0) await consumeDeveloperItem(defender.id, activeDefenses[0]);
 
+  // ── XP is now updated atomically inside execute_raid() RPC ──
+  // Read the authoritative values returned by the RPC to avoid
+  // the stale read-modify-write race condition (see migration 060).
+  const newAttackerXp = result.attacker_raid_xp ?? (attacker.raid_xp ?? 0);
+  const newDefenderXp = result.defender_raid_xp ?? (defender.raid_xp ?? 0);
+
   if (success) {
     await admin.from("raid_tags").update({ active: false }).eq("building_id", defender.id).eq("active", true);
     await admin.from("raid_tags").insert({
@@ -345,14 +349,9 @@ export async function POST(request: Request) {
       expires_at: new Date(Date.now() + RAID_TAG_DURATION_DAYS * 86400000).toISOString(),
     });
 
-    await Promise.all([
-      admin.from("developers").update({ raid_xp: (attacker.raid_xp ?? 0) + XP_WIN_ATTACKER }).eq("id", attacker.id),
-      admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_WIN_DEFENDER }).eq("id", defender.id),
-    ]);
     await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
     await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   } else {
-    await admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_LOSE_DEFENDER }).eq("id", defender.id);
     await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
     await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   }
@@ -373,9 +372,6 @@ export async function POST(request: Request) {
   await trackDailyMission(attacker.id, "attempt_battle");
   if (success) await trackDailyMission(attacker.id, "win_battle");
   sendRaidAlertNotification(defender.id, defender.github_login, attacker.github_login, raidId, success, attack.total, defense.total);
-
-  const newAttackerXp = (attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0);
-  const newDefenderXp = (defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER);
 
   const [attackerAchievements] = await Promise.all([
     checkAchievements(attacker.id, {
