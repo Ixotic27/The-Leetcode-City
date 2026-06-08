@@ -173,8 +173,13 @@ export async function GET(
 
   if (!cachedRecord) {
     const data = await fetchLeetCodeUser(username);
-    if (!data?.matchedUser) {
-      if (cached) return NextResponse.json(cached); // return stale if LC fetch fails
+    if (!data) {
+      // Network/parsing error — return stale cached if available
+      if (cached) return NextResponse.json(cached);
+      return NextResponse.json({ error: "Failed to fetch LeetCode data" }, { status: 502 });
+    }
+    if (!data.matchedUser) {
+      // LeetCode explicitly says user doesn't exist — return 404 regardless of cache
       return NextResponse.json({ error: "User not found on LeetCode" }, { status: 404 });
     }
 

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "./supabase";
+import crypto from "crypto";
 
 const ABACATEPAY_API = "https://api.abacatepay.com/v1";
 
@@ -9,6 +10,28 @@ interface PixQrCodeResponse {
     brCodeBase64: string;
     status: string;
   };
+}
+
+/**
+ * Verify an incoming AbacatePay webhook request.
+ * AbacatePay sends the configured secret as a plain token in the
+ * x-webhook-token header (not HMAC-signed). We compare with
+ * crypto.timingSafeEqual to prevent timing attacks.
+ */
+export function verifyAbacatePayWebhook(
+  receivedToken: string | null,
+): boolean {
+  const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;
+  if (!expectedSecret || !receivedToken) return false;
+
+  try {
+    const expected = Buffer.from(expectedSecret, "utf-8");
+    const received = Buffer.from(receivedToken, "utf-8");
+    if (expected.length !== received.length) return false;
+    return crypto.timingSafeEqual(expected, received);
+  } catch {
+    return false;
+  }
 }
 
 /** Low-level: create a PIX QR code with explicit amount/description. */

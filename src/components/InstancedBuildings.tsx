@@ -280,9 +280,10 @@ export default memo(function InstancedBuildings({
         const seed =
           b.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
+        const safePct = typeof b.litPercentage === "number" && !isNaN(b.litPercentage) ? b.litPercentage : 0.3;
         const bandIndex = Math.min(
           5,
-          Math.max(0, Math.round(b.litPercentage * 5)),
+          Math.max(0, Math.round(safePct * 5)),
         );
         const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 

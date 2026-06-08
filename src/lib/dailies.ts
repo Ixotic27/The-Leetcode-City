@@ -96,16 +96,15 @@ export function getTodayStr(): string {
 export async function trackDailyMission(
   developerId: number,
   missionId: string,
-  extra?: { score?: number },
+  extra?: { score?: number; isMobile?: boolean },  // ← add isMobile here
 ): Promise<void> {
   try {
     const today = getTodayStr();
-    const missions = getDailyMissions(developerId, today);    
+    const missions = getDailyMissions(developerId, today, extra?.isMobile ?? false);  // ← forward flag
     const mission = missions.find((m) => m.id === missionId);
-    if (!mission) return; // not assigned today, skip
+    if (!mission) return;
 
-    // For fly score missions, check the actual score threshold
-    if (missionId === "fly_score_50" && (extra?.score ?? 0) < 50) return;
+    if (missionId === "fly_score_50"  && (extra?.score ?? 0) < 50)  return;
     if (missionId === "fly_score_150" && (extra?.score ?? 0) < 150) return;
 
     const sb = getSupabaseAdmin();

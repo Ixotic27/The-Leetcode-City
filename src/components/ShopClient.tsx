@@ -162,9 +162,6 @@ function dataUrlToFile(dataUrl: string, name: string, type: string): File {
 
 const PIX_EXPIRY_SECONDS = 900; // 15 minutes
 
-function formatPrice(item: ShopItem): string {
-  return "₹1";
-}
 
 function formatCountdown(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -650,6 +647,12 @@ export default function ShopClient({
   acceptedMedium = 0,
   acceptedHard = 0,
 }: Props) {
+  const formatPrice = (item: ShopItem): string => {
+    const USD_TO_INR = 85;
+    const amountINR = Math.max(1, Math.ceil((item.price_usd_cents / 100) * USD_TO_INR));
+    return `₹${amountINR}`;
+  };
+
   // Reactive XP level — updated locally after XP code redemption
   const [xpLevel, setXpLevel] = useState(initialXpLevel);
   const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
@@ -695,30 +698,6 @@ export default function ShopClient({
     if (purchasedItem && RAID_CONSUMABLE_ITEMS.includes(purchasedItem)) return "consumables";
     return "building";
   });
-
-  const [isBrazil, setIsBrazil] = useState(false);
-  const [isIndia, setIsIndia] = useState(false);
-  useEffect(() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
-      // Brazilian IANA timezones all use Brazilian city names
-      const brTimezones = new Set([
-        "America/Sao_Paulo", "America/Bahia", "America/Belem",
-        "America/Fortaleza", "America/Recife", "America/Maceio",
-        "America/Araguaina", "America/Manaus", "America/Cuiaba",
-        "America/Porto_Velho", "America/Boa_Vista", "America/Campo_Grande",
-        "America/Eirunepe", "America/Rio_Branco", "America/Noronha",
-        "America/Santarem",
-      ]);
-      setIsBrazil(brTimezones.has(tz));
-      // Indian IANA timezone
-      setIsIndia(tz === "Asia/Kolkata" || tz === "Asia/Calcutta");
-    } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
-      setIsBrazil(false);
-      setIsIndia(false);
-    }
-  }, []);
 
   const [pixModal, setPixModal] = useState<PixModalData | null>(null);
   const [customColor, setCustomColor] = useState<string | null>(initialCustomColor);
@@ -1806,7 +1785,7 @@ export default function ShopClient({
                                       Cancel
                                     </button>
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId); }}
+                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "cashfree"); }}
                                       disabled={isBuying}
                                       className="btn-press flex-1 py-1 text-[9px] text-bg disabled:opacity-40"
                                       style={{ backgroundColor: ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
@@ -1821,26 +1800,6 @@ export default function ShopClient({
                                   >
                                     Crypto (Coming Soon)
                                   </button>
-                                  {isBrazil && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "abacatepay"); }}
-                                      disabled={isBuying}
-                                      className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                      style={{ backgroundColor: "#32bcad", boxShadow: "1px 1px 0 0 #1a7a6e" }}
-                                    >
-                                      {isBuying ? "..." : "Pay with PIX"}
-                                    </button>
-                                  )}
-                                  {isIndia && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout(itemId, "cashfree"); }}
-                                      disabled={isBuying}
-                                      className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                      style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
-                                    >
-                                      {isBuying ? "..." : "Pay with UPI ₹"}
-                                    </button>
-                                  )}
                                   {shopItem && shopItem.price_points != null && (
                                     <button
                                       onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); handleBuyWithPoints(itemId); }}
@@ -1994,7 +1953,7 @@ export default function ShopClient({
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze"); }}
+                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "cashfree"); }}
                                   disabled={isBuying}
                                   className="btn-press flex-1 py-1 text-[9px] text-bg disabled:opacity-40"
                                   style={{ backgroundColor: ACCENT, boxShadow: `1px 1px 0 0 ${SHADOW}` }}
@@ -2009,26 +1968,6 @@ export default function ShopClient({
                               >
                                 Crypto (Coming Soon)
                               </button>
-                              {isBrazil && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "abacatepay"); }}
-                                  disabled={isBuying}
-                                  className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                  style={{ backgroundColor: "#32bcad", boxShadow: "1px 1px 0 0 #1a7a6e" }}
-                                >
-                                  {isBuying ? "..." : "Pay with PIX"}
-                                </button>
-                              )}
-                              {isIndia && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setConfirmBuyItem(null); checkout("streak_freeze", "cashfree"); }}
-                                  disabled={isBuying}
-                                  className="btn-press w-full py-1 text-[9px] text-bg disabled:opacity-40"
-                                  style={{ backgroundColor: "#6739b7", boxShadow: "1px 1px 0 0 #4a2882" }}
-                                >
-                                  {isBuying ? "..." : "Pay with UPI ₹"}
-                                </button>
-                              )}
                             </div>
                           </div>
                         )}
@@ -2040,7 +1979,7 @@ export default function ShopClient({
 
               {/* Payment note */}
               <p className="text-center text-[10px] text-dim normal-case">
-                Payment via Stripe{isIndia ? ", UPI" : ""}{isBrazil ? ", PIX" : ""} & Crypto
+                Payment via UPI & Crypto (Coming Soon)
               </p>
                 </div>
 

@@ -92,9 +92,11 @@ async function upsertFullProfile(
 
   // Calculate weekly contributions (last 7 days)
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const sevenDaysAgoYear = sevenDaysAgoDate.getFullYear();
+  const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
+  const sevenDaysAgoDate = new Date(sevenDaysAgoTs * 1000);
+
+  const currentYear = now.getUTCFullYear();
+  const sevenDaysAgoYear = sevenDaysAgoDate.getUTCFullYear();
 
   const yearsToCheck = [currentYear];
   if (sevenDaysAgoYear !== currentYear) {
@@ -102,8 +104,6 @@ async function upsertFullProfile(
   }
 
   let weeklyContributions = 0;
-  now.setUTCHours(0, 0, 0, 0);
-  const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
 
   for (const year of yearsToCheck) {
     const calendarStr = user[`y${year}`]?.submissionCalendar;

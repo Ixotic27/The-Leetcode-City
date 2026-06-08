@@ -201,58 +201,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 4. Update rating and streak statistics
-  const { data: ratingRecord } = await sb
-    .from("arena_ratings")
-    .select("*")
-    .eq("user_id", dev.id)
-    .maybeSingle();
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  let rating = ratingRecord?.rating ?? 1200;
-  let problemsSolved = ratingRecord?.problems_solved ?? 0;
-  let problemsAttempted = ratingRecord?.problems_attempted ?? 0;
-  let currentStreak = ratingRecord?.current_streak ?? 0;
-  let bestStreak = ratingRecord?.best_streak ?? 0;
-
-  problemsAttempted += 1;
-
-  if (isAccepted && isFirstSolve) {
-    problemsSolved += 1;
-    if (difficulty === "easy") rating += 10;
-    else if (difficulty === "medium") rating += 20;
-    else if (difficulty === "hard") rating += 40;
-
-    const lastSolvedDateStr = ratingRecord?.last_solved_at
-      ? new Date(ratingRecord.last_solved_at).toISOString().split("T")[0]
-      : null;
-    // Use UTC date components — avoids DST ms-subtraction issue
-    const now = new Date();
-    const yesterdayDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
-    const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
-
-    if (lastSolvedDateStr !== todayStr) {
-      if (lastSolvedDateStr === yesterdayStr) {
-        currentStreak += 1;
-      } else {
-        currentStreak = 1;
-      }
-      if (currentStreak > bestStreak) {
-        bestStreak = currentStreak;
-      }
-    }
-  }
-
-  await sb.from("arena_ratings").upsert({
-    user_id: dev.id,
-    rating,
-    problems_solved: problemsSolved,
-    problems_attempted: problemsAttempted,
-    current_streak: currentStreak,
-    best_streak: bestStreak,
-    last_solved_at: isAccepted && isFirstSolve ? new Date().toISOString() : ratingRecord?.last_solved_at,
-    updated_at: new Date().toISOString(),
+  // 4. Update rating and streak statistics — atomically via DB function.
+  // The RPC acquires a FOR UPDATE row lock so concurrent submissions
+  // from the same account queue up inside Postgres; no delta is lost.
+  const { error: ratingsError } = await sb.rpc("update_arena_ratings_atomic", {
+    p_user_id:        dev.id,
+    p_is_accepted:    isAccepted,
+    p_is_first_solve: isFirstSolve,
+    p_difficulty:     difficulty,
   });
+
+  if (ratingsError) {
+    console.error("[arena/submit] update_arena_ratings_atomic error:", ratingsError);
+    return NextResponse.json({ error: "Failed to update ratings" }, { status: 500 });
+  }
 
   return NextResponse.json({
     status: "success",

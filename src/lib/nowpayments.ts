@@ -24,6 +24,7 @@ export async function createCryptoInvoice(
   itemId: string,
   developerId: number,
   githubLogin: string,
+  purchaseId: string,
 ): Promise<{ invoiceUrl: string; invoiceId: string }> {
   const sb = getSupabaseAdmin();
 
@@ -58,7 +59,7 @@ export async function createCryptoInvoice(
     body: JSON.stringify({
       price_amount: priceUsd,
       price_currency: "usd",
-      order_id: `${developerId}:${itemId}`,
+      order_id: purchaseId,
       order_description: `${item.name} - ${githubLogin}`,
       ipn_callback_url: `${siteUrl}/api/webhooks/nowpayments`,
       success_url: successUrl,

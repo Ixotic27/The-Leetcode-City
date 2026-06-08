@@ -323,15 +323,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 
-      const { invoiceUrl } = await createCryptoInvoice(item_id, dev.id, githubLogin);
+      const { invoiceUrl } = await createCryptoInvoice(item_id, dev.id, githubLogin, purchase.id);
 
-      // Save lookup key as provider_tx_id so webhook can find this purchase
       await sb
         .from("purchases")
-        .update({ provider_tx_id: `${dev.id}:${item_id}` })
+        .update({ provider_tx_id: purchase.id })
         .eq("id", purchase.id);
 
-      return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });
+      return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });      
     } else if (provider === "cashfree") {
       // Cashfree (INR via UPI / Cards / Wallets)
       const USD_TO_INR = 85;

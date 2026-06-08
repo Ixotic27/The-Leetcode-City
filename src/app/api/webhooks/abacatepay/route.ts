@@ -4,6 +4,7 @@ import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
+import { verifyAbacatePayWebhook } from "@/lib/abacatepay";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,13 @@ function extractPixId(data: any): string | undefined {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  // Layer 1: Validate webhook secret via query string
-  const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;
-  if (!expectedSecret) {
+  // Layer 1: Validate webhook token via header (not query string)
+  if (!process.env.ABACATEPAY_WEBHOOK_SECRET) {
     console.error("ABACATEPAY_WEBHOOK_SECRET is not set");
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
-  const { searchParams } = new URL(request.url);
-  const receivedSecret = searchParams.get("webhookSecret");
-  if (receivedSecret !== expectedSecret) {
+  const receivedToken = request.headers.get("x-webhook-token");
+  if (!verifyAbacatePayWebhook(receivedToken)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
