@@ -38,7 +38,7 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
   }
 
   const buffer = await res.arrayBuffer();
-  fs.writeFileSync(destPath, Buffer.from(buffer));
+  await fs.promises.writeFile(destPath, Buffer.from(buffer));
 }
 
 /**
@@ -67,16 +67,21 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
     if (!res.ok) return;
 
     const remote = await res.json();
-    const remoteVersion: string = remote.version;
+    const remoteVersion = remote?.version;
+
+    // Validate that the remote version exists and is a string
+    if (typeof remoteVersion !== "string") return;
+
     const ext = vscode.extensions.getExtension("leetcode-city.leetcode-city-pulse");
     if (!ext) return;
 
     const localVersion: string = ext.packageJSON.version;
 
-    // Update the last-check timestamp regardless of outcome
-    context.globalState.update("leetcodecity.lastUpdateCheck", Date.now());
-
-    if (compareSemver(remoteVersion, localVersion) <= 0) return;
+    if (compareSemver(remoteVersion, localVersion) <= 0) {
+      // Update the last-check timestamp if we are already on the latest version
+      context.globalState.update("leetcodecity.lastUpdateCheck", Date.now());
+      return;
+    }
 
     // 2. Newer version available — download the .vsix
     const vsixUrl = `${GITHUB_RAW_BASE}/leetcode-city-pulse-${remoteVersion}.vsix`;
@@ -102,9 +107,12 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
         );
 
         // 4. Clean up the temp file
-        try { fs.unlinkSync(vsixPath); } catch { /* best effort */ }
+        try { await fs.promises.unlink(vsixPath); } catch { /* best effort */ }
       }
     );
+
+    // Update the last-check timestamp ONLY after successful update
+    context.globalState.update("leetcodecity.lastUpdateCheck", Date.now());
 
     // 5. Prompt to reload so the new version activates
     const action = await vscode.window.showInformationMessage(
