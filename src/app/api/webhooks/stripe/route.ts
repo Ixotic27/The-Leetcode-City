@@ -120,17 +120,23 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Find the pending purchase
-        const { data: pending } = await sb
+        const txId = paymentIntentId ?? session.id;
+
+        // 1. Attempt to claim a pending purchase record atomically
+        const { data: claimedPending } = await sb
           .from("purchases")
-          .select("id, status")
+          .update({
+            status: "processing",
+            provider_tx_id: txId,
+          })
           .eq("developer_id", Number(developerId))
           .eq("item_id", itemId)
           .eq("status", "pending")
           .eq("provider", "stripe")
+          .select()
           .maybeSingle();
 
-        if (pending) {
+        if (claimedPending) {
           const giftedTo = session.metadata?.gifted_to;
           const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
           const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
@@ -139,9 +145,8 @@ export async function POST(request: Request) {
             .from("purchases")
             .update({
               status: purchaseStatus,
-              provider_tx_id: paymentIntentId ?? session.id,
             })
-            .eq("id", pending.id);
+            .eq("id", claimedPending.id);
 
           // Auto-equip if solo item in zone
           await autoEquipIfSolo(ownerId, itemId);
@@ -166,8 +171,8 @@ export async function POST(request: Request) {
             });
 
             // Gift notifications: receipt to buyer, alert to receiver
-            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", pending.id, itemId);
-            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", pending.id, itemId);
+            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", claimedPending.id, itemId);
+            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", claimedPending.id, itemId);
           } else {
             await sb.from("activity_feed").insert({
               event_type: "item_purchased",
@@ -176,34 +181,44 @@ export async function POST(request: Request) {
             });
 
             // Purchase receipt notification
-            sendPurchaseNotification(Number(developerId), githubLogin ?? "", pending.id, itemId);
+            sendPurchaseNotification(Number(developerId), githubLogin ?? "", claimedPending.id, itemId);
           }
         } else {
-          // Check if already completed/processed (webhook duplicate)
-          const txId = paymentIntentId ?? session.id;
+          // 2. No pending record found; check if this transaction was already processed
           const { data: existing } = await sb
             .from("purchases")
-            .select("id")
+            .select("id, status")
             .eq("provider_tx_id", txId)
             .maybeSingle();
 
           if (!existing) {
             const giftedTo = session.metadata?.gifted_to;
             const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
-            const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+            
+            // Atomic insert to ensure only one fulfillment proceeds for this txId
+            const { data: inserted } = await sb
+              .from("purchases")
+              .insert({
+                developer_id: Number(developerId),
+                item_id: itemId,
+                provider: "stripe",
+                provider_tx_id: txId,
+                amount_cents: session.amount_total ?? 0,
+                currency: session.currency ?? "usd",
+                status: "processing",
+                ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
+              })
+              .select("id")
+              .maybeSingle();
 
-            // Create purchase directly (edge case: pending was cleaned up)
-            await sb.from("purchases").insert({
-              developer_id: Number(developerId),
-              item_id: itemId,
-              provider: "stripe",
-              provider_tx_id: txId,
-              amount_cents: session.amount_total ?? 0,
-              currency: session.currency ?? "usd",
-              status: purchaseStatus,
-              ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
-            });
-            await autoEquipIfSolo(ownerId, itemId);
+            if (inserted) {
+              const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+              await sb
+                .from("purchases")
+                .update({ status: purchaseStatus })
+                .eq("id", inserted.id);
+              await autoEquipIfSolo(ownerId, itemId);
+            }
           }
         }
         break;
