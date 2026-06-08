@@ -212,16 +212,28 @@ async function main() {
 
     let ok = 0, skip = 0, fail = 0;
     let page = startPage;
+    let retryCount = 0; 
 
     while (page < startPage + MAX_PAGES) { // Practically infinite
         console.log(`\n--- Fetching global ranking page ${page} ---`);
         const usernames = await fetchRankingPage(page);
 
+        const MAX_RETRIES_PER_PAGE = 3;
+
         if (usernames.length === 0) {
-            console.log("⚠️  No users found on page. Rate limited?");
-            await sleep(10000); // 10s backoff
+            retryCount++;
+            if (retryCount >= MAX_RETRIES_PER_PAGE) {
+                console.warn(`⏭️  Page ${page} returned empty ${MAX_RETRIES_PER_PAGE} times — skipping.`);
+                retryCount = 0;
+                page++;
+                saveState(page);
+                continue;
+            }
+            console.log(`⚠️  No users found on page (attempt ${retryCount}/${MAX_RETRIES_PER_PAGE}). Rate limited? Backing off...`);
+            await sleep(10000 * retryCount); // exponential-ish: 10s, 20s
             continue;
         }
+        retryCount = 0;
 
         for (const username of usernames) {
             process.stdout.write(`  Upserting ${username.padEnd(20)} `);
