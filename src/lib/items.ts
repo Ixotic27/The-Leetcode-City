@@ -256,24 +256,10 @@ export async function fulfillItemPurchase(
     ];
 
     if (BATTLE_CONSUMABLES.includes(itemId)) {
-      const { data: existing } = await sb
-        .from("developer_consumables")
-        .select("quantity")
-        .eq("developer_id", developerId)
-        .eq("item_id", itemId)
-        .maybeSingle();
-
-      const newQty = (existing?.quantity ?? 0) + 1;
-
-      await sb.from("developer_consumables").upsert(
-        {
-          developer_id: developerId,
-          item_id: itemId,
-          quantity: newQty,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "developer_id,item_id" }
-      );
+      await sb.rpc("grant_consumable", {
+        p_developer_id: developerId,
+        p_item_id: itemId,
+      });
     }
   }
 
