@@ -2009,10 +2009,10 @@ function HomeContent() {
           })
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => {
-              if (d?.rank) {
+              if (d?.rank_today != null) {
                 setShowFlyResults((prev) =>
                   prev
-                    ? { ...prev, rank: d.rank, totalPilots: d.total_count }
+                    ? { ...prev, rank: d.rank_today, totalPilots: d.total }
                     : null,
                 );
               }
