@@ -28,11 +28,18 @@ type DeveloperRow = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const from = Math.max(0, parseInt(searchParams.get("from") ?? "0", 10));
-  const to = Math.min(
-    from + 1000,
-    parseInt(searchParams.get("to") ?? "500", 10)
-  );
+  const rawFrom = parseInt(searchParams.get("from") ?? "0", 10);
+  const rawTo = parseInt(searchParams.get("to") ?? "500", 10);
+
+  if (isNaN(rawFrom) || isNaN(rawTo)) {
+    return NextResponse.json(
+      { error: "Invalid pagination parameters: 'from' and 'to' must be numbers." },
+      { status: 400 }
+    );
+  }
+
+  const from = Math.max(0, rawFrom);
+  const to = Math.min(from + 1000, rawTo);
 
   const sb = getSupabaseAdmin();
 
