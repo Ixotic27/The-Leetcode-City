@@ -5389,10 +5389,10 @@ function HomeContent() {
                   </div>
 
                   {/* ── Header: Avatars + VS ── */}
-                  <div className="flex items-start justify-center gap-5 px-5 pt-1 pb-4 sm:pt-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-3 sm:gap-5 px-5 pt-3 pb-4 sm:pt-4">
                     <Link
                       href={`/dev/${comparePair[0].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
                     >
                       {comparePair[0].avatar_url && (
                         <Image
@@ -5410,7 +5410,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full sm:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[0].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5419,7 +5419,7 @@ function HomeContent() {
                     </Link>
 
                     <span
-                      className="text-base shrink-0 pt-4"
+                      className="text-base shrink-0 sm:pt-4"
                       style={{ color: theme.accent }}
                     >
                       VS
@@ -5427,7 +5427,7 @@ function HomeContent() {
 
                     <Link
                       href={`/dev/${comparePair[1].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
                     >
                       {comparePair[1].avatar_url && (
                         <Image
@@ -5462,7 +5462,7 @@ function HomeContent() {
                         className={`flex items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
                       >
                         <span
-                          className="w-[72px] text-right text-[11px] tabular-nums"
+                          className="w-[60px] sm:w-[72px] shrink text-right text-[10px] sm:text-[11px] tabular-nums"
                           style={{
                             color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                           }}
@@ -5473,11 +5473,11 @@ function HomeContent() {
                               : "-"
                             : s.a.toLocaleString()}
                         </span>
-                        <span className="flex-1 text-center text-[8px] text-muted uppercase tracking-wider">
+                        <span className="flex-1 text-center text-[7px] sm:text-[8px] text-muted uppercase tracking-wider mx-1">
                           {s.label}
                         </span>
                         <span
-                          className="w-[72px] text-left text-[11px] tabular-nums"
+                          className="w-[60px] sm:w-[72px] shrink text-left text-[10px] sm:text-[11px] tabular-nums"
                           style={{
                             color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                           }}
@@ -5505,7 +5505,7 @@ function HomeContent() {
                   </div>
 
                   {/* ── Actions ── */}
-                  <div className="px-4 pt-3 pb-1 flex gap-2">
+                  <div className="px-4 pt-3 pb-1 flex flex-col sm:flex-row gap-2">
                     <a
                       href={`https://x.com/intent/tweet?text=${encodeURIComponent(
                         `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`,
@@ -5537,8 +5537,8 @@ function HomeContent() {
                   </div>
 
                   {/* Download with lang toggle */}
-                  <div className="px-4 flex items-center gap-2 pb-1">
-                    <div className="flex gap-0.5 shrink-0">
+                  <div className="px-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pb-1">
+                    <div className="flex justify-center sm:justify-start gap-0.5 shrink-0">
                       {(["en", "pt"] as const).map((l) => (
                         <button
                           key={l}
