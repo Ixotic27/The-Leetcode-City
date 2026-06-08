@@ -1,5 +1,4 @@
-import { db } from "../config/database";
-
+// Self-contained transaction-safe Achievement Evaluator Service
 interface DeveloperStats {
   developerId: string;
   contributions: number;
@@ -17,7 +16,6 @@ interface AchievementDefinition {
 }
 
 export class AchievementEvaluatorService {
-  // Declarative achievement milestone definition schema map
   private static achievementDefinitions: AchievementDefinition[] = [
     { id: "ach_contrib_10", category: "contributions", threshold: 10, title: "Code Contributor" },
     { id: "ach_contrib_50", category: "contributions", threshold: 50, title: "Elite Committer" },
@@ -28,42 +26,35 @@ export class AchievementEvaluatorService {
     { id: "ach_kudos_10", category: "kudos", threshold: 10, title: "Community Pillar" }
   ];
 
-  /**
-   * Scans developer metrics and unlocks achievements atomically using database transactions.
-   */
-  public static async evaluateProgress(developerId: string): Promise<void> {
+  public static async evaluateProgress(developerId: string, dbClient: any): Promise<void> {
+    if (!dbClient) return;
     try {
-      // 1. Fetch current live statistics metrics
-      const devStats = await db.developerStats.findUnique({
+      const devStats = await dbClient.developerStats.findUnique({
         where: { developerId }
       });
 
       if (!devStats) return;
 
-      // 2. Load existing unlocked items to bypass duplicate processing runs
-      const unlockedAchievements = await db.developerAchievements.findMany({
+      const unlockedAchievements = await dbClient.developerAchievements.findMany({
         where: { developerId },
         select: { achievementId: true }
       });
 
-      const unlockedSet = new Set(unlockedAchievements.map(a => a.achievementId));
+      const unlockedSet = new Set(unlockedAchievements.map((a: any) => a.achievementId));
 
-      // 3. Evaluate each milestone definition threshold rule
       for (const ach of this.achievementDefinitions) {
         if (unlockedSet.has(ach.id)) continue;
 
         const currentProgress = (devStats as any)[ach.category] || 0;
 
         if (currentProgress >= ach.threshold) {
-          // 4. Execute atomic isolated write transaction block
-          await db.$transaction(async (tx) => {
+          await dbClient.$transaction(async (tx: any) => {
             const exists = await tx.developerAchievements.findFirst({
               where: { developerId, achievementId: ach.id }
             });
 
             if (exists) return;
 
-            // Unlock and insert the milestone reward token mapping log
             await tx.developerAchievements.create({
               data: {
                 developerId,
@@ -72,7 +63,6 @@ export class AchievementEvaluatorService {
               }
             });
 
-            // Simultaneously publish the event directly to the public live stream feed
             await tx.activityFeed.create({
               data: {
                 developerId,
@@ -85,8 +75,7 @@ export class AchievementEvaluatorService {
         }
       }
     } catch (error) {
-      console.error(`[AchievementEvaluator Error] Failed evaluation pipeline loop for user ${developerId}:`, error);
+      console.error(`[AchievementEvaluator Error] Failed evaluation for user ${developerId}:`, error);
     }
   }
 }
-
