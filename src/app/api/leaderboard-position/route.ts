@@ -29,14 +29,13 @@ export async function GET(request: Request) {
   let metricValue = "";
 
   if (tab === "solved") {
-    const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
     const { count } = await sb
       .from("developers")
       .select("id", { count: "exact", head: true })
       .not("easy_solved", "is", null)
-      .gt("contributions", dev.contributions); // Assuming contributions holds the "solved" count
+      .gt("contributions", dev.contributions);
     position = (count ?? 0) + 1;
-    metricValue = contribs.toLocaleString() + " solved";
+    metricValue = dev.contributions.toLocaleString() + " solved";
   } else if (tab === "lc_rank") {
     position = dev.lc_global_rank;
     metricValue = dev.lc_global_rank && dev.lc_global_rank < 999999 ? `#${dev.lc_global_rank.toLocaleString()}` : "Unranked";
