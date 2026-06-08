@@ -1,6 +1,7 @@
-// Self-contained transaction-safe Achievement Evaluator Service
+import { getSupabaseAdmin } from "../config/supabase";
+
 interface DeveloperStats {
-  developerId: string;
+  developer_id: string;
   contributions: number;
   repositories: number;
   stars: number;
@@ -10,7 +11,7 @@ interface DeveloperStats {
 
 interface AchievementDefinition {
   id: string;
-  category: keyof Omit<DeveloperStats, "developerId">;
+  category: keyof Omit<DeveloperStats, "developer_id">;
   threshold: number;
   title: string;
 }
@@ -26,21 +27,27 @@ export class AchievementEvaluatorService {
     { id: "ach_kudos_10", category: "kudos", threshold: 10, title: "Community Pillar" }
   ];
 
-  public static async evaluateProgress(developerId: string, dbClient: any): Promise<void> {
-    if (!dbClient) return;
+  public static async evaluateProgress(developerId: string): Promise<void> {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return;
+
     try {
-      const devStats = await dbClient.developerStats.findUnique({
-        where: { developerId }
-      });
+      const { data: devStats, error: statsError } = await supabase
+        .from("developer_stats")
+        .select("*")
+        .eq("developer_id", developerId)
+        .single();
 
-      if (!devStats) return;
+      if (statsError || !devStats) return;
 
-      const unlockedAchievements = await dbClient.developerAchievements.findMany({
-        where: { developerId },
-        select: { achievementId: true }
-      });
+      const { data: unlockedAchievements, error: achError } = await supabase
+        .from("developer_achievements")
+        .select("achievement_id")
+        .eq("developer_id", developerId);
 
-      const unlockedSet = new Set(unlockedAchievements.map((a: any) => a.achievementId));
+      if (achError || !unlockedAchievements) return;
+
+      const unlockedSet = new Set(unlockedAchievements.map((a: any) => a.achievement_id));
 
       for (const ach of this.achievementDefinitions) {
         if (unlockedSet.has(ach.id)) continue;
@@ -48,34 +55,27 @@ export class AchievementEvaluatorService {
         const currentProgress = (devStats as any)[ach.category] || 0;
 
         if (currentProgress >= ach.threshold) {
-          await dbClient.$transaction(async (tx: any) => {
-            const exists = await tx.developerAchievements.findFirst({
-              where: { developerId, achievementId: ach.id }
-            });
+          const { error: insertError } = await supabase
+            .from("developer_achievements")
+            .upsert(
+              { developer_id: developerId, achievement_id: ach.id, unlocked_at: new Date().toISOString() },
+              { onConflict: "developer_id,achievement_id" }
+            );
 
-            if (exists) return;
-
-            await tx.developerAchievements.create({
-              data: {
-                developerId,
-                achievementId: ach.id,
-                unlockedAt: new Date()
-              }
-            });
-
-            await tx.activityFeed.create({
-              data: {
-                developerId,
+          if (!insertError) {
+            await supabase
+              .from("activity_feed")
+              .insert({
+                developer_id: developerId,
                 type: "ACHIEVEMENT_UNLOCKED",
                 message: `🎉 Milestone Achieved! Unlocked achievement: ${ach.title}!`,
-                createdAt: new Date()
-              }
-            });
-          });
+                created_at: new Date().toISOString()
+              });
+          }
         }
       }
     } catch (error) {
-      console.error(`[AchievementEvaluator Error] Failed evaluation for user ${developerId}:`, error);
+      console.error(`[AchievementEvaluator Error] Failed evaluation pipeline loop for user ${developerId}:`, error);
     }
   }
 }
