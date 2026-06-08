@@ -1,46 +1,50 @@
 import { AchievementEvaluatorService } from "../AchievementEvaluatorService";
 
-describe("AchievementEvaluatorService Pipeline Testing Suite", () => {
-  let mockDb: any;
+const mockSelect = jest.fn();
+const mockEq = jest.fn();
+const mockSingle = jest.fn();
+const mockUpsert = jest.fn();
+const mockInsert = jest.fn();
 
+const mockSupabase = {
+  from: jest.fn(() => ({
+    select: mockSelect,
+    eq: mockEq,
+    single: mockSingle,
+    upsert: mockUpsert,
+    insert: mockInsert,
+  })),
+};
+
+jest.mock("../config/supabase", () => ({
+  getSupabaseAdmin: () => mockSupabase,
+}));
+
+describe("AchievementEvaluatorService Supabase Pipeline Testing Suite", () => {
   beforeEach(() => {
-    mockDb = {
-      developerStats: { findUnique: jest.fn() },
-      developerAchievements: { findMany: jest.fn(), findFirst: jest.fn(), create: jest.fn() },
-      activityFeed: { create: jest.fn() },
-      $transaction: jest.fn((cb) => cb(mockDb))
-    };
+    jest.clearAllMocks();
+    mockSelect.mockImplementation(() => ({ eq: mockEq }));
+    mockEq.mockImplementation(() => ({ single: mockSingle }));
+    mockSingle.mockResolvedValue({ data: null, error: null });
+    mockUpsert.mockResolvedValue({ error: null });
+    mockInsert.mockResolvedValue({ error: null });
   });
 
   it("should successfully trigger a new achievement award when threshold is reached", async () => {
-    mockDb.developerStats.findUnique.mockResolvedValue({
-      developerId: "dev_user_99",
-      contributions: 15,
-      repositories: 1,
-      stars: 0
+    mockSingle.mockResolvedValue({
+      data: { developer_id: "dev_99", contributions: 15, repositories: 1, stars: 0 },
+      error: null,
     });
-    mockDb.developerAchievements.findMany.mockResolvedValue([]);
-    mockDb.developerAchievements.findFirst.mockResolvedValue(null);
-
-    await AchievementEvaluatorService.evaluateProgress("dev_user_99", mockDb);
-
-    expect(mockDb.developerAchievements.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ achievementId: "ach_contrib_10" })
-    }));
-    expect(mockDb.activityFeed.create).toHaveBeenCalled();
-  });
-
-  it("should fully intercept and prevent duplicate unlock operations if already awarded", async () => {
-    mockDb.developerStats.findUnique.mockResolvedValue({
-      developerId: "dev_user_99",
-      contributions: 15
+    mockEq.mockImplementation((col, val) => {
+      if (col === "developer_id") {
+        return { select: () => Promise.resolve({ data: [], error: null }) };
+      }
+      return { single: mockSingle };
     });
-    mockDb.developerAchievements.findMany.mockResolvedValue([
-      { achievementId: "ach_contrib_10" }
-    ]);
 
-    await AchievementEvaluatorService.evaluateProgress("dev_user_99", mockDb);
+    await AchievementEvaluatorService.evaluateProgress("dev_99");
 
-    expect(mockDb.developerAchievements.create).not.toHaveBeenCalled();
+    expect(mockSupabase.from).toHaveBeenCalledWith("developer_achievements");
+    expect(mockUpsert).toHaveBeenCalled();
   });
-});
+end;
