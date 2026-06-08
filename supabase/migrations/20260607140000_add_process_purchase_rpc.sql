@@ -20,7 +20,7 @@ BEGIN
     RETURN NULL;
   END IF;
 
-  -- Correct column names for the purchases table
+  -- Insert purchase record
   INSERT INTO public.purchases (developer_id, item_id, provider, amount_cents, currency, status)
   VALUES (p_user_id, p_item_id, 'points', 0, 'usd', 'completed');
 
