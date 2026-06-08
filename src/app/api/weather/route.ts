@@ -2,11 +2,22 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const lat = searchParams.get('lat');
-  const lon = searchParams.get('lon');
+  const latStr = searchParams.get('lat');
+  const lonStr = searchParams.get('lon');
   
-  if (!lat || !lon) {
+  if (!latStr || !lonStr) {
     return NextResponse.json({ error: "Missing coordinates" }, { status: 400 });
+  }
+
+  const lat = parseFloat(latStr);
+  const lon = parseFloat(lonStr);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return NextResponse.json({ error: "Invalid coordinates: lat and lon must be numbers." }, { status: 400 });
+  }
+
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return NextResponse.json({ error: "Invalid coordinates: lat must be -90..90, lon must be -180..180." }, { status: 400 });
   }
 
   const apiKey = process.env.OPENWEATHER_API_KEY; 
