@@ -313,22 +313,12 @@ export async function POST(request: Request) {
   }
 
   const consumeDeveloperItem = async (devId: number, itemId: string) => {
-    const { data: inv } = await admin
-      .from("developer_consumables")
-      .select("id, quantity, weekly_uses, last_reset_week")
-      .eq("developer_id", devId)
-      .eq("item_id", itemId)
-      .single();
-    if (!inv) return;
     const currentWeekStr = getIsoWeekStartDateString();
-    const resetWeekStr = getUtcDateString(inv.last_reset_week);
-    let currentUses = inv.weekly_uses;
-    if (currentWeekStr !== resetWeekStr) currentUses = 0;
-    await admin.from("developer_consumables").update({
-      quantity: Math.max(0, inv.quantity - 1),
-      weekly_uses: currentUses + 1,
-      last_reset_week: currentWeekStr,
-    }).eq("id", inv.id);
+    await admin.rpc("consume_consumable", {
+      p_developer_id: devId,
+      p_item_id: itemId,
+      p_week_start: currentWeekStr,
+    });
   };
 
   if (attackerConsumableItemId) await consumeDeveloperItem(attacker.id, attackerConsumableItemId);
