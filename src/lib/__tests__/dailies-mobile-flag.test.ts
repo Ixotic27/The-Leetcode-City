@@ -53,21 +53,28 @@ describe("getDailyMissions", () => {
     }
   });
 
-  it("returns different secondary missions for same seed when isMobile changes pool size", () => {
-    // Find a developer ID where the two pools produce different secondary missions
-    let foundDifference = false;
+  it("preserves non-desktopOnly missions when switching between mobile and desktop", () => {
+    // We want to ensure that if a user is assigned missions on Desktop that are NOT
+    // desktopOnly, they should see the EXACT SAME missions on Mobile.
     for (let id = 1; id <= 100; id++) {
       const desktop = getDailyMissions(id, DATE, false);
       const mobile  = getDailyMissions(id, DATE, true);
-      const desktopSecondary = desktop.slice(1).map((m) => m.id).sort();
-      const mobileSecondary  = mobile.slice(1).map((m) => m.id).sort();
-      if (JSON.stringify(desktopSecondary) !== JSON.stringify(mobileSecondary)) {
-        foundDifference = true;
-        break;
+      
+      const desktopSecondary = desktop.slice(1);
+      const mobileSecondary  = mobile.slice(1);
+
+      // If both Desktop missions are NOT desktopOnly, they MUST be identical on Mobile
+      const allAnyOnDesktop = desktopSecondary.every(m => !m.desktopOnly);
+      if (allAnyOnDesktop) {
+        expect(mobileSecondary.map(m => m.id)).toEqual(desktopSecondary.map(m => m.id));
+      } else {
+        // If Desktop had a desktopOnly mission, Mobile should at least preserve the other one
+        const common = desktopSecondary.filter(m => !m.desktopOnly);
+        for (const m of common) {
+          expect(mobileSecondary.some(mm => mm.id === m.id)).toBe(true);
+        }
       }
     }
-    // The whole bug depends on this being true — if pools differ, output can differ
-    expect(foundDifference).toBe(true);
   });
 
   it("is deterministic — same inputs always produce same output", () => {
