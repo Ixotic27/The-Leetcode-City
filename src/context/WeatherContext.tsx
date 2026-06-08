@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useWeatherMap } from '@/hooks/useWeatherMap'; // We will import our API hook
 
 interface WeatherContextType {
@@ -15,9 +15,15 @@ const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
 export function WeatherProvider({ children }: { children: React.ReactNode }) {
   const { isRaining: apiIsRaining, isLoading, error } = useWeatherMap();
   const [isRaining, setIsRaining] = useState(false);
+  const lastSyncedApiValue = useRef<boolean | null>(null);
+
   useEffect(() => {
     if (!isLoading && !error) {
-      setIsRaining(apiIsRaining);
+      // Only update local state if the API value has actually changed since our last sync
+      if (lastSyncedApiValue.current === null || apiIsRaining !== lastSyncedApiValue.current) {
+        setIsRaining(apiIsRaining);
+        lastSyncedApiValue.current = apiIsRaining;
+      }
     }
   }, [apiIsRaining, isLoading, error]);
 

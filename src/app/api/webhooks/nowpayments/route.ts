@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyIpnSignature } from "@/lib/nowpayments";
-import { autoEquipIfSolo } from "@/lib/items";
+import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
+import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
+
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,44 @@ export async function POST(request: Request) {
     switch (paymentStatus) {
       case "finished":
       case "confirmed": {
+        // Check if it is a sky ad purchase (linked to orderId)
+        let { data: ad } = await sb
+          .from("sky_ads")
+          .select("id, plan_id, active")
+          .eq("stripe_session_id", orderId)
+          .maybeSingle();
+
+        if (ad) {
+          if (!ad.active) {
+            const planId = ad.plan_id;
+            if (planId && isValidPlanId(planId)) {
+              const plan = SKY_AD_PLANS[planId];
+              const now = new Date();
+              const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+
+              await sb
+                .from("sky_ads")
+                .update({
+                  active: true,
+                  starts_at: now.toISOString(),
+                  ends_at: endsAt.toISOString(),
+                  purchaser_email: body.customer_email ?? null,
+                })
+                .eq("id", ad.id)
+                .eq("active", false);
+
+              if (plan.vehicle === "plane") {
+                await sb
+                  .from("sky_ads")
+                  .update({ active: false })
+                  .eq("id", "advertise")
+                  .eq("active", true);
+              }
+            }
+          }
+          break;
+        }
+
         // Find pending purchase by provider_tx_id (invoice ID stored at checkout)
         const { data: purchase } = await sb
           .from("purchases")
@@ -51,32 +91,19 @@ export async function POST(request: Request) {
 
         if (!purchase) break; // already completed or not found
 
-        // Update payment ID and mark completed
+        const ownerId = purchase.gifted_to ?? purchase.developer_id;
+        const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
+
+        // Update payment ID and mark status (completed or delivered)
         await sb
           .from("purchases")
           .update({
-            status: "completed",
+            status: purchaseStatus,
             provider_tx_id: paymentId ?? orderId,
           })
           .eq("id", purchase.id);
 
-        // Streak freeze: grant via RPC
-        if (purchase.item_id === "streak_freeze") {
-          await sb.rpc("grant_streak_freeze", { p_developer_id: purchase.developer_id });
-          await sb.from("streak_freeze_log").insert({
-            developer_id: purchase.developer_id,
-            action: "purchased",
-          });
-          await sb.from("activity_feed").insert({
-            event_type: "item_purchased",
-            actor_id: purchase.developer_id,
-            metadata: { item_id: "streak_freeze" },
-          });
-          break;
-        }
-
         // Auto-equip if solo item in zone
-        const ownerId = purchase.gifted_to ?? purchase.developer_id;
         await autoEquipIfSolo(ownerId, purchase.item_id);
 
         // Insert feed event

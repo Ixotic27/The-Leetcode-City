@@ -1670,7 +1670,7 @@ function RiverText({ river }: { river: CityRiver }) {
   const texRef = useRef<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
-    document.fonts.ready.then(() => setFontReady(true));
+    document.fonts.load('bold 100px "Silkscreen"').then(() => setFontReady(true));
   }, []);
 
   const texture = useMemo(() => {

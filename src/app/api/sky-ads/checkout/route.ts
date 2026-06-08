@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { createServerSupabase } from "@/lib/supabase-server";
 import { SKY_AD_PLANS, isValidPlanId, getPriceCents, type AdCurrency } from "@/lib/skyAdPlans";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 import { rateLimit } from "@/lib/rate-limit";
 import { containsBlockedContent } from "@/lib/ad-moderation";
 import { createPixQrCodeRaw } from "@/lib/abacatepay";
+import { createCryptoInvoiceRaw } from "@/lib/nowpayments";
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
@@ -41,7 +43,8 @@ export async function POST(request: NextRequest) {
     color?: string;
     bgColor?: string;
     currency?: string;
-    provider?: "stripe" | "abacatepay";
+    provider?: "stripe" | "abacatepay" | "nowpayments" | "cashfree";
+    dev_mode?: boolean;
   };
   try {
     body = await request.json();
@@ -102,11 +105,11 @@ export async function POST(request: NextRequest) {
   const { error: insertError } = await sb.from("sky_ads").insert({
     id: adId,
     text: text.trim(),
-    brand: null,
-    description: null,
+    brand: "",
+    description: "",
     color,
     bg_color: bgColor,
-    link: null,
+    link: "",
     vehicle: plan.vehicle,
     priority: 50,
     active: false,
@@ -119,8 +122,54 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create ad" }, { status: 500 });
   }
 
-  const provider = body.provider === "abacatepay" ? "abacatepay" : "stripe";
+  // DEV BYPASS: Allow Ishant_27 to activate ads instantly for free
+  let isDev = false;
+  const { dev_mode } = body;
+  const supabaseAuth = await createServerSupabase();
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (user) {
+    const { data: dev } = await sb
+      .from("developers")
+      .select("github_login")
+      .eq("claimed_by", user.id)
+      .single();
+    if (["ishant_27", "ixotic", "ixotic27"].includes(dev?.github_login?.toLowerCase() ?? "") && dev_mode === true) {
+      isDev = true;
+    }
+  }
+
   const baseUrl = getBaseUrl();
+
+  if (isDev) {
+    console.log(`[DEV] Bypassing payment for sky ad: ${adId}`);
+    const now = new Date();
+    const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+
+    await sb
+      .from("sky_ads")
+      .update({
+        active: true,
+        starts_at: now.toISOString(),
+        ends_at: endsAt.toISOString(),
+        purchaser_email: user?.email ?? "ishant_27@example.com",
+      })
+      .eq("id", adId);
+
+    // Auto-deactivate the "advertise" placeholder if same vehicle type
+    if (plan.vehicle === "plane") {
+      await sb
+        .from("sky_ads")
+        .update({ active: false })
+        .eq("id", "advertise")
+        .eq("active", true);
+    }
+
+    return NextResponse.json({
+      url: `${baseUrl}/advertise/setup/${trackingToken}`,
+    });
+  }
+
+  const provider = body.provider ?? "stripe";
 
   try {
     if (provider === "abacatepay") {
@@ -137,6 +186,51 @@ export async function POST(request: NextRequest) {
         .eq("id", adId);
 
       return NextResponse.json({ brCode, brCodeBase64, trackingToken });
+    }
+
+    if (provider === "nowpayments") {
+      const priceUsd = getPriceCents(plan_id, "usd") / 100;
+      const successUrl = `${baseUrl}/advertise/setup/${trackingToken}`;
+      const cancelUrl = `${baseUrl}/advertise`;
+
+      const { invoiceUrl } = await createCryptoInvoiceRaw({
+        priceUsd,
+        orderId: adId,
+        orderDescription: `LeetCode City Ad: ${plan.label}`,
+        successUrl,
+        cancelUrl,
+      });
+
+      await sb
+        .from("sky_ads")
+        .update({ stripe_session_id: adId })
+        .eq("id", adId);
+
+      return NextResponse.json({ url: invoiceUrl });
+    }
+
+    if (provider === "cashfree") {
+      const USD_TO_INR = 85;
+      const amountINR = Math.round((getPriceCents(plan_id, "usd") / 100) * USD_TO_INR);
+      const returnUrl = `${baseUrl}/advertise/setup/${trackingToken}`;
+
+      const { createCashfreeOrder } = await import("@/lib/cashfree");
+      const { paymentSessionId } = await createCashfreeOrder({
+        orderId: adId,
+        amountINR: Math.max(amountINR, 1),
+        customerName: "Advertiser",
+        customerEmail: user?.email ?? "advertiser@leetcodecity.dev",
+        customerPhone: "9999999999",
+        itemName: `LeetCode City Ad: ${plan.label}`,
+        returnUrl,
+      });
+
+      await sb
+        .from("sky_ads")
+        .update({ stripe_session_id: adId })
+        .eq("id", adId);
+
+      return NextResponse.json({ paymentSessionId, cashfreeOrderId: adId, trackingToken });
     }
 
     // Stripe

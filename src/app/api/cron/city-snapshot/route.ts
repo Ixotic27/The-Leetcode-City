@@ -57,16 +57,16 @@ export async function GET(request: NextRequest) {
         undefined,
         "rank",
       ),
-      fetchAll<{ developer_id: number; item_id: string }>(
+      fetchAll<{ developer_id: number; item_id: string; provider: string; amount_cents: number }>(
         sb,
         "purchases",
-        "developer_id, item_id",
+        "developer_id, item_id, provider, amount_cents",
         (q) => q.is("gifted_to", null).eq("status", "completed"),
       ),
-      fetchAll<{ gifted_to: number; item_id: string }>(
+      fetchAll<{ gifted_to: number; item_id: string; provider: string; amount_cents: number }>(
         sb,
         "purchases",
-        "gifted_to, item_id",
+        "gifted_to, item_id, provider, amount_cents",
         (q) => q.not("gifted_to", "is", null).eq("status", "completed"),
       ),
       fetchAll<{ developer_id: number; item_id: string; config: Record<string, unknown> }>(
@@ -92,9 +92,15 @@ export async function GET(request: NextRequest) {
   // Build owned items map
   const ownedItemsMap: Record<number, string[]> = {};
   for (const row of purchases) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     (ownedItemsMap[row.developer_id] ??= []).push(row.item_id);
   }
   for (const row of giftPurchases) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     (ownedItemsMap[row.gifted_to] ??= []).push(row.item_id);
   }
 

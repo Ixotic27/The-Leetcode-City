@@ -65,7 +65,9 @@ export async function createCashfreeOrder(opts: {
         customer_phone: opts.customerPhone,
       },
       order_meta: {
-        return_url: opts.returnUrl + "?order_id={order_id}",
+        return_url: (opts.returnUrl.includes("?") 
+          ? opts.returnUrl + "&order_id={order_id}" 
+          : opts.returnUrl + "?order_id={order_id}").replace(/^http:\/\/localhost:\d+/, "https://great-sheep-sniff.loca.lt"),
       },
       order_note: opts.itemName,
     }),
@@ -165,9 +167,8 @@ export async function createCashfreeCheckout(
 
   // Convert USD cents to INR (approximate rate; in production you'd use
   // a live rate API, but for now we use a fixed conversion).
-  // 1 USD ≈ 85 INR (as of 2025). Item prices are stored in USD cents.
   const USD_TO_INR = 85;
-  const amountINR = Math.round((item.price_usd_cents / 100) * USD_TO_INR);
+  const amountINR = Math.max(1, Math.ceil((item.price_usd_cents / 100) * USD_TO_INR));
 
   const orderId = `${developerId}_${itemId}_${Date.now()}`;
   const baseUrl = getBaseUrl();
