@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
     const { data: item } = await admin
         .from("items")
-        .select("id, name, price_points")
+        .select("id, name, price_points, category")
         .eq("id", item_id)
         .single();
 
@@ -50,8 +50,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "This item cannot be bought with points" }, { status: 400 });
     }
 
-    // 2. Check if already owned
-    if (item_id !== "streak_freeze") {
+    // 2. Determine if consumable and set status
+    // Non-consumables use 'completed' (for unique index constraints)
+    // Consumables use 'delivered' (to allow multiple purchases)
+    const isConsumable = item_id === "streak_freeze" || item.category === "battle_consumable";
+    const purchaseStatus = isConsumable ? "delivered" : "completed";
+
+    // 3. Check if already owned (only for non-consumables)
+    if (!isConsumable) {
         const { data: existing } = await admin
             .from("purchases")
             .select("id")
@@ -63,7 +69,7 @@ export async function POST(request: Request) {
         if (existing) {
             return NextResponse.json({ error: "Already owned" }, { status: 409 });
         }
-    } else {
+    } else if (item_id === "streak_freeze") {
         const { data: devFreeze } = await admin
             .from("developers")
             .select("streak_freezes_available")
@@ -75,16 +81,17 @@ export async function POST(request: Request) {
         }
     }
 
-    // 3. Check points balance
+    // 4. Check points balance
     if ((dev.points ?? 0) < item.price_points) {
         return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // 4. Atomic call to the new RPC
+    // 5. Atomic call to the updated RPC
     const { data: pointsRemaining, error: rpcError } = await admin.rpc('process_purchase', {
         p_user_id: dev.id,
         p_item_id: item.id,
-        p_price: item.price_points
+        p_price: item.price_points,
+        p_status: purchaseStatus
     });
 
     if (rpcError || pointsRemaining === null) {
@@ -93,16 +100,20 @@ export async function POST(request: Request) {
         }, { status: 409 });
     }
 
-    // 5. Handle side effects
-    if (item_id === "streak_freeze") {
-        await admin.rpc("grant_streak_freeze", { p_developer_id: dev.id });
-        await admin.from("streak_freeze_log").insert({
-            developer_id: dev.id,
-            action: "purchased",
-        });
+    // 6. Handle side effects for consumables
+    if (isConsumable) {
+        if (item_id === "streak_freeze") {
+            await admin.rpc("grant_streak_freeze", { p_developer_id: dev.id });
+        } else {
+            await admin.from("user_inventory").insert({
+                developer_id: dev.id,
+                item_id: item.id,
+                quantity: 1
+            });
+        }
     }
 
-    // 6. Insert activity feed
+    // 7. Insert activity feed
     await admin.from("activity_feed").insert({
         event_type: "item_purchased",
         actor_id: dev.id,
