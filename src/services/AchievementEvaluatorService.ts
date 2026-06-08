@@ -32,7 +32,6 @@ export class AchievementEvaluatorService {
     if (!supabase) return;
 
     try {
-      // 1. Fetch current live statistics metrics from developer_stats table
       const { data: devStats, error: statsError } = await supabase
         .from("developer_stats")
         .select("*")
@@ -41,7 +40,6 @@ export class AchievementEvaluatorService {
 
       if (statsError || !devStats) return;
 
-      // 2. Load existing unlocked items to bypass duplicate processing runs
       const { data: unlockedAchievements, error: achError } = await supabase
         .from("developer_achievements")
         .select("achievement_id")
@@ -49,16 +47,15 @@ export class AchievementEvaluatorService {
 
       if (achError || !unlockedAchievements) return;
 
-      const unlockedSet = new Set(unlockedAchievements.map((a: any) => a.achievement_id));
+      const unlockedSet = new Set(unlockedAchievements.map((a: Record<string, unknown>) => String(a.achievement_id)));
 
-      // 3. Evaluate each milestone definition threshold rule
       for (const ach of this.achievementDefinitions) {
         if (unlockedSet.has(ach.id)) continue;
 
-        const currentProgress = (devStats as any)[ach.category] || 0;
+        const currentProgress = (devStats as Record<string, unknown>)[ach.category];
+        const progressNumber = typeof currentProgress === "number" ? currentProgress : 0;
 
-        if (currentProgress >= ach.threshold) {
-          // 4. Secure Upsert to prevent duplicate race conditions
+        if (progressNumber >= ach.threshold) {
           const { error: insertError } = await supabase
             .from("developer_achievements")
             .upsert(
@@ -67,7 +64,6 @@ export class AchievementEvaluatorService {
             );
 
           if (!insertError) {
-            // Concurrently stream milestone update notice directly to the user activity logs
             await supabase
               .from("activity_feed")
               .insert({
