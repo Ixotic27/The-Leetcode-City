@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { Webhook } from "svix";
 
 export const dynamic = "force-dynamic";
 
@@ -14,20 +15,38 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   // Verify webhook secret (set in Resend dashboard)
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const sig = request.headers.get("svix-signature");
-    if (!sig) {
-      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-    }
-    // For production, use Resend's webhook verification SDK.
-    // For now, we rely on the webhook URL being secret.
-  }
-
+  
+  const payload = await request.text();
   let body: { type: string; data: Record<string, unknown> };
-  try {
-    body = await request.json();
-  } catch (err) { console.warn("[app/api/webhooks/resend/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-   }
+
+  if (webhookSecret) {
+    const svix_id = request.headers.get("svix-id");
+    const svix_timestamp = request.headers.get("svix-timestamp");
+    const svix_signature = request.headers.get("svix-signature");
+
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      return NextResponse.json({ error: "Missing svix headers" }, { status: 401 });
+    }
+
+    try {
+      const wh = new Webhook(webhookSecret);
+      body = wh.verify(payload, {
+        "svix-id": svix_id,
+        "svix-timestamp": svix_timestamp,
+        "svix-signature": svix_signature,
+      }) as { type: string; data: Record<string, unknown> };
+    } catch (err) {
+      console.warn("[app/api/webhooks/resend/route.ts] Invalid signature:", err);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  } else {
+    try {
+      body = JSON.parse(payload);
+    } catch (err) {
+      console.warn("[app/api/webhooks/resend/route.ts] error:", err);
+      return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+    }
+  }
   const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
 
