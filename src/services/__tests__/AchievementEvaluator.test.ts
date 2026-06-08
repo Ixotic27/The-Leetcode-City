@@ -47,4 +47,4 @@ describe("AchievementEvaluatorService Supabase Pipeline Testing Suite", () => {
     expect(mockSupabase.from).toHaveBeenCalledWith("developer_achievements");
     expect(mockUpsert).toHaveBeenCalled();
   });
-end;
+});
