@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch (err) { console.warn("[app/api/sky-ads/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
    }
-  const { plan_id, text, color, bgColor, provider, phone } = body;
+  const { plan_id, text, color, bgColor, phone } = body;
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
   // Detect country via Vercel/CF geolocation headers and force BRL for BR users.
