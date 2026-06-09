@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
     if (isFirstSolve) {
       // Grant XP via existing RPC (idempotency handled by claim_first_solve above)
-      await sb.rpc("grant_xp", {
+      await sb.rpc("grant_xp_atomic", {
         p_developer_id: dev.id,
         p_source: `arena_${difficulty}`,
         p_amount: grantedXp,

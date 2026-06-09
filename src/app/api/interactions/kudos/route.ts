@@ -80,8 +80,8 @@ export async function POST(request: Request) {
 
   await admin.rpc("increment_kudos_count", { target_dev_id: receiver.id });
 
-  await admin.rpc("grant_xp", { p_developer_id: giver.id, p_source: "kudos_given", p_amount: 3 });
-  await admin.rpc("grant_xp", { p_developer_id: receiver.id, p_source: "kudos_received", p_amount: 1 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: giver.id, p_source: "kudos_given", p_amount: 3 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: receiver.id, p_source: "kudos_received", p_amount: 1 });
 
   await admin.from("activity_feed").insert({
     event_type: "kudos_given",

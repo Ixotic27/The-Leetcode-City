@@ -57,7 +57,7 @@ function setupMocks({
   mockRpc.mockImplementation((name: string) => {
     if (name === "claim_first_solve")
       return Promise.resolve({ data: claimResult, error: null });
-    if (name === "grant_xp")
+    if (name === "grant_xp_atomic")
       return Promise.resolve({ data: null, error: null });
     if (name === "update_arena_ratings_atomic")
       return Promise.resolve({ data: null, error: ratingsError });
