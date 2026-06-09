@@ -273,10 +273,13 @@ export async function POST(request: NextRequest) {
       .eq("id", adId);
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Sky ad checkout creation failed:", err);
     // Clean up the orphaned row
     await sb.from("sky_ads").delete().eq("id", adId);
-    return NextResponse.json({ error: "Payment setup failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Payment setup failed" },
+      { status: 500 }
+    );
   }
 }
