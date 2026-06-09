@@ -9,7 +9,11 @@ const ACCENT = "#ffa116";
 
 function SupportContent() {
   const searchParams = useSearchParams();
-  const thanks = searchParams.get("thanks") === "true";
+  const thanksParam = searchParams.get("thanks") === "true";
+  const orderIdParam = searchParams.get("order_id");
+
+  const [verifiedThanks, setVerifiedThanks] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(thanksParam && !!orderIdParam);
 
   const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
@@ -17,6 +21,29 @@ function SupportContent() {
 
   const [progress, setProgress] = useState<{ raised_inr: number; target_inr: number } | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(true);
+
+  useEffect(() => {
+    if (thanksParam && orderIdParam) {
+      const verify = async () => {
+        try {
+          const res = await fetch(`/api/support/status?order_id=${orderIdParam}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.isPaid) {
+              setVerifiedThanks(true);
+            }
+          }
+        } catch (err) {
+          console.error("Error verifying payment:", err);
+        } finally {
+          setVerifyingPayment(false);
+        }
+      };
+      verify();
+    } else if (thanksParam) {
+      setVerifiedThanks(true);
+    }
+  }, [thanksParam, orderIdParam]);
 
   useEffect(() => {
     const fetchProgress = async () => {
@@ -170,7 +197,12 @@ function SupportContent() {
         </div>
 
         {/* Thank you banner */}
-        {thanks && (
+        {verifyingPayment && (
+          <div className="mt-6 border-[3px] p-5 sm:p-6 border-muted bg-bg-raised animate-pulse">
+            <p className="text-sm text-muted">Verifying your support payment...</p>
+          </div>
+        )}
+        {!verifyingPayment && verifiedThanks && (
           <div
             className="mt-6 border-[3px] p-5 sm:p-6"
             style={{ borderColor: ACCENT, backgroundColor: "rgba(255, 161, 22, 0.06)" }}
@@ -180,6 +212,19 @@ function SupportContent() {
             </p>
             <p className="mt-2 text-xs text-muted normal-case">
               Your contribution keeps the city running. You are a real one.
+            </p>
+          </div>
+        )}
+        {!verifyingPayment && thanksParam && !verifiedThanks && (
+          <div
+            className="mt-6 border-[3px] p-5 sm:p-6 border-red-500 bg-red-500/5"
+            style={{ borderColor: "#f87171" }}
+          >
+            <p className="text-sm text-red-400">
+              Payment Not Completed / Cancelled
+            </p>
+            <p className="mt-2 text-xs text-muted normal-case">
+              We couldn&apos;t verify a completed payment for this session. If you cancelled the transaction, no charges were made.
             </p>
           </div>
         )}
@@ -257,21 +302,7 @@ function SupportContent() {
             </p>
           </div>
 
-          {/* $LCC Community Token */}
-          <div className="border-[3px] border-border bg-bg-raised p-5 sm:p-6">
-            <p className="text-sm text-cream">
-              <span style={{ color: ACCENT }}>04.</span> $LCC Community Token
-            </p>
-            <p className="mt-2 text-xs text-muted normal-case">
-              The community created a token to support the project.
-            </p>
-            <Link
-              href="/token"
-              className="btn-press mt-4 inline-block border-[2px] border-border px-5 py-2 text-xs text-muted transition-colors hover:border-border-light hover:text-cream"
-            >
-              Learn more & disclaimer
-            </Link>
-          </div>
+
         </div>
       </div>
     </main>
