@@ -165,7 +165,8 @@ export async function createCashfreeCheckout(
   itemId: string,
   developerId: number,
   githubLogin: string,
-  customerEmail?: string,
+  customerEmail: string | undefined,
+  customerPhone: string,
   giftedToDevId?: number | null,
   giftedToLogin?: string | null,
 ): Promise<{ paymentSessionId: string; orderId: string }> {
@@ -200,7 +201,7 @@ export async function createCashfreeCheckout(
     amountINR: Math.max(amountINR, 1), // minimum ₹1
     customerName: githubLogin,
     customerEmail: customerEmail || `${githubLogin}@leetcodecity.dev`,
-    customerPhone: "9999999999", // placeholder for test mode
+    customerPhone,
     itemName: `${item.name} - ${githubLogin}`,
     returnUrl,
   });
