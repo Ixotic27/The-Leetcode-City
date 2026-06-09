@@ -65,7 +65,8 @@ function SupportContent() {
       if (data.paymentSessionId) {
         try {
           const { load } = await import("@cashfreepayments/cashfree-js");
-          const cashfreeEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+          const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+          const cashfreeEnv = envMode === "PRODUCTION" ? "production" : "sandbox";
           const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
           const result = await cashfree.checkout({
             paymentSessionId: data.paymentSessionId,
