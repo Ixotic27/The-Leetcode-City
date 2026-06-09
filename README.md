@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/leetcode-city"><img src="https://img.shields.io/npm/v/leetcode-city?color=%23ffa116&label=npm&logo=npm" alt="npm version" /></a>
-  <a href="https://github.com/Ixotic27/The-Leetcode-City/stargazers"><img src="https://img.shields.io/github/stars/Ixotic27/The-Leetcode-City?style=flat&color=%23ffa116" alt="GitHub Stars" /></a>
-  <a href="https://github.com/Ixotic27/The-Leetcode-City/issues"><img src="https://img.shields.io/github/issues/Ixotic27/The-Leetcode-City?color=%23ffa116" alt="Issues" /></a>
-  <a href="https://github.com/Ixotic27/The-Leetcode-City/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Ixotic27/The-Leetcode-City?color=%23ffa116" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/leetcode-city"><img src="https://badgen.net/npm/v/leetcode-city?color=ffa116" alt="npm version" /></a>
+  <a href="https://github.com/Ixotic27/The-Leetcode-City/stargazers"><img src="https://badgen.net/github/stars/Ixotic27/The-Leetcode-City?color=ffa116" alt="GitHub Stars" /></a>
+  <a href="https://github.com/Ixotic27/The-Leetcode-City/issues"><img src="https://badgen.net/github/open-issues/Ixotic27/The-Leetcode-City?color=ffa116" alt="Issues" /></a>
+  <a href="https://github.com/Ixotic27/The-Leetcode-City/blob/main/LICENSE"><img src="https://badgen.net/github/license/Ixotic27/The-Leetcode-City?color=ffa116" alt="License" /></a>
 </p>
 
 ---
