@@ -407,10 +407,10 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ brCode, brCodeBase64, purchase_id: purchase.id });
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: err instanceof Error ? err.message : "Failed to create checkout session" },
       { status: 500 }
     );
   }
