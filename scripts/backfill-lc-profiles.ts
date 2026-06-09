@@ -62,6 +62,10 @@ async function fetchLCFullProfile(username: string): Promise<any> {
           intermediate { tagName problemsSolved }
           fundamental { tagName problemsSolved }
         }
+        languageProblemCount{
+          languageName
+          problemsSolved  
+        }
         userCalendar { streak totalActiveDays }${calendarAliases()}
       }
       userContestRanking(username: $username) {
@@ -80,6 +84,7 @@ async function fetchLCFullProfile(username: string): Promise<any> {
             body: JSON.stringify({ query, variables: { username } }),
         });
         const json = await res.json();
+        console.log(JSON.stringify(json,null,2));
         if (json?.data?.matchedUser) {
             json.data.matchedUser.maxStreak = parseMaxStreak(json.data.matchedUser, new Date().getFullYear());
         }
@@ -115,6 +120,12 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
         ...(tagCounts?.intermediate ?? []),
         ...(tagCounts?.fundamental ?? []),
     ]
+    const languages = user.languageProblemCount ?? [];
+    const dominantLanguage = languages.length > 0
+      ? [...languages].sort((a: any, b: any) => 
+        b.problemsSolved - a.problemsSolved)[0].languageName
+      : null;
+      
         .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
         .slice(0, 20)
         .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
@@ -131,6 +142,7 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
             public_repos: Math.max(0, 500000 - lcRank),
             rank: lcRank,
             lc_global_rank: lcRank,
+            primary_language: dominantLanguage,
             fetched_at: new Date().toISOString(),
             // Solved breakdown
             easy_solved: getAC("Easy"),
