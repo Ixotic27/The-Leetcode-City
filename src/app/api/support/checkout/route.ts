@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   try {
     const orderId = `support_${Date.now()}`;
     const baseUrl = getBaseUrl();
-    const returnUrl = `${baseUrl}/support?thanks=true`;
+    const returnUrl = `${baseUrl}/support`;
 
     const { paymentSessionId } = await createCashfreeOrder({
       orderId,
