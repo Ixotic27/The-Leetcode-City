@@ -45,12 +45,13 @@ export async function POST(request: NextRequest) {
     currency?: string;
     provider?: "stripe" | "abacatepay" | "nowpayments" | "cashfree";
     dev_mode?: boolean;
+    phone?: string;
   };
   try {
     body = await request.json();
   } catch (err) { console.warn("[app/api/sky-ads/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
    }
-  const { plan_id, text, color, bgColor } = body;
+  const { plan_id, text, color, bgColor, phone } = body;
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
   // Detect country via Vercel/CF geolocation headers and force BRL for BR users.
@@ -210,6 +211,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "cashfree") {
+      if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
+        return NextResponse.json(
+          { error: "A valid 10-digit phone number is required for Cashfree payment" },
+          { status: 400 }
+        );
+      }
+
       const USD_TO_INR = 85;
       const amountINR = Math.round((getPriceCents(plan_id, "usd") / 100) * USD_TO_INR);
       const returnUrl = `${baseUrl}/advertise/setup/${trackingToken}`;
@@ -220,7 +228,7 @@ export async function POST(request: NextRequest) {
         amountINR: Math.max(amountINR, 1),
         customerName: "Advertiser",
         customerEmail: user?.email ?? "advertiser@leetcodecity.dev",
-        customerPhone: "9999999999",
+        customerPhone: phone.trim(),
         itemName: `LeetCode City Ad: ${plan.label}`,
         returnUrl,
       });
@@ -265,10 +273,13 @@ export async function POST(request: NextRequest) {
       .eq("id", adId);
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Sky ad checkout creation failed:", err);
     // Clean up the orphaned row
     await sb.from("sky_ads").delete().eq("id", adId);
-    return NextResponse.json({ error: "Payment setup failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Payment setup failed" },
+      { status: 500 }
+    );
   }
 }
