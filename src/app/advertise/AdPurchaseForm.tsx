@@ -8,6 +8,7 @@ import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 const AdPreview = dynamic(() => import("@/components/AdPreview"), { ssr: false });
 
 const ACCENT = "#ffa116";
+const SHADOW = "#b25e00";
 
 type Vehicle = "plane" | "blimp" | "billboard" | "rooftop_sign" | "led_wrap";
 type Duration = "weekly" | "monthly";
