@@ -211,13 +211,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "cashfree") {
-      if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
-        return NextResponse.json(
-          { error: "A valid 10-digit phone number is required for Cashfree payment" },
-          { status: 400 }
-        );
-      }
-
       const USD_TO_INR = 85;
       const amountINR = Math.round((getPriceCents(plan_id, "usd") / 100) * USD_TO_INR);
       const returnUrl = `${baseUrl}/advertise/setup/${trackingToken}`;
@@ -228,7 +221,6 @@ export async function POST(request: NextRequest) {
         amountINR: Math.max(amountINR, 1),
         customerName: "Advertiser",
         customerEmail: user?.email ?? "advertiser@leetcodecity.dev",
-        customerPhone: phone.trim(),
         itemName: `LeetCode City Ad: ${plan.label}`,
         returnUrl,
       });
