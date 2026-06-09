@@ -97,6 +97,7 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
   orderStatus: string;
   paymentStatus: string;
   cfOrderId: string;
+  orderAmount: number;
 }> {
   const res = await fetch(`${getApiUrl()}/orders/${orderId}`, {
     method: "GET",
@@ -118,6 +119,7 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
     orderStatus: data.order_status,
     paymentStatus: data.order_status, // "PAID" | "ACTIVE" | "EXPIRED"
     cfOrderId: data.cf_order_id,
+    orderAmount: data.order_amount ?? 0,
   };
 }
 
