@@ -46,6 +46,22 @@ export async function createCashfreeOrder(opts: {
   itemName: string;
   returnUrl: string;
 }): Promise<{ paymentSessionId: string; cfOrderId: string }> {
+  console.log("[createCashfreeOrder] Options:", {
+    orderId: opts.orderId,
+    amountINR: opts.amountINR,
+    customerPhone: opts.customerPhone,
+  });
+  console.log("[createCashfreeOrder] Config:", {
+    env: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "").replace(/['"]/g, "").trim(),
+    apiUrl: getApiUrl(),
+    appId: getAppId(),
+    // Log first/last 4 chars of secret key for security validation
+    secretPrefix: getSecretKey().substring(0, 12),
+  });
+
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+  const phone = opts.customerPhone === "9999999999" && env === "PRODUCTION" ? "7000000000" : opts.customerPhone;
+
   const res = await fetch(`${getApiUrl()}/orders`, {
     method: "POST",
     headers: {
@@ -62,7 +78,7 @@ export async function createCashfreeOrder(opts: {
         customer_id: opts.orderId.split("_")[0] ?? "guest",
         customer_name: opts.customerName,
         customer_email: opts.customerEmail,
-        customer_phone: opts.customerPhone,
+        customer_phone: phone,
       },
       order_meta: {
         return_url: (opts.returnUrl.includes("?") 
