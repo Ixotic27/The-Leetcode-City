@@ -17,6 +17,8 @@ function SupportContent() {
 
   const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [progress, setProgress] = useState<{ raised_inr: number; target_inr: number } | null>(null);
@@ -74,6 +76,13 @@ function SupportContent() {
   const handleCashfreeCheckout = async (amount: number) => {
     if (loadingAmount) return;
     setError(null);
+    setPhoneError(null);
+
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone || !/^[6-9]\d{9}$/.test(trimmedPhone)) {
+      setPhoneError("A valid 10-digit Indian phone number is required");
+      return;
+    }
 
     setLoadingAmount(amount);
 
@@ -81,7 +90,7 @@ function SupportContent() {
       const res = await fetch("/api/support/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, phone: trimmedPhone }),
       });
 
       const data = await res.json();
@@ -237,6 +246,25 @@ function SupportContent() {
             <p className="text-sm text-cream">
               <span style={{ color: ACCENT }}>01.</span> One-time Support (UPI / Cards / Wallets)
             </p>
+            <div className="mt-4 flex flex-col gap-1.5 max-w-xs">
+              <label className="text-[10px] text-muted normal-case font-bold">
+                Phone Number (Required for Payment):
+              </label>
+              <input
+                type="tel"
+                maxLength={10}
+                placeholder="Enter 10-digit number"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value.replace(/\D/g, ""));
+                  setPhoneError(null);
+                }}
+                className="border-[2px] border-border bg-transparent px-3 py-1.5 text-xs text-cream outline-none focus:border-cream"
+              />
+              {phoneError && (
+                <p className="text-[9px] text-red-400 normal-case">{phoneError}</p>
+              )}
+            </div>
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {[100, 250, 500].map((amount) => (
                 <button

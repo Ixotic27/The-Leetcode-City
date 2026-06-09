@@ -42,7 +42,7 @@ export async function createCashfreeOrder(opts: {
   amountINR: number; // in rupees (NOT paise)
   customerName: string;
   customerEmail: string;
-  customerPhone?: string;
+  customerPhone: string;
   itemName: string;
   returnUrl: string;
 }): Promise<{ paymentSessionId: string; cfOrderId: string }> {
@@ -60,10 +60,7 @@ export async function createCashfreeOrder(opts: {
   });
 
   const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
-  let phone = opts.customerPhone ? opts.customerPhone.trim() : "7777777777";
-  if (phone === "9999999999" && env === "PRODUCTION") {
-    phone = "7000000000";
-  }
+  const phone = opts.customerPhone === "9999999999" && env === "PRODUCTION" ? "7000000000" : opts.customerPhone;
 
   const res = await fetch(`${getApiUrl()}/orders`, {
     method: "POST",
@@ -169,7 +166,7 @@ export async function createCashfreeCheckout(
   developerId: number,
   githubLogin: string,
   customerEmail: string | undefined,
-  customerPhone?: string,
+  customerPhone: string,
   giftedToDevId?: number | null,
   giftedToLogin?: string | null,
 ): Promise<{ paymentSessionId: string; orderId: string }> {
