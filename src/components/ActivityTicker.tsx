@@ -80,9 +80,16 @@ interface Props {
   onEventClick?: (event: FeedEvent) => void;
   onOpenPanel?: () => void;
   hasBottomBar?: boolean;
+  renewalProgress?: { raised: number; target: number } | null;
 }
 
-export default function ActivityTicker({ events, onEventClick, onOpenPanel, hasBottomBar = false }: Props) {
+export default function ActivityTicker({
+  events,
+  onEventClick,
+  onOpenPanel,
+  hasBottomBar = false,
+  renewalProgress = null,
+}: Props) {
   const tickerText = useMemo(() => {
     return events.map((e) => ({ id: e.id, text: formatEvent(e), event: e }));
   }, [events]);
@@ -122,7 +129,10 @@ export default function ActivityTicker({ events, onEventClick, onOpenPanel, hasB
         <span className="text-[8px] text-cream/10">·</span>
         <a href="/privacy" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">Privacy</a>
         <span className="text-[8px] text-cream/10">·</span>
-        <a href="/support" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">Support</a>
+        <a href="/support" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">
+          Support
+          {renewalProgress && ` [${Math.round((renewalProgress.raised / renewalProgress.target) * 100)}% FUNDED]`}
+        </a>
       </div>
 
       <style jsx>{`
