@@ -11,18 +11,18 @@ const SANDBOX_URL = "https://sandbox.cashfree.com/pg";
 const PRODUCTION_URL = "https://api.cashfree.com/pg";
 
 function getApiUrl(): string {
-  const env = process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX";
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
   return env === "PRODUCTION" ? PRODUCTION_URL : SANDBOX_URL;
 }
 
 function getAppId(): string {
-  const id = process.env.CASHFREE_APP_ID;
+  const id = (process.env.CASHFREE_APP_ID ?? "").replace(/['"]/g, "").trim();
   if (!id) throw new Error("CASHFREE_APP_ID is not set");
   return id;
 }
 
 function getSecretKey(): string {
-  const key = process.env.CASHFREE_SECRET_KEY;
+  const key = (process.env.CASHFREE_SECRET_KEY ?? "").replace(/['"]/g, "").trim();
   if (!key) throw new Error("CASHFREE_SECRET_KEY is not set");
   return key;
 }
