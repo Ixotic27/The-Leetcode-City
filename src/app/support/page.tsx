@@ -257,10 +257,10 @@ function SupportContent() {
             </p>
           </div>
 
-          {/* $GITC Community Token */}
+          {/* $LCC Community Token */}
           <div className="border-[3px] border-border bg-bg-raised p-5 sm:p-6">
             <p className="text-sm text-cream">
-              <span style={{ color: ACCENT }}>04.</span> $GITC Community Token
+              <span style={{ color: ACCENT }}>04.</span> $LCC Community Token
             </p>
             <p className="mt-2 text-xs text-muted normal-case">
               The community created a token to support the project.
