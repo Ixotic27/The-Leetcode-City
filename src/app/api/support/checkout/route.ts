@@ -23,17 +23,21 @@ export async function POST(request: Request) {
   }
   lastRequest.set(ip, now);
 
-  let body: { amount: number; email?: string; name?: string };
+  let body: { amount: number; email?: string; name?: string; phone?: string };
   try {
     body = await request.json();
   } catch (err) {
     console.warn("[app/api/support/checkout/route.ts] error:", err);
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
-  const { amount, email, name } = body;
+  const { amount, email, name, phone } = body;
 
   if (!Number.isFinite(amount) || amount < MIN_AMOUNT || Math.floor(amount) !== amount) {
     return NextResponse.json({ error: `Amount must be a whole number of at least ₹${MIN_AMOUNT}` }, { status: 400 });
+  }
+
+  if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
+    return NextResponse.json({ error: "A valid 10-digit phone number is required" }, { status: 400 });
   }
 
   try {
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
       amountINR: amount,
       customerName: name || "Anonymous Support",
       customerEmail: email || "anonymous@theleetcodecity.tech",
+      customerPhone: phone.trim(),
       itemName: `Website Renewal Support - ₹${amount}`,
       returnUrl,
     });
