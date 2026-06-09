@@ -13,7 +13,7 @@ function SupportContent() {
   const orderIdParam = searchParams.get("order_id");
 
   const [verifiedThanks, setVerifiedThanks] = useState(false);
-  const [verifyingPayment, setVerifyingPayment] = useState(thanksParam && !!orderIdParam);
+  const [verifyingPayment, setVerifyingPayment] = useState(!!orderIdParam);
 
   const [loadingAmount, setLoadingAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
@@ -25,7 +25,7 @@ function SupportContent() {
   const [loadingProgress, setLoadingProgress] = useState(true);
 
   useEffect(() => {
-    if (thanksParam && orderIdParam) {
+    if (orderIdParam) {
       const verify = async () => {
         try {
           const res = await fetch(`/api/support/status?order_id=${orderIdParam}`);
@@ -44,6 +44,7 @@ function SupportContent() {
       verify();
     } else if (thanksParam) {
       setVerifiedThanks(true);
+      setVerifyingPayment(false);
     }
   }, [thanksParam, orderIdParam]);
 
@@ -225,7 +226,7 @@ function SupportContent() {
             </p>
           </div>
         )}
-        {!verifyingPayment && thanksParam && !verifiedThanks && (
+        {!verifyingPayment && (orderIdParam || thanksParam) && !verifiedThanks && (
           <div
             className="mt-6 border-[3px] p-5 sm:p-6 border-red-500 bg-red-500/5"
             style={{ borderColor: "#f87171" }}
