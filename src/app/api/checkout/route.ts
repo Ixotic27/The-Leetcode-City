@@ -338,6 +338,14 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });      
     } else if (provider === "cashfree") {
+      // Cashfree (INR via UPI / Cards / Wallets)
+      if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
+        return NextResponse.json(
+          { error: "A valid 10-digit phone number is required for Cashfree payment" },
+          { status: 400 }
+        );
+      }
+
       const USD_TO_INR = 85;
       const amountCents = item.price_usd_cents;
       const { data: purchase, error: purchaseError } = await sb
@@ -359,7 +367,7 @@ export async function POST(request: Request) {
       }
 
       const { paymentSessionId, orderId } = await createCashfreeCheckout(
-        item_id, dev.id, githubLogin, user.email ?? undefined, undefined, giftedToDevId, gifted_to_login
+        item_id, dev.id, githubLogin, user.email ?? undefined, phone.trim(), giftedToDevId, gifted_to_login
       );
 
       // Save Cashfree order_id as provider_tx_id so webhook can find this purchase
