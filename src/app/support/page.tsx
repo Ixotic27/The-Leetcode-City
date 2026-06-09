@@ -307,25 +307,10 @@ function SupportContent() {
             )}
           </div>
 
-          {/* GitHub Sponsors */}
-          <div className="border-[3px] border-border bg-bg-raised p-5 sm:p-6">
-            <p className="text-sm text-cream">
-              <span style={{ color: ACCENT }}>02.</span> GitHub Sponsors
-            </p>
-            <a
-              href="https://github.com/sponsors/ishant-27"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-press mt-4 inline-block border-[2px] border-border px-5 py-2 text-xs text-muted transition-colors hover:border-border-light hover:text-cream"
-            >
-              github.com/sponsors/ishant-27
-            </a>
-          </div>
-
           {/* Crypto (ETH) */}
           <div className="border-[3px] border-border bg-bg-raised p-5 sm:p-6">
             <p className="text-sm text-cream">
-              <span style={{ color: ACCENT }}>03.</span> Crypto (ETH)
+              <span style={{ color: ACCENT }}>02.</span> Crypto (ETH)
             </p>
             <p className="mt-4 text-xs text-muted normal-case">
               Coming soon...
