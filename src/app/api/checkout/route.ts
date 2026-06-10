@@ -61,12 +61,18 @@ export async function POST(request: Request) {
   }
 
   // Parse body
-  let body: { item_id: string; provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree"; gifted_to_login?: string; dev_mode?: boolean };
+  let body: {
+    item_id: string;
+    provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree";
+    gifted_to_login?: string;
+    dev_mode?: boolean;
+    phone?: string;
+  };
   try {
     body = await request.json();
   } catch (err) { console.warn("[app/api/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
    }
-  const { item_id, provider, gifted_to_login, dev_mode } = body;
+  const { item_id, provider, gifted_to_login, dev_mode, phone } = body;
 
   if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments", "cashfree"].includes(provider)) {
     return NextResponse.json({ error: "Invalid item_id or provider" }, { status: 400 });
@@ -333,6 +339,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });      
     } else if (provider === "cashfree") {
       // Cashfree (INR via UPI / Cards / Wallets)
+      if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
+        return NextResponse.json(
+          { error: "A valid 10-digit phone number is required for Cashfree payment" },
+          { status: 400 }
+        );
+      }
+
       const USD_TO_INR = 85;
       const amountCents = item.price_usd_cents;
       const { data: purchase, error: purchaseError } = await sb
@@ -354,7 +367,7 @@ export async function POST(request: Request) {
       }
 
       const { paymentSessionId, orderId } = await createCashfreeCheckout(
-        item_id, dev.id, githubLogin, user.email ?? undefined, giftedToDevId, gifted_to_login
+        item_id, dev.id, githubLogin, user.email ?? undefined, phone.trim(), giftedToDevId, gifted_to_login
       );
 
       // Save Cashfree order_id as provider_tx_id so webhook can find this purchase
@@ -394,10 +407,10 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ brCode, brCodeBase64, purchase_id: purchase.id });
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: err instanceof Error ? err.message : "Failed to create checkout session" },
       { status: 500 }
     );
   }

@@ -11,18 +11,18 @@ const SANDBOX_URL = "https://sandbox.cashfree.com/pg";
 const PRODUCTION_URL = "https://api.cashfree.com/pg";
 
 function getApiUrl(): string {
-  const env = process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX";
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
   return env === "PRODUCTION" ? PRODUCTION_URL : SANDBOX_URL;
 }
 
 function getAppId(): string {
-  const id = process.env.CASHFREE_APP_ID;
+  const id = (process.env.CASHFREE_APP_ID ?? "").replace(/['"]/g, "").trim();
   if (!id) throw new Error("CASHFREE_APP_ID is not set");
   return id;
 }
 
 function getSecretKey(): string {
-  const key = process.env.CASHFREE_SECRET_KEY;
+  const key = (process.env.CASHFREE_SECRET_KEY ?? "").replace(/['"]/g, "").trim();
   if (!key) throw new Error("CASHFREE_SECRET_KEY is not set");
   return key;
 }
@@ -46,6 +46,22 @@ export async function createCashfreeOrder(opts: {
   itemName: string;
   returnUrl: string;
 }): Promise<{ paymentSessionId: string; cfOrderId: string }> {
+  console.log("[createCashfreeOrder] Options:", {
+    orderId: opts.orderId,
+    amountINR: opts.amountINR,
+    customerPhone: opts.customerPhone,
+  });
+  console.log("[createCashfreeOrder] Config:", {
+    env: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "").replace(/['"]/g, "").trim(),
+    apiUrl: getApiUrl(),
+    appId: getAppId(),
+    // Log first/last 4 chars of secret key for security validation
+    secretPrefix: getSecretKey().substring(0, 12),
+  });
+
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+  const phone = opts.customerPhone === "9999999999" && env === "PRODUCTION" ? "7000000000" : opts.customerPhone;
+
   const res = await fetch(`${getApiUrl()}/orders`, {
     method: "POST",
     headers: {
@@ -62,7 +78,7 @@ export async function createCashfreeOrder(opts: {
         customer_id: opts.orderId.split("_")[0] ?? "guest",
         customer_name: opts.customerName,
         customer_email: opts.customerEmail,
-        customer_phone: opts.customerPhone,
+        customer_phone: phone,
       },
       order_meta: {
         return_url: (opts.returnUrl.includes("?") 
@@ -97,6 +113,7 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
   orderStatus: string;
   paymentStatus: string;
   cfOrderId: string;
+  orderAmount: number;
 }> {
   const res = await fetch(`${getApiUrl()}/orders/${orderId}`, {
     method: "GET",
@@ -118,6 +135,7 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
     orderStatus: data.order_status,
     paymentStatus: data.order_status, // "PAID" | "ACTIVE" | "EXPIRED"
     cfOrderId: data.cf_order_id,
+    orderAmount: data.order_amount ?? 0,
   };
 }
 
@@ -147,7 +165,8 @@ export async function createCashfreeCheckout(
   itemId: string,
   developerId: number,
   githubLogin: string,
-  customerEmail?: string,
+  customerEmail: string | undefined,
+  customerPhone: string,
   giftedToDevId?: number | null,
   giftedToLogin?: string | null,
 ): Promise<{ paymentSessionId: string; orderId: string }> {
@@ -182,7 +201,7 @@ export async function createCashfreeCheckout(
     amountINR: Math.max(amountINR, 1), // minimum ₹1
     customerName: githubLogin,
     customerEmail: customerEmail || `${githubLogin}@leetcodecity.dev`,
-    customerPhone: "9999999999", // placeholder for test mode
+    customerPhone,
     itemName: `${item.name} - ${githubLogin}`,
     returnUrl,
   });

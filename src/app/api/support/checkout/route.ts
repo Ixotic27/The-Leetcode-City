@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/base-url";
-import { getStripe } from "@/lib/stripe";
+import { createCashfreeOrder } from "@/lib/cashfree";
 
-const MIN_AMOUNT = 1;
+const MIN_AMOUNT = 10; // minimum ₹10 INR for checkouts
 
 // Simple IP-based rate limit (1 request per 5 seconds)
 const lastRequest = new Map<string, number>();
 
 /**
- * @param {import('next/server').NextRequest} request
+ * @param {Request} request
  */
 export async function POST(request: Request) {
   const ip =
@@ -23,46 +23,44 @@ export async function POST(request: Request) {
   }
   lastRequest.set(ip, now);
 
-  let body: { amount: number };
+  let body: { amount: number; email?: string; name?: string; phone?: string };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/support/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-   }
-  const { amount } = body;
+  } catch (err) {
+    console.warn("[app/api/support/checkout/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+  const { amount, email, name, phone } = body;
 
   if (!Number.isFinite(amount) || amount < MIN_AMOUNT || Math.floor(amount) !== amount) {
-    return NextResponse.json({ error: `Amount must be a whole number of at least $${MIN_AMOUNT}` }, { status: 400 });
+    return NextResponse.json({ error: `Amount must be a whole number of at least ₹${MIN_AMOUNT}` }, { status: 400 });
+  }
+
+  if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
+    return NextResponse.json({ error: "A valid 10-digit phone number is required" }, { status: 400 });
   }
 
   try {
-    const stripe = getStripe();
+    const orderId = `support_${Date.now()}`;
     const baseUrl = getBaseUrl();
+    const returnUrl = `${baseUrl}/support`;
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `LeetCode City Support - $${amount}`,
-            },
-            unit_amount: amount * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        type: "support",
-        amount: String(amount),
-      },
-      success_url: `${baseUrl}/support?thanks=true`,
-      cancel_url: `${baseUrl}/support`,
+    const { paymentSessionId } = await createCashfreeOrder({
+      orderId,
+      amountINR: amount,
+      customerName: name || "Anonymous Support",
+      customerEmail: email || "anonymous@theleetcodecity.tech",
+      customerPhone: phone.trim(),
+      itemName: `Website Renewal Support - ₹${amount}`,
+      returnUrl,
     });
 
-    return NextResponse.json({ url: session.url });
-  } catch (err) {
+    return NextResponse.json({ paymentSessionId, orderId });
+  } catch (err: any) {
     console.error("Support checkout error:", err);
-    return NextResponse.json({ error: "Failed to create checkout" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to create checkout" },
+      { status: 500 }
+    );
   }
 }
