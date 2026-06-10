@@ -128,7 +128,7 @@ $$;
 -- quantity — no application-level read needed.
 CREATE OR REPLACE FUNCTION public.upsert_arena_inventory_item(
   p_user_id BIGINT,
-  p_item_id UUID
+  p_item_id TEXT
 )
 RETURNS void
 LANGUAGE sql
