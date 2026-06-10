@@ -172,10 +172,14 @@ export async function checkAchievements(
       status: "completed",
     }));
 
-    // Batch upsert — unique index on (developer_id, item_id) prevents duplicates
+    // Use ignoreDuplicates:true instead of a destructive upsert.
+    // If the user already owns this item via a paid Stripe purchase the existing
+    // record (provider:"stripe", amount_cents > 0, Stripe tx id) must NOT be
+    // overwritten. ignoreDuplicates:true translates to INSERT … ON CONFLICT DO NOTHING,
+    // so paid records are preserved and no financial audit data is lost.
     await sb
       .from("purchases")
-      .upsert(purchaseRows, { onConflict: "developer_id,item_id" });
+      .upsert(purchaseRows, { onConflict: "developer_id,item_id", ignoreDuplicates: true });
   }
 
   // Grant XP for each achievement unlock
