@@ -700,6 +700,10 @@ export default function ShopClient({
   });
 
   const [pixModal, setPixModal] = useState<PixModalData | null>(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneInputError, setPhoneInputError] = useState<string | null>(null);
+  const [pendingCashfreeItem, setPendingCashfreeItem] = useState<string | null>(null);
   const [customColor, setCustomColor] = useState<string | null>(initialCustomColor);
   const [ledBannerText, setLedBannerText] = useState<string | null>(initialLedBannerText ?? null);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(initialSelectedTitle ?? "auto");
@@ -1088,8 +1092,17 @@ export default function ShopClient({
 
 
   const checkout = useCallback(
-    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" | "cashfree" = "stripe") => {
+    async (itemId: string, provider: "stripe" | "nowpayments" | "abacatepay" | "cashfree" = "stripe", phoneVal?: string) => {
       if (buyingItem) return;
+
+      if (provider === "cashfree" && !phoneVal) {
+        setPendingCashfreeItem(itemId);
+        setPhoneInput("");
+        setPhoneInputError(null);
+        setShowPhoneModal(true);
+        return;
+      }
+
       setBuyingItem(itemId);
       setBuyingProvider(provider);
       setError(null);
@@ -1101,7 +1114,7 @@ export default function ShopClient({
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ item_id: itemId, provider, dev_mode: devModeEnabled }),
+          body: JSON.stringify({ item_id: itemId, provider, dev_mode: devModeEnabled, phone: phoneVal }),
         });
 
         const data = await res.json();
@@ -1126,7 +1139,8 @@ export default function ShopClient({
           // Cashfree: load SDK and open checkout
           try {
             const { load } = await import("@cashfreepayments/cashfree-js");
-            const cashfreeEnv = process.env.NEXT_PUBLIC_CASHFREE_ENV === "PRODUCTION" ? "production" : "sandbox";
+            const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+            const cashfreeEnv = envMode === "PRODUCTION" ? "production" : "sandbox";
             const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
             const result = await cashfree.checkout({
               paymentSessionId: data.paymentSessionId,
@@ -1162,6 +1176,20 @@ export default function ShopClient({
     },
     [buyingItem, items, githubLogin, devModeEnabled]
   );
+
+  const handleConfirmPhoneCheckout = useCallback(() => {
+    const trimmed = phoneInput.trim();
+    if (!trimmed || !/^[6-9]\d{9}$/.test(trimmed)) {
+      setPhoneInputError("Please enter a valid 10-digit Indian phone number.");
+      return;
+    }
+    const targetItem = pendingCashfreeItem;
+    setShowPhoneModal(false);
+    setPendingCashfreeItem(null);
+    if (targetItem) {
+      checkout(targetItem, "cashfree", trimmed);
+    }
+  }, [phoneInput, pendingCashfreeItem, checkout]);
 
   const handleBuyWithPoints = useCallback(
     async (itemId: string) => {
@@ -1397,6 +1425,74 @@ export default function ShopClient({
           onClose={() => setPixModal(null)}
           onCompleted={handlePixCompleted}
         />
+      )}
+
+      {/* Cashfree Phone Input Modal */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 font-pixel uppercase text-cream">
+          <div className="relative mx-4 w-full max-w-sm border-[3px] border-border bg-bg p-6 text-left">
+            <button
+              onClick={() => {
+                setShowPhoneModal(false);
+                setPendingCashfreeItem(null);
+              }}
+              className="absolute right-3 top-3 text-xs text-muted hover:text-cream"
+            >
+              &#10005;
+            </button>
+            <h3 className="mb-2 text-xs" style={{ color: ACCENT }}>
+              Payment Information
+            </h3>
+            <p className="mb-4 text-[9px] text-muted normal-case leading-relaxed">
+              Cashfree requires a valid 10-digit phone number to process UPI, Card, and Netbanking payments.
+            </p>
+            <div className="mb-4 flex flex-col gap-1.5">
+              <label className="text-[9px] text-muted normal-case font-bold">
+                Phone Number (10 digits, e.g. 9876543210):
+              </label>
+              <input
+                type="tel"
+                maxLength={10}
+                placeholder="Enter phone number"
+                value={phoneInput}
+                onChange={(e) => {
+                  setPhoneInput(e.target.value.replace(/\D/g, ""));
+                  setPhoneInputError(null);
+                }}
+                className="border-[2px] border-border bg-transparent px-3 py-2 text-xs text-cream outline-none focus:border-cream"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleConfirmPhoneCheckout();
+                  }
+                }}
+              />
+              {phoneInputError && (
+                <p className="text-[9px] text-red-400 normal-case mt-0.5">{phoneInputError}</p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowPhoneModal(false);
+                  setPendingCashfreeItem(null);
+                }}
+                className="flex-1 border-[2px] border-border py-1.5 text-[10px] text-muted hover:text-cream"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPhoneCheckout}
+                className="btn-press flex-1 py-1.5 text-[10px] text-bg"
+                style={{
+                  backgroundColor: ACCENT,
+                  boxShadow: `2px 2px 0 0 ${SHADOW}`,
+                }}
+              >
+                Proceed to Pay
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {error && (

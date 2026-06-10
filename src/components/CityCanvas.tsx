@@ -1040,6 +1040,10 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
     return geo;
   }, []);
 
+  useEffect(() => {
+    return () => coinGeo.dispose();
+  }, [coinGeo]);
+
   return (
     <>
       <instancedMesh ref={meshRef} args={[coinGeo, undefined, COLLECTIBLE_COUNT]}>

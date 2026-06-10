@@ -100,6 +100,8 @@ interface CityStats {
   total_developers: number;
   total_contributions: number;
   total_stars?: number;
+  renewal_raised_inr?: number;
+  renewal_target_inr?: number;
 }
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
@@ -114,7 +116,7 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
 });
 
 // Feature flags — flip to switch milestone banner
-const MILESTONE_MODE: "stars" | "devs" = "stars"; // "stars" = LeetCode stars road to 1K, "devs" = total developers
+const MILESTONE_MODE: "stars" | "devs" | "donation" = "donation"; // "donation" = website renewal donation bar, "stars" = LeetCode stars road to 1K, "devs" = total developers
 
 const THEMES = [
   { name: "Midnight", accent: "#ffa116", shadow: "#cc8111" },
@@ -2009,10 +2011,10 @@ function HomeContent() {
           })
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => {
-              if (d?.rank) {
+              if (d?.rank_today != null) {
                 setShowFlyResults((prev) =>
                   prev
-                    ? { ...prev, rank: d.rank, totalPilots: d.total_count }
+                    ? { ...prev, rank: d.rank_today, totalPilots: d.total }
                     : null,
                 );
               }
@@ -3858,9 +3860,48 @@ function HomeContent() {
 
             {/* Milestone progress banner — hidden on mobile to reduce clutter */}
             <div className="hidden sm:flex sm:justify-center w-full">
-              {MILESTONE_MODE === "stars"
-                ? // ── LeetCode Stars mode ──
-                (() => {
+              {(() => {
+                if (MILESTONE_MODE === "donation") {
+                  const current = stats?.renewal_raised_inr ?? 0;
+                  const target = stats?.renewal_target_inr ?? 2900;
+                  const pct = Math.min(100, (current / target) * 100);
+                  const isDone = current >= target;
+
+                  return (
+                    <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
+                      <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
+                        <span>
+                          {isDone ? "RENEWAL SECURED!" : "WEBSITE RENEWAL GOAL"}
+                        </span>
+                        <span style={{ color: theme.accent }}>
+                          {isDone ? "SECURED" : `${Math.round(pct)}% FUNDED`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: theme.accent,
+                            boxShadow: `0 0 10px ${theme.accent}`,
+                          }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[8px] text-[#ffa116] uppercase tracking-wider">
+                        <span className="text-dim">
+                          ₹{current.toLocaleString()} / ₹{target.toLocaleString()}
+                        </span>
+                        <a
+                          href="/support"
+                          className="hover:underline text-right"
+                        >
+                          SUPPORT THE SIGNAL
+                        </a>
+                      </div>
+                    </div>
+                  );
+                } else if (MILESTONE_MODE === "stars") {
+                  // ── LeetCode Stars mode ──
                   const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
                   const current = githubStars;
                   const target = MILESTONES.find((m) => current < m) || 10000;
@@ -3915,9 +3956,8 @@ function HomeContent() {
                       </div>
                     </div>
                   );
-                })()
-                : // ── Total Developers mode ──
-                (() => {
+                } else {
+                  // ── Total Developers mode ──
                   const MILESTONES = [10000, 20000, 50000, 100000];
                   const count = stats.total_developers;
                   if (count <= 0) return null;
@@ -3970,7 +4010,8 @@ function HomeContent() {
                       </div>
                     </div>
                   );
-                })()}
+                }
+              })()}
             </div>
 
             {/* Search / Welcome CTA takeover */}
@@ -5389,10 +5430,10 @@ function HomeContent() {
                   </div>
 
                   {/* ── Header: Avatars + VS ── */}
-                  <div className="flex items-start justify-center gap-5 px-5 pt-1 pb-4 sm:pt-4">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-3 sm:gap-5 px-5 pt-3 pb-4 sm:pt-4">
                     <Link
                       href={`/dev/${comparePair[0].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
                     >
                       {comparePair[0].avatar_url && (
                         <Image
@@ -5410,7 +5451,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full sm:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[0].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5419,7 +5460,7 @@ function HomeContent() {
                     </Link>
 
                     <span
-                      className="text-base shrink-0 pt-4"
+                      className="text-base shrink-0 sm:pt-4"
                       style={{ color: theme.accent }}
                     >
                       VS
@@ -5427,7 +5468,7 @@ function HomeContent() {
 
                     <Link
                       href={`/dev/${comparePair[1].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
                     >
                       {comparePair[1].avatar_url && (
                         <Image
@@ -5462,7 +5503,7 @@ function HomeContent() {
                         className={`flex items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
                       >
                         <span
-                          className="w-[72px] text-right text-[11px] tabular-nums"
+                          className="w-[60px] sm:w-[72px] shrink text-right text-[10px] sm:text-[11px] tabular-nums"
                           style={{
                             color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                           }}
@@ -5473,11 +5514,11 @@ function HomeContent() {
                               : "-"
                             : s.a.toLocaleString()}
                         </span>
-                        <span className="flex-1 text-center text-[8px] text-muted uppercase tracking-wider">
+                        <span className="flex-1 text-center text-[7px] sm:text-[8px] text-muted uppercase tracking-wider mx-1">
                           {s.label}
                         </span>
                         <span
-                          className="w-[72px] text-left text-[11px] tabular-nums"
+                          className="w-[60px] sm:w-[72px] shrink text-left text-[10px] sm:text-[11px] tabular-nums"
                           style={{
                             color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                           }}
@@ -5505,7 +5546,7 @@ function HomeContent() {
                   </div>
 
                   {/* ── Actions ── */}
-                  <div className="px-4 pt-3 pb-1 flex gap-2">
+                  <div className="px-4 pt-3 pb-1 flex flex-col sm:flex-row gap-2">
                     <a
                       href={`https://x.com/intent/tweet?text=${encodeURIComponent(
                         `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`,
@@ -5537,8 +5578,8 @@ function HomeContent() {
                   </div>
 
                   {/* Download with lang toggle */}
-                  <div className="px-4 flex items-center gap-2 pb-1">
-                    <div className="flex gap-0.5 shrink-0">
+                  <div className="px-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pb-1">
+                    <div className="flex justify-center sm:justify-start gap-0.5 shrink-0">
                       {(["en", "pt"] as const).map((l) => (
                         <button
                           key={l}
@@ -5946,6 +5987,11 @@ function HomeContent() {
         <ActivityTicker
           events={feedEvents}
           hasBottomBar={!exploreMode && buildings.length > 0}
+          renewalProgress={
+            stats?.renewal_raised_inr !== undefined && stats?.renewal_target_inr !== undefined
+              ? { raised: stats.renewal_raised_inr, target: stats.renewal_target_inr }
+              : null
+          }
           onEventClick={(evt) => {
             if (compareBuilding || comparePair) return;
             const login = evt.actor?.login;

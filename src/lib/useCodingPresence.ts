@@ -9,6 +9,7 @@ export interface LiveSession {
   avatarUrl: string;
   status: "active" | "idle";
   language?: string;
+  lastUpdated?: number;
 }
 
 export function useCodingPresence() {
@@ -22,25 +23,51 @@ export function useCodingPresence() {
   }, []);
 
   useEffect(() => {
-    // Bootstrap: fetch current active sessions
-    fetch("/api/presence")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.developers) {
-          const map = new Map<string, LiveSession>();
-          for (const d of data.developers) {
-            map.set(d.githubLogin, {
-              githubLogin: d.githubLogin,
-              avatarUrl: d.avatarUrl,
-              status: d.status,
-              language: d.language,
-            });
+    const fetchPresence = () => {
+      const requestTime = Date.now();
+      fetch("/api/presence")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.developers) {
+            const newMap = new Map<string, LiveSession>();
+            const serverLogins = new Set<string>();
+
+            for (const d of data.developers) {
+              serverLogins.add(d.githubLogin);
+              const existing = mapRef.current.get(d.githubLogin);
+              
+              // Only overwrite if our local data isn't newer than the request start time
+              if (existing && existing.lastUpdated && existing.lastUpdated > requestTime) {
+                newMap.set(d.githubLogin, existing);
+              } else {
+                newMap.set(d.githubLogin, {
+                  githubLogin: d.githubLogin,
+                  avatarUrl: d.avatarUrl,
+                  status: d.status,
+                  language: d.language,
+                  lastUpdated: requestTime,
+                });
+              }
+            }
+
+            // Retain recent local sessions that might not have reached the server DB yet
+            for (const [login, session] of mapRef.current.entries()) {
+              if (!serverLogins.has(login)) {
+                if (session.lastUpdated && session.lastUpdated > requestTime) {
+                  newMap.set(login, session);
+                }
+              }
+            }
+
+            mapRef.current = newMap;
+            updateMap();
           }
-          mapRef.current = map;
-          updateMap();
-        }
-      })
-      .catch(() => {});
+        })
+        .catch(() => {});
+    };
+
+    // Bootstrap: fetch current active sessions
+    fetchPresence();
 
     // Subscribe to realtime broadcast
     const supabase = createBrowserSupabase();
@@ -64,32 +91,14 @@ export function useCodingPresence() {
           avatarUrl: payload.avatarUrl,
           status: payload.status ?? "active",
           language: payload.language,
+          lastUpdated: Date.now(),
         });
         updateMap();
       })
       .subscribe();
 
     // Periodically re-fetch to stay in sync with server state
-    const pruneInterval = setInterval(() => {
-      fetch("/api/presence")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.developers) {
-            const map = new Map<string, LiveSession>();
-            for (const d of data.developers) {
-              map.set(d.githubLogin, {
-                githubLogin: d.githubLogin,
-                avatarUrl: d.avatarUrl,
-                status: d.status,
-                language: d.language,
-              });
-            }
-            mapRef.current = map;
-            updateMap();
-          }
-        })
-        .catch(() => {});
-    }, 30_000);
+    const pruneInterval = setInterval(fetchPresence, 30_000);
 
     return () => {
       channel.unsubscribe();

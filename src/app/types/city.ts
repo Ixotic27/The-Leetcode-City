@@ -7,4 +7,6 @@ export interface CityDeveloper {
 export interface CityStats {
     total_developers: number;
     total_contributions: number;
+    renewal_raised_inr?: number;
+    renewal_target_inr?: number;
 }
