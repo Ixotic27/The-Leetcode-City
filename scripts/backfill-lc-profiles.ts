@@ -120,16 +120,15 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
         ...(tagCounts?.intermediate ?? []),
         ...(tagCounts?.fundamental ?? []),
     ]
+    .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+        .slice(0, 20)
+        .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
+
     const languages = user.languageProblemCount ?? [];
     const dominantLanguage = languages.length > 0
       ? [...languages].sort((a: any, b: any) => 
         b.problemsSolved - a.problemsSolved)[0].languageName
       : null;
-      
-        .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
-        .slice(0, 20)
-        .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
-
     const { error } = await sb.from("developers").upsert(
         {
             github_login: username.toLowerCase(),
