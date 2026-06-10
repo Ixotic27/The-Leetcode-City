@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 interface CodexModalProps {
@@ -75,6 +75,15 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [equippingId, setEquippingId] = useState<string | null>(null);
 
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
@@ -90,11 +99,14 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
     if (!isOpen) return;
     setLoading(true);
 
+    let active = true;
     const controller = new AbortController();
 
     fetch("/api/codex", { signal: controller.signal })
       .then(async (res) => {
         const codexData = await res.json();
+        if (!active || !isMounted.current) return;
+        
         if (!res.ok || codexData.error || !Array.isArray(codexData.achievements) || !Array.isArray(codexData.items)) {
           throw new Error(codexData.error || "Malformed codex data");
         }
@@ -104,6 +116,7 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
+        if (!active || !isMounted.current) return;
 
         console.error("Failed to load Codex data:", err);
         setData({
@@ -121,6 +134,7 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
       });
 
     return () => {
+      active = false;
       controller.abort();
     };
   }, [isOpen]);
@@ -139,6 +153,9 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
         }),
       });
       const resData = await res.json();
+      
+      if (!isMounted.current || !isOpen) return;
+
       if (res.ok && resData.success) {
         setSelectedTitle(resData.slug);
         if (data && data.developerId) {
@@ -159,10 +176,13 @@ export default function CodexModal({ isOpen, onClose, accentColor, shadowColor }
         alert(resData.error || "Failed to save title customization");
       }
     } catch (err) {
+      if (!isMounted.current || !isOpen) return;
       console.error("Error equipping title:", err);
       alert("Error saving title customization");
     } finally {
-      setEquippingId(null);
+      if (isMounted.current && isOpen) {
+        setEquippingId(null);
+      }
     }
   };
 
