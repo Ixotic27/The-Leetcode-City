@@ -245,12 +245,12 @@ export async function POST(request: Request) {
             : charge.payment_intent?.id;
 
         if (paymentIntentId) {
-          // Refund shop purchases
+          // Refund shop purchases (both completed and delivered consumables)
           await sb
             .from("purchases")
             .update({ status: "refunded" })
             .eq("provider_tx_id", paymentIntentId)
-            .eq("status", "completed");
+            .in("status", ["completed", "delivered"]);
 
           // Refund sky ads: find checkout session for this payment intent
           const stripe = getStripe();
