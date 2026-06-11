@@ -40,6 +40,7 @@
 - [🚀 Getting Started](#-getting-started)
 - [🔧 Environment Variables](#-environment-variables)
 - [🤝 Contributing](#-contributing)
+- [👥 Contributors](#-contributors)
 - [License](#license)
 
 ---
