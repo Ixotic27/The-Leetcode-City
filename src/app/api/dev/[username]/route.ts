@@ -65,6 +65,10 @@ async function fetchLeetCodeUser(username: string) {
           acSubmissionNum { difficulty count }
           totalSubmissionNum { difficulty count }
         }
+        languageProblemCount {
+          languageName
+          problemsSolved
+        } 
         yearCurrent: userCalendar(year: ${currentYear}) { streak totalActiveDays submissionCalendar }
         yearPrev: userCalendar(year: ${prevYear}) { submissionCalendar }
       }
@@ -193,6 +197,11 @@ export async function GET(
     const totalSub = getTot("All");
     const activeDays = user.userCalendar?.totalActiveDays ?? 0;
     const lcRank = user.profile?.ranking ?? 999999;
+    const languages = user.languageProblemCount ?? [];
+    const dominantLanguage = languages.length > 0
+      ? [...languages].sort((a: any, b: any) => 
+      b.problemsSolved - a.problemsSolved)[0].languageName
+      : null;
     const litPercentage = Math.min(0.92, Math.max(0.15, activeDays / 365));
 
     // Stable ID from username
@@ -239,6 +248,7 @@ export async function GET(
       lc_twitter: user.profile?.twitterUrl ?? null,
       lc_linkedin: user.profile?.linkedinUrl ?? null,
       lc_github: user.profile?.githubUrl ?? null,
+      primary_language:dominantLanguage,
       // Tag stats
       lc_tag_stats: [
         ...(user.tagProblemCounts?.advanced ?? []),

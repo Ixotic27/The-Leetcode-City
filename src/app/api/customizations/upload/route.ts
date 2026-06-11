@@ -277,7 +277,6 @@ export async function DELETE(request: Request) {
     );
 
   if (upsertError) {
-    console.error("Upsert error:", upsertError);
     return NextResponse.json(
       { error: "Failed to update customization" },
       { status: 500 }
