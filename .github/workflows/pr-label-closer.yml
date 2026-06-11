@@ -15,7 +15,11 @@ jobs:
   close-and-reopen:
     name: Auto Close PR and Reopen Issue
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'invalid'
+    if: >
+      github.event.label.name == 'invalid' ||
+      github.event.label.name == 'gssoc:invalid' ||
+      github.event.label.name == 'gssoc:spam' ||
+      github.event.label.name == 'gssoc:ai-slop'
 
     steps:
       - name: Close invalid PR and Reopen Linked Issue
@@ -35,18 +39,25 @@ jobs:
             });
             const labelNames = labels.map(l => l.name);
             const lacksVisuals = labelNames.includes('needs-visual-proof');
+            const isSpam = labelNames.includes('gssoc:spam');
+            const isAiSlop = labelNames.includes('gssoc:ai-slop');
+            const isGssocInvalid = labelNames.includes('gssoc:invalid');
 
             // 2. Decide the close message & issue reopen reason
             let closeMessage = '';
             let reopenReason = '';
 
-            if (lacksVisuals) {
+            if (isSpam) {
+              closeMessage = `🚫 Hey @${prAuthor}!\n\nThis PR has been flagged as **spam** — a fabricated contribution with no real value. This PR will receive **0 GSSoC points** and is being closed immediately.\n\nRepeated spam submissions may result in being blocked from the project.`;
+              reopenReason = `The PR was flagged as spam (fabricated contribution with no real value).`;
+            } else if (isAiSlop) {
+              closeMessage = `🤖 Hey @${prAuthor}!\n\nThis PR has been flagged as **AI-generated content** pasted without understanding or editing. The contributor could not explain the changes when asked.\n\nThis is different from AI-*assisted* work where the human understands every line. If you believe this is an error, please explain your changes in a comment and we’ll reconsider.\n\nThis PR will receive **0 GSSoC points**.`;
+              reopenReason = `The PR was flagged as AI-generated content pasted without understanding.`;
+            } else if (lacksVisuals) {
               closeMessage = `👋 Hey @${prAuthor}!\n\nIt looks like you forgot to train yourself and your AI to read the contribution rules—or even read the issue properly. Relevant visual proof (screenshots or videos) is explicitly required, not random unrelated screenshots.\n\nThis PR is now closed. 🤖`;
-
               reopenReason = `It looks like the assignee forgot to train themselves and their AI to read the contribution rules—or even read the issue properly. Relevant visual proof is explicitly required.`;
             } else {
-              closeMessage = `👋 Hey @${prAuthor}!\n\nThis PR has been marked as **invalid** and is being closed. This is usually due to the assignee being unresponsive or failing to follow standard contribution guidelines.\n\nWe appreciate your interest and hope to see higher quality contributions in the future.`;
-
+              closeMessage = `👋 Hey @${prAuthor}!\n\nThis PR has been marked as **invalid** and is being closed. This is usually due to the assignee being unresponsive or failing to follow standard contribution guidelines.\n\nThis PR will receive **0 GSSoC points**. We appreciate your interest and hope to see higher quality contributions in the future.`;
               reopenReason = `The PR was marked as invalid due to the assignee being unresponsive or failing to follow standard contribution guidelines.`;
             }
 
