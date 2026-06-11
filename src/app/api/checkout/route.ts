@@ -257,16 +257,17 @@ export async function POST(request: Request) {
 
   // DEV BYPASS: Allow Ishant_27 / ixotic / ixotic27 to get items for free for testing
   const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase()) && body.dev_mode === true;
+  const isFree = item.price_usd_cents === 0;
 
-  if (isDev) {
-    console.log(`[DEV] Bypassing payment for ${githubLogin}`);
+  if (isDev || isFree) {
+    console.log(`Bypassing payment for ${githubLogin} (Dev: ${isDev}, Free: ${isFree})`);
     const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, sb);
     const { data: purchase, error: purchaseError } = await sb
       .from("purchases")
       .insert({
         developer_id: dev.id,
         item_id,
-        provider: "stripe",
+        provider: isFree ? "free" : "stripe",
         amount_cents: 0,
         currency: "usd",
         status: purchaseStatus,
@@ -276,7 +277,7 @@ export async function POST(request: Request) {
       .single();
 
     if (purchaseError) {
-      return NextResponse.json({ error: "Failed to create dev purchase" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to create dev/free purchase" }, { status: 500 });
     }
 
     // Return a success URL that redirects back to the shop/city
@@ -285,6 +286,7 @@ export async function POST(request: Request) {
       purchase_id: purchase.id
     });
   }
+
 
   try {
     if (provider === "stripe") {

@@ -648,6 +648,7 @@ export default function ShopClient({
   acceptedHard = 0,
 }: Props) {
   const formatPrice = (item: ShopItem): string => {
+    if (item.price_usd_cents === 0) return "FREE";
     const USD_TO_INR = 85;
     const amountINR = Math.max(1, Math.ceil((item.price_usd_cents / 100) * USD_TO_INR));
     return `₹${amountINR}`;
@@ -1768,7 +1769,7 @@ export default function ShopClient({
                             }
                           } else if (isFreeItem) {
                             claimFreeItem();
-                          } else if (shopItem && shopItem.price_usd_cents > 0) {
+                          } else if (shopItem && shopItem.price_usd_cents >= 0) {
                             // Don't allow buying if level locked or quest locked
                             if (isLevelLocked && !isOwned) return;
                             if (itemId === "scouting_satellite" && !isOwned && !(acceptedMedium >= 10 || acceptedHard >= 5)) return;
