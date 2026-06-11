@@ -10,11 +10,11 @@ async function rollItemDrops(sb: any, difficulty: string, devId: number): Promis
       .from("arena_items")
       .select("*")
       .eq("rarity", rarity);
-    
+
     if (data && data.length > 0) {
       return data[Math.floor(Math.random() * data.length)];
     }
-    return null;
+  return null;
   };
 
   const roll = Math.random();
@@ -39,30 +39,35 @@ async function rollItemDrops(sb: any, difficulty: string, devId: number): Promis
   } else if (difficulty === "hard") {
     const epic = await getRandomItemByRarity("epic");
     if (epic) droppedItems.push(epic);
-    if (roll < 0.25) {
-      const rare = await getRandomItemByRarity("rare");
-      if (rare) droppedItems.push(rare);
-    }
-    if (Math.random() < 0.05) {
+
+    // Use a single roll to pick at most one of: rare bonus, legendary, epic+rare bonus.
+    // Previously three independent Math.random() calls could all fire at once.
+    const bonusRoll = Math.random();
+    if (bonusRoll < 0.05) {
       const legendary = await getRandomItemByRarity("legendary");
       if (legendary) droppedItems.push(legendary);
-    }
-    if (Math.random() < 0.08) {
+    } else if (bonusRoll < 0.13) {
+      // 0.08 wide window — epic+rare bonus pack
       const epicBonus = await getRandomItemByRarity("epic");
       const rareBonus = await getRandomItemByRarity("rare");
       if (epicBonus) droppedItems.push(epicBonus);
       if (rareBonus) droppedItems.push(rareBonus);
+    } else if (bonusRoll < 0.38) {
+      // 0.25 wide window — single rare bonus
+      const rare = await getRandomItemByRarity("rare");
+      if (rare) droppedItems.push(rare);
     }
   }
 
-  // Save dropped items to user's inventory using atomic upsert
-  // quantity increments atomically — no read-then-write here either
-  for (const item of droppedItems) {
-    await sb.rpc("upsert_arena_inventory_item", {
-      p_user_id: devId,
-      p_item_id: item.id,
-    });
-  }
+  // Save dropped items to user's inventory concurrently (was sequential await-in-loop)
+  await Promise.all(
+    droppedItems.map((item) =>
+      sb.rpc("upsert_arena_inventory_item", {
+        p_user_id: devId,
+        p_item_id: item.id,
+      })
+    )
+  );
 
   return droppedItems;
 }
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
     status,
     tests_passed,
     tests_total,
-    execution_time_ms
+    execution_time_ms,
   } = body;
 
   if (!problem_id || !status) {
@@ -92,42 +97,44 @@ export async function POST(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
 
-  // 1. Fetch challenge details (if linked)
+  // 1. Fetch challenge details (if linked) and developer timezone in parallel
   let challenge: any = null;
   let difficulty = "medium";
   let basePoints = 100;
   let baseXp = 10;
 
-  if (challenge_id) {
-    const { data: ch } = await sb
-      .from("arena_challenges")
-      .select("*")
-      .eq("id", challenge_id)
-      .maybeSingle();
-    challenge = ch;
-    if (challenge) {
-      difficulty = challenge.difficulty;
-      basePoints = challenge.reward_points || 100;
-      baseXp = challenge.reward_xp || 10;
-    }
+  const [challengeResult, devProfileResult] = await Promise.all([
+    challenge_id
+      ? sb.from("arena_challenges").select("*").eq("id", challenge_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    sb.from("developers").select("timezone").eq("id", dev.id).maybeSingle(),
+  ]);
+
+  challenge = challengeResult.data;
+  if (challenge) {
+    difficulty = challenge.difficulty;
+    basePoints = challenge.reward_points || 100;
+    baseXp = challenge.reward_xp || 10;
   }
 
+  // Use the developer's stored IANA timezone so streak boundaries are local-date-correct.
+  // Falls back to UTC if not set, matching the RPC default.
+  const devTimezone: string = devProfileResult.data?.timezone ?? "UTC";
+
   // 2. Insert submission record
-  const { error: insertError } = await sb
-    .from("arena_submissions")
-    .insert({
-      user_id: dev.id,
-      problem_id,
-      challenge_id: challenge_id || null,
-      language,
-      code_hash,
-      code,
-      status,
-      tests_passed: tests_passed || 0,
-      tests_total: tests_total || 0,
-      execution_time_ms: execution_time_ms || null,
-      is_verified: false,
-    });
+  const { error: insertError } = await sb.from("arena_submissions").insert({
+    user_id: dev.id,
+    problem_id,
+    challenge_id: challenge_id || null,
+    language,
+    code_hash,
+    code,
+    status,
+    tests_passed: tests_passed || 0,
+    tests_total: tests_total || 0,
+    execution_time_ms: execution_time_ms || null,
+    is_verified: false,
+  });
 
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
@@ -154,10 +161,10 @@ export async function POST(request: NextRequest) {
     if (activeBuffs) {
       for (const buff of activeBuffs) {
         if (buff.buff_type === "xp_boost") {
-          xpMultiplier += (buff.buff_value - 1.0);
+          xpMultiplier += buff.buff_value - 1.0;
         } else if (buff.buff_type === "reward_multiplier") {
-          xpMultiplier += (buff.buff_value - 1.0);
-          pointsMultiplier += (buff.buff_value - 1.0);
+          xpMultiplier += buff.buff_value - 1.0;
+          pointsMultiplier += buff.buff_value - 1.0;
         }
       }
     }
@@ -165,21 +172,15 @@ export async function POST(request: NextRequest) {
     grantedXp = Math.round(baseXp * xpMultiplier);
     grantedPoints = Math.round(basePoints * pointsMultiplier);
 
-    // ── Atomic first-solve claim ──────────────────────────────────
-    // claim_first_solve() does an INSERT ... ON CONFLICT DO NOTHING
-    // on the arena_first_solves table and atomically increments
-    // developers.points inside the same DB function — only the first
-    // concurrent caller wins (won_race = true); all others get false.
-    const { data: claimResult, error: claimError } = await sb.rpc(
-      "claim_first_solve",
-      {
-        p_user_id:      dev.id,
-        p_challenge_id: challenge_id || null,
-        p_problem_id:   challenge_id ? null : problem_id,
-        p_points:       grantedPoints,
-        p_xp:           grantedXp,
-      }
-    );
+    // Atomic first-solve claim — INSERT … ON CONFLICT DO NOTHING inside Postgres.
+    // Only the first concurrent caller wins (won_race = true).
+    const { data: claimResult, error: claimError } = await sb.rpc("claim_first_solve", {
+      p_user_id:      dev.id,
+      p_challenge_id: challenge_id || null,
+      p_problem_id:   challenge_id ? null : problem_id,
+      p_points:       grantedPoints,
+      p_xp:           grantedXp,
+    });
 
     if (claimError) {
       console.error("[arena/submit] claim_first_solve error:", claimError);
@@ -190,69 +191,31 @@ export async function POST(request: NextRequest) {
 
     if (isFirstSolve) {
       // Grant XP via existing RPC (idempotency handled by claim_first_solve above)
-      await sb.rpc("grant_xp", {
+      await sb.rpc("grant_xp_atomic", {
         p_developer_id: dev.id,
         p_source: `arena_${difficulty}`,
         p_amount: grantedXp,
       });
 
-      // Roll for item drops
       droppedItems = await rollItemDrops(sb, difficulty, dev.id);
     }
   }
 
-  // 4. Update rating and streak statistics
-  const { data: ratingRecord } = await sb
-    .from("arena_ratings")
-    .select("*")
-    .eq("user_id", dev.id)
-    .maybeSingle();
-
-  const todayStr = new Date().toISOString().split("T")[0];
-  let rating = ratingRecord?.rating ?? 1200;
-  let problemsSolved = ratingRecord?.problems_solved ?? 0;
-  let problemsAttempted = ratingRecord?.problems_attempted ?? 0;
-  let currentStreak = ratingRecord?.current_streak ?? 0;
-  let bestStreak = ratingRecord?.best_streak ?? 0;
-
-  problemsAttempted += 1;
-
-  if (isAccepted && isFirstSolve) {
-    problemsSolved += 1;
-    if (difficulty === "easy") rating += 10;
-    else if (difficulty === "medium") rating += 20;
-    else if (difficulty === "hard") rating += 40;
-
-    const lastSolvedDateStr = ratingRecord?.last_solved_at
-      ? new Date(ratingRecord.last_solved_at).toISOString().split("T")[0]
-      : null;
-    // Use UTC date components — avoids DST ms-subtraction issue
-    const now = new Date();
-    const yesterdayDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
-    const yesterdayStr = yesterdayDate.toISOString().split("T")[0];
-
-    if (lastSolvedDateStr !== todayStr) {
-      if (lastSolvedDateStr === yesterdayStr) {
-        currentStreak += 1;
-      } else {
-        currentStreak = 1;
-      }
-      if (currentStreak > bestStreak) {
-        bestStreak = currentStreak;
-      }
-    }
-  }
-
-  await sb.from("arena_ratings").upsert({
-    user_id: dev.id,
-    rating,
-    problems_solved: problemsSolved,
-    problems_attempted: problemsAttempted,
-    current_streak: currentStreak,
-    best_streak: bestStreak,
-    last_solved_at: isAccepted && isFirstSolve ? new Date().toISOString() : ratingRecord?.last_solved_at,
-    updated_at: new Date().toISOString(),
+  // 4. Update rating and streak statistics atomically via DB function.
+  //    p_timezone ensures streak boundaries are evaluated in the developer's local date,
+  //    not always UTC — fixing the bug where a solve at e.g. 23:30 IST broke a streak.
+  const { error: ratingsError } = await sb.rpc("update_arena_ratings_atomic", {
+    p_user_id:        dev.id,
+    p_is_accepted:    isAccepted,
+    p_is_first_solve: isFirstSolve,
+    p_difficulty:     difficulty,
+    p_timezone:       devTimezone,   // ← was missing; Fix 2 in the migration was dead without this
   });
+
+  if (ratingsError) {
+    console.error("[arena/submit] update_arena_ratings_atomic error:", ratingsError);
+    return NextResponse.json({ error: "Failed to update ratings" }, { status: 500 });
+  }
 
   return NextResponse.json({
     status: "success",

@@ -35,6 +35,7 @@ import {
 } from "./BuildingEffects";
 import { tierFromLevel } from "@/lib/xp";
 import { MiniWhiteRabbit } from "./WhiteRabbit";
+import { useWeather } from '@/context/WeatherContext';
 
 // Shared constants
 const WHITE = new THREE.Color("#ffffff");
@@ -568,6 +569,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
   const meshRef = useRef<THREE.Mesh>(null);
   const spriteRef = useRef<THREE.Sprite>(null);
   const pointerDown = useRef<{ x: number; y: number } | null>(null);
+  const { isRaining } = useWeather();
 
   // Compute actual dimensions based on style (matches ShopPreview logic)
   const isBungalow = building.building_style === "bungalow";
@@ -580,6 +582,8 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     const seed =
       building.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
+    const safeLitPct = typeof building.litPercentage === "number" && !isNaN(building.litPercentage) ? building.litPercentage : 0.3;
+
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {
       const blended = new THREE.Color(colors.face)
@@ -587,11 +591,11 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
       const blendedHex = '#' + blended.getHexString();
       const front = createWindowTexture(
         building.floors, building.windowsPerFloor,
-        building.litPercentage, seed, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed, colors.windowLit, colors.windowOff, blendedHex
       );
       const side = createWindowTexture(
         building.floors, building.sideWindowsPerFloor,
-        building.litPercentage, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
       );
       return { front, side };
     }
@@ -599,7 +603,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     // Atlas-based textures — litPercentage drives how many windows are lit.
     // For LC buildings litPercentage = active_days / 365 (set at claim time),
     // so a daily grinder has nearly all windows lit, a casual solver has fewer.
-    const bandIndex = Math.min(5, Math.max(0, Math.round(building.litPercentage * 5)));
+    const bandIndex = Math.min(5, Math.max(0, Math.round(safeLitPct * 5)));
     const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 
     // Adjust windows based on bungalow dims to keep aspect ratio mapping mostly correct
@@ -617,9 +621,37 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     side.offset.set(sideColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
     side.repeat.set(effWindowsD / ATLAS_COLS, effFloors / ATLAS_COLS);
 
-    return { front, side };
+return { front, side };
   }, [building, colors, atlasTexture, isBungalow, W, H, D]);
 
+  // 1. Move useFrame out here so it sits at the root level of the component!
+useFrame((state, delta) => {
+  if (!materials || materials.length === 0) return;
+
+  materials.forEach((mat, idx) => {
+    const isRoof = idx === 2 || idx === 3;
+    const baseRoughness = isRoof ? 0.6 : 0.85;
+    
+    const targetRoughness = isRaining ? 0.15 : baseRoughness;
+    const targetMetalness = isRaining ? 0.25 : 0.0;
+
+    // Optimization: Only run calculations if current roughness hasn't reached target yet
+    if (Math.abs(mat.roughness - targetRoughness) > 0.01) {
+      mat.roughness = THREE.MathUtils.lerp(mat.roughness, targetRoughness, delta * 2);
+    } else {
+      mat.roughness = targetRoughness; // Snap to target to stop wasting CPU cycles
+    }
+
+    // Optimization: Only run calculations if current metalness hasn't reached target yet
+    if (Math.abs(mat.metalness - targetMetalness) > 0.01) {
+      mat.metalness = THREE.MathUtils.lerp(mat.metalness, targetMetalness, delta * 2);
+    } else {
+      mat.metalness = targetMetalness; // Snap to target to stop wasting CPU cycles
+    }
+  });
+});
+
+  // 2. Keep useEffect strictly for cleaning up your canvas textures on unmount
   useEffect(() => {
     return () => {
       textures.front.dispose();

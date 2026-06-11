@@ -57,8 +57,21 @@ export async function POST(request: Request) {
   // Fetch attacker
   const attacker = await findRaidAttackerForUser(admin, user, attackerColumns);
 
-  if (!attacker || !attacker.claimed) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+  if (!attacker) {
+    return NextResponse.json(
+      {
+        error:
+          "Your LeetCode stats are still being synced. Please check back in a few minutes!",
+      },
+      { status: 403 }
+    );
+  }
+
+  if (!attacker.claimed) {
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 }
+    );
   }
 
   // Compile attacker's owned items from purchases

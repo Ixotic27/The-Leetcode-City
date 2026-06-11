@@ -7,46 +7,6 @@
     {
       "path": "/api/cron/flush-batches",
       "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/streak-reminder",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/cron/weekly-digest",
-      "schedule": "0 10 * * 1"
-    },
-    {
-      "path": "/api/cron/monthly-digest",
-      "schedule": "0 10 1 * *"
-    },
-    {
-      "path": "/api/cron/re-engagement",
-      "schedule": "0 14 * * *"
-    },
-    {
-      "path": "/api/cron/city-snapshot",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-sessions",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/lc-refresh",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/rotate-daily-challenge",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/sync-arena-problems",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/monthly-sync",
-      "schedule": "0 0 28 * *"
     }
   ]
 }

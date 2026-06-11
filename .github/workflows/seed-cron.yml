@@ -6,7 +6,7 @@ on:
   workflow_dispatch:          # Allow manual trigger from GitHub UI
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: seed-cron
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -43,18 +43,22 @@ jobs:
             echo "✅ SUPABASE_SERVICE_ROLE_KEY secret is present."
           fi
 
+      - name: Restore seeder state cache
+        uses: actions/cache/restore@v4
+        with:
+          path: scripts/seed-lc-state.json
+          key: seeder-state-${{ github.run_id }}
+          restore-keys: |
+            seeder-state-
+
       - name: Run seeder (5 pages ≈ 125 users)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ykqxkfazxsyantffjouf.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/seed-lc-infinite.ts --pages 5
 
-      - name: Commit state file
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f scripts/seed-lc-state.json ]; then
-            git add scripts/seed-lc-state.json
-          fi
-          git diff --cached --quiet || git commit -m "🔧 ci: update seeder state"
-          git push
+      - name: Save seeder state cache
+        uses: actions/cache/save@v4
+        with:
+          path: scripts/seed-lc-state.json
+          key: seeder-state-${{ github.run_id }}

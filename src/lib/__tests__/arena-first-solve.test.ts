@@ -21,7 +21,7 @@ function buildMockSb(wonRace: boolean, claimError: any = null) {
           error: claimError,
         });
       }
-      if (name === "grant_xp") {
+      if (name === "grant_xp_atomic") {
         return Promise.resolve({ data: { granted: 10, new_total: 110, new_level: 1 }, error: null });
       }
       return Promise.resolve({ data: null, error: null });
@@ -45,13 +45,13 @@ describe("Arena first-solve idempotency — application layer", () => {
   });
 
   it("sets isFirstSolve = false when claim_first_solve returns null data", async () => {
-    const claimResult = null;
+    const claimResult: any = null;
     const isFirstSolve = claimResult?.[0]?.won_race === true;
     expect(isFirstSolve).toBe(false);
   });
 
   it("sets isFirstSolve = false when won_race is undefined", async () => {
-    const claimResult = [{}];
+    const claimResult: any = [{}];
     const isFirstSolve = claimResult?.[0]?.won_race === true;
     expect(isFirstSolve).toBe(false);
   });
@@ -84,21 +84,21 @@ describe("Arena first-solve idempotency — application layer", () => {
 
   it("grant_xp is called only when won_race is true", async () => {
     const sb = buildMockSb(true);
-    // Simulate the route's conditional: only call grant_xp if isFirstSolve
+    // Simulate the route's conditional: only call grant_xp_atomic if isFirstSolve
     const isFirstSolve = true;
     if (isFirstSolve) {
-      await sb.rpc("grant_xp", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
+      await sb.rpc("grant_xp_atomic", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
     }
-    expect(sb.rpc).toHaveBeenCalledWith("grant_xp", expect.objectContaining({ p_amount: 10 }));
+    expect(sb.rpc).toHaveBeenCalledWith("grant_xp_atomic", expect.objectContaining({ p_amount: 10 }));
   });
 
   it("grant_xp is NOT called when won_race is false", async () => {
     const sb = buildMockSb(false);
     const isFirstSolve = false;
     if (isFirstSolve) {
-      await sb.rpc("grant_xp", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
+      await sb.rpc("grant_xp_atomic", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
     }
-    expect(sb.rpc).not.toHaveBeenCalledWith("grant_xp", expect.anything());
+    expect(sb.rpc).not.toHaveBeenCalledWith("grant_xp_atomic", expect.anything());
   });
 
   // ── Multiplier calculation ─────────────────────────────────────
@@ -147,14 +147,14 @@ describe("Arena first-solve idempotency — application layer", () => {
   // ── Non-accepted submissions never trigger reward path ─────────
 
   it("isFirstSolve stays false for wrong_answer status", () => {
-    const status = "wrong_answer";
+    const status: string = "wrong_answer";
     const isAccepted = status === "accepted";
     // claim_first_solve is never called if !isAccepted
     expect(isAccepted).toBe(false);
   });
 
   it("isFirstSolve stays false for tle status", () => {
-    const status = "tle";
+    const status: string = "tle";
     expect(status === "accepted").toBe(false);
   });
 

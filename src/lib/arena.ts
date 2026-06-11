@@ -365,6 +365,14 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
     return true;
   }
 
+  // Get all problem IDs that have ever been used as daily challenges
+  const { data: usedChallenges } = await sb
+    .from("arena_challenges")
+    .select("problem_id")
+    .eq("type", "daily");
+
+  const usedProblemIds = new Set(usedChallenges?.map(c => c.problem_id) ?? []);
+
   // Get problems for each difficulty
   const fetchRandomProblem = async (difficulty: "easy" | "medium" | "hard") => {
     // Select problems of this difficulty
@@ -378,9 +386,15 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
       throw new Error(`No active problems found in database for difficulty: ${difficulty}`);
     }
 
+    // Filter out problems that have already been used as daily challenges
+    const unusedProblems = problems.filter(p => !usedProblemIds.has(p.id));
+
+    // Fallback to all problems if all of them have been used
+    const candidates = unusedProblems.length > 0 ? unusedProblems : problems;
+
     // Pick one randomly
-    const randomIdx = Math.floor(Math.random() * problems.length);
-    return problems[randomIdx].id;
+    const randomIdx = Math.floor(Math.random() * candidates.length);
+    return candidates[randomIdx].id;
   };
 
   try {

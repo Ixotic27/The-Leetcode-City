@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { autoEquipIfSolo } from "@/lib/items";
+import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
@@ -92,7 +92,8 @@ export async function POST(request: Request) {
               ends_at: endsAt.toISOString(),
               purchaser_email: session.customer_details?.email ?? null,
             })
-            .eq("id", ad.id);
+            .eq("id", ad.id)
+            .eq("active", false);
 
           // Auto-deactivate the "advertise" placeholder if same vehicle type
           if (plan.vehicle === "plane") {
@@ -119,43 +120,35 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Find the pending purchase
-        const { data: pending } = await sb
+        const txId = paymentIntentId ?? session.id;
+
+        // 1. Attempt to claim a pending purchase record atomically
+        const { data: claimedPending } = await sb
           .from("purchases")
-          .select("id, status")
+          .update({
+            status: "processing",
+            provider_tx_id: txId,
+          })
           .eq("developer_id", Number(developerId))
           .eq("item_id", itemId)
           .eq("status", "pending")
           .eq("provider", "stripe")
+          .select()
           .maybeSingle();
 
-        if (pending) {
+        if (claimedPending) {
+          const giftedTo = session.metadata?.gifted_to;
+          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
+          const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+
           await sb
             .from("purchases")
             .update({
-              status: "completed",
-              provider_tx_id: paymentIntentId ?? session.id,
+              status: purchaseStatus,
             })
-            .eq("id", pending.id);
-
-          // Streak freeze: grant via RPC instead of normal item flow
-          if (itemId === "streak_freeze") {
-            await sb.rpc("grant_streak_freeze", { p_developer_id: Number(developerId) });
-            await sb.from("streak_freeze_log").insert({
-              developer_id: Number(developerId),
-              action: "purchased",
-            });
-            await sb.from("activity_feed").insert({
-              event_type: "item_purchased",
-              actor_id: Number(developerId),
-              metadata: { login: session.metadata?.github_login, item_id: "streak_freeze" },
-            });
-            break;
-          }
+            .eq("id", claimedPending.id);
 
           // Auto-equip if solo item in zone
-          const giftedTo = session.metadata?.gifted_to;
-          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
           await autoEquipIfSolo(ownerId, itemId);
 
           // Insert feed event + send notifications
@@ -178,8 +171,8 @@ export async function POST(request: Request) {
             });
 
             // Gift notifications: receipt to buyer, alert to receiver
-            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", pending.id, itemId);
-            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", pending.id, itemId);
+            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", claimedPending.id, itemId);
+            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", claimedPending.id, itemId);
           } else {
             await sb.from("activity_feed").insert({
               event_type: "item_purchased",
@@ -188,30 +181,46 @@ export async function POST(request: Request) {
             });
 
             // Purchase receipt notification
-            sendPurchaseNotification(Number(developerId), githubLogin ?? "", pending.id, itemId);
+            sendPurchaseNotification(Number(developerId), githubLogin ?? "", claimedPending.id, itemId);
           }
         } else {
-          // Check if already completed (webhook duplicate)
+          // No pending row found. Check if already processing or completed —
+          // query by developer_id+item_id+provider, NOT provider_tx_id, because
+          // a concurrent winning request may not have written provider_tx_id yet.
           const { data: existing } = await sb
             .from("purchases")
-            .select("id")
-            .eq("developer_id", Number(developerId))
-            .eq("item_id", itemId)
-            .eq("status", "completed")
+            .select("id, status")
+            .eq("provider_tx_id", txId)
             .maybeSingle();
 
           if (!existing) {
-            // Create completed purchase directly (edge case: pending was cleaned up)
-            await sb.from("purchases").insert({
-              developer_id: Number(developerId),
-              item_id: itemId,
-              provider: "stripe",
-              provider_tx_id: paymentIntentId ?? session.id,
-              amount_cents: session.amount_total ?? 0,
-              currency: session.currency ?? "usd",
-              status: "completed",
-            });
-            await autoEquipIfSolo(Number(developerId), itemId);
+            const giftedTo = session.metadata?.gifted_to;
+            const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
+            
+            // Atomic insert to ensure only one fulfillment proceeds for this txId
+            const { data: inserted } = await sb
+              .from("purchases")
+              .insert({
+                developer_id: Number(developerId),
+                item_id: itemId,
+                provider: "stripe",
+                provider_tx_id: txId,
+                amount_cents: session.amount_total ?? 0,
+                currency: session.currency ?? "usd",
+                status: "processing",
+                ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
+              })
+              .select("id")
+              .maybeSingle();
+
+            if (inserted) {
+              const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+              await sb
+                .from("purchases")
+                .update({ status: purchaseStatus })
+                .eq("id", inserted.id);
+              await autoEquipIfSolo(ownerId, itemId);
+            }
           }
         }
         break;
@@ -238,12 +247,12 @@ export async function POST(request: Request) {
             : charge.payment_intent?.id;
 
         if (paymentIntentId) {
-          // Refund shop purchases
+          // Refund shop purchases (both completed and delivered consumables)
           await sb
             .from("purchases")
             .update({ status: "refunded" })
             .eq("provider_tx_id", paymentIntentId)
-            .eq("status", "completed");
+            .in("status", ["completed", "delivered"]);
 
           // Refund sky ads: find checkout session for this payment intent
           const stripe = getStripe();

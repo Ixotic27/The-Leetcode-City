@@ -267,17 +267,44 @@ jobs:
 
               console.log(`Successfully approved PR #${prNumber}!`);
 
-              console.log(`Attempting to auto-merge PR #${prNumber}...`);
-              try {
-                await github.rest.pulls.merge({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: prNumber,
-                  merge_method: 'squash'
-                });
-                console.log(`Successfully merged PR #${prNumber}!`);
-              } catch (mergeErr) {
-                console.error(`Failed to merge PR #${prNumber}:`, mergeErr.message);
+              // ── GSSoC Label Gate: validate labels before merge ──
+              const { data: prLabels } = await github.rest.issues.listLabelsOnIssue({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber
+              });
+              const labelNames = prLabels.map(l => l.name);
+
+              const BLOCKING = ['gssoc:invalid', 'gssoc:spam', 'gssoc:ai-slop'];
+              const DIFFICULTY = ['level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+              const TYPES = ['type:bug', 'type:feature', 'type:docs', 'type:testing', 'type:refactor', 'type:design', 'type:accessibility', 'type:performance', 'type:devops', 'type:security'];
+
+              const hasBlocking = labelNames.some(l => BLOCKING.includes(l));
+              const hasDifficulty = labelNames.some(l => DIFFICULTY.includes(l));
+              const hasType = labelNames.some(l => TYPES.includes(l));
+              const hasApproved = labelNames.includes('gssoc:approved');
+
+              if (hasBlocking) {
+                console.log(`PR #${prNumber} has a blocking label. Skipping auto-merge.`);
+              } else if (!hasDifficulty || !hasType || !hasApproved) {
+                const missing = [];
+                if (!hasDifficulty) missing.push('difficulty (level:X)');
+                if (!hasType) missing.push('type (type:X)');
+                if (!hasApproved) missing.push('gssoc:approved');
+                console.log(`PR #${prNumber} is missing label(s): ${missing.join(', ')}. Skipping auto-merge.`);
+              } else {
+                console.log(`PR #${prNumber} passes label gate. Attempting auto-merge...`);
+                try {
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    merge_method: 'squash'
+                  });
+                  console.log(`Successfully merged PR #${prNumber}!`);
+                } catch (mergeErr) {
+                  console.error(`Failed to merge PR #${prNumber}:`, mergeErr.message);
+                }
               }
             } catch (err) {
               console.error(`Failed to approve PR #${prNumber}:`, err.message);

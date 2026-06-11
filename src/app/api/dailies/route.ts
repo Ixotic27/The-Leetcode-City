@@ -29,13 +29,14 @@ export async function GET(request: Request) {
 
   const today = getTodayStr();
 
-  // Auto-track checkin if user already checked in today (catches pre-deploy sessions)
-  if (dev.last_checkin_date === today) {
-    await trackDailyMission(dev.id, "checkin");
-  }
-
   const { searchParams } = new URL(request.url);
   const isMobile = searchParams.get("mobile") === "1";
+
+  // Auto-track checkin if user already checked in today (catches pre-deploy sessions)
+  if (dev.last_checkin_date === today) {
+    await trackDailyMission(dev.id, "checkin", { isMobile });
+  }
+
   const missions = getDailyMissions(dev.id, today, isMobile);
 
   // Fetch today's progress

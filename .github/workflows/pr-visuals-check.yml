@@ -84,9 +84,9 @@ jobs:
                   owner, repo, issue_number: issueNumber,
                 });
 
-                // Check issue title and description for keywords
-                const issueText = `${issue.title} ${issue.body ?? ''}`;
-                const requiresVisuals = /visual|screenshot|video|gif|proof|image/i.test(issueText);
+                // Check if the issue has the 'needs-visual-proof' label
+                const issueLabels = issue.labels.map(l => typeof l === 'string' ? l : l.name);
+                const requiresVisuals = issueLabels.includes('needs-visual-proof');
 
                 if (requiresVisuals) {
                   needsVisuals = true;
