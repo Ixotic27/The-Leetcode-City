@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     await admin.rpc("increment_visit_count", { target_dev_id: building.id });
 
     // Grant XP for visiting a building
-    await admin.rpc("grant_xp", { p_developer_id: visitor.id, p_source: "visit", p_amount: 2 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: visitor.id, p_source: "visit", p_amount: 2 });
 
     // Check if building crossed visit milestone (>5 visits today)
     const { count: todayVisits } = await admin

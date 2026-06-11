@@ -339,12 +339,12 @@ export async function POST(request: Request) {
       admin.from("developers").update({ raid_xp: (attacker.raid_xp ?? 0) + XP_WIN_ATTACKER }).eq("id", attacker.id),
       admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_WIN_DEFENDER }).eq("id", defender.id),
     ]);
-    await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
-    await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   } else {
     await admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_LOSE_DEFENDER }).eq("id", defender.id);
-    await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
-    await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   }
 
   await admin.from("activity_feed").insert({
