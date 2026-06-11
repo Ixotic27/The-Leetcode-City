@@ -145,7 +145,22 @@ export async function POST(request: Request) {
         }
 
         if (purchase.status !== "pending") {
-          console.log(`[Cashfree webhook] Purchase ${purchase.id} already ${purchase.status}`);
+          console.log(`[Cashfree webhook] Purchase ${purchase.id} already ${purchase.status} — skipping`);
+          break;
+        }
+
+        // Atomic claim: transition pending → processing in one UPDATE.
+        // If a concurrent request already claimed it, claimed will be null.
+        const { data: claimed } = await sb
+          .from("purchases")
+          .update({ status: "processing" })
+          .eq("id", purchase.id)
+          .eq("status", "pending")
+          .select("id")
+          .maybeSingle();
+
+        if (!claimed) {
+          console.log(`[Cashfree webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`);
           break;
         }
 
