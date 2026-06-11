@@ -182,15 +182,24 @@ export async function checkAchievements(
       .upsert(purchaseRows, { onConflict: "developer_id,item_id", ignoreDuplicates: true });
   }
 
-  // Grant XP for each achievement unlock
+  // Grant XP for each achievement unlock (atomic + idempotent)
   for (const a of newUnlocks) {
     const xpAmount = xpForAchievementTier(a.tier);
     if (xpAmount > 0) {
-      sb.rpc("grant_xp", {
-        p_developer_id: developerId,
-        p_source: "achievement",
-        p_amount: xpAmount,
-      }).then();
+      try {
+        const { data: xpResult, error: xpError } = await sb.rpc("grant_xp_atomic", {
+          p_developer_id: developerId,
+          p_source: `achievement_${a.id}`,
+          p_amount: xpAmount,
+        });
+        if (xpError) {
+          console.error(`[achievements] XP grant failed for ${a.id}:`, xpError);
+        } else if (xpResult === null) {
+          // Duplicate grant — already logged, safe to skip
+        }
+      } catch (err) {
+        console.error(`[achievements] XP grant error for ${a.id}:`, err);
+      }
     }
   }
 

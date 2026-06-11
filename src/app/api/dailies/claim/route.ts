@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   const points_granted = 15;
   // Grant XP for completing all dailies
-  await admin.rpc("grant_xp", { p_developer_id: dev.id, p_source: "dailies", p_amount: 25 });
+  await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "dailies", p_amount: 25 });
 
   // Grant streak freeze every 7 completions (cap at 2)
   // ── BEFORE (read-then-write race): ─────────────────────────────────────────

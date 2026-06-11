@@ -140,7 +140,7 @@ export async function POST(request: Request) {
 
   const flyXp = Math.floor(score * 0.1);
   if (flyXp > 0) {
-    await admin.rpc("grant_xp", { p_developer_id: dev.id, p_source: "fly", p_amount: flyXp });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "fly", p_amount: flyXp });
   }
 
   await trackDailyMission(dev.id, "fly_score_50", { score });
