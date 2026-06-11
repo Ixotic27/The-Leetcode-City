@@ -586,8 +586,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
 
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {
-      const blended = new THREE.Color(colors.face)
-        .lerp(new THREE.Color(building.custom_color), 0.5);
+      const blended = new THREE.Color(building.custom_color);
       const blendedHex = '#' + blended.getHexString();
       const front = createWindowTexture(
         building.floors, building.windowsPerFloor,

@@ -90,13 +90,15 @@ const fragmentShader = /* glsl */ `
     vec2 atlasUv = uvParams.xy + vUv * uvParams.zw;
     vec3 wallColor = texture2D(uAtlas, atlasUv).rgb;
 
+    // Detect face vs window BEFORE tint replacement
+    float preTintFace = step(length(wallColor - uFaceColor), 0.08);
+
     if (vTint.a > 0.5) {
-      float isFacePixel = step(length(wallColor - uFaceColor), 0.08);
-      vec3 blendedTint = mix(uFaceColor, vTint.rgb, 0.5);
-      wallColor = mix(wallColor, blendedTint, isFacePixel);
+      wallColor = mix(wallColor, vTint.rgb, preTintFace);
     }
 
-    float isWindow = step(0.12, length(wallColor - uFaceColor));
+    // Exclude tinted face pixels from being treated as windows
+    float isWindow = step(0.12, length(wallColor - uFaceColor)) * (1.0 - preTintFace * step(0.5, vTint.a));
     float totalSolved = vLcStats.x + vLcStats.y + vLcStats.z;
     if (totalSolved > 0.01 && isRoof < 0.5 && isWindow > 0.5) {
       float easyEdge = vLcStats.x / totalSolved;
