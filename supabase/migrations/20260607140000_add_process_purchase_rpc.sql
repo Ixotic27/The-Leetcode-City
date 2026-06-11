@@ -1,5 +1,5 @@
 CREATE OR REPLACE FUNCTION public.process_purchase(
-    p_user_id UUID,
+    p_user_id BIGINT,
     p_item_id TEXT,
     p_price INTEGER,
     p_status TEXT DEFAULT 'completed'
