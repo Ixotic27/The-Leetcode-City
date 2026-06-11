@@ -69,7 +69,7 @@ export async function POST() {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No LeetCode login" }, { status: 400 });
+    return NextResponse.json({ error: "No GitHub login found in session" }, { status: 400 });
   }
 
   const sb = getSupabaseAdmin();
@@ -101,8 +101,9 @@ export async function POST() {
   let starred = false;
   try {
     starred = await isStargazer(githubLogin);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to verify star" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to verify star";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   if (!starred) {
