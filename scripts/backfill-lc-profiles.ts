@@ -62,6 +62,10 @@ async function fetchLCFullProfile(username: string): Promise<any> {
           intermediate { tagName problemsSolved }
           fundamental { tagName problemsSolved }
         }
+        languageProblemCount {
+          languageName
+          problemsSolved  
+        }
         userCalendar { streak totalActiveDays }${calendarAliases()}
       }
       userContestRanking(username: $username) {
@@ -115,10 +119,15 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
         ...(tagCounts?.intermediate ?? []),
         ...(tagCounts?.fundamental ?? []),
     ]
-        .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+    .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
         .slice(0, 20)
         .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
 
+    const languages = user.languageProblemCount ?? [];
+    const dominantLanguage = languages.length > 0
+      ? [...languages].sort((a: any, b: any) => 
+        b.problemsSolved - a.problemsSolved)[0].languageName
+      : null;
     const { error } = await sb.from("developers").upsert(
         {
             github_login: username.toLowerCase(),
@@ -131,6 +140,7 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
             public_repos: Math.max(0, 500000 - lcRank),
             rank: lcRank,
             lc_global_rank: lcRank,
+            primary_language: dominantLanguage,
             fetched_at: new Date().toISOString(),
             // Solved breakdown
             easy_solved: getAC("Easy"),
