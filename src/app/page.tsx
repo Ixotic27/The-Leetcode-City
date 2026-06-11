@@ -4915,6 +4915,10 @@ function HomeContent() {
                           ? `${(acceptanceRate * 100).toFixed(1)}%`
                           : "--",
                     },
+                    {
+                      label: "Language",
+                      value: (selectedBuilding as any)?.primary_language ?? "--",
+                    },
                     ...(easySolved || medSolved || hardSolved
                       ? [
                         { label: "Easy", value: easySolved.toLocaleString() },
