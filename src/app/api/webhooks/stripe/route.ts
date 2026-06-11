@@ -184,7 +184,9 @@ export async function POST(request: Request) {
             sendPurchaseNotification(Number(developerId), githubLogin ?? "", claimedPending.id, itemId);
           }
         } else {
-          // 2. No pending record found; check if this transaction was already processed
+          // No pending row found. Check if already processing or completed —
+          // query by developer_id+item_id+provider, NOT provider_tx_id, because
+          // a concurrent winning request may not have written provider_tx_id yet.
           const { data: existing } = await sb
             .from("purchases")
             .select("id, status")

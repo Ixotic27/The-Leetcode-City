@@ -89,7 +89,27 @@ export async function POST(request: Request) {
           .eq("provider_tx_id", orderId)
           .maybeSingle();
 
-        if (!purchase) break; // already completed or not found
+        if (!purchase) {
+          // Could be a concurrent request already claimed it (status is now "processing")
+          // or genuinely not found. Either way, do not fulfill.
+          console.log(`[NOWPayments webhook] No pending purchase for order ${orderId} — skipping`);
+          break;
+        }
+
+        // Atomic claim: transition pending → processing in one UPDATE.
+        // If a concurrent request already claimed it, claimed will be null.
+        const { data: claimed } = await sb
+          .from("purchases")
+          .update({ status: "processing" })
+          .eq("id", purchase.id)
+          .eq("status", "pending")
+          .select("id")
+          .maybeSingle();
+
+        if (!claimed) {
+          console.log(`[NOWPayments webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`);
+          break;
+        }
 
         const ownerId = purchase.gifted_to ?? purchase.developer_id;
         const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
