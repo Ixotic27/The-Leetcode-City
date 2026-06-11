@@ -335,14 +335,18 @@ export async function POST(request: Request) {
       expires_at: new Date(Date.now() + RAID_TAG_DURATION_DAYS * 86400000).toISOString(),
     });
 
+    // Use atomic DB-level increments to prevent race condition data loss.
+    // Passing raw SQL expressions via rpc avoids the stale-read overwrite
+    // that would occur if we used in-memory values computed before execute_raid().
     await Promise.all([
-      admin.from("developers").update({ raid_xp: (attacker.raid_xp ?? 0) + XP_WIN_ATTACKER }).eq("id", attacker.id),
-      admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_WIN_DEFENDER }).eq("id", defender.id),
+      admin.rpc("increment_raid_xp", { p_developer_id: attacker.id, p_amount: XP_WIN_ATTACKER }),
+      admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_WIN_DEFENDER }),
     ]);
     await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
     await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   } else {
-    await admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_LOSE_DEFENDER }).eq("id", defender.id);
+    // Atomic increment — avoid overwriting concurrent XP changes.
+    await admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_LOSE_DEFENDER });
     await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
     await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   }
@@ -364,8 +368,14 @@ export async function POST(request: Request) {
   if (success) await trackDailyMission(attacker.id, "win_battle");
   sendRaidAlertNotification(defender.id, defender.github_login, attacker.github_login, raidId, success, attack.total, defense.total);
 
-  const newAttackerXp = (attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0);
-  const newDefenderXp = (defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER);
+  // Re-fetch updated raid_xp to ensure response and achievements use the latest atomic value
+  const [{ data: updatedAttacker }, { data: updatedDefender }] = await Promise.all([
+    admin.from("developers").select("raid_xp").eq("id", attacker.id).maybeSingle(),
+    admin.from("developers").select("raid_xp").eq("id", defender.id).maybeSingle(),
+  ]);
+
+  const newAttackerXp = updatedAttacker?.raid_xp ?? ((attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0));
+  const newDefenderXp = updatedDefender?.raid_xp ?? ((defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER));
 
   const [attackerAchievements] = await Promise.all([
     checkAchievements(attacker.id, {
