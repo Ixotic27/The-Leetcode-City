@@ -62,7 +62,7 @@ async function fetchLCFullProfile(username: string): Promise<any> {
           intermediate { tagName problemsSolved }
           fundamental { tagName problemsSolved }
         }
-        languageProblemCount{
+        languageProblemCount {
           languageName
           problemsSolved  
         }
@@ -84,7 +84,6 @@ async function fetchLCFullProfile(username: string): Promise<any> {
             body: JSON.stringify({ query, variables: { username } }),
         });
         const json = await res.json();
-        console.log(JSON.stringify(json,null,2));
         if (json?.data?.matchedUser) {
             json.data.matchedUser.maxStreak = parseMaxStreak(json.data.matchedUser, new Date().getFullYear());
         }
