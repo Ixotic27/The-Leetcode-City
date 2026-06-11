@@ -38,23 +38,32 @@ jobs:
             // Difficulty: level:X | Type: type:X | GSSoC: required on every PR
             const labelSpecs = {
               // Difficulty labels (required — exactly ONE per issue/PR)
-              'level:beginner':     { color: '22c55e', description: 'Beginner difficulty level' },
-              'level:intermediate': { color: '3b82f6', description: 'Intermediate difficulty level' },
-              'level:advanced':     { color: 'f97316', description: 'Advanced difficulty level' },
-              'level:critical':     { color: '6b7280', description: 'Critical difficulty level' },
+              'level:beginner':     { color: '22c55e', description: 'Beginner difficulty level (20 pts)' },
+              'level:intermediate': { color: '3b82f6', description: 'Intermediate difficulty level (35 pts)' },
+              'level:advanced':     { color: 'f97316', description: 'Advanced difficulty level (55 pts)' },
+              'level:critical':     { color: '6b7280', description: 'Critical difficulty level (80 pts)' },
               'good first issue':   { color: '7057ff', description: 'Good for newcomers' },
-              // Type labels (optional)
-              'type:bug':         { color: 'ef4444', description: 'Something isn\'t working as expected' },
-              'type:feature':     { color: '10b981', description: 'New features, additions, or enhancements' },
-              'type:docs':        { color: '3b82f6', description: 'Documentation changes or README updates' },
-              'type:testing':     { color: '8b5cf6', description: 'Adding, updating, or fixing tests' },
-              'type:security':    { color: 'f59e0b', description: 'Security fixes, dependency updates, or hardening' },
-              'type:performance': { color: '6366f1', description: 'Code changes that improve performance/speed' },
-              'type:design':      { color: 'ec4899', description: 'UI designs, styling, and themes' },
-              'type:refactor':    { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature' },
+              // Quality labels (optional — at most ONE per PR)
+              'quality:clean':       { color: '0d9488', description: 'Well-structured, readable code (×1.2 multiplier)' },
+              'quality:exceptional': { color: 'a855f7', description: 'Goes beyond what was asked (×1.5 multiplier, requires review comment)' },
+              // Type labels (optional, bonuses are cumulative)
+              'type:bug':           { color: 'ef4444', description: 'Something isn\'t working as expected (+10 pts)' },
+              'type:feature':       { color: '10b981', description: 'New features, additions, or enhancements (+10 pts)' },
+              'type:docs':          { color: '3b82f6', description: 'Documentation changes or README updates (+5 pts)' },
+              'type:testing':       { color: '8b5cf6', description: 'Adding, updating, or fixing tests (+10 pts)' },
+              'type:security':      { color: 'f59e0b', description: 'Security fixes, dependency updates, or hardening (+20 pts)' },
+              'type:performance':   { color: '6366f1', description: 'Code changes that improve performance/speed (+15 pts)' },
+              'type:design':        { color: 'ec4899', description: 'UI designs, styling, and themes (+10 pts)' },
+              'type:refactor':      { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature (+10 pts)' },
+              'type:accessibility': { color: '06b6d4', description: 'Screen reader support, keyboard nav, contrast, ARIA (+15 pts)' },
+              'type:devops':        { color: '78716c', description: 'CI/CD, Dockerfile, GitHub Actions, deployment (+15 pts)' },
               // GSSoC & approval labels (required on every issue/PR)
               'Gssoc 26':         { color: 'e5533d', description: 'GSSoC 2026 contribution' },
               'gssoc:approved':   { color: '0e8a16', description: 'Approved GSSoC contribution' },
+              // Blocking labels (exclude PR from scoring entirely)
+              'gssoc:invalid':    { color: 'b60205', description: 'PR does not meet minimum bar (0 pts)' },
+              'gssoc:spam':       { color: '000000', description: 'Fabricated contribution with no real value (0 pts)' },
+              'gssoc:ai-slop':    { color: '5319e7', description: 'AI-generated content pasted without understanding (0 pts)' },
               // Status labels
               'status:blocked':   { color: 'dc2626', description: 'This PR is blocked due to a failing CI check.' },
               'needs-rebase':     { color: 'e11d48', description: 'This PR has merge conflicts and needs a rebase.' },
@@ -149,14 +158,17 @@ jobs:
             }
 
             // ── 4a. Ensure exactly ONE difficulty label (level:X format only) ──
+            // Per GSSoC spec: scoring engine picks the LOWEST difficulty.
+            // We only auto-add ONE; if multiple were inherited, warn but don't auto-remove
+            // (the gssoc-label-validator workflow will flag it).
             const inheritedDiffLabels = [...labelsToAdd].filter(l => ALL_DIFFICULTY_LABELS.includes(l));
 
             if (inheritedDiffLabels.length > 1) {
-              // Multiple difficulty labels — keep only the highest priority
-              const priority = ['level:critical', 'level:advanced', 'level:intermediate', 'level:beginner'];
-              const best = priority.find(p => inheritedDiffLabels.includes(p));
+              // Multiple difficulty labels — keep only the LOWEST (worst-case per spec)
+              const lowestFirst = ['level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+              const lowest = lowestFirst.find(p => inheritedDiffLabels.includes(p));
               for (const dl of inheritedDiffLabels) {
-                if (dl !== best) labelsToAdd.delete(dl);
+                if (dl !== lowest) labelsToAdd.delete(dl);
               }
             } else if (inheritedDiffLabels.length === 0) {
               // No difficulty label — auto-detect from PR content
@@ -181,9 +193,9 @@ jobs:
             for (const bare of Object.keys(BARE_TO_LEVEL)) {
               labelsToAdd.delete(bare);
             }
-            // Remove quality labels (no longer used)
-            labelsToAdd.delete('quality:clean');
-            labelsToAdd.delete('quality:exceptional');
+            // NOTE: Quality labels (quality:clean, quality:exceptional) are preserved.
+            // They are optional and applied by maintainers. The gssoc-label-validator
+            // workflow handles validation (e.g. exceptional requires review comment).
 
             // ── 5. Apply labels ──
             await github.rest.issues.addLabels({
