@@ -64,15 +64,14 @@ export const ITEM_NAMES: Record<string, string> = {
   scouting_satellite: "Tactical Satellite",
 };
 
-// Correct mapping: item_id → achievement that unlocks it (from migration 007 seed)
+// Correct mapping: item_id → achievement that unlocks it (managed by LeetCode migration)
 export const ACHIEVEMENT_ITEMS: Record<string, { achievement: string; label: string }> = {
-  flag: { achievement: "first_push", label: "First Push (1+ contributions)" },
-  custom_color: { achievement: "committed", label: "Committed (1,000+ contributions)" },
-  neon_trim: { achievement: "grinder", label: "Grinder (2,500+ contributions)" },
-  antenna_array: { achievement: "builder", label: "Builder (25+ repos)" },
-  rooftop_garden: { achievement: "architect", label: "Architect (75+ repos)" },
-  spotlight: { achievement: "rising_star", label: "Rising Star (100+ stars)" },
-  helipad: { achievement: "recruiter", label: "Recruiter (10+ referrals)" },
+  flag: { achievement: "first_push", label: "First Blood (Solve 1 LeetCode problem)" },
+  custom_color: { achievement: "committed", label: "Problem Solver (Solve 100 LeetCode problems)" },
+  neon_trim: { achievement: "grinder", label: "Grinder (Solve 500 LeetCode problems)" },
+  antenna_array: { achievement: "builder", label: "Easy Breezy (Solve 100 Easy LeetCode problems)" },
+  rooftop_garden: { achievement: "architect", label: "Medium Master (Solve 250 Medium LeetCode problems)" },
+  helipad: { achievement: "recruiter", label: "Recruiter (Refer 10 developers to LeetCode City)" },
   white_rabbit: { achievement: "white_rabbit", label: "Found the White Rabbit" },
   scouting_satellite: { achievement: "leetcode_questions", label: "Solve 10 Medium or 5 Hard LeetCode Questions" },
 };

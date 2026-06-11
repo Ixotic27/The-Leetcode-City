@@ -70,3 +70,5 @@ body:
           required: true
         - label: I have read the CONTRIBUTING.md guidelines.
           required: true
+        - label: ⭐ I have starred this repository! (We prioritize issue assignments for stargazers)
+          required: true

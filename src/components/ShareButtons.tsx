@@ -23,14 +23,23 @@ export default function ShareButtons({
   const [showFormatMenu, setShowFormatMenu] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [cardLang, setCardLang] = useState<CardLang>("en");
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const profileUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/dev/${login}`
-      : `/dev/${login}`;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const tweetText = `My LeetCode just turned into a building. ${contributions.toLocaleString()} contributions, Rank #${rank ?? "?"}. What does yours look like?`;
+  const profileUrl =
+    mounted && typeof window !== "undefined"
+      ? `${window.location.origin}/dev/${login}`
+      : `https://theleetcode.city/dev/${login}`;
+
+  const formattedContributions = mounted
+    ? contributions.toLocaleString()
+    : contributions.toString();
+
+  const tweetText = `My LeetCode just turned into a building. ${formattedContributions} contributions, Rank #${rank ?? "?"}. What does yours look like?`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(profileUrl);

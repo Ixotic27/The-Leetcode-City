@@ -1,0 +1,570 @@
+[
+  {
+    "source": "codeforces",
+    "source_id": "4A",
+    "title": "4A. Watermelon",
+    "description": "### Description\n\nOne hot summer day Pete and his friend Billy decided to buy a watermelon. They chose the biggest and the ripest one, in their opinion. After that the watermelon was weighed, and the scales showed $w$ kilos. They rushed home, dying of thirst, and decided to divide the berry, however they faced a hard problem.\n\nPete and Billy are great fans of even numbers, that's why they want to divide the watermelon in such a way that each of the two parts weighs even number of kilos, at the same time it is not obligatory that the parts are equal. The boys are extremely tired and want to start their meal as soon as possible, that's why you should help them and find out, if they can divide the watermelon in the way they want.\n\n### Input Specification\n\nThe first (and the only) input line contains an integer number $w$ ($1 \\le w \\le 100$) — the weight of the watermelon bought by the boys.\n\n### Output Specification\n\nPrint YES, if the boys can divide the watermelon into two parts, each of them weighing even number of kilos; and NO in the opposite case.",
+    "difficulty": "easy",
+    "difficulty_rating": 800,
+    "tags": ["brute force", "math"],
+    "time_limit_ms": 1000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "8\n",
+        "output": "YES\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "8\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "2\n",
+        "output": "NO\n"
+      },
+      {
+        "input": "3\n",
+        "output": "NO\n"
+      },
+      {
+        "input": "100\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "4\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "6\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "12\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "99\n",
+        "output": "NO\n"
+      }
+    ],
+    "hints": ["Check if the weight is even and greater than 2."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "71A",
+    "title": "71A. Way Too Long Words",
+    "description": "### Description\n\nSometimes some words like \"localization\" or \"internationalization\" are so long that writing them many times in one text is quite tiresome.\n\nLet's consider a word too long, if its length is strictly more than 10 characters. All too long words should be replaced with a special abbreviation.\n\nThis abbreviation is made like this: we write down the first and the last letter of a word and between them we write the number of characters between the first and the last letters. That number is in decimal system and doesn't contain any leading zeroes.\n\nThus, \"localization\" will be spelt as \"l10n\", and \"internationalization\" will be spelt as \"i18n\".\n\nYou are suggested to customize the active process of abbreviating words. All too long words should be replaced by the abbreviation and the words that are not too long should not undergo any changes.\n\n### Input Specification\n\nThe first line contains an integer $n$ ($1 \\le n \\le 100$). Each of the following $n$ lines contains one word. All words consist of lowercase Latin letters and share the length from 1 to 100 characters.\n\n### Output Specification\n\nPrint $n$ lines. The $i$-th line should contain the result of the abbreviation of the $i$-th word from the input.",
+    "difficulty": "easy",
+    "difficulty_rating": 800,
+    "tags": ["strings"],
+    "time_limit_ms": 1000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "4\nword\nlocalization\ninternationalization\npneumonoultramicroscopicsilicovolcanoconiosis\n",
+        "output": "word\nl10n\ni18n\np43s\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "4\nword\nlocalization\ninternationalization\npneumonoultramicroscopicsilicovolcanoconiosis\n",
+        "output": "word\nl10n\ni18n\np43s\n"
+      },
+      {
+        "input": "2\na\nabcdefghij\n",
+        "output": "a\nabcdefghij\n"
+      },
+      {
+        "input": "1\nabcdefghijk\n",
+        "output": "a9k\n"
+      }
+    ],
+    "hints": ["If word length is > 10, abbreviate it, otherwise print as is."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "231A",
+    "title": "231A. Team",
+    "description": "### Description\n\nOne day three best friends Petya, Vasya and Tonya decided to form a team and take part in programming contests. Participants are usually offered several problems during a programming contest. Petya, Vasya and Tonya decide to solve a problem if at least two of them are sure about the solution. Otherwise they won't write the problem's solution.\n\nThis contest offers $n$ problems to the participants. For each problem we know, which friend is sure about the solution. Help the friends find the number of problems for which they will write a solution.\n\n### Input Specification\n\nThe first input line contains a single integer $n$ ($1 \\le n \\le 1000$) — the number of problems in the contest. Then $n$ lines contain three integers each, each integer is either 0 or 1. If the first number in the line equals 1, then Petya is sure about the problem's solution, otherwise he isn't. The second number shows Vasya's view on the solution, the third number shows Tonya's.\n\n### Output Specification\n\nPrint a single integer — the number of problems Petya, Vasya and Tonya will solve in the contest.",
+    "difficulty": "easy",
+    "difficulty_rating": 800,
+    "tags": ["brute force", "greedy"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "3\n1 1 0\n1 1 1\n1 0 0\n",
+        "output": "2\n"
+      },
+      {
+        "input": "2\n1 0 0\n0 1 1\n",
+        "output": "1\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "3\n1 1 0\n1 1 1\n1 0 0\n",
+        "output": "2\n"
+      },
+      {
+        "input": "2\n1 0 0\n0 1 1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "1\n0 0 0\n",
+        "output": "0\n"
+      },
+      {
+        "input": "4\n1 1 0\n0 1 1\n1 0 1\n1 1 1\n",
+        "output": "4\n"
+      }
+    ],
+    "hints": ["Count the number of 1s in each line. If sum >= 2, increment answer."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "282A",
+    "title": "282A. Bit++",
+    "description": "### Description\n\nThe classic programming language Bit++ has only one variable, called $X$. Initially, the value of $X$ is 0.\n\nThere are two operations in Bit++:\n- Operation `++` increases the value of variable $X$ by 1.\n- Operation `--` decreases the value of variable $X$ by 1.\n\nA statement in language Bit++ is a sequence, consisting of exactly one operation and variable $X$. The statement is written without spaces, that is, it can only contain characters `+`, `-`, `X`. Example statements: `++X`, `X--`.\n\nA program in Bit++ is a sequence of statements, each of them needs to be executed. Executing a program means executing all the statements it contains.\n\nYou're given a program in Bit++. Calculate the final value of $X$.\n\n### Input Specification\n\nThe first line contains a single integer $n$ ($1 \\le n \\le 150$) — the number of statements in the program.\n\nNext $n$ lines contain a statement each. Each statement contains exactly one operation (`++` or `--`) and variable $X$. There are no spaces in a statement.\n\n### Output Specification\n\nPrint a single integer — the final value of $X$.",
+    "difficulty": "easy",
+    "difficulty_rating": 800,
+    "tags": ["implementation"],
+    "time_limit_ms": 1000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "1\n++X\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2\nX++\n--X\n",
+        "output": "0\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "1\n++X\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2\nX++\n--X\n",
+        "output": "0\n"
+      },
+      {
+        "input": "3\n++X\n++X\nX--\n",
+        "output": "1\n"
+      }
+    ],
+    "hints": ["Look at the middle character of each statement. If it is '+', add 1, else subtract 1."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "158A",
+    "title": "158A. Next Round",
+    "description": "### Description\n\n\"Contestant who earns a score equal to or greater than the $k$-th place contestant's score will advance to the next round, as long as the contestant earns a positive score...\"\n\nSounds familiar, right? Our hero wants to advance to the next round. He knows the scores of all participants. Help him find how many participants will advance.\n\n### Input Specification\n\nThe first line of the input contains two integers $n$ and $k$ ($1 \\le k \\le n \\le 50$) separated by a space.\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$ ($0 \\le a_i \\le 100$), where $a_i$ is the score earned by the participant who got the $i$-th place. The given sequence is non-increasing (that is, for all $i$ from 1 to $n-1$: $a_i \\ge a_{i+1}$).\n\n### Output Specification\n\nOutput the number of participants who advance to the next round.",
+    "difficulty": "easy",
+    "difficulty_rating": 800,
+    "tags": ["*special", "implementation"],
+    "time_limit_ms": 3000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "8 5\n10 9 8 7 7 7 5 5\n",
+        "output": "6\n"
+      },
+      {
+        "input": "4 2\n0 0 0 0\n",
+        "output": "0\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "8 5\n10 9 8 7 7 7 5 5\n",
+        "output": "6\n"
+      },
+      {
+        "input": "4 2\n0 0 0 0\n",
+        "output": "0\n"
+      },
+      {
+        "input": "5 1\n1 1 1 1 1\n",
+        "output": "5\n"
+      },
+      {
+        "input": "5 3\n3 2 1 0 0\n",
+        "output": "2\n"
+      }
+    ],
+    "hints": ["Participants must have score >= scores[k-1] and score > 0."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "158B",
+    "title": "158B. Taxi",
+    "description": "### Description\n\nAfter the programming contest, all $n$ groups of school students decided to go to a cafe. The $i$-th group consists of $s_i$ pupils ($1 \\le s_i \\le 4$). Each taxi car can carry at most 4 passengers. A group cannot be split: the members of one group must ride in the same taxi car.\n\nFind the minimum number of taxi cars required to take all students to the cafe.\n\n### Input Specification\n\nThe first line contains integer $n$ ($1 \\le n \\le 10^5$) — the number of groups of pupils.\n\nThe second line contains a sequence of integers $s_1, s_2, \\dots, s_n$ ($1 \\le s_i \\le 4$). The integers are separated by space.\n\n### Output Specification\n\nPrint a single integer — the minimum number of taxis necessary to carry all pupils.",
+    "difficulty": "medium",
+    "difficulty_rating": 1100,
+    "tags": ["greedy", "implementation"],
+    "time_limit_ms": 3000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "5\n1 2 4 3 3\n",
+        "output": "4\n"
+      },
+      {
+        "input": "8\n2 3 4 4 2 1 3 1\n",
+        "output": "5\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "5\n1 2 4 3 3\n",
+        "output": "4\n"
+      },
+      {
+        "input": "1\n1\n",
+        "output": "1\n"
+      },
+      {
+        "input": "6\n2 2 2 2 2 2\n",
+        "output": "3\n"
+      }
+    ],
+    "hints": ["Count groups of size 4, 3, 2, 1. Pair 3s with 1s, combine 2s, and place remaining in taxis."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "189A",
+    "title": "189A. Cut Ribbon",
+    "description": "### Description\n\nPolycarpus has a ribbon of length $n$. He wants to cut the ribbon in a way that fulfils the following two conditions:\n\n1. Each ribbon piece should have length $a$, $b$ or $c$.\n2. The total number of ribbon pieces should be maximized.\n\nHelp Polycarpus find the maximum number of pieces he can obtain.\n\n### Input Specification\n\nThe first line contains four space-separated integers $n$, $a$, $b$ and $c$ ($1 \\le n, a, b, c \\le 4000$).\n\n### Output Specification\n\nPrint a single integer — the maximum possible number of ribbon pieces.",
+    "difficulty": "medium",
+    "difficulty_rating": 1300,
+    "tags": ["dp"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "5 5 3 2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "7 5 5 2\n",
+        "output": "2\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "5 5 3 2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "7 5 5 2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "10 2 3 5\n",
+        "output": "5\n"
+      },
+      {
+        "input": "4000 1 2 3\n",
+        "output": "4000\n"
+      }
+    ],
+    "hints": ["Use Dynamic Programming: dp[i] is the max pieces of length i. dp[i] = max(dp[i-a], dp[i-b], dp[i-c]) + 1."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "230B",
+    "title": "230B. T-primes",
+    "description": "### Description\n\nWe know that prime numbers are positive integers that have exactly two distinct positive divisors. Similarly, let's call positive integers \"T-primes\" if they have exactly three distinct positive divisors.\n\nYou are given an array of $n$ positive integers. For each of them, check if it is a T-prime.\n\n### Input Specification\n\nThe first line contains a single integer $n$ ($1 \\le n \\le 10^5$) — the number of elements in the array.\n\nThe second line contains $n$ space-separated integers $x_i$ ($1 \\le x_i \\le 10^{12}$).\n\n### Output Specification\n\nPrint $n$ lines. The $i$-th line should contain \"YES\" (without the quotes) if the $i$-th number $x_i$ is a T-prime, and \"NO\" otherwise.",
+    "difficulty": "medium",
+    "difficulty_rating": 1300,
+    "tags": ["binary search", "math", "number theory"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "3\n4 5 6\n",
+        "output": "YES\nNO\nNO\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "3\n4 5 6\n",
+        "output": "YES\nNO\nNO\n"
+      },
+      {
+        "input": "1\n1\n",
+        "output": "NO\n"
+      },
+      {
+        "input": "1\n9\n",
+        "output": "YES\n"
+      },
+      {
+        "input": "1\n25\n",
+        "output": "YES\n"
+      }
+    ],
+    "hints": ["A number is a T-prime if and only if it is the square of a prime number. Use a sieve to precompute primes up to 10^6."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "327A",
+    "title": "327A. Flipping Game",
+    "description": "### Description\n\nIahub got bored, so he invented a game to be played on paper.\n\nHe writes $n$ integers $a_1, a_2, \\dots, a_n$. Each integer is either 0 or 1. In a single move, he must flip exactly one subarray. Flipping a subarray $[i..j]$ means changing all 0s in the range to 1s, and all 1s to 0s.\n\nHe wants to maximize the total number of 1s in the array after exactly one flip. Help him find the maximum possible number of 1s.\n\n### Input Specification\n\nThe first line contains a single integer $n$ ($1 \\le n \\le 100$).\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$, each of which is either 0 or 1.\n\n### Output Specification\n\nPrint a single integer — the maximum possible number of 1s after flipping exactly one subarray.",
+    "difficulty": "medium",
+    "difficulty_rating": 1200,
+    "tags": ["brute force", "dp"],
+    "time_limit_ms": 1000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "5\n1 0 0 1 0\n",
+        "output": "4\n"
+      },
+      {
+        "input": "4\n1 1 1 1\n",
+        "output": "3\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "5\n1 0 0 1 0\n",
+        "output": "4\n"
+      },
+      {
+        "input": "4\n1 1 1 1\n",
+        "output": "3\n"
+      },
+      {
+        "input": "2\n0 0\n",
+        "output": "2\n"
+      }
+    ],
+    "hints": ["Kadane's algorithm can be modified. Treat 0 as +1 and 1 as -1, and find the maximum sum subarray."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "466C",
+    "title": "466C. Number of Ways",
+    "description": "### Description\n\nYou are given an array $a$ consisting of $n$ integers. Your task is to find the number of ways to split the array into three parts such that the sum of elements in each part is equal.\n\nMore formally, find the number of indices $i$ and $j$ ($2 \\le i \\le j \\le n-1$) such that:\n\n$$\\sum_{k=1}^{i-1} a_k = \\sum_{k=i}^{j} a_k = \\sum_{k=j+1}^{n} a_k$$\n\n### Input Specification\n\nThe first line contains integer $n$ ($1 \\le n \\le 5 \\cdot 10^5$) — the size of the array.\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$ ($-10^9 \\le a_i \\le 10^9$).\n\n### Output Specification\n\nPrint a single integer — the number of ways to split the array into three parts with equal sums.",
+    "difficulty": "medium",
+    "difficulty_rating": 1700,
+    "tags": ["binary search", "brute force", "data structures", "two pointers"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "5\n1 2 3 0 3\n",
+        "output": "2\n"
+      },
+      {
+        "input": "4\n0 1 -1 0\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2\n4 1\n",
+        "output": "0\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "5\n1 2 3 0 3\n",
+        "output": "2\n"
+      },
+      {
+        "input": "4\n0 1 -1 0\n",
+        "output": "1\n"
+      },
+      {
+        "input": "3\n0 0 0\n",
+        "output": "1\n"
+      }
+    ],
+    "hints": ["The sum of the whole array must be divisible by 3. Let S = sum / 3. Traverse the array keeping track of how many prefixes have sum S, and when we find a prefix of sum 2*S, add the count of S prefixes to the answer."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "455A",
+    "title": "455A. Boredom",
+    "description": "### Description\n\nAlex is bored, so he decided to play a game with an array $a$ consisting of $n$ integers.\n\nIn one step, he can choose any element $x$ and delete it. Upon deletion, he gains $x$ points. However, he must also delete all elements equal to $x-1$ and $x+1$ from the array (without gaining any points for them). He can repeat this step until the array is empty.\n\nWhat is the maximum number of points Alex can get?\n\n### Input Specification\n\nThe first line contains a single integer $n$ ($1 \\le n \\le 10^5$).\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$ ($1 \\le a_i \\le 10^5$).\n\n### Output Specification\n\nPrint a single integer — the maximum possible points Alex can earn.",
+    "difficulty": "hard",
+    "difficulty_rating": 1500,
+    "tags": ["dp"],
+    "time_limit_ms": 1000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "2\n1 2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "3\n1 2 3\n",
+        "output": "4\n"
+      },
+      {
+        "input": "9\n1 2 1 3 2 2 2 2 3\n",
+        "output": "10\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "2\n1 2\n",
+        "output": "2\n"
+      },
+      {
+        "input": "3\n1 2 3\n",
+        "output": "4\n"
+      },
+      {
+        "input": "9\n1 2 1 3 2 2 2 2 3\n",
+        "output": "10\n"
+      },
+      {
+        "input": "1\n100000\n",
+        "output": "100000\n"
+      }
+    ],
+    "hints": ["Count occurrences of each number. Use DP: dp[i] is the max points using numbers up to i. dp[i] = max(dp[i-1], dp[i-2] + count[i] * i)."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "339D",
+    "title": "339D. Xenia and Bit Operations",
+    "description": "### Description\n\nXenia the beginner coder has an array $a$ consisting of $2^n$ non-negative integers. The elements are numbered 1-indexed. She performs updates on the array and computes alternating bitwise operations.\n\nIn the first level of operations, she computes OR for consecutive pairs. In the second level, she computes XOR for consecutive pairs of the results of the first level. In the third level, she computes OR again, and so on alternatingly, until only 1 element remains.\n\nShe is given $m$ queries. Each query updates one element: $a_p = b$. After each query, output the single remaining element.\n\n### Input Specification\n\nThe first line contains two integers $n$ and $m$ ($1 \\le n \\le 17, 1 \\le m \\le 10^5$).\n\nThe second line contains $2^n$ space-separated integers $a_1, a_2, \\dots, a_{2^n}$ ($0 \\le a_i < 2^{30}$).\n\nEach of the next $m$ lines contains two space-separated integers $p_i$ and $b_i$ ($1 \\le p_i \\le 2^n, 0 \\le b_i < 2^{30}$) — representing the query to set $a_{p_i} = b_i$.\n\n### Output Specification\n\nPrint $m$ lines. In the $i$-th line, print the value of the root element after the $i$-th query.",
+    "difficulty": "hard",
+    "difficulty_rating": 1700,
+    "tags": ["data structures"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "2 4\n1 6 3 5\n1 4\n3 5\n1 2\n1 0\n",
+        "output": "1\n3\n3\n3\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "2 4\n1 6 3 5\n1 4\n3 5\n1 2\n1 0\n",
+        "output": "1\n3\n3\n3\n"
+      }
+    ],
+    "hints": ["Use a Segment Tree. Store the operation type at each level (alternating between OR and XOR) and execute it during updates."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "118D",
+    "title": "118D. Caesar's Legions",
+    "description": "### Description\n\nGaius Julius Caesar has $n_1$ footmen and $n_2$ horsemen. He wants to arrange them in a single line to march in a parade.\n\nHowever, the soldiers are picky: \n- No more than $k_1$ footmen can stand consecutively in the line.\n- No more than $k_2$ horsemen can stand consecutively in the line.\n\nFind the number of ways to arrange all $n_1$ footmen and $n_2$ horsemen in a valid line. Since the answer can be large, print it modulo $10^8$.\n\n### Input Specification\n\nThe first line contains four integers $n_1, n_2, k_1, k_2$ ($1 \\le n_1, n_2 \\le 100, 1 \\le k_1, k_2 \\le 10$).\n\n### Output Specification\n\nPrint the number of valid arrangements modulo $10^8$.",
+    "difficulty": "hard",
+    "difficulty_rating": 1700,
+    "tags": ["dp"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "2 1 1 10\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2 3 1 2\n",
+        "output": "5\n"
+      },
+      {
+        "input": "2 4 1 1\n",
+        "output": "0\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "2 1 1 10\n",
+        "output": "1\n"
+      },
+      {
+        "input": "2 3 1 2\n",
+        "output": "5\n"
+      },
+      {
+        "input": "2 4 1 1\n",
+        "output": "0\n"
+      },
+      {
+        "input": "100 100 10 10\n",
+        "output": "71365440\n"
+      }
+    ],
+    "hints": ["Use DP: dp[i][j][x][y] is the number of arrangements with i footmen, j horsemen, ending with x consecutive footmen or y consecutive horsemen."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "580D",
+    "title": "580D. Kefa and Dishes",
+    "description": "### Description\n\nKefa wants to eat exactly $m$ dishes out of $n$ dishes available at a restaurant. Eating the $i$-th dish gives him a satisfaction level of $a_i$. \n\nHowever, some dishes go exceptionally well when eaten consecutively. There are $k$ rules, each specifying that if dish $x_i$ is eaten immediately after dish $y_i$, Kefa receives an additional satisfaction bonus of $c_i$.\n\nCalculate the maximum satisfaction Kefa can get if he chooses exactly $m$ dishes and eats them in the optimal order.\n\n### Input Specification\n\nThe first line contains three integers $n$, $m$, and $k$ ($1 \\le m \\le n \\le 18, 0 \\le k \\le n \\cdot (n-1)$).\n\nThe second line contains $n$ space-separated integers $a_1, a_2, \\dots, a_n$ ($0 \\le a_i \\le 10^9$) — the satisfaction for each dish.\n\nEach of the next $k$ lines contains three integers $x_i$, $y_i$, and $c_i$ ($1 \\le x_i, y_i \\le n, x_i \\neq y_i, 0 \\le c_i \\le 10^9$) — meaning eating $y_i$ immediately after $x_i$ gives a bonus of $c_i$.\n\n### Output Specification\n\nPrint a single integer — the maximum possible satisfaction level.",
+    "difficulty": "hard",
+    "difficulty_rating": 1800,
+    "tags": ["bitmasks", "dp"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "2 2 1\n1 1\n2 1 1\n",
+        "output": "3\n"
+      },
+      {
+        "input": "4 3 2\n1 2 3 4\n2 1 5\n3 4 2\n",
+        "output": "12\n"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "2 2 1\n1 1\n2 1 1\n",
+        "output": "3\n"
+      },
+      {
+        "input": "4 3 2\n1 2 3 4\n2 1 5\n3 4 2\n",
+        "output": "12\n"
+      }
+    ],
+    "hints": ["Use Bitmask DP: dp[mask][last] is the max satisfaction obtained by eating the set of dishes represented by mask, ending with dish 'last'."]
+  },
+  {
+    "source": "codeforces",
+    "source_id": "5C",
+    "title": "5C. Longest Regular Bracket Sequence",
+    "description": "### Description\n\nYou are given a string consisting of opening '(' and closing ')' brackets. \n\nFind the length of the longest regular bracket sequence that is a substring of the given string, and the number of such substrings of this maximum length.\n\nA regular bracket sequence is defined as:\n- An empty string is a regular bracket sequence.\n- If $S$ is a regular bracket sequence, then $(S)$ is also a regular bracket sequence.\n- If $A$ and $B$ are regular bracket sequences, then $AB$ is also a regular bracket sequence.\n\n### Input Specification\n\nThe first (and only) input line contains a non-empty string consisting of '(' and ')' characters. The length of the string does not exceed $10^6$.\n\n### Output Specification\n\nPrint two space-separated integers: the length of the longest regular bracket sequence substring and the number of such substrings. If there are no such substrings, print \"0 1\".",
+    "difficulty": "hard",
+    "difficulty_rating": 1900,
+    "tags": ["dp", "greedy", "strings"],
+    "time_limit_ms": 2000,
+    "memory_limit_mb": 256,
+    "sample_tests": [
+      {
+        "input": "((()))()",
+        "output": "8 1"
+      },
+      {
+        "input": ")(",
+        "output": "0 1"
+      }
+    ],
+    "hidden_tests": [
+      {
+        "input": "((()))()",
+        "output": "8 1"
+      },
+      {
+        "input": ")(",
+        "output": "0 1"
+      },
+      {
+        "input": "()()()",
+        "output": "6 1"
+      }
+    ],
+    "hints": ["Use a stack or DP to track the match length ending at each character. Combine consecutive valid segments to find the maximum substring length."]
+  }
+]

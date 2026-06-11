@@ -8,7 +8,16 @@ const MIN_EVENTS = 8;
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
+  const rawLimit = parseInt(searchParams.get("limit") ?? "20", 10);
+
+  if (!Number.isFinite(rawLimit)) {
+    return NextResponse.json(
+      { error: "Invalid limit parameter: must be a number." },
+      { status: 400 }
+    );
+  }
+
+  const limit = Math.min(50, Math.max(1, rawLimit));
   const before = searchParams.get("before"); // UUID cursor
 
   const todayOnly = searchParams.get("today") === "1";

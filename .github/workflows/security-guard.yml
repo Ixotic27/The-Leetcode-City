@@ -50,7 +50,7 @@ jobs:
             }
             
             if (hasViolation) {
-              const body = `🚨 **SECURITY GUARD ALERT** 🚨\n\nYour Pull Request contains files that violate repository security policies:\n\n${violations.join('\n')}\n\n**Action Required:** Please rename or remove these files immediately. This PR is blocked until these issues are resolved.`;
+              const body = `🚨 **SECURITY GUARD ALERT** 🚨\n\nHi @${context.payload.pull_request.user.login}, your Pull Request contains files that violate repository security policies:\n\n${violations.join('\n')}\n\n**Action Required:** Please rename or remove these files immediately. This PR is blocked until these issues are resolved.`;
               
               // Post comment
               await github.rest.issues.createComment({

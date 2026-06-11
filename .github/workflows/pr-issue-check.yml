@@ -29,17 +29,32 @@ jobs:
             const prBody = pr.body ?? '';
 
             // ----------------------------------------------------------------
-            // 1. Parse a linked issue number from the PR body.
-            //    Matches: closes/fixes/resolves #123  (case-insensitive)
+            // 0. Bypass checks for bots and the maintainer
             // ----------------------------------------------------------------
-            const LINK_REGEX =
-              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
-
-            const issueNumbers = [];
-            let match;
-            while ((match = LINK_REGEX.exec(prBody)) !== null) {
-              issueNumbers.push(parseInt(match[1], 10));
+            if (pr.user.type === 'Bot' || prAuthor === 'Ixotic27') {
+              core.info(`Skipping issue check for ${prAuthor} (Bot/Maintainer).`);
+              return;
             }
+
+            // ----------------------------------------------------------------
+            // 1. Parse a linked issue number from the PR body.
+            //    Matches: closes/fixes/resolves #123, #124, and #125 (case-insensitive)
+            // ----------------------------------------------------------------
+            // Find all blocks that start with a closing keyword and are followed by issue numbers
+            const BLOCK_REGEX = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?:\s*(?:and|,)?\s*#\d+)+/gi;
+            
+            const issueNumbers = [];
+            let blockMatch;
+            while ((blockMatch = BLOCK_REGEX.exec(prBody)) !== null) {
+              const numRegex = /#(\d+)/g;
+              let numMatch;
+              while ((numMatch = numRegex.exec(blockMatch[0])) !== null) {
+                issueNumbers.push(parseInt(numMatch[1], 10));
+              }
+            }
+            
+            // Remove duplicates
+            const uniqueIssueNumbers = [...new Set(issueNumbers)];
 
             const SENTINEL_NO_LINK  = '<!-- pr-issue-check: no-link -->';
             const SENTINEL_NOT_ASSIGNED = '<!-- pr-issue-check: not-assigned -->';
@@ -90,7 +105,7 @@ jobs:
             // 3. Linked issue(s) found — check assignment for each one.
             //    We validate all linked issues and act on the first violation.
             // ----------------------------------------------------------------
-            for (const issueNumber of issueNumbers) {
+            for (const issueNumber of uniqueIssueNumbers) {
               let issue;
               try {
                 const { data } = await github.rest.issues.get({
@@ -115,6 +130,24 @@ jobs:
                   return;
                 }
                 throw err;
+              }
+
+              // Check if the issue is still under triage
+              const labels = issue.labels.map(l => l.name);
+              if (labels.includes('needs-triage')) {
+                const already = await alreadyPosted('<!-- pr-issue-check: needs-triage -->');
+                if (!already) {
+                  await github.rest.issues.createComment({
+                    owner, repo, issue_number: prNumber,
+                    body: `👋 Hey @${prAuthor}! Thanks for your PR! 🙏\n\n<!-- pr-issue-check: needs-triage -->\nUnfortunately, this PR has been **automatically closed** because the linked issue **[#${issueNumber} — ${issue.title}](${issue.html_url})** is still under triage (\`needs-triage\` label).\n\nIssues must be reviewed and approved by maintainers (the \`needs-triage\` label removed) before Pull Requests can be opened. Please wait for the maintainer to approve the issue first. Once approved, you can request assignment and reopen your PR.`
+                  });
+                }
+                
+                await github.rest.pulls.update({
+                  owner, repo, pull_number: prNumber, state: 'closed',
+                });
+                
+                return; // stop after first violation
               }
 
               // Is the PR author assigned to this issue?

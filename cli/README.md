@@ -32,7 +32,7 @@ That's it. **No API keys needed** for frontend development.
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 24+
 - npm
 - git
 

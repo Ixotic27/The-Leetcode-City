@@ -140,86 +140,7 @@ export const SpotlightEffect = memo(function SpotlightEffect({
   depth: number;
   color?: string;
 }) {
-  const beam1 = useRef<THREE.Group>(null);
-  const beam2 = useRef<THREE.Group>(null);
-  const frameCount = useRef(0);
-
-  const beamH = height * 3;
-  const topR = Math.max(width, depth) * 0.4;
-  const spread = Math.max(width, depth) * 0.25;
-
-  useFrame((state) => {
-    frameCount.current++;
-    if (frameCount.current % 3 !== 0) return;
-    const t = state.clock.elapsedTime;
-    if (beam1.current) {
-      beam1.current.rotation.x = Math.sin(t * 0.4) * 0.08;
-      beam1.current.rotation.z = Math.cos(t * 0.3) * 0.06;
-    }
-    if (beam2.current) {
-      beam2.current.rotation.x = Math.cos(t * 0.35) * 0.07;
-      beam2.current.rotation.z = Math.sin(t * 0.45) * 0.08;
-    }
-  });
-
-  const beamMat = (
-    <meshBasicMaterial
-      color={color}
-      transparent
-      opacity={0.1}
-      blending={THREE.AdditiveBlending}
-      depthWrite={false}
-      side={THREE.DoubleSide}
-    />
-  );
-
-  const glowMat = (
-    <meshBasicMaterial
-      color={color}
-      transparent
-      opacity={0.04}
-      blending={THREE.AdditiveBlending}
-      depthWrite={false}
-      side={THREE.DoubleSide}
-    />
-  );
-
-  return (
-    <group position={[0, height, 0]}>
-      {/* Beam 1 */}
-      <group ref={beam1} position={[-spread, 0, -spread * 0.5]}>
-        {/* Projector box base */}
-        <mesh position={[0, 0.6, 0]} geometry={_box} scale={[2, 1.2, 2]}>
-          <meshStandardMaterial color="#333340" emissive="#666666" emissiveIntensity={2} toneMapped={false} metalness={0.7} roughness={0.3} />
-        </mesh>
-        {/* Inner beam */}
-        <mesh position={[0, beamH / 2 + 1, 0]}>
-          <coneGeometry args={[topR, beamH, 8, 1, true]} />
-          {beamMat}
-        </mesh>
-        {/* Outer glow */}
-        <mesh position={[0, beamH / 2 + 1, 0]}>
-          <coneGeometry args={[topR * 1.6, beamH * 0.95, 8, 1, true]} />
-          {glowMat}
-        </mesh>
-      </group>
-
-      {/* Beam 2 */}
-      <group ref={beam2} position={[spread, 0, spread * 0.5]}>
-        <mesh position={[0, 0.6, 0]} geometry={_box} scale={[2, 1.2, 2]}>
-          <meshStandardMaterial color="#333340" emissive="#666666" emissiveIntensity={2} toneMapped={false} metalness={0.7} roughness={0.3} />
-        </mesh>
-        <mesh position={[0, beamH / 2 + 1, 0]}>
-          <coneGeometry args={[topR, beamH, 8, 1, true]} />
-          {beamMat}
-        </mesh>
-        <mesh position={[0, beamH / 2 + 1, 0]}>
-          <coneGeometry args={[topR * 1.6, beamH * 0.95, 8, 1, true]} />
-          {glowMat}
-        </mesh>
-      </group>
-    </group>
-  );
+  return null;
 });
 
 // ─── Rooftop Fire ────────────────────────────────────────────
@@ -308,6 +229,8 @@ export const Helipad = memo(function Helipad({
   const borderRef = useRef<THREE.Mesh>(null);
   const frameCount = useRef(0);
   const padSize = Math.min(width, depth) * 0.35;
+  const posX = -width / 2 + (padSize / 2 + 0.5);
+  const posZ = depth / 2 - (padSize / 2 + 0.5);
 
   useFrame((state) => {
     if (!borderRef.current) return;
@@ -318,7 +241,7 @@ export const Helipad = memo(function Helipad({
   });
 
   return (
-    <group position={[-width * 0.45, height + 0.5, depth * 0.45]}>
+    <group position={[posX, height + 0.5, posZ]}>
       {/* Glowing border ring */}
       <mesh ref={borderRef} position={[0, 0.3, 0]}>
         <torusGeometry args={[padSize / 2 + 0.3, 0.4, 8, 24]} />
@@ -531,9 +454,11 @@ export const Spire = memo(function Spire({
   const legH = 8;
   const tankR = 4;
   const tankH = 4;
+  const posX = -width / 2 + 3.5;
+  const posZ = -depth / 2 + 3.5;
 
   return (
-    <group position={[-width * 0.45, height, -depth * 0.45]}>
+    <group position={[posX, height, posZ]}>
       {/* 4 legs */}
       {[
         [1.5, 0, 1.5],
@@ -992,9 +917,11 @@ export const SatelliteDish = memo(function SatelliteDish({
   });
 
   const dishSize = Math.min(width, depth) * 0.25;
+  const posX = width / 2 - (dishSize * 0.6 + 0.8);
+  const posZ = -depth / 2 + (dishSize * 0.6 + 0.8);
 
   return (
-    <group position={[width * 0.45, height, -depth * 0.45]}>
+    <group position={[posX, height, posZ]}>
       {/* Support pole */}
       <mesh position={[0, 3, 0]}>
         <cylinderGeometry args={[0.5, 0.8, 6, 6]} />
@@ -1114,8 +1041,9 @@ export const PoolParty = memo(function PoolParty({
     mat.emissiveIntensity = 1.5 + Math.sin(state.clock.elapsedTime * 2) * 0.3;
   });
 
-  const poolW = width * 0.7;
+  const poolW = Math.min(width * 0.7, width - 6.8);
   const poolD = depth * 0.5;
+  const chairOffsetX = width / 2 - 1.2;
 
   return (
     <group position={[0, height, 0]}>
@@ -1129,7 +1057,7 @@ export const PoolParty = memo(function PoolParty({
       </mesh>
       {/* Lounge chairs (pixelated blocks) */}
       {[-1, 1].map((side) => (
-        <group key={side} position={[side * (poolW / 2 + 2.5), 0.5, 0]}>
+        <group key={side} position={[side * chairOffsetX, 0.5, 0]}>
           <mesh position={[0, 0.5, 0]} geometry={_box} scale={[2, 0.4, 4]}>
             <meshStandardMaterial color="#e0d0a0" />
           </mesh>
@@ -1463,12 +1391,15 @@ export const LEDBanner = memo(function LEDBanner({
   text?: string | null;
 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const textGroupRef = useRef<THREE.Group>(null);
   const frameCount = useRef(0);
 
   const bannerH = 3;
   const y = height * 0.45;
   const hw = width / 2 + 0.3;
   const hd = depth / 2 + 0.3;
+
+  const hasText = !!(text && text.trim().length > 0);
 
   // Build face configs: each face has LED_SEGS scrolling blocks
   const faces = useMemo(() => [
@@ -1478,7 +1409,16 @@ export const LEDBanner = memo(function LEDBanner({
     { axis: "z" as const, faceW: depth, pos: [-hw, y, 0] as const, rot: 0 },     // left
   ], [width, depth, y, hw, hd]);
 
+  // Animation for abstract LED blocks (runs when no text)
   useFrame((state) => {
+    if (hasText) {
+      // Animate text scroll
+      if (textGroupRef.current) {
+        const t = state.clock.elapsedTime;
+        textGroupRef.current.position.x = Math.sin(t) * 2;
+      }
+      return;
+    }
     if (!groupRef.current) return;
     frameCount.current++;
     if (frameCount.current % 2 !== 0) return;
@@ -1502,16 +1442,8 @@ export const LEDBanner = memo(function LEDBanner({
     }
   });
 
-  // Render actual text if provided, otherwise render the abstract blocks
-  if (text) {
-    const textGroupRef = useRef<THREE.Group>(null);
-    useFrame((state) => {
-      if (!textGroupRef.current) return;
-      // Scroll text horizontally
-      const t = state.clock.elapsedTime;
-      textGroupRef.current.position.x = Math.sin(t) * 2;
-    });
-
+  // Render text version
+  if (hasText) {
     return (
       <group>
         {faces.map((face, f) => {
@@ -1531,7 +1463,6 @@ export const LEDBanner = memo(function LEDBanner({
                   font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
                 >
                   {text}
-                  <meshBasicMaterial color={color} toneMapped={false} />
                 </Text>
               </group>
             </group>
@@ -1541,6 +1472,7 @@ export const LEDBanner = memo(function LEDBanner({
     );
   }
 
+  // Render abstract LED blocks
   return (
     <group ref={groupRef}>
       {faces.flatMap((face, f) => {
@@ -1844,30 +1776,9 @@ export const TierSkyBeam = memo(function TierSkyBeam({
   color: string;
   prismatic?: boolean;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const frameCount = useRef(0);
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    frameCount.current++;
-    if (frameCount.current % 2 !== 0) return;
-    const t = state.clock.elapsedTime;
-    const mat = meshRef.current.material as THREE.MeshBasicMaterial;
-    mat.opacity = 0.04 + Math.sin(t * 0.8) * 0.02;
-    if (prismatic) {
-      const hue = (t * 0.05) % 1;
-      mat.color.setHSL(hue, 0.8, 0.7);
-    }
-  });
-
-  const beamH = 400;
-
-  return (
-    <mesh ref={meshRef} position={[0, height + beamH / 2, 0]} geometry={_box} scale={[3, beamH, 3]}>
-      <meshBasicMaterial color={color} transparent opacity={0.05} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
+  return null;
 });
+
 
 // ─── Accepted Badge (crown zone) ─────────────────────────────
 // Floating neon "AC" sign that glows green
@@ -2011,9 +1922,11 @@ export const BinaryTree = memo(function BinaryTree({
     if (!treeRef.current) return;
     treeRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
   });
+  const posX = Math.min(width * 0.35, width / 2 - 3);
+  const posZ = Math.max(-depth * 0.35, -depth / 2 + 3);
 
   return (
-    <group position={[width * 0.35, height, -depth * 0.35]} ref={treeRef}>
+    <group position={[posX, height, posZ]} ref={treeRef}>
       {/* Root */}
       <mesh position={[0, 3, 0]} geometry={_box} scale={[1.5, 6, 1.5]}>
         <meshStandardMaterial color="#5a3a1a" />

@@ -2,14 +2,12 @@
 
 import { useRef, useEffect, useState, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Stats, PerformanceMonitor } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
 import * as THREE from "three";
 import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding, CityPlaza, CityDecoration, CityRiver, CityBridge } from "@/lib/github";
-import { seededRandom } from "@/lib/github";
 import SkyAds from "./SkyAds";
 import BuildingAds from "./BuildingAds";
 import type { SkyAd } from "@/lib/skyAds";
@@ -20,6 +18,10 @@ import FounderSpire from "./FounderSpire";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
+import InfiniteWater from "./InfiniteWater";
+import AtmosphereCycleManager from "./AtmosphereCycleManager";
+import { useWeather } from '@/context/WeatherContext';
+import { RainParticles } from './weather/RainParticles';
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -69,8 +71,7 @@ const THEMES: CityTheme[] = [
   // 0 – Midnight
   {
     sky: [
-      [0, "#000206"], [0.15, "#020814"], [0.30, "#061428"], [0.45, "#0c2040"],
-      [0.55, "#102850"], [0.65, "#0c2040"], [0.80, "#061020"], [1, "#020608"],
+      [0, "#000206"], [0.25, "#020814"], [0.5, "#0a1428"], [0.75, "#0a1428"], [1, "#0a1428"],
     ],
     fogColor: "#0a1428", fogNear: 400, fogFar: 2500,
     ambientColor: "#4060b0", ambientIntensity: 0.55,
@@ -85,14 +86,12 @@ const THEMES: CityTheme[] = [
       windowOff: "#0c0e18", face: "#101828", roof: "#2a3858",
       accent: "#ffa116",
     },
-    waterColor: "#0a1830", waterEmissive: "#0a2050", dockColor: "#3a2818",
+    waterColor: "#0c2848", waterEmissive: "#1040a0", dockColor: "#3a2818",
   },
   // 1 – Sunset
   {
     sky: [
-      [0, "#0c0614"], [0.15, "#1c0e30"], [0.28, "#3a1850"], [0.38, "#6a3060"],
-      [0.46, "#a05068"], [0.52, "#d07060"], [0.57, "#e89060"], [0.62, "#f0b070"],
-      [0.68, "#f0c888"], [0.75, "#c08060"], [0.85, "#603030"], [1, "#180c10"],
+      [0, "#0c0614"], [0.25, "#e89060"], [0.5, "#80405a"], [0.75, "#80405a"], [1, "#80405a"],
     ],
     fogColor: "#80405a", fogNear: 400, fogFar: 2500,
     ambientColor: "#e0a080", ambientIntensity: 0.7,
@@ -107,14 +106,12 @@ const THEMES: CityTheme[] = [
       windowOff: "#1a1018", face: "#281828", roof: "#604050",
       accent: "#ffa116",
     },
-    waterColor: "#1a2040", waterEmissive: "#102060", dockColor: "#4a3020",
+    waterColor: "#2a2850", waterEmissive: "#3030a0", dockColor: "#4a3020",
   },
   // 2 – Neon
   {
     sky: [
-      [0, "#06001a"], [0.15, "#100028"], [0.30, "#200440"], [0.42, "#380650"],
-      [0.52, "#500860"], [0.60, "#380648"], [0.75, "#180230"], [0.90, "#0c0118"],
-      [1, "#06000c"],
+      [0, "#06001a"], [0.25, "#200440"], [0.5, "#1a0830"], [0.75, "#1a0830"], [1, "#1a0830"],
     ],
     fogColor: "#1a0830", fogNear: 400, fogFar: 2500,
     ambientColor: "#8040c0", ambientIntensity: 0.6,
@@ -129,14 +126,12 @@ const THEMES: CityTheme[] = [
       windowOff: "#0a0814", face: "#180830", roof: "#3c1858",
       accent: "#e040c0",
     },
-    waterColor: "#0c0830", waterEmissive: "#1008a0", dockColor: "#2a1838",
+    waterColor: "#180848", waterEmissive: "#2010c0", dockColor: "#2a1838",
   },
   // 3 – Emerald
   {
     sky: [
-      [0, "#000804"], [0.15, "#001408"], [0.30, "#002810"], [0.42, "#003c1c"],
-      [0.52, "#004828"], [0.60, "#003820"], [0.75, "#002014"], [0.90, "#001008"],
-      [1, "#000604"],
+      [0, "#000804"], [0.25, "#002810"], [0.5, "#0a2014"], [0.75, "#0a2014"], [1, "#0a2014"],
     ],
     fogColor: "#0a2014", fogNear: 400, fogFar: 2500,
     ambientColor: "#40a060", ambientIntensity: 0.55,
@@ -151,47 +146,19 @@ const THEMES: CityTheme[] = [
       windowOff: "#060e08", face: "#0c1810", roof: "#1e4028",
       accent: "#f0c060",
     },
-    waterColor: "#082018", waterEmissive: "#0a3020", dockColor: "#3a2818",
+    waterColor: "#103830", waterEmissive: "#186048", dockColor: "#3a2818",
   },
 ];
 
-// ─── Sky Dome ────────────────────────────────────────────────
-
-function SkyDome({ stops }: { stops: [number, string][] }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const mat = useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = 4;
-    c.height = 512;
-    const ctx = c.getContext("2d")!;
-    const g = ctx.createLinearGradient(0, 0, 0, 512);
-    for (const [stop, color] of stops) g.addColorStop(stop, color);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, 4, 512);
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false });
-  }, [stops]);
-
-  // Keep sky dome centered on camera so it always surrounds the viewer
-  useFrame(({ camera }) => {
-    if (meshRef.current) {
-      meshRef.current.position.copy(camera.position);
-    }
-  });
-
+// ─── Scene Background ────────────────────────────────────────
+// Sets scene.background to the fog color so that areas beyond the fog
+// don't render as black. This also provides the backdrop behind the SkyDome.
+function SceneBackground({ color }: { color: string }) {
+  const { scene } = useThree();
   useEffect(() => {
-    return () => {
-      mat.map?.dispose();
-      mat.dispose();
-    };
-  }, [mat]);
-
-  return (
-    <mesh ref={meshRef} material={mat} renderOrder={-1}>
-      <sphereGeometry args={[3500, 32, 48]} />
-    </mesh>
-  );
+    scene.background = new THREE.Color(color);
+  }, [color, scene]);
+  return null;
 }
 
 // ─── Paper Plane (GLB model) ─────────────────────────────────
@@ -1073,6 +1040,10 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
     return geo;
   }, []);
 
+  useEffect(() => {
+    return () => coinGeo.dispose();
+  }, [coinGeo]);
+
   return (
     <>
       <instancedMesh ref={meshRef} args={[coinGeo, undefined, COLLECTIBLE_COUNT]}>
@@ -1097,13 +1068,101 @@ function CameraReset() {
 // ─── Ground ──────────────────────────────────────────────────
 
 function Ground({ color, grid1, grid2 }: { color: string; grid1: string; grid2: string }) {
+  return null;
+}
+
+function CircularCityPlatform({ radius, color, weatherMode }: { radius: number; color: string; weatherMode?: string }) {
+  const platformRadius = radius + 120;
+
+  const { supportColumns, concretePaths } = useMemo(() => {
+    const columns: [number, number][] = [];
+    const colCount = 18;
+    const columnRadius = Math.max(180, radius * 0.78);
+    for (let i = 0; i < colCount; i++) {
+      const angle = (i / colCount) * Math.PI * 2;
+      columns.push([
+        Math.cos(angle) * columnRadius,
+        Math.sin(angle) * columnRadius,
+      ]);
+    }
+
+    // Concrete ring paths matching decoration ring positions
+    // These are the same radii used in rebuildCircularCityDecorations
+    const CENTER_CLEARANCE = 170;
+    const RING_SPACING = 72;
+    const paths: number[] = [];
+    let ring = 1;
+    while (CENTER_CLEARANCE + ring * RING_SPACING < platformRadius - 20) {
+      paths.push(CENTER_CLEARANCE + ring * RING_SPACING);
+      ring++;
+    }
+
+    return { supportColumns: columns, concretePaths: paths };
+  }, [radius, platformRadius]);
+
   return (
     <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
-        <planeGeometry args={[20000, 20000]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} roughness={0.95} />
+      {/* Platform base (cylinder wall) */}
+      <mesh position={[0, -14, 0]}>
+        <cylinderGeometry args={[platformRadius, platformRadius + 44, 28, 128]} />
+        <meshStandardMaterial
+          color="#05070a"
+          emissive="#000000"
+          emissiveIntensity={0.0}
+          roughness={0.95}
+          metalness={0.1}
+        />
       </mesh>
-      <gridHelper args={[4000, 200, grid1, grid2]} position={[0, -0.5, 0]} />
+      {/* Platform top surface */}
+      <mesh position={[0, 0.2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[platformRadius, 128]} />
+        <meshStandardMaterial
+          color={weatherMode === "snowy" ? "#f8fafc" : color}
+          emissive={weatherMode === "snowy" ? "#e2e8f0" : color}
+          emissiveIntensity={weatherMode === "snowy" ? 0.05 : 0.18}
+          roughness={weatherMode === "snowy" ? 0.98 : 0.9}
+        />
+      </mesh>
+      {/* Concrete ring paths (walkways where trees/lamps sit) */}
+      {concretePaths.map((r) => (
+        <mesh key={`path-${r}`} position={[0, 0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[r - 16, r + 16, 128]} />
+          <meshStandardMaterial
+            color={weatherMode === "snowy" ? "#f1f5f9" : "#4a5564"}
+            emissive={weatherMode === "snowy" ? "#cbd5e1" : "#2a3040"}
+            emissiveIntensity={weatherMode === "snowy" ? 0.05 : 0.2}
+            roughness={0.95}
+          />
+        </mesh>
+      ))}
+      {/* Perimeter decorative torus rings */}
+      {[0.48, 0.68, 0.86, 1].map((scale) => (
+        <mesh
+          key={scale}
+          position={[0, 0.9 + scale, 0]}
+          rotation={[Math.PI / 2, 0, 0]}
+        >
+          <torusGeometry args={[platformRadius * scale, 2.4, 8, 160]} />
+          <meshStandardMaterial
+            color={weatherMode === "snowy" ? "#f8fafc" : "#5a7186"}
+            emissive={weatherMode === "snowy" ? "#cbd5e1" : "#263849"}
+            emissiveIntensity={weatherMode === "snowy" ? 0.1 : 0.35}
+            roughness={weatherMode === "snowy" ? 0.95 : 0.82}
+          />
+        </mesh>
+      ))}
+      {/* Support columns underneath */}
+      {supportColumns.map(([x, z], i) => (
+        <mesh key={i} position={[x, -48, z]}>
+          <cylinderGeometry args={[9, 15, 80, 10]} />
+          <meshStandardMaterial
+            color="#1b2530"
+            emissive="#0f1720"
+            emissiveIntensity={0.25}
+            roughness={0.95}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -1537,43 +1596,43 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
     <>
       {trees.length > 0 && (
         <>
-          <instancedMesh ref={treeTrunkRef} args={[geos.treeTrunk, mats.treeTrunk, trees.length]} />
-          <instancedMesh ref={treeCanopyRef} args={[geos.treeCanopy, mats.treeCanopy, trees.length]} />
+          <instancedMesh ref={treeTrunkRef} args={[geos.treeTrunk, mats.treeTrunk, trees.length]} frustumCulled={false} />
+          <instancedMesh ref={treeCanopyRef} args={[geos.treeCanopy, mats.treeCanopy, trees.length]} frustumCulled={false} />
         </>
       )}
       {lamps.length > 0 && (
         <>
-          <instancedMesh ref={lampPoleRef} args={[geos.lampPole, mats.lampPole, lamps.length]} />
-          <instancedMesh ref={lampLightRef} args={[geos.lampLight, mats.lampLight, lamps.length]} />
+          <instancedMesh ref={lampPoleRef} args={[geos.lampPole, mats.lampPole, lamps.length]} frustumCulled={false} />
+          <instancedMesh ref={lampLightRef} args={[geos.lampLight, mats.lampLight, lamps.length]} frustumCulled={false} />
         </>
       )}
       {cars.length > 0 && (
         <>
-          <instancedMesh ref={carBodyRef} args={[geos.carBody, mats.carBody, cars.length]} />
-          <instancedMesh ref={carCabinRef} args={[geos.carCabin, mats.carCabin, cars.length]} />
+          <instancedMesh ref={carBodyRef} args={[geos.carBody, mats.carBody, cars.length]} frustumCulled={false} />
+          <instancedMesh ref={carCabinRef} args={[geos.carCabin, mats.carCabin, cars.length]} frustumCulled={false} />
         </>
       )}
       {roadMarkings.length > 0 && (
-        <instancedMesh ref={roadMarkingRef} args={[geos.roadMarking, mats.roadMarking, roadMarkings.length]} />
+        <instancedMesh ref={roadMarkingRef} args={[geos.roadMarking, mats.roadMarking, roadMarkings.length]} frustumCulled={false} />
       )}
       {benches.length > 0 && (
         <>
-          <instancedMesh ref={benchSeatRef} args={[_dBox, mats.benchWood, benches.length]} />
-          <instancedMesh ref={benchBackRef} args={[_dBox, mats.benchWood, benches.length]} />
-          <instancedMesh ref={benchLegLRef} args={[_dBox, mats.benchMetal, benches.length]} />
-          <instancedMesh ref={benchLegRRef} args={[_dBox, mats.benchMetal, benches.length]} />
+          <instancedMesh ref={benchSeatRef} args={[_dBox, mats.benchWood, benches.length]} frustumCulled={false} />
+          <instancedMesh ref={benchBackRef} args={[_dBox, mats.benchWood, benches.length]} frustumCulled={false} />
+          <instancedMesh ref={benchLegLRef} args={[_dBox, mats.benchMetal, benches.length]} frustumCulled={false} />
+          <instancedMesh ref={benchLegRRef} args={[_dBox, mats.benchMetal, benches.length]} frustumCulled={false} />
         </>
       )}
       {fountains.length > 0 && (
         <>
-          <instancedMesh ref={fountainBasinRef} args={[geos.fountainBasin, mats.fountainStone1, fountains.length]} />
-          <instancedMesh ref={fountainMidRef} args={[geos.fountainMid, mats.fountainStone2, fountains.length]} />
-          <instancedMesh ref={fountainUpperRef} args={[geos.fountainUpper, mats.fountainStone3, fountains.length]} />
-          <instancedMesh ref={fountainWaterRef} args={[geos.fountainWater, mats.fountainWater, fountains.length]} />
+          <instancedMesh ref={fountainBasinRef} args={[geos.fountainBasin, mats.fountainStone1, fountains.length]} frustumCulled={false} />
+          <instancedMesh ref={fountainMidRef} args={[geos.fountainMid, mats.fountainStone2, fountains.length]} frustumCulled={false} />
+          <instancedMesh ref={fountainUpperRef} args={[geos.fountainUpper, mats.fountainStone3, fountains.length]} frustumCulled={false} />
+          <instancedMesh ref={fountainWaterRef} args={[geos.fountainWater, mats.fountainWater, fountains.length]} frustumCulled={false} />
         </>
       )}
       {sidewalks.length > 0 && (
-        <instancedMesh ref={sidewalkRef} args={[_dPlane, mats.sidewalk, sidewalks.length]} />
+        <instancedMesh ref={sidewalkRef} args={[_dPlane, mats.sidewalk, sidewalks.length]} frustumCulled={false} />
       )}
     </>
   );
@@ -1615,7 +1674,7 @@ function RiverText({ river }: { river: CityRiver }) {
   const texRef = useRef<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
-    document.fonts.ready.then(() => setFontReady(true));
+    document.fonts.load('bold 100px "Silkscreen"').then(() => setFontReady(true));
   }, []);
 
   const texture = useMemo(() => {
@@ -1649,6 +1708,10 @@ function RiverText({ river }: { river: CityRiver }) {
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
     texRef.current = tex;
     return tex;
   }, [fontReady]);
@@ -1872,6 +1935,7 @@ interface Props {
   onExitFly: (aborted?: boolean) => void;
   onCollect?: (score: number, earned: number, combo: number, collected: number, maxCombo: number) => void;
   themeIndex: number;
+  dayNightCycleActive?: boolean;
   onHud?: (speed: number, altitude: number, x: number, z: number, yaw: number) => void;
   onPause?: (paused: boolean) => void;
   focusedBuilding?: string | null;
@@ -1906,6 +1970,7 @@ interface Props {
   wallpaperSpeed?: number;
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
+  weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -1928,12 +1993,12 @@ function CityExposure({ cityEnergy }: { cityEnergy: number }) {
 // Plaza indices for rabbit sightings (progressively further from center)
 const RABBIT_PLAZA_INDICES = [1, 2, 4, 7, 10]; // plazas[1]=slot3, [2]=slot7, [4]=slot18, [7]=slot42, [10]=slot75
 
-export default function CityCanvas({ buildings, plazas, decorations, river, bridges, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onClearFocus, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy }: Props) {
+export default function CityCanvas({ buildings, plazas, decorations, river, bridges, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, dayNightCycleActive, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onClearFocus, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy, weatherMode = "sunny" }: Props) {
+  const { isRaining } = useWeather();
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
-  const [dpr, setDpr] = useState(1);
-  const [bloomEnabled, setBloomEnabled] = useState(false);
   const flyPosRef = useRef(new THREE.Vector3());
+  const timeRef = useRef(0.0);
 
   const cityRadius = useMemo(() => {
     let max = 200;
@@ -1947,24 +2012,63 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
   return (
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 0.5, far: 4000 }}
-      dpr={dpr}
+      dpr={1}
+      onCreated={({ gl, scene }) => {
+        try {
+          // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
+          if (gl.domElement && gl.domElement.style) gl.domElement.style.imageRendering = "pixelated";
+
+          // Best-effort: enforce nearest filtering on any textures already present.
+          // Also schedule a few post-mount traversal passes to catch textures created
+          // by React components after initial renderer creation.
+          const applyNearest = () => {
+            scene.traverse((obj: any) => {
+              if (obj.isMesh && obj.material) {
+                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                for (const m of mats) {
+                  const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
+                  for (const tx of maps) {
+                    if (tx && tx instanceof THREE.Texture) {
+                      tx.magFilter = THREE.NearestFilter;
+                      tx.minFilter = THREE.NearestFilter;
+                      tx.generateMipmaps = false;
+                      tx.needsUpdate = true;
+                    }
+                  }
+                }
+              }
+            });
+          };
+
+          // Initial pass
+          applyNearest();
+          // Run a few frames afterwards to catch late-mounted textures
+          let runs = 0;
+          const runner = () => {
+            try { applyNearest(); } catch (err) { /* keep going */ }
+            runs += 1;
+            if (runs < 6) requestAnimationFrame(runner);
+          };
+          requestAnimationFrame(runner);
+        } catch (e) {
+          // Best-effort only — surface warnings to make issues diagnosable in dev
+          // eslint-disable-next-line no-console
+          console.warn("CityCanvas: failed to enforce nearest filtering", e);
+        }
+      }}
       gl={{ antialias: false, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
-      <PerformanceMonitor
-        onIncline={() => { setDpr(1.25); setBloomEnabled(true); }}
-        onDecline={() => { setDpr(0.75); setBloomEnabled(false); }}
+      <AtmosphereCycleManager
+        theme={t}
+        themeIndex={themeIndex}
+        active={dayNightCycleActive ?? false}
+        timeRef={timeRef}
+        cityRadius={cityRadius}
+        weatherMode={weatherMode}
       />
-      <fog attach="fog" args={[t.fogColor, t.fogNear, t.fogFar]} key={`fog-${themeIndex}`} />
-
-      <ambientLight intensity={t.ambientIntensity * 3} color={t.ambientColor} />
-      <directionalLight position={t.sunPos} intensity={t.sunIntensity * 3.5} color={t.sunColor} />
-      <directionalLight position={t.fillPos} intensity={t.fillIntensity * 3} color={t.fillColor} />
-      <hemisphereLight args={[t.hemiSky, t.hemiGround, t.hemiIntensity * 3.5]} key={`hemi-${themeIndex}`} />
-
-      <SkyDome key={`sky-${themeIndex}`} stops={t.sky} />
 
       {introMode && <IntroFlyover onEnd={onIntroEnd ?? (() => { })} />}
 
@@ -2003,7 +2107,9 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
         </>
       )}
 
+      <InfiniteWater waterColor={t.waterColor} waterEmissive={t.waterEmissive} />
       <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
+      <CircularCityPlatform radius={cityRadius} color={t.groundColor} weatherMode={weatherMode} />
 
       <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
 
@@ -2023,17 +2129,7 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
         );
       })()}
 
-      {river && (
-        <>
-          <River river={river} waterColor={t.waterColor} waterEmissive={t.waterEmissive} />
-          <RiverText river={river} />
-          <Waterfront river={river} dockColor={t.dockColor} />
-        </>
-      )}
 
-      {bridges?.map((b, i) => (
-        <Bridge key={`bridge-${i}`} bridge={b} />
-      ))}
 
       <CityScene
         buildings={buildings}
@@ -2050,6 +2146,8 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
         holdRise={holdRise}
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
+        timeRef={timeRef}
+        weatherMode={weatherMode}
       />
 
       <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
@@ -2067,17 +2165,14 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
           />
         </>
       )}
-
-      {bloomEnabled && (
-        <EffectComposer multisampling={0}>
-          <Bloom
-            mipmapBlur
-            luminanceThreshold={1}
-            luminanceSmoothing={0.3}
-            intensity={1.8 * Math.max(0.15, cityEnergy ?? 1)}
-          />
-        </EffectComposer>
+      {isRaining && (
+        <>
+          <RainParticles />
+          <color attach="background" args={['#3a404a']} />
+          <fog attach="fog" args={['#3a404a', 30, 300]} /> 
+        </>
       )}
+
     </Canvas>
   );
 }

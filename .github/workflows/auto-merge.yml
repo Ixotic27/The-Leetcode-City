@@ -3,7 +3,13 @@ name: Auto Merge Approved PRs
 on:
   pull_request_review:
     types: [submitted]
-  status:
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -15,11 +21,11 @@ jobs:
       - name: Automatically merge approved PRs
         uses: pascalgn/automerge-action@v0.16.4
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.REVIEWER_PAT || secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: ""          # Empty string means it will merge WITHOUT requiring a specific label
           MERGE_METHOD: "squash"
           MERGE_COMMIT_MESSAGE: "pull-request-title"
           MERGE_FORKS: "true"
           MERGE_RETRIES: "10"       # Check repeatedly
           MERGE_RETRY_SLEEP: "10000"
-          MERGE_REQUIRED_APPROVALS: "1" # Wait for at least 1 approval (e.g. from CodeRabbit or a Maintainer)
+          MERGE_REQUIRED_APPROVALS: "1" # Wait for at least 1 approval

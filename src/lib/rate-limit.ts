@@ -45,7 +45,7 @@ export function rateLimit(
   // First request in this window (or window expired)
   if (!entry || now > entry.resetAt) {
     store.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true, remaining: limit - 1, reset: now + windowMs };
+    return { ok: true, remaining: Math.max(0, limit - 1), reset: now + windowMs };
   }
 
   // Window still active – check quota
@@ -54,5 +54,5 @@ export function rateLimit(
   }
 
   entry.count++;
-  return { ok: true, remaining: limit - entry.count, reset: entry.resetAt };
+  return { ok: true, remaining: Math.max(0, limit - entry.count), reset: entry.resetAt };
 }

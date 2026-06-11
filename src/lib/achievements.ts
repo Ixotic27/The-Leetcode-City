@@ -61,6 +61,12 @@ interface DevStats {
   /** Number of shop items purchased (paid or free). */
   purchases?: number;
   dailies_completed?: number;
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  contest_rating?: number;
+  lc_streak?: number;
+  total_prs?: number;
 }
 
 /**
@@ -121,6 +127,18 @@ export async function checkAchievements(
         return (stats.purchases ?? 0) >= a.threshold;
       case "dailies":
         return (stats.dailies_completed ?? 0) >= a.threshold;
+      case "easy_solved":
+        return (stats.easy_solved ?? 0) >= a.threshold;
+      case "medium_solved":
+        return (stats.medium_solved ?? 0) >= a.threshold;
+      case "hard_solved":
+        return (stats.hard_solved ?? 0) >= a.threshold;
+      case "contest_rating":
+        return (stats.contest_rating ?? 0) >= a.threshold;
+      case "lc_streak":
+        return (stats.lc_streak ?? 0) >= a.threshold;
+      case "contributors":
+        return (stats.total_prs ?? 0) >= a.threshold;
       default:
         return false;
     }
@@ -154,21 +172,34 @@ export async function checkAchievements(
       status: "completed",
     }));
 
-    // Batch upsert — unique index on (developer_id, item_id) prevents duplicates
+    // Use ignoreDuplicates:true instead of a destructive upsert.
+    // If the user already owns this item via a paid Stripe purchase the existing
+    // record (provider:"stripe", amount_cents > 0, Stripe tx id) must NOT be
+    // overwritten. ignoreDuplicates:true translates to INSERT … ON CONFLICT DO NOTHING,
+    // so paid records are preserved and no financial audit data is lost.
     await sb
       .from("purchases")
-      .upsert(purchaseRows, { onConflict: "developer_id,item_id" });
+      .upsert(purchaseRows, { onConflict: "developer_id,item_id", ignoreDuplicates: true });
   }
 
-  // Grant XP for each achievement unlock
+  // Grant XP for each achievement unlock (atomic + idempotent)
   for (const a of newUnlocks) {
     const xpAmount = xpForAchievementTier(a.tier);
     if (xpAmount > 0) {
-      sb.rpc("grant_xp", {
-        p_developer_id: developerId,
-        p_source: "achievement",
-        p_amount: xpAmount,
-      }).then();
+      try {
+        const { data: xpResult, error: xpError } = await sb.rpc("grant_xp_atomic", {
+          p_developer_id: developerId,
+          p_source: `achievement_${a.id}`,
+          p_amount: xpAmount,
+        });
+        if (xpError) {
+          console.error(`[achievements] XP grant failed for ${a.id}:`, xpError);
+        } else if (xpResult === null) {
+          // Duplicate grant — already logged, safe to skip
+        }
+      } catch (err) {
+        console.error(`[achievements] XP grant error for ${a.id}:`, err);
+      }
     }
   }
 

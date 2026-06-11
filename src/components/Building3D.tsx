@@ -35,6 +35,7 @@ import {
 } from "./BuildingEffects";
 import { tierFromLevel } from "@/lib/xp";
 import { MiniWhiteRabbit } from "./WhiteRabbit";
+import { useWeather } from '@/context/WeatherContext';
 
 // Shared constants
 const WHITE = new THREE.Color("#ffffff");
@@ -403,19 +404,12 @@ function BuildingRiseAnimation({
 // ─── Focus Highlight (batman spotlight + beacon) ─────────────
 
 const BEACON_HEIGHT = 500;
-const SPOTLIGHT_Y = 400; // cone origin high above
 
 export function FocusBeacon({ height, width, depth, accentColor }: { height: number; width: number; depth: number; accentColor: string }) {
-  const coneRef = useRef<THREE.Mesh>(null);
   const markerRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    // Cone pulse
-    if (coneRef.current) {
-      (coneRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.10 + Math.sin(t * 1.5) * 0.03;
-    }
     // Marker bob + spin
     if (markerRef.current) {
       markerRef.current.position.y = height + 35 + Math.sin(t * 2) * 5;
@@ -423,27 +417,8 @@ export function FocusBeacon({ height, width, depth, accentColor }: { height: num
     }
   });
 
-  const coneRadius = Math.max(width, depth) * 1.2;
-
   return (
     <group>
-      {/* Batman spotlight cone from sky */}
-      <mesh ref={coneRef} position={[0, SPOTLIGHT_Y / 2, 0]}>
-        <cylinderGeometry args={[0, coneRadius, SPOTLIGHT_Y, 32, 1, true]} />
-        <meshBasicMaterial
-          color={accentColor}
-          transparent
-          opacity={0.10}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Thin bright core beam */}
-      <mesh position={[0, BEACON_HEIGHT / 2, 0]}>
-        <boxGeometry args={[2, BEACON_HEIGHT, 2]} />
-        <meshBasicMaterial color={accentColor} transparent opacity={0.3} depthWrite={false} />
-      </mesh>
 
       {/* Floating diamond marker */}
       <group ref={markerRef} position={[0, height + 35, 0]}>
@@ -476,10 +451,10 @@ export const BuildingItemEffects = memo(function BuildingItemEffects({ building,
 
   // Without a loadout, only render flag (free claim item). All other items require explicit equip.
   const hasLoadout = loadout && (loadout.crown || loadout.roof || loadout.aura || loadout.faces);
-  const crownItem = hasLoadout ? loadout.crown : (items.includes("flag") ? "flag" : null);
-  const roofItem = hasLoadout ? loadout.roof : null;
-  const auraItem = hasLoadout ? loadout.aura : null;
-  const facesItem = hasLoadout ? loadout.faces : null;
+  const crownItem = hasLoadout && crownItems.includes(loadout.crown!) ? loadout.crown : (items.includes("flag") ? "flag" : null);
+  const roofItem = hasLoadout && roofItems.includes(loadout.roof!) ? loadout.roof : null;
+  const auraItem = hasLoadout && auraItems.includes(loadout.aura!) ? loadout.aura : null;
+  const facesItem = hasLoadout && facesItems.includes(loadout.faces!) ? loadout.faces : null;
 
   const shouldRenderZone = (itemId: string) => {
     if (!items.includes(itemId)) return false;
@@ -594,6 +569,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
   const meshRef = useRef<THREE.Mesh>(null);
   const spriteRef = useRef<THREE.Sprite>(null);
   const pointerDown = useRef<{ x: number; y: number } | null>(null);
+  const { isRaining } = useWeather();
 
   // Compute actual dimensions based on style (matches ShopPreview logic)
   const isBungalow = building.building_style === "bungalow";
@@ -606,6 +582,8 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     const seed =
       building.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
+    const safeLitPct = typeof building.litPercentage === "number" && !isNaN(building.litPercentage) ? building.litPercentage : 0.3;
+
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {
       const blended = new THREE.Color(colors.face)
@@ -613,11 +591,11 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
       const blendedHex = '#' + blended.getHexString();
       const front = createWindowTexture(
         building.floors, building.windowsPerFloor,
-        building.litPercentage, seed, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed, colors.windowLit, colors.windowOff, blendedHex
       );
       const side = createWindowTexture(
         building.floors, building.sideWindowsPerFloor,
-        building.litPercentage, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
+        safeLitPct, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
       );
       return { front, side };
     }
@@ -625,7 +603,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     // Atlas-based textures — litPercentage drives how many windows are lit.
     // For LC buildings litPercentage = active_days / 365 (set at claim time),
     // so a daily grinder has nearly all windows lit, a casual solver has fewer.
-    const bandIndex = Math.min(5, Math.max(0, Math.round(building.litPercentage * 5)));
+    const bandIndex = Math.min(5, Math.max(0, Math.round(safeLitPct * 5)));
     const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 
     // Adjust windows based on bungalow dims to keep aspect ratio mapping mostly correct
@@ -643,9 +621,37 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     side.offset.set(sideColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
     side.repeat.set(effWindowsD / ATLAS_COLS, effFloors / ATLAS_COLS);
 
-    return { front, side };
+return { front, side };
   }, [building, colors, atlasTexture, isBungalow, W, H, D]);
 
+  // 1. Move useFrame out here so it sits at the root level of the component!
+useFrame((state, delta) => {
+  if (!materials || materials.length === 0) return;
+
+  materials.forEach((mat, idx) => {
+    const isRoof = idx === 2 || idx === 3;
+    const baseRoughness = isRoof ? 0.6 : 0.85;
+    
+    const targetRoughness = isRaining ? 0.15 : baseRoughness;
+    const targetMetalness = isRaining ? 0.25 : 0.0;
+
+    // Optimization: Only run calculations if current roughness hasn't reached target yet
+    if (Math.abs(mat.roughness - targetRoughness) > 0.01) {
+      mat.roughness = THREE.MathUtils.lerp(mat.roughness, targetRoughness, delta * 2);
+    } else {
+      mat.roughness = targetRoughness; // Snap to target to stop wasting CPU cycles
+    }
+
+    // Optimization: Only run calculations if current metalness hasn't reached target yet
+    if (Math.abs(mat.metalness - targetMetalness) > 0.01) {
+      mat.metalness = THREE.MathUtils.lerp(mat.metalness, targetMetalness, delta * 2);
+    } else {
+      mat.metalness = targetMetalness; // Snap to target to stop wasting CPU cycles
+    }
+  });
+});
+
+  // 2. Keep useEffect strictly for cleaning up your canvas textures on unmount
   useEffect(() => {
     return () => {
       textures.front.dispose();

@@ -46,11 +46,13 @@ const INITIAL_STATE: RaidState = {
   loading: false,
 };
 
-// Phase durations (ms) - used for auto-transitions
+// Phase durations (ms) - used for auto-transitions (fallback if 3D doesn't fire)
 const PHASE_DURATIONS: Partial<Record<RaidPhase, number>> = {
-  intro: 4500,
-  outro_win: 3500,
-  outro_lose: 3000,
+  intro: 3500,
+  flight: 5000,
+  attack: 4500,
+  outro_win: 3000,
+  outro_lose: 2500,
 };
 
 // ─── Hook ─────────────────────────────────────────────────────
@@ -59,6 +61,8 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   const [state, setState] = useState<RaidState>(INITIAL_STATE);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const targetLoginRef = useRef<string>("");
+  const raidDataRef = useRef<RaidExecuteResponse | null>(null);
+  const lastCompletedPhaseRef = useRef<RaidPhase | null>(null);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -87,6 +91,7 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   }, [state.phase]);
 
   const setPhase = useCallback((phase: RaidPhase) => {
+    lastCompletedPhaseRef.current = null;
     setState((prev) => ({ ...prev, phase, error: null }));
 
     // Clear any pending timer
@@ -129,6 +134,11 @@ export function useRaidSequence(): [RaidState, RaidActions] {
     if (duration) {
       timerRef.current = setTimeout(() => {
         if (phase === "intro") setPhase("flight");
+        else if (phase === "flight") setPhase("attack");
+        else if (phase === "attack") {
+          const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
+          setPhase(nextPhase);
+        }
         else if (phase === "outro_win") setPhase("share");
         else if (phase === "outro_lose") setPhase("share");
       }, duration);
@@ -222,20 +232,18 @@ export function useRaidSequence(): [RaidState, RaidActions] {
             raidData.defender.position = prev.defenderBuilding.position;
             raidData.defender.height = prev.defenderBuilding.height;
           }
+          raidDataRef.current = raidData;
           return {
             ...prev,
             raidData,
             loading: false,
-            phase: "intro",
           };
         });
 
-        // Start audio
-        preloadRaidAudio();
-        playRaidSound("takeoff");
+        // Set phase using setPhase so all audio preloading and fallback timers are set up!
+        setPhase("intro");
 
-        // Auto-advance intro -> flight
-        timerRef.current = setTimeout(() => setPhase("flight"), 4500);
+        
       } catch (err) {
         console.warn("[lib/useRaidSequence.ts] error:", err);
         setState((prev) => ({
@@ -250,6 +258,9 @@ export function useRaidSequence(): [RaidState, RaidActions] {
 
   const onPhaseComplete = useCallback(
     (completedPhase: RaidPhase) => {
+      if (lastCompletedPhaseRef.current === completedPhase) return;
+      lastCompletedPhaseRef.current = completedPhase;
+
       switch (completedPhase) {
         case "intro":
           setPhase("flight");
@@ -257,13 +268,11 @@ export function useRaidSequence(): [RaidState, RaidActions] {
         case "flight":
           setPhase("attack");
           break;
-        case "attack":
-          setState((prev) => {
-            const nextPhase = prev.raidData?.success ? "outro_win" : "outro_lose";
-            setPhase(nextPhase);
-            return prev;
-          });
+        case "attack": {
+          const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
+          setPhase(nextPhase);
           break;
+        }
         case "outro_win":
         case "outro_lose":
           setPhase("share");
@@ -285,6 +294,8 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   const exitRaid = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     stopAllRaidSounds();
+    raidDataRef.current = null;
+    lastCompletedPhaseRef.current = null;
     setState(INITIAL_STATE);
   }, []);
 

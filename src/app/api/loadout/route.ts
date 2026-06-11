@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ZONE_ITEMS } from "@/lib/zones";
+import { parseDeveloperId } from "./developer-id";
+import { getOwnedItems } from "@/lib/items";
+
+export const dynamic = "force-dynamic";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -14,17 +18,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing developer_id" }, { status: 400 });
   }
 
+  const developerId = parseDeveloperId(devId);
+  if (developerId === null) {
+    return NextResponse.json({ error: "Invalid developer_id" }, { status: 400 });
+  }
+
   const admin = getSupabaseAdmin();
   const { data } = await admin
     .from("developer_customizations")
     .select("config")
-    .eq("developer_id", parseInt(devId, 10))
+    .eq("developer_id", developerId)
     .eq("item_id", "loadout")
     .maybeSingle();
 
-  return NextResponse.json({
-    loadout: data?.config ?? null,
-  });
+  return NextResponse.json(
+    { loadout: data?.config ?? null },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 /**
@@ -55,21 +65,20 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { crown, roof, aura, faces } = body as {
+  const { crown, roof, aura, faces, dev_mode } = body as {
     crown?: string | null;
     roof?: string | null;
     aura?: string | null;
     faces?: string | null;
+    dev_mode?: boolean;
   };
 
-  // Fetch owned items
-  const { data: purchases } = await admin
-    .from("purchases")
-    .select("item_id")
-    .eq("developer_id", dev.id)
-    .eq("status", "completed");
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
+  const isDev = isDeveloper && dev_mode === true;
 
-  const ownedSet = new Set((purchases ?? []).map((p) => p.item_id));
+  // Fetch owned items (direct purchases + received gifts)
+  const ownedItems = await getOwnedItems(dev.id);
+  const ownedSet = new Set(ownedItems);
 
   // Validate each equipped item is owned and belongs to the correct zone
   const config: Record<string, string | null> = { crown: null, roof: null, aura: null, faces: null };
@@ -90,7 +99,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    if (!ownedSet.has(itemId)) {
+    if (!isDev && !ownedSet.has(itemId)) {
       return NextResponse.json(
         { error: `You don't own ${itemId}` },
         { status: 403 }
@@ -109,7 +118,7 @@ export async function POST(request: Request) {
   const prev = (currentLoadout?.config ?? { crown: null, roof: null, aura: null, faces: null }) as Record<string, string | null>;
 
   // Upsert loadout
-  await admin.from("developer_customizations").upsert(
+  const { error: upsertError } = await admin.from("developer_customizations").upsert(
     {
       developer_id: dev.id,
       item_id: "loadout",
@@ -118,6 +127,14 @@ export async function POST(request: Request) {
     },
     { onConflict: "developer_id,item_id" }
   );
+
+  if (upsertError) {
+    console.error("[api/loadout] Failed to save loadout:", upsertError);
+    return NextResponse.json(
+      { error: "Database error saving loadout" },
+      { status: 500 }
+    );
+  }
 
   // Feed event for newly equipped items
   for (const zone of ["crown", "roof", "aura", "faces"] as const) {

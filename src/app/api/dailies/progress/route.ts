@@ -4,9 +4,6 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDailyMissions, getTodayStr, MISSIONS_BY_ID } from "@/lib/dailies";
 
-/**
- * @param {import('next/server').NextRequest} request
- */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -23,7 +20,12 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { mission_id, points } = body as { mission_id: string; points?: number };
+  const { mission_id, points, mobile } = body as {
+    mission_id: string;
+    points?: number;
+    mobile?: boolean;   // ← read from body
+  };
+  const isMobile = mobile === true;  // ← derive flag
   const increment = typeof points === "number" && points > 0 ? points : 1;
 
   if (!mission_id || !MISSIONS_BY_ID.has(mission_id)) {
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   const today = getTodayStr();
-  const missions = getDailyMissions(dev.id, today);
+  const missions = getDailyMissions(dev.id, today, isMobile);  // ← pass flag
   const mission = missions.find((m) => m.id === mission_id);
 
   if (!mission) {

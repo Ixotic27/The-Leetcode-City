@@ -33,33 +33,37 @@ jobs:
             const prBody = pr.body || '';
             const action = context.payload.action;
 
-            // ── 1. Define all label specs (from the PR Labels system) ──
+            // ── 1. Define all label specs ──
+            // Only labels that follow proper naming conventions.
+            // Difficulty: level:X | Type: type:X | GSSoC: required on every PR
             const labelSpecs = {
-              // Difficulty labels (required on every issue/PR)
-              'beginner':           { color: '22c55e', description: 'Beginner difficulty level' },
-              'intermediate':       { color: '3b82f6', description: 'Intermediate difficulty level' },
-              'advanced':           { color: 'f97316', description: 'Advanced difficulty level' },
-              'level:beginner':     { color: '22c55e', description: 'Beginner difficulty level' },
-              'level:intermediate': { color: '3b82f6', description: 'Intermediate difficulty level' },
-              'level:advanced':     { color: 'f97316', description: 'Advanced difficulty level' },
-              'level:critical':     { color: '6b7280', description: 'Critical difficulty level' },
+              // Difficulty labels (required — exactly ONE per issue/PR)
+              'level:beginner':     { color: '22c55e', description: 'Beginner difficulty level (20 pts)' },
+              'level:intermediate': { color: '3b82f6', description: 'Intermediate difficulty level (35 pts)' },
+              'level:advanced':     { color: 'f97316', description: 'Advanced difficulty level (55 pts)' },
+              'level:critical':     { color: '6b7280', description: 'Critical difficulty level (80 pts)' },
               'good first issue':   { color: '7057ff', description: 'Good for newcomers' },
-              // Quality labels (optional)
-              'quality:clean':       { color: '22c55e', description: 'Clean, well-written code' },
-              'quality:exceptional': { color: '8b5cf6', description: 'Exceptional quality contribution' },
-              // Type labels (optional)
-              'type:bug':         { color: 'ef4444', description: 'Something isn\'t working as expected' },
-              'type:feature':     { color: '10b981', description: 'New features, additions, or enhancements' },
-              'type:docs':        { color: '3b82f6', description: 'Documentation changes or README updates' },
-              'type:testing':     { color: '8b5cf6', description: 'Adding, updating, or fixing tests' },
-              'type:security':    { color: 'f59e0b', description: 'Security fixes, dependency updates, or hardening' },
-              'type:performance': { color: '6366f1', description: 'Code changes that improve performance/speed' },
-              'type:design':      { color: 'ec4899', description: 'UI designs, styling, and themes' },
-              'type:refactor':    { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature' },
+              // Quality labels (optional — at most ONE per PR)
+              'quality:clean':       { color: '0d9488', description: 'Well-structured, readable code (×1.2 multiplier)' },
+              'quality:exceptional': { color: 'a855f7', description: 'Goes beyond what was asked (×1.5 multiplier, requires review comment)' },
+              // Type labels (optional, bonuses are cumulative)
+              'type:bug':           { color: 'ef4444', description: 'Something isn\'t working as expected (+10 pts)' },
+              'type:feature':       { color: '10b981', description: 'New features, additions, or enhancements (+10 pts)' },
+              'type:docs':          { color: '3b82f6', description: 'Documentation changes or README updates (+5 pts)' },
+              'type:testing':       { color: '8b5cf6', description: 'Adding, updating, or fixing tests (+10 pts)' },
+              'type:security':      { color: 'f59e0b', description: 'Security fixes, dependency updates, or hardening (+20 pts)' },
+              'type:performance':   { color: '6366f1', description: 'Code changes that improve performance/speed (+15 pts)' },
+              'type:design':        { color: 'ec4899', description: 'UI designs, styling, and themes (+10 pts)' },
+              'type:refactor':      { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature (+10 pts)' },
+              'type:accessibility': { color: '06b6d4', description: 'Screen reader support, keyboard nav, contrast, ARIA (+15 pts)' },
+              'type:devops':        { color: '78716c', description: 'CI/CD, Dockerfile, GitHub Actions, deployment (+15 pts)' },
               // GSSoC & approval labels (required on every issue/PR)
               'Gssoc 26':         { color: 'e5533d', description: 'GSSoC 2026 contribution' },
-
-              'gssoc:verified':   { color: '0e8a16', description: 'Verified GSSoC contribution' },
+              'gssoc:approved':   { color: '0e8a16', description: 'Approved GSSoC contribution' },
+              // Blocking labels (exclude PR from scoring entirely)
+              'gssoc:invalid':    { color: 'b60205', description: 'PR does not meet minimum bar (0 pts)' },
+              'gssoc:spam':       { color: '000000', description: 'Fabricated contribution with no real value (0 pts)' },
+              'gssoc:ai-slop':    { color: '5319e7', description: 'AI-generated content pasted without understanding (0 pts)' },
               // Status labels
               'status:blocked':   { color: 'dc2626', description: 'This PR is blocked due to a failing CI check.' },
               'needs-rebase':     { color: 'e11d48', description: 'This PR has merge conflicts and needs a rebase.' },
@@ -111,21 +115,27 @@ jobs:
               return null;
             }
 
-            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:verified', 'good first issue']);
+            let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issue']);
 
             // Detect type from PR title
             const typeLabel = detectType(prTitle) || detectType(headRef);
             if (typeLabel) labelsToAdd.add(typeLabel);
 
             // ── 4. Inherit labels from linked issues (BEFORE difficulty detection) ──
-            const ALL_DIFFICULTY_LABELS = ['beginner', 'intermediate', 'advanced', 'level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+            const ALL_DIFFICULTY_LABELS = ['level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+            // Map bare labels to their level:X equivalents for migration
+            const BARE_TO_LEVEL = { 'beginner': 'level:beginner', 'intermediate': 'level:intermediate', 'advanced': 'level:advanced' };
 
             const branchMatch = headRef.match(/^(\d+)-/);
             if (branchMatch) {
               const issueNumber = parseInt(branchMatch[1]);
               try {
                 const issue = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
-                issue.data.labels.forEach(label => labelsToAdd.add(label.name));
+                issue.data.labels.forEach(label => {
+                  // Convert bare difficulty labels to level:X format
+                  const mapped = BARE_TO_LEVEL[label.name];
+                  labelsToAdd.add(mapped || label.name);
+                });
               } catch (e) {
                 console.log(`Could not fetch labels for issue #${issueNumber}`);
               }
@@ -138,29 +148,34 @@ jobs:
               const issueNum = parseInt(match[1]);
               try {
                 const issue = await github.rest.issues.get({ owner, repo, issue_number: issueNum });
-                issue.data.labels.forEach(label => labelsToAdd.add(label.name));
+                issue.data.labels.forEach(label => {
+                  const mapped = BARE_TO_LEVEL[label.name];
+                  labelsToAdd.add(mapped || label.name);
+                });
               } catch (e) {
                 console.log(`Could not fetch labels for issue #${issueNum}`);
               }
             }
 
-            // ── 4a. Ensure exactly ONE difficulty label ──
-            // Collect any difficulty labels already inherited from linked issues
+            // ── 4a. Ensure exactly ONE difficulty label (level:X format only) ──
+            // Per GSSoC spec: scoring engine picks the LOWEST difficulty.
+            // We only auto-add ONE; if multiple were inherited, warn but don't auto-remove
+            // (the gssoc-label-validator workflow will flag it).
             const inheritedDiffLabels = [...labelsToAdd].filter(l => ALL_DIFFICULTY_LABELS.includes(l));
 
             if (inheritedDiffLabels.length > 1) {
-              // Multiple difficulty labels inherited — keep only the highest
-              const priority = ['level:critical', 'advanced', 'level:advanced', 'intermediate', 'level:intermediate', 'beginner', 'level:beginner'];
-              const best = priority.find(p => inheritedDiffLabels.includes(p));
+              // Multiple difficulty labels — keep only the LOWEST (worst-case per spec)
+              const lowestFirst = ['level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+              const lowest = lowestFirst.find(p => inheritedDiffLabels.includes(p));
               for (const dl of inheritedDiffLabels) {
-                if (dl !== best) labelsToAdd.delete(dl);
+                if (dl !== lowest) labelsToAdd.delete(dl);
               }
             } else if (inheritedDiffLabels.length === 0) {
-              // No difficulty label inherited — auto-detect from PR content
+              // No difficulty label — auto-detect from PR content
               const difficultyKeywords = {
-                'advanced':     ['advanced', 'complex', 'critical', 'architecture', 'security', 'migration'],
-                'intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration'],
-                'beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge'],
+                'level:advanced':     ['advanced', 'complex', 'critical', 'architecture', 'security', 'migration'],
+                'level:intermediate': ['intermediate', 'moderate', 'refactor', 'optimize', 'integration'],
+                'level:beginner':     ['beginner', 'easy', 'simple', 'typo', 'readme', 'docs', 'documentation', 'comment', 'label', 'badge'],
               };
 
               const allText = `${prTitle} ${headRef} ${prBody}`.toLowerCase();
@@ -171,8 +186,16 @@ jobs:
                   break;
                 }
               }
-              labelsToAdd.add(detectedDifficulty || 'beginner');
+              labelsToAdd.add(detectedDifficulty || 'level:beginner');
             }
+
+            // Remove any bare difficulty labels that may have been inherited
+            for (const bare of Object.keys(BARE_TO_LEVEL)) {
+              labelsToAdd.delete(bare);
+            }
+            // NOTE: Quality labels (quality:clean, quality:exceptional) are preserved.
+            // They are optional and applied by maintainers. The gssoc-label-validator
+            // workflow handles validation (e.g. exceptional requires review comment).
 
             // ── 5. Apply labels ──
             await github.rest.issues.addLabels({
@@ -258,7 +281,7 @@ jobs:
             for (const pattern of suspiciousPatterns) {
               const matches = addedLines.filter(l => {
                 if (!pattern.regex.test(l)) return false;
-                // Exclude safe GitHub Actions secret references like ${{ secrets.FOO }}
+                // Exclude safe GitHub Actions secret references (e.g. secrets.SOMETHING)
                 if (pattern.name === 'hardcoded secret/key reference' && /\$\{\{\s*secrets\./.test(l)) return false;
                 return true;
               });
@@ -286,7 +309,7 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   pull_number: prNumber,
-                  body: '✅ **Security Scan: Clean**\n\nNo suspicious patterns detected.\n\n⭐ **If you enjoyed contributing, please consider starring the repository!**',
+                  body: '✅ **Security Scan: Clean**\n\nNo suspicious patterns detected. The official Copilot bot will provide detailed AI feedback shortly.\n\n⭐ **If you enjoyed contributing, please consider starring the repository!**',
                   event: 'COMMENT'
                 });
               }

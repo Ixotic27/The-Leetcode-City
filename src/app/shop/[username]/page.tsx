@@ -9,6 +9,10 @@ import type { ShopItem } from "@/lib/items";
 import { calcBuildingDims } from "@/lib/github";
 import ShopClient from "@/components/ShopClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 interface Props {
   params: Promise<{ username: string }>;
   searchParams: Promise<{ purchased?: string; gifted?: string; to?: string }>;
@@ -100,14 +104,14 @@ export default async function ShopPage({ params, searchParams }: Props) {
 
   const sb = getSupabaseAdmin();
 
-  const [items, ownedItems, customizationsResult, billboardPurchasesResult, topDevResult, topStarsResult, achievementsResult, loadoutResult, raidLoadoutResult, allPurchasesResult, consumablesResult] = await Promise.all([
+  const [items, ownedItems, customizationsResult, billboardPurchasesResult, topDevResult, topStarsResult, achievementsResult, loadoutResult, raidLoadoutResult, allPurchasesResult, consumablesResult, arenaInventoryResult] = await Promise.all([
     getActiveItems(),
     getOwnedItems(dev.id),
     sb
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", dev.id)
-      .in("item_id", ["custom_color", "billboard", "building_style", "led_banner"]),
+      .in("item_id", ["custom_color", "billboard", "building_style", "led_banner", "selected_title"]),
     sb
       .from("purchases")
       .select("id", { count: "exact", head: true })
@@ -150,7 +154,11 @@ export default async function ShopPage({ params, searchParams }: Props) {
     sb
       .from("developer_consumables")
       .select("item_id, quantity, weekly_uses, last_reset_week")
-      .eq("developer_id", dev.id)
+      .eq("developer_id", dev.id),
+    sb
+      .from("arena_inventory")
+      .select("arena_items(slug)")
+      .eq("user_id", dev.id)
   ]);
 
   const achievements = (achievementsResult.data ?? []).map((a: { achievement_id: string }) => a.achievement_id);
@@ -189,6 +197,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
   let initialBillboardImages: string[] = [];
   let initialBuildingStyle = "tower";
   let initialLedBannerText: string | null = null;
+  let initialSelectedTitle: string | null = null;
   for (const row of customizationsResult.data ?? []) {
     const config = row.config as Record<string, unknown>;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -208,6 +217,22 @@ export default async function ShopPage({ params, searchParams }: Props) {
     if (row.item_id === "led_banner" && typeof config?.text === "string") {
       initialLedBannerText = config.text;
     }
+    if (row.item_id === "selected_title" && typeof config?.slug === "string") {
+      initialSelectedTitle = config.slug;
+    }
+  }
+
+  const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
+
+  const ownedTitles = (arenaInventoryResult.data ?? [])
+    .map((inv: any) => Array.isArray(inv.arena_items) ? inv.arena_items[0]?.slug : inv.arena_items?.slug)
+    .filter((slug): slug is string => typeof slug === "string" && (
+      slug === "crown_of_code" ||
+      slug.startsWith("badge_")
+    ));
+
+  if (isDevAccount) {
+    ownedTitles.push("title_creator", "title_lead_dev", "title_sys_op");
   }
 
   return (
@@ -252,6 +277,8 @@ export default async function ShopPage({ params, searchParams }: Props) {
           initialCustomColor={initialCustomColor}
           initialBillboardImages={initialBillboardImages}
           initialLedBannerText={initialLedBannerText}
+          initialSelectedTitle={initialSelectedTitle}
+          ownedTitles={ownedTitles}
           billboardSlots={billboardSlots}
           buildingDims={buildingDims}
           achievements={achievements}

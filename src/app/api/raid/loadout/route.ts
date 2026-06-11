@@ -24,16 +24,13 @@ export async function GET(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    const githubLogin = (
-      user.user_metadata.user_name ??
-      user.user_metadata.preferred_username ??
-      ""
-    ).toLowerCase();
+
     const { data: dev } = await admin
       .from("developers")
       .select("id")
-      .eq("github_login", githubLogin)
-      .single();
+      .eq("claimed_by", user.id)
+      .limit(1)
+      .maybeSingle();
     if (dev) developerId = dev.id;
   }
 
@@ -70,19 +67,16 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
+
 
   const { data: dev } = await admin
     .from("developers")
     .select("id, claimed, claimed_by")
-    .eq("github_login", githubLogin)
-    .single();
+    .eq("claimed_by", user.id)
+    .limit(1)
+    .maybeSingle();
 
-  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+  if (!dev || !dev.claimed) {
     return NextResponse.json({ error: "Must own a claimed building" }, { status: 403 });
   }
 
@@ -135,7 +129,7 @@ export async function POST(request: Request) {
   }
 
   // Upsert
-  await admin.from("developer_customizations").upsert(
+  const { error: upsertError } = await admin.from("developer_customizations").upsert(
     {
       developer_id: dev.id,
       item_id: "raid_loadout",
@@ -145,5 +139,14 @@ export async function POST(request: Request) {
     { onConflict: "developer_id,item_id" }
   );
 
+  if (upsertError) {
+    console.error("[api/raid/loadout] Failed to save raid loadout:", upsertError);
+    return NextResponse.json(
+      { error: "Database error saving raid loadout" },
+      { status: 500 }
+    );
+  }
+
   return NextResponse.json({ ok: true, vehicle: config.vehicle, tag: config.tag });
+
 }

@@ -3,6 +3,9 @@ import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
+import CodexModal from "@/components/CodexModal";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { WeatherProvider } from '@/context/WeatherContext';
 
 import {
   useState,
@@ -21,6 +24,7 @@ import {
   generateCityLayout,
   DISTRICT_NAMES,
   DISTRICT_COLORS,
+  type DeveloperRecord,
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
@@ -55,6 +59,7 @@ import {
 } from "@/lib/xp";
 import LoadingScreen, { type LoadingStage } from "@/components/LoadingScreen";
 import MiniMap from "@/components/MiniMap";
+import CityAnalyticsDashboard from "@/components/CityAnalyticsDashboard";
 import { getCityCache, setCityCache, clearCityCache } from "@/lib/cityCache";
 import {
   DEFAULT_SKY_ADS,
@@ -82,12 +87,36 @@ import {
   trackDisabledButtonClicked,
 } from "@/lib/himetrica";
 
+import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
+
+type CityDeveloperRecord = DeveloperRecord & {
+  loadout?: unknown;
+  custom_color?: string | null;
+  owned_items?: string[];
+  billboard_images?: string[];
+  building_style?: string | null;
+};
+interface CityStats {
+  total_developers: number;
+  total_contributions: number;
+  total_stars?: number;
+  renewal_raised_inr?: number;
+  renewal_target_inr?: number;
+}
+
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
   ssr: false,
+  loading: () => (
+    <div className="h-screen w-screen bg-black flex items-center justify-center">
+      <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+        Loading City...
+      </div>
+    </div>
+  ),
 });
 
 // Feature flags — flip to switch milestone banner
-const MILESTONE_MODE: "stars" | "devs" = "stars"; // "stars" = LeetCode stars road to 1K, "devs" = total developers
+const MILESTONE_MODE: "stars" | "devs" | "donation" = "donation"; // "donation" = website renewal donation bar, "stars" = LeetCode stars road to 1K, "devs" = total developers
 
 const THEMES = [
   { name: "Midnight", accent: "#ffa116", shadow: "#cc8111" },
@@ -112,10 +141,8 @@ const TIER_EMOJI_MAP: Record<string, string> = {
 const ACHIEVEMENT_TIERS_MAP: Record<string, string> = {
   god_mode: "diamond",
   legend: "diamond",
-  famous: "diamond",
   mayor: "diamond",
   machine: "gold",
-  popular: "gold",
   factory: "gold",
   influencer: "gold",
   philanthropist: "gold",
@@ -129,7 +156,6 @@ const ACHIEVEMENT_TIERS_MAP: Record<string, string> = {
   first_push: "bronze",
   committed: "bronze",
   builder: "bronze",
-  rising_star: "bronze",
   recruiter: "bronze",
   generous: "bronze",
   gifted: "bronze",
@@ -144,23 +170,23 @@ const ACHIEVEMENT_TIERS_MAP: Record<string, string> = {
   daily_regular: "silver",
   daily_master: "gold",
   daily_legend: "diamond",
+  contrib_planner: "silver",
+  contrib_architect: "gold",
+  contrib_founder: "diamond",
 };
 const ACHIEVEMENT_NAMES_MAP: Record<string, string> = {
   god_mode: "God Mode",
-  legend: "Legend",
-  famous: "Famous",
+  legend: "Grandmaster",
   mayor: "Mayor",
-  machine: "Machine",
-  popular: "Popular",
-  factory: "Factory",
+  machine: "Algorithmist",
+  factory: "Hardcore",
   influencer: "Influencer",
   grinder: "Grinder",
-  architect: "Architect",
-  builder: "Builder",
-  rising_star: "Rising Star",
+  architect: "Medium Master",
+  builder: "Easy Breezy",
   recruiter: "Recruiter",
-  committed: "Committed",
-  first_push: "First Push",
+  committed: "Problem Solver",
+  first_push: "First Blood",
   philanthropist: "Philanthropist",
   patron: "Patron",
   generous: "Generous",
@@ -180,6 +206,9 @@ const ACHIEVEMENT_NAMES_MAP: Record<string, string> = {
   daily_regular: "Daily Regular",
   daily_master: "Daily Master",
   daily_legend: "Daily Legend",
+  contrib_planner: "City Planner",
+  contrib_architect: "Architect",
+  contrib_founder: "Founding Father",
 };
 
 // Dev "class" — funny RPG-style title, deterministic per username
@@ -215,6 +244,7 @@ const DEV_CLASSES = [
   "404 Brain Not Found",
   "Sudo Make Me A Sandwich",
 ];
+
 function getDevClass(login: string) {
   let h = 0;
   for (let i = 0; i < login.length; i++)
@@ -222,12 +252,6 @@ function getDevClass(login: string) {
   return DEV_CLASSES[
     ((h % DEV_CLASSES.length) + DEV_CLASSES.length) % DEV_CLASSES.length
   ];
-}
-
-interface CityStats {
-  total_developers: number;
-  total_contributions: number;
-  total_stars?: number;
 }
 
 // Milestones that trigger 24h celebration effects
@@ -529,11 +553,10 @@ function HomeContent() {
   const giftedParam = searchParams.get("gifted");
 
   const [username, setUsername] = useState("");
-  const failedUsernamesRef = useRef<Map<string, string>>(new Map()); // username -> error code
+  const failedUsernamesRef = useRef<Map<string, { code: string; timestamp: number }>>(new Map());
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   // Keep raw dev records so we can inject new devs and regenerate layout locally
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawDevsRef = useRef<any[]>([]);
+  const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
   const [river, setRiver] = useState<CityRiver | null>(null);
@@ -548,13 +571,13 @@ function HomeContent() {
   const [feedback, setFeedback] = useState<{
     type: "loading" | "error";
     code?:
-      | "not-found"
-      | "org"
-      | "no-activity"
-      | "rate-limit"
-      | "github-rate-limit"
-      | "network"
-      | "generic";
+    | "not-found"
+    | "org"
+    | "no-activity"
+    | "rate-limit"
+    | "github-rate-limit"
+    | "network"
+    | "generic";
     username?: string;
     raw?: string;
   } | null>(null);
@@ -564,6 +587,19 @@ function HomeContent() {
   const [introPhase, setIntroPhase] = useState(-1); // -1 = not started, 0-3 = text phases, 4 = done
   const [exploreMode, setExploreMode] = useState(false);
   const [themeIndex, setThemeIndex] = useState(0);
+  const [isCodexOpen, setIsCodexOpen] = useState(false);
+  const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
+  const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
+
+  const cycleWeather = () => {
+    const modes: ("sunny" | "rainy" | "windy" | "stormy" | "snowy")[] = ["sunny", "rainy", "windy", "stormy", "snowy"];
+    const idx = modes.indexOf(weatherMode);
+    const next = modes[(idx + 1) % modes.length];
+    setWeatherMode(next);
+    try {
+      localStorage.setItem("leetcodecity_weather_mode", next);
+    } catch { }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -572,6 +608,18 @@ function HomeContent() {
       const n = parseInt(saved, 10);
       if (n >= 0 && n <= 3) setThemeIndex(n);
     }
+    try {
+      const savedCycle = localStorage.getItem("leetcodecity_daynight_cycle");
+      if (savedCycle === "0") {
+        setDayNightCycleActive(false);
+      }
+    } catch { }
+    try {
+      const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
+      if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
+        setWeatherMode(savedWeather as any);
+      }
+    } catch { }
   }, []);
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
@@ -611,6 +659,7 @@ function HomeContent() {
   const [flyElapsedSec, setFlyElapsedSec] = useState(0);
   const [quotaReached, setQuotaReached] = useState(false);
   const [quotaNotified, setQuotaNotified] = useState(false);
+  const [quotaDismissed, setQuotaDismissed] = useState(false);
   const [stats, setStats] = useState<CityStats>({
     total_developers: 0,
     total_contributions: 0,
@@ -628,10 +677,34 @@ function HomeContent() {
   } | null>(null);
   const [copied, setCopied] = useState(false);
   const [vsCodeKey, setVsCodeKey] = useState<string | null>(null);
+  const [hasVsCodeKey, setHasVsCodeKey] = useState<boolean | null>(() => {
+    // Check localStorage first so returning users don't see setup instructions
+    try {
+      return localStorage.getItem("leetcodecity_has_vscode_key") === "1" ? true : null;
+    } catch { return null; }
+  });
   const [vsCodeKeyLoading, setVsCodeKeyLoading] = useState(false);
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
+
+  useEffect(() => {
+    if (codingPanelOpen && hasVsCodeKey === null) {
+      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(d => {
+          if (typeof d.hasKey === "boolean") {
+            setHasVsCodeKey(d.hasKey);
+            try {
+              if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
+              else localStorage.removeItem("leetcodecity_has_vscode_key");
+            } catch { }
+          }
+        })
+        .catch(() => { });
+    }
+  }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionResolved, setSessionResolved] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [purchasedItem, setPurchasedItem] = useState<string | null>(null);
   const [selectedBuilding, setSelectedBuilding] = useState<CityBuilding | null>(
@@ -641,6 +714,7 @@ function HomeContent() {
   const [claimingGift, setClaimingGift] = useState(false);
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [feedPanelOpen, setFeedPanelOpen] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [kudosSending, setKudosSending] = useState(false);
   const [kudosSent, setKudosSent] = useState(false);
   const [kudosError, setKudosError] = useState<string | null>(null);
@@ -700,18 +774,6 @@ function HomeContent() {
   // XP level-up toast
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
 
-  // Monitor fly score for mission quota
-  useEffect(() => {
-    if (flyMode && !quotaNotified && flyScore.score >= 50) {
-      setQuotaReached(true);
-      setQuotaNotified(true);
-    }
-    if (!flyMode) {
-      setQuotaReached(false);
-      setQuotaNotified(false);
-    }
-  }, [flyMode, flyScore.score, quotaNotified]);
-
   // Fly onboarding
   const [showDailyNudge, setShowDailyNudge] = useState(false);
   const [showFlyHint, setShowFlyHint] = useState(false);
@@ -753,7 +815,7 @@ function HomeContent() {
         .then((d) => {
           if (d?.stargazers_count != null) setGithubStars(d.stargazers_count);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     const fetchDiscord = () => {
       fetch("https://discord.com/api/v9/invites/tTq4wjfG?with_counts=true")
@@ -762,7 +824,7 @@ function HomeContent() {
           if (d?.approximate_member_count != null)
             setDiscordMembers(d.approximate_member_count);
         })
-        .catch(() => {});
+        .catch(() => { });
     };
     fetchStars();
     fetchDiscord();
@@ -799,13 +861,13 @@ function HomeContent() {
         prev.map((b) =>
           b.login === defenderLogin
             ? {
-                ...b,
-                active_raid_tag: {
-                  attacker_login: attackerLogin,
-                  tag_style: tagStyle,
-                  expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
-                },
-              }
+              ...b,
+              active_raid_tag: {
+                attacker_login: attackerLogin,
+                tag_style: tagStyle,
+                expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+              },
+            }
             : b,
         ),
       );
@@ -819,7 +881,7 @@ function HomeContent() {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setSkyAds(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Derived — second focused building for dual-focus camera
@@ -861,6 +923,7 @@ function HomeContent() {
   const [linkedLeetCodeUsername, setLinkedLeetCodeUsername] = useState<
     string | null
   >(null);
+  const [linkStatusResolved, setLinkStatusResolved] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [confirmedUsername, setConfirmedUsername] = useState("");
@@ -878,6 +941,7 @@ function HomeContent() {
     const updateSession = async (s: Session | null) => {
       setSession(s);
       if (s) {
+        setLinkStatusResolved(false);
         const login = (
           s.user?.user_metadata?.user_name ??
           s.user?.user_metadata?.preferred_username ??
@@ -895,9 +959,14 @@ function HomeContent() {
           setLinkedLeetCodeUsername(data.leetcode_username || null);
         } catch {
           setLinkedLeetCodeUsername(null);
+        } finally {
+          setLinkStatusResolved(true);
+          setSessionResolved(true);
         }
       } else {
         setLinkedLeetCodeUsername(null);
+        setLinkStatusResolved(true);
+        setSessionResolved(true);
       }
     };
 
@@ -922,7 +991,7 @@ function HomeContent() {
                 // Small delay so the UI has settled after login redirect
                 setTimeout(() => setShowLinkModal(true), 800);
               }
-            } catch {}
+            } catch { }
           }
         }
       },
@@ -935,7 +1004,7 @@ function HomeContent() {
   useEffect(() => {
     if (!session || !linkedLeetCodeUsername) return;
     const ping = () =>
-      fetch("/api/lc-pulse", { method: "POST" }).catch(() => {});
+      fetch("/api/lc-pulse", { method: "POST" }).catch(() => { });
     ping(); // fire immediately on account link / page load
     const id = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
     return () => clearInterval(id);
@@ -948,7 +1017,8 @@ function HomeContent() {
     const silentRefresh = async () => {
       try {
         const res = await fetch(
-          `/api/dev/${encodeURIComponent(linkedLeetCodeUsername)}?refresh=true`,
+          `/api/dev/${encodeURIComponent(linkedLeetCodeUsername)}?refresh=true&t=${Date.now()}`,
+          { cache: "no-store" },
         );
         if (!res.ok) return;
         const devData = await res.json();
@@ -1013,14 +1083,14 @@ function HomeContent() {
     session?.user?.user_metadata?.full_name ??
     ""
   ).toLowerCase();
+  const selfLogin = (linkedLeetCodeUsername ?? authLogin).toLowerCase();
+  const identityResolved = sessionResolved && (!session || linkStatusResolved);
 
   // Extra guard: check if selected building is own by comparing linked account
   const isOwnBuilding =
     !!selectedBuilding &&
-    ((authLogin !== "" && selectedBuilding.login.toLowerCase() === authLogin) ||
-      (!!linkedLeetCodeUsername &&
-        selectedBuilding.login.toLowerCase() ===
-          linkedLeetCodeUsername.toLowerCase()));
+    !!linkedLeetCodeUsername &&
+    selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase();
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1033,9 +1103,11 @@ function HomeContent() {
     return () => clearInterval(id);
   }, [flyMode, flyPaused]);
 
-  // Dismiss fly onboarding overlays when entering fly mode
+  // Clear building selection and dismiss overlays when entering fly mode
   useEffect(() => {
     if (flyMode) {
+      setSelectedBuilding(null);
+      setFocusedBuilding(null);
       setShowDailyNudge(false);
       setShowFlyHint(false);
       setShowFlyResults(null);
@@ -1054,7 +1126,7 @@ function HomeContent() {
       .then((data) => {
         if (data?.vehicle) setFlyVehicle(data.vehicle);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [sessionUserId]);
 
   // Load theme from DB when logged in (overrides localStorage)
@@ -1075,7 +1147,7 @@ function HomeContent() {
           localStorage.setItem("leetcodecity_theme", String(data.city_theme));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [sessionUserId]);
 
   // Cycle theme: save to localStorage + sync to DB if logged in
@@ -1088,7 +1160,7 @@ function HomeContent() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ city_theme: next }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
       return next;
     });
@@ -1185,8 +1257,9 @@ function HomeContent() {
 
   // Kudos handler
   const handleGiveKudos = useCallback(async () => {
+    if (!identityResolved) return;
     if (!selectedBuilding || kudosSending || kudosSent || !session) return;
-    if (selectedBuilding.login.toLowerCase() === authLogin) return;
+    if (isOwnBuilding) return;
     setKudosSending(true);
     setKudosError(null);
     try {
@@ -1222,11 +1295,11 @@ function HomeContent() {
     } finally {
       setKudosSending(false);
     }
-  }, [selectedBuilding, kudosSending, kudosSent, session, authLogin]);
+  }, [selectedBuilding, kudosSending, kudosSent, session, isOwnBuilding, identityResolved]);
 
   // Gift: open modal with available items
   const handleOpenGift = useCallback(async () => {
-    if (!selectedBuilding || !session) return;
+    if (!identityResolved || !selectedBuilding || !session) return;
     setGiftModalOpen(true);
     setGiftItems(null);
     try {
@@ -1244,7 +1317,7 @@ function HomeContent() {
     } catch {
       /* ignore */
     }
-  }, [selectedBuilding, session]);
+  }, [selectedBuilding, session, identityResolved]);
 
   // Gift: checkout for receiver
   const handleGiftCheckout = useCallback(
@@ -1440,7 +1513,7 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch {}
+      } catch { }
     })();
   }, [session]);
 
@@ -1510,12 +1583,13 @@ function HomeContent() {
     if (bustCache) clearCityCache();
     const cacheBust = bustCache ? `?_t=${Date.now()}` : "";
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allDevs: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let cityStats: any = null;
+    let allDevs: CityDeveloperRecord[] = [];
+    let cityStats: CityStats = {
+      total_developers: 0,
+      total_contributions: 0,
+    };
 
-    // Try pre-computed snapshot first (disabled to bypass legacy LeetCode snapshots)
+    // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
     // try {
     //   const v = Math.floor(Date.now() / 300_000);
     //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
@@ -1539,20 +1613,23 @@ function HomeContent() {
 
       const total = cityStats?.total_developers ?? 0;
       if (total > CHUNK && allDevs.length > 0) {
-        const promises: Promise<{
-          developers: typeof data.developers;
-        } | null>[] = [];
-        for (let from = CHUNK; from < total; from += CHUNK) {
-          promises.push(
-            fetch(`/api/city?from=${from}&to=${from + CHUNK}${cbParam}`).then(
-              (r) => (r.ok ? r.json() : null),
-            ),
-          );
-        }
-        const results = await Promise.all(promises);
-        for (const chunk of results) {
-          if (chunk?.developers?.length) {
-            allDevs = [...allDevs, ...chunk.developers];
+        // Batch fetch chunks to prevent overwhelming the server/browser
+        for (let i = CHUNK; i < total; i += CHUNK * 3) {
+          const batchPromises: Promise<{ developers: typeof data.developers } | null>[] = [];
+          for (let j = 0; j < 3; j++) {
+            const from = i + (j * CHUNK);
+            if (from >= total) break;
+            batchPromises.push(
+              fetch(`/api/city?from=${from}&to=${from + CHUNK}${cbParam}`).then(
+                (r) => (r.ok ? r.json() : null),
+              )
+            );
+          }
+          const results = await Promise.all(batchPromises);
+          for (const chunk of results) {
+            if (chunk?.developers?.length) {
+              allDevs = [...allDevs, ...chunk.developers];
+            }
           }
         }
       }
@@ -1560,23 +1637,8 @@ function HomeContent() {
 
     if (allDevs.length === 0) return null;
 
-    // Apply loadout override from localStorage (saved in shop, TTL 10 min)
-    try {
-      const raw = localStorage.getItem("leetcodecity:loadout_override");
-      if (raw) {
-        const { developerId, loadout, ts } = JSON.parse(raw);
-        if (Date.now() - ts < 10 * 60 * 1000) {
-          const idx = allDevs.findIndex(
-            (d: Record<string, unknown>) => d.id === developerId,
-          );
-          if (idx !== -1) {
-            allDevs[idx] = { ...allDevs[idx], loadout };
-          }
-        } else {
-          localStorage.removeItem("leetcodecity:loadout_override");
-        }
-      }
-    } catch {}
+    // Apply localStorage overrides (style, color, billboard, loadout) — TTL 20 min
+    applyLocalStorageOverrides(allDevs);
 
     rawDevsRef.current = allDevs;
     setStats(cityStats);
@@ -1652,12 +1714,14 @@ function HomeContent() {
         setLoadStage("fetching");
         setLoadProgress(10);
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let allDevs: any[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let cityStats: any = null;
 
-        // Try pre-computed snapshot first (disabled to bypass legacy LeetCode snapshot data)
+        let allDevs: CityDeveloperRecord[] = [];
+        let cityStats: CityStats = {
+          total_developers: 0,
+          total_contributions: 0,
+        };
+
+        // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
         // try {
         //   const v = Math.floor(Date.now() / 300_000); // changes every 5 min, aligned with cron
         //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
@@ -1685,20 +1749,23 @@ function HomeContent() {
 
           const total = cityStats?.total_developers ?? 0;
           if (total > CHUNK && allDevs.length > 0) {
-            const promises: Promise<{
-              developers: typeof data.developers;
-            } | null>[] = [];
-            for (let from = CHUNK; from < total; from += CHUNK) {
-              promises.push(
-                fetch(
-                  `/api/city?from=${from}&to=${from + CHUNK}${cacheBuster}`,
-                ).then((r) => (r.ok ? r.json() : null)),
-              );
-            }
-            const results = await Promise.all(promises);
-            for (const chunk of results) {
-              if (chunk?.developers?.length) {
-                allDevs = [...allDevs, ...chunk.developers];
+            // Batch fetch chunks to prevent overwhelming the server/browser
+            for (let i = CHUNK; i < total; i += CHUNK * 3) {
+              const batchPromises: Promise<{ developers: typeof data.developers } | null>[] = [];
+              for (let j = 0; j < 3; j++) {
+                const from = i + (j * CHUNK);
+                if (from >= total) break;
+                batchPromises.push(
+                  fetch(
+                    `/api/city?from=${from}&to=${from + CHUNK}${cacheBuster}`,
+                  ).then((r) => (r.ok ? r.json() : null)),
+                );
+              }
+              const results = await Promise.all(batchPromises);
+              for (const chunk of results) {
+                if (chunk?.developers?.length) {
+                  allDevs = [...allDevs, ...chunk.developers];
+                }
               }
             }
           }
@@ -1712,23 +1779,8 @@ function HomeContent() {
           return;
         }
 
-        // Apply loadout override from localStorage (saved in shop, TTL 10 min)
-        try {
-          const raw = localStorage.getItem("leetcodecity:loadout_override");
-          if (raw) {
-            const { developerId, loadout, ts } = JSON.parse(raw);
-            if (Date.now() - ts < 10 * 60 * 1000) {
-              const idx = allDevs.findIndex(
-                (d: Record<string, unknown>) => d.id === developerId,
-              );
-              if (idx !== -1) {
-                allDevs[idx] = { ...allDevs[idx], loadout };
-              }
-            } else {
-              localStorage.removeItem("leetcodecity:loadout_override");
-            }
-          }
-        } catch {}
+        // Apply localStorage overrides (style, color, billboard, loadout) — TTL 20 min
+        applyLocalStorageOverrides(allDevs);
 
         // Generate layout
         setLoadStage("generating");
@@ -1787,7 +1839,7 @@ function HomeContent() {
     }
 
     loadCity();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // esliloadCitynt-disable-next-line react-hooks/exhaustive-deps
   }, [loadStage]);
 
   // City reload on tab return removed — navigating back from shop already
@@ -1857,7 +1909,7 @@ function HomeContent() {
           currentPB,
           parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0,
         );
-      } catch {}
+      } catch { }
       // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
       const isNewPB = currentPB > 0 && finalScore > currentPB;
       // Update personal best
@@ -1866,7 +1918,7 @@ function HomeContent() {
         flyPersonalBestRef.current = finalScore;
         try {
           localStorage.setItem("leetcodecity_fly_pb", String(finalScore));
-        } catch {}
+        } catch { }
       }
       // Update fly history (streak, days played, per-seed scores)
       if (finalScore > 0) {
@@ -1881,11 +1933,11 @@ function HomeContent() {
           const hist = raw
             ? JSON.parse(raw)
             : {
-                seeds: {},
-                currentStreak: 0,
-                longestStreak: 0,
-                lastPlayedSeed: "",
-              };
+              seeds: {},
+              currentStreak: 0,
+              longestStreak: 0,
+              lastPlayedSeed: "",
+            };
           const prev = hist.seeds[currentSeed];
           hist.seeds[currentSeed] = {
             bestScore: Math.max(prev?.bestScore ?? 0, finalScore),
@@ -1915,7 +1967,7 @@ function HomeContent() {
             "leetcodecity_fly_history",
             JSON.stringify(hist),
           );
-        } catch {}
+        } catch { }
       }
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
@@ -1925,6 +1977,7 @@ function HomeContent() {
       clearTimeout(announceTimerRef.current);
       setQuotaReached(false);
       setQuotaNotified(false);
+      setQuotaDismissed(false);
       setFlyElapsedSec(0);
       // Feature 4: Show post-flight results (rank fills in async)
       if (finalScore > 0) {
@@ -1958,15 +2011,15 @@ function HomeContent() {
           })
             .then((r) => (r.ok ? r.json() : null))
             .then((d) => {
-              if (d?.rank) {
+              if (d?.rank_today != null) {
                 setShowFlyResults((prev) =>
                   prev
-                    ? { ...prev, rank: d.rank, totalPilots: d.total_count }
+                    ? { ...prev, rank: d.rank_today, totalPilots: d.total }
                     : null,
                 );
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
     },
@@ -2048,7 +2101,11 @@ function HomeContent() {
         Boolean,
       );
       await Promise.all(
-        missing.map((login) => fetch(`/api/dev/${encodeURIComponent(login!)}`)),
+        missing.map((login) =>
+          fetch(`/api/dev/${encodeURIComponent(login!)}?t=${Date.now()}`, {
+            cache: "no-store",
+          }),
+        ),
       );
       const updated = await reloadCity(true);
       if (!updated) return;
@@ -2109,22 +2166,31 @@ function HomeContent() {
     }
   }, [giftedParam, userParam, buildings, reloadCity]);
 
+  // Reload city immediately when loadout is saved from the shop
+  useEffect(() => {
+    const handler = () => reloadCity(true);
+    window.addEventListener("leetcodecity:loadout-saved", handler);
+    return () => window.removeEventListener("leetcodecity:loadout-saved", handler);
+  }, [reloadCity]);
+
   const searchUser = useCallback(async () => {
     const trimmed = username.trim().toLowerCase();
     if (!trimmed) return;
 
     trackSearchUsed(trimmed);
 
-    // Check if this username already failed with a permanent error
-    const cachedError = failedUsernamesRef.current.get(trimmed);
-    if (cachedError) {
+    // Check if this username already failed with a permanent error (60s TTL)
+    const cached = failedUsernamesRef.current.get(trimmed);
+    if (cached && Date.now() - cached.timestamp < 60_000) {
       setFeedback({
         type: "error",
-        code: cachedError as any,
+        code: cached.code as any,
         username: trimmed,
       });
       return;
     }
+    // Expired entry — remove and retry
+    if (cached) failedUsernamesRef.current.delete(trimmed);
 
     // Snapshot compare state before async work — ESC may clear it mid-flight
     const wasComparing = compareBuilding;
@@ -2150,7 +2216,10 @@ function HomeContent() {
       );
 
       // Add/refresh the developer
-      const devRes = await fetch(`/api/dev/${encodeURIComponent(trimmed)}`);
+      const devRes = await fetch(
+        `/api/dev/${encodeURIComponent(trimmed)}?t=${Date.now()}`,
+        { cache: "no-store" },
+      );
       const devData = await devRes.json();
 
       if (!devRes.ok) {
@@ -2169,9 +2238,9 @@ function HomeContent() {
           else if (devData.error?.includes("no public activity"))
             code = "no-activity";
         }
-        // Cache permanent errors so we don't re-fetch
+        // Cache permanent errors so we don't re-fetch (expires after 60s)
         if (PERMANENT_ERROR_CODES.has(code)) {
-          failedUsernamesRef.current.set(trimmed, code);
+          failedUsernamesRef.current.set(trimmed, { code, timestamp: Date.now() });
         }
         setFeedback({
           type: "error",
@@ -2356,8 +2425,9 @@ function HomeContent() {
     if (!selectedBuilding) return;
     setRefreshingStats(true);
     try {
-      const res = await fetch(
-        `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true`,
+       const res = await fetch(
+        `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true&t=${Date.now()}`,
+        { cache: "no-store" },
       );
       if (!res.ok) throw new Error("Failed to refresh stats");
       const devData = await res.json();
@@ -2403,8 +2473,8 @@ function HomeContent() {
   // Determine if the logged-in user has their synced building
   const myBuilding = linkedLeetCodeUsername
     ? buildings.find(
-        (b) => b.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase(),
-      )
+      (b) => b.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase(),
+    )
     : null;
 
   const needsToLink = !!session && !linkedLeetCodeUsername;
@@ -2446,6 +2516,35 @@ function HomeContent() {
   // Stable ref so closures (visit useEffect, kudos callback) always use latest
   const trackMissionRef = useRef(trackClientMission);
   trackMissionRef.current = trackClientMission;
+
+  const quotaMissionCompleted = dailiesData?.missions.some(
+    (mission) => mission.id === "fly_score_50" && mission.completed,
+  );
+
+  // Monitor fly score for mission quota
+  useEffect(() => {
+    if (
+      flyMode &&
+      !quotaNotified &&
+      !quotaDismissed &&
+      !quotaMissionCompleted &&
+      flyScore.score >= 50
+    ) {
+      setQuotaReached(true);
+      setQuotaNotified(true);
+    }
+    if (!flyMode) {
+      setQuotaReached(false);
+      setQuotaNotified(false);
+      setQuotaDismissed(false);
+    }
+  }, [
+    flyMode,
+    flyScore.score,
+    quotaDismissed,
+    quotaMissionCompleted,
+    quotaNotified,
+  ]);
 
   // Detect level-up from check-in XP result
   useEffect(() => {
@@ -2498,7 +2597,7 @@ function HomeContent() {
       .then((data) => {
         if (Array.isArray(data)) setMilestoneCelebrations(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Record milestone when crossed
@@ -2529,7 +2628,7 @@ function HomeContent() {
           ]);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [stats.total_developers, milestoneCelebrations]);
 
   // Feature 1: Daily Challenge Nudge — show after load if user has history but hasn't played today
@@ -2553,7 +2652,7 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch {}
+      } catch { }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2577,7 +2676,7 @@ function HomeContent() {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch {}
+        } catch { }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -2599,6 +2698,8 @@ function HomeContent() {
         flyVehicle={flyVehicle}
         onExitFly={endFly}
         themeIndex={themeIndex}
+        dayNightCycleActive={dayNightCycleActive}
+        weatherMode={weatherMode}
         onHud={(s, a, x, z, yaw) => {
           setHud({ speed: s, altitude: a });
           // Look-ahead: ~40u ahead of airplane = center of screen
@@ -2721,7 +2822,7 @@ function HomeContent() {
         }}
         introMode={introMode}
         onIntroEnd={endIntro}
-        onFocusInfo={() => {}}
+        onFocusInfo={() => { }}
         ghostPreviewLogin={ghostPreviewLogin}
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
@@ -2994,14 +3095,19 @@ function HomeContent() {
                 </div>
                 <div className="mt-2 flex gap-3">
                   <button
+                    type="button"
                     onClick={() => endFly(false)}
                     className="pointer-events-auto btn-press bg-[#4ade80] px-3 py-1.5 text-[10px] font-bold text-bg transition-all hover:brightness-110"
                   >
                     EXIT NOW
                   </button>
                   <button
-                    onClick={() => setQuotaReached(false)}
-                    className="btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
+                    type="button"
+                    onClick={() => {
+                      setQuotaReached(false);
+                      setQuotaDismissed(true);
+                    }}
+                    className="pointer-events-auto btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
                   >
                     KEEP FLYING
                   </button>
@@ -3165,7 +3271,7 @@ function HomeContent() {
                 setShowFlyControls(false);
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-                } catch {}
+                } catch { }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", {
@@ -3193,6 +3299,16 @@ function HomeContent() {
         playerZ={playerPos.z}
         visible={flyMode}
         currentDistrict={lastDistrictRef.current}
+      />
+
+      {/* ─── Analytics Dashboard ─── */}
+      <CityAnalyticsDashboard
+        buildings={buildings}
+        liveUsers={liveUsers}
+        liveByLogin={liveByLogin}
+        districtZones={districtZones}
+        open={analyticsOpen}
+        onClose={() => setAnalyticsOpen(false)}
       />
 
       {/* ─── Explore Mode: minimal UI ─── */}
@@ -3223,7 +3339,7 @@ function HomeContent() {
             </button>
           </div>
 
-          {/* Theme switcher + Radio (bottom-left) — above ticker */}
+          {/* Theme switcher + Cycle + Radio (bottom-left) — above ticker */}
           <div className="pointer-events-auto fixed bottom-10 left-3 z-[31] flex items-center gap-2 sm:left-4">
             <button
               onClick={cycleTheme}
@@ -3235,12 +3351,30 @@ function HomeContent() {
                 {themeIndex + 1}/{THEMES.length}
               </span>
             </button>
+            <button
+              onClick={() => {
+                setDayNightCycleActive((prev) => {
+                  const next = !prev;
+                  try {
+                    localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
+                  } catch { }
+                  return next;
+                });
+              }}
+              className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${dayNightCycleActive
+                ? "border-amber-500/80 bg-amber-500/10 text-amber-400 hover:border-amber-400"
+                : "border-border bg-bg/70 text-cream hover:border-border-light"
+                }`}
+            >
+              <span style={{ color: theme.accent }}>&#9654;</span>
+              <span>{dayNightCycleActive ? "CYCLE ON" : "CYCLE OFF"}</span>
+            </button>
             {isMounted && <div id="gc-radio-slot" />}
           </div>
 
           {/* Feed toggle (top-right, below LeetCode badges on desktop) */}
           {feedEvents.length >= 1 && (
-            <div className="pointer-events-auto absolute top-3 right-3 sm:top-14 sm:right-4">
+            <div className="pointer-events-auto absolute top-3 right-3 sm:top-[60px] sm:right-4">
               <button
                 onClick={() => setFeedPanelOpen(true)}
                 className="flex items-center gap-2 border-[3px] border-border bg-bg/70 px-3 py-1.5 text-[10px] backdrop-blur-sm transition-colors"
@@ -3334,6 +3468,13 @@ function HomeContent() {
               <span className="hidden sm:inline text-muted">live</span>
             </div>
           )}
+          <button
+            onClick={() => setAnalyticsOpen((v) => !v)}
+            className="hidden sm:flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
+            style={{ color: analyticsOpen ? "#ffa116" : "#8c8c9c" }}
+          >
+            [ANALYTICS]
+          </button>
           {(() => {
             const energyLabel =
               codingCount === 0
@@ -3483,9 +3624,32 @@ function HomeContent() {
                                 Sign in with LeetCode
                               </button>
                             </div>
-                          ) : liveByLogin.has(authLogin) ? (
-                            <div className="px-5 py-3.5 text-center text-xs normal-case text-[#4ade80]">
-                              Your building is powering the city
+                          ) : Array.from(liveByLogin.keys()).some(k => k.toLowerCase() === selfLogin) ? (
+                            <div className="px-5 py-4 text-center">
+                              <div className="mb-2 text-lg">⚡</div>
+                              <p className="mb-1.5 text-xs font-bold normal-case text-[#4ade80]">
+                                Your building is glowing!
+                              </p>
+                              {(() => {
+                                const mySession = Array.from(liveByLogin.values()).find(
+                                  s => s.githubLogin.toLowerCase() === selfLogin
+                                );
+                                const othersCount = liveByLogin.size - 1;
+                                return (
+                                  <>
+                                    {mySession?.language && (
+                                      <p className="mb-1 text-[10px] normal-case text-muted">
+                                        Coding in <span className="text-cream">{mySession.language}</span>
+                                      </p>
+                                    )}
+                                    <p className="text-[10px] normal-case text-muted/70">
+                                      {othersCount > 0
+                                        ? `${othersCount} other dev${othersCount > 1 ? "s" : ""} coding alongside you`
+                                        : "You're the only one lighting the city right now 🌃"}
+                                    </p>
+                                  </>
+                                );
+                              })()}
                             </div>
                           ) : vsCodeKey ? (
                             <div className="px-5 py-5">
@@ -3542,6 +3706,31 @@ function HomeContent() {
                                 Settings &gt; LeetCode City &gt; Privacy.
                               </p>
                             </div>
+                          ) : hasVsCodeKey !== false ? (
+                            /* User has connected before (or still loading) — don't show setup */
+                            <div className="px-5 py-5 text-center">
+                              <div className="mb-3 text-2xl">🌙</div>
+                              <p className="mb-2 text-sm normal-case text-cream font-bold">
+                                Your building is sleeping
+                              </p>
+                              <p className="mb-4 text-[11px] normal-case leading-relaxed text-muted">
+                                Open your IDE and start coding to light up your
+                                building and power the city. Your extension is
+                                already connected!
+                              </p>
+                              <div className="mb-3 flex items-center justify-center gap-2 text-[10px] normal-case text-muted/60">
+                                <span className="h-1.5 w-1.5 rounded-full bg-muted/40" />
+                                Waiting for your signal...
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setHasVsCodeKey(false);
+                                }}
+                                className="text-[10px] normal-case text-muted/50 transition-colors hover:text-cream"
+                              >
+                                Lost your key? Set up again &rarr;
+                              </button>
+                            </div>
                           ) : (
                             <div className="px-5 py-5">
                               <p className="mb-3 text-sm normal-case text-cream font-bold">
@@ -3583,6 +3772,8 @@ function HomeContent() {
                                     const data = await res.json();
                                     if (data.key) {
                                       setVsCodeKey(data.key);
+                                      setHasVsCodeKey(true);
+                                      try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
                                       setTimeout(
@@ -3669,119 +3860,158 @@ function HomeContent() {
 
             {/* Milestone progress banner — hidden on mobile to reduce clutter */}
             <div className="hidden sm:flex sm:justify-center w-full">
-              {MILESTONE_MODE === "stars"
-                ? // ── LeetCode Stars mode ──
-                  (() => {
-                    const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
-                    const current = githubStars;
-                    const target = MILESTONES.find((m) => current < m) || 10000;
-                    const pct = Math.min(100, (current / target) * 100);
-                    const isDone = current >= target;
+              {(() => {
+                if (MILESTONE_MODE === "donation") {
+                  const current = stats?.renewal_raised_inr ?? 0;
+                  const target = stats?.renewal_target_inr ?? 2900;
+                  const pct = Math.min(100, (current / target) * 100);
+                  const isDone = current >= target;
 
-                    return (
-                      <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
-                        <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
-                          <span>
-                            {isDone
-                              ? "GOAL REACHED"
-                              : `ROAD TO ${target} STARS`}
+                  return (
+                    <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
+                      <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
+                        <span>
+                          {isDone ? "RENEWAL SECURED!" : "WEBSITE RENEWAL GOAL"}
+                        </span>
+                        <span style={{ color: theme.accent }}>
+                          {isDone ? "SECURED" : `${Math.round(pct)}% FUNDED`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: theme.accent,
+                            boxShadow: `0 0 10px ${theme.accent}`,
+                          }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[8px] text-[#ffa116] uppercase tracking-wider">
+                        <span className="text-dim">
+                          ₹{current.toLocaleString()} / ₹{target.toLocaleString()}
+                        </span>
+                        <a
+                          href="/support"
+                          className="hover:underline text-right"
+                        >
+                          SUPPORT THE SIGNAL
+                        </a>
+                      </div>
+                    </div>
+                  );
+                } else if (MILESTONE_MODE === "stars") {
+                  // ── LeetCode Stars mode ──
+                  const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
+                  const current = githubStars;
+                  const target = MILESTONES.find((m) => current < m) || 10000;
+                  const pct = Math.min(100, (current / target) * 100);
+                  const isDone = current >= target;
+
+                  return (
+                    <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
+                      <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
+                        <span>
+                          {isDone
+                            ? "GOAL REACHED"
+                            : `ROAD TO ${target} STARS`}
+                        </span>
+                        <span style={{ color: theme.accent }}>
+                          {Math.max(0, target - current).toLocaleString()} TO
+                          GO
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: theme.accent,
+                            boxShadow: `0 0 10px ${theme.accent}`,
+                          }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[8px] text-dim uppercase tracking-wider">
+                        <span>
+                          {current.toLocaleString()} /{" "}
+                          {target.toLocaleString()}
+                        </span>
+                        <a
+                          href="https://github.com/Ixotic27/The-Leetcode-City"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#ffa116] hover:underline"
+                        >
+                          Source code
+                        </a>
+                        {" | "}
+                        <a
+                          href="https://github.com/srizzon/git-city"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#ffa116] hover:underline"
+                        >
+                          Original Repo
+                        </a>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // ── Total Developers mode ──
+                  const MILESTONES = [10000, 20000, 50000, 100000];
+                  const count = stats.total_developers;
+                  if (count <= 0) return null;
+
+                  const target = MILESTONES.find((m) => count < m);
+                  if (!target) return null;
+                  const prev =
+                    MILESTONES[MILESTONES.indexOf(target) - 1] ?? 0;
+                  const progress = ((count - prev) / (target - prev)) * 100;
+                  const remaining = target - count;
+                  const label =
+                    target >= 1000
+                      ? `${target / 1000}K`
+                      : target.toLocaleString();
+                  return (
+                    <div className="w-full max-w-sm">
+                      <div className="border-[2px] border-border bg-bg/80 px-4 py-3 backdrop-blur-sm">
+                        <div className="mb-2 flex items-baseline justify-between">
+                          <span
+                            className="text-[9px] tracking-wider"
+                            style={{ color: theme.accent }}
+                          >
+                            ROAD TO {label}
                           </span>
-                          <span style={{ color: theme.accent }}>
-                            {Math.max(0, target - current).toLocaleString()} TO
-                            GO
+                          <span className="text-[9px] text-cream/60">
+                            {remaining.toLocaleString()} to go
                           </span>
                         </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div className="relative h-2.5 w-full overflow-hidden border-[2px] border-border bg-bg">
                           <div
-                            className="h-full rounded-full transition-all duration-1000 ease-out"
+                            className="absolute inset-y-0 left-0 transition-all duration-1000"
                             style={{
-                              width: `${pct}%`,
+                              width: `${progress}%`,
                               backgroundColor: theme.accent,
-                              boxShadow: `0 0 10px ${theme.accent}`,
+                              boxShadow: `0 0 8px ${theme.accent}60`,
                             }}
                           />
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-[8px] text-dim uppercase tracking-wider">
-                          <span>
-                            {current.toLocaleString()} /{" "}
-                            {target.toLocaleString()}
+                        <div className="mt-2 flex items-baseline justify-between">
+                          <span className="text-[10px] text-cream">
+                            {count.toLocaleString()}{" "}
+                            <span className="text-cream/40">
+                              / {target.toLocaleString()}
+                            </span>
                           </span>
-                          <a
-                            href="https://github.com/Ixotic27/The-Leetcode-City"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#ffa116] hover:underline"
-                          >
-                            Source code
-                          </a>
-                          {" | "}
-                          <a
-                            href="https://github.com/srizzon/git-city"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#ffa116] hover:underline"
-                          >
-                            Original Repo
-                          </a>
+                          <span className="text-[8px] text-cream/40 normal-case">
+                            Something unlocks at {label}...
+                          </span>
                         </div>
                       </div>
-                    );
-                  })()
-                : // ── Total Developers mode ──
-                  (() => {
-                    const MILESTONES = [10000, 20000, 50000, 100000];
-                    const count = stats.total_developers;
-                    if (count <= 0) return null;
-
-                    const target = MILESTONES.find((m) => count < m);
-                    if (!target) return null;
-                    const prev =
-                      MILESTONES[MILESTONES.indexOf(target) - 1] ?? 0;
-                    const progress = ((count - prev) / (target - prev)) * 100;
-                    const remaining = target - count;
-                    const label =
-                      target >= 1000
-                        ? `${target / 1000}K`
-                        : target.toLocaleString();
-                    return (
-                      <div className="w-full max-w-sm">
-                        <div className="border-[2px] border-border bg-bg/80 px-4 py-3 backdrop-blur-sm">
-                          <div className="mb-2 flex items-baseline justify-between">
-                            <span
-                              className="text-[9px] tracking-wider"
-                              style={{ color: theme.accent }}
-                            >
-                              ROAD TO {label}
-                            </span>
-                            <span className="text-[9px] text-cream/60">
-                              {remaining.toLocaleString()} to go
-                            </span>
-                          </div>
-                          <div className="relative h-2.5 w-full overflow-hidden border-[2px] border-border bg-bg">
-                            <div
-                              className="absolute inset-y-0 left-0 transition-all duration-1000"
-                              style={{
-                                width: `${progress}%`,
-                                backgroundColor: theme.accent,
-                                boxShadow: `0 0 8px ${theme.accent}60`,
-                              }}
-                            />
-                          </div>
-                          <div className="mt-2 flex items-baseline justify-between">
-                            <span className="text-[10px] text-cream">
-                              {count.toLocaleString()}{" "}
-                              <span className="text-cream/40">
-                                / {target.toLocaleString()}
-                              </span>
-                            </span>
-                            <span className="text-[8px] text-cream/40 normal-case">
-                              Something unlocks at {label}...
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                    </div>
+                  );
+                }
+              })()}
             </div>
 
             {/* Search / Welcome CTA takeover */}
@@ -3920,11 +4150,14 @@ function HomeContent() {
                         flyPausedAt.current = 0;
                         flyTotalPauseMs.current = 0;
                         setFlyElapsedSec(0);
+                        setQuotaReached(false);
+                        setQuotaNotified(false);
+                        setQuotaDismissed(false);
                         try {
                           setFlyPersonalBest(
                             parseInt(
                               localStorage.getItem("leetcodecity_fly_pb") ||
-                                "0",
+                              "0",
                               10,
                             ) || 0,
                           );
@@ -3979,7 +4212,7 @@ function HomeContent() {
                                   "leetcodecity_fly_hint_seen",
                                   "1",
                                 );
-                              } catch {}
+                              } catch { }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -4018,6 +4251,9 @@ function HomeContent() {
                       flyPausedAt.current = 0;
                       flyTotalPauseMs.current = 0;
                       setFlyElapsedSec(0);
+                      setQuotaReached(false);
+                      setQuotaNotified(false);
+                      setQuotaDismissed(false);
                       try {
                         setFlyPersonalBest(
                           parseInt(
@@ -4059,6 +4295,13 @@ function HomeContent() {
 
               {/* Nav + Auth — desktop only (mobile uses bottom bar) */}
               <div className="hidden sm:flex items-center justify-center gap-2">
+                <Link
+                  href="/arena"
+                  className="btn-press border-[3px] border-border bg-bg/80 px-4 py-1.5 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
+                  style={{ color: theme.accent, borderColor: `${theme.accent}33` }}
+                >
+                  &#9876; Arena
+                </Link>
                 <Link
                   href={shopHref}
                   className="btn-press border-[3px] border-border bg-bg/80 px-4 py-1.5 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
@@ -4128,8 +4371,8 @@ function HomeContent() {
                           className="flex items-center gap-1.5 border-[3px] border-border bg-bg/80 px-3 py-1.5 text-[10px] text-cream normal-case backdrop-blur-sm transition-colors hover:border-border-light"
                           style={
                             streakData &&
-                            streakData.streak > 0 &&
-                            streakData.checked_in
+                              streakData.streak > 0 &&
+                              streakData.checked_in
                               ? { animation: "streak-pulse 1.5s ease-in-out 2" }
                               : undefined
                           }
@@ -4169,6 +4412,19 @@ function HomeContent() {
                   </>
                 )}
               </div>
+
+              {/* Codex Button */}
+              <button
+                onClick={() => setIsCodexOpen(true)}
+                className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-28 sm:w-32"
+                style={{
+                  borderColor: theme.accent,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+                title="Open Codex"
+              >
+                <span>CODEX</span>
+              </button>
             </div>
           )}
 
@@ -4189,6 +4445,13 @@ function HomeContent() {
         !rabbitCinematic &&
         buildings.length > 0 && (
           <nav className="pointer-events-auto fixed inset-x-0 bottom-0 z-[35] flex items-center justify-around border-t-[2px] border-border bg-bg/95 px-1 py-2 backdrop-blur-md sm:hidden">
+            <Link
+              href="/arena"
+              className="btn-press border-[2px] border-border px-3 py-1.5 text-[10px] transition-colors active:bg-white/5"
+              style={{ color: theme.accent }}
+            >
+              &#9876; Arena
+            </Link>
             <Link
               href={shopHref}
               className="btn-press border-[2px] border-border px-3 py-1.5 text-[10px] transition-colors active:bg-white/5"
@@ -4257,8 +4520,8 @@ function HomeContent() {
                       className="btn-press flex items-center gap-1.5 border-[2px] border-border px-3 py-1.5 text-[10px] normal-case transition-colors active:bg-white/5"
                       style={
                         streakData &&
-                        streakData.streak > 0 &&
-                        streakData.checked_in
+                          streakData.streak > 0 &&
+                          streakData.checked_in
                           ? { animation: "streak-pulse 1.5s ease-in-out 2" }
                           : undefined
                       }
@@ -4424,7 +4687,7 @@ function HomeContent() {
               You unlocked {streakData.streak_reward.item_name}
             </p>
             <Link
-              href={`/shop/${authLogin}`}
+              href="/shop"
               className="btn-press block w-full py-1.5 text-center text-[9px] text-bg"
               style={{
                 backgroundColor: theme.accent,
@@ -4635,6 +4898,8 @@ function HomeContent() {
                   const streak =
                     ((selectedBuilding as any).lc_streak as number) ?? 0;
                   const reputation = selectedBuilding.total_stars;
+                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
+                  const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
                     {
@@ -4643,15 +4908,22 @@ function HomeContent() {
                     },
                     { label: "LC Rank", value: lcRankStr },
                     { label: "Solved", value: solved.toLocaleString() },
+                    {
+                      label: "Acceptance",
+                      value:
+                        acceptanceRate >= 0
+                          ? `${(acceptanceRate * 100).toFixed(1)}%`
+                          : "--",
+                    },
                     ...(easySolved || medSolved || hardSolved
                       ? [
-                          { label: "Easy", value: easySolved.toLocaleString() },
-                          {
-                            label: "Medium",
-                            value: medSolved.toLocaleString(),
-                          },
-                          { label: "Hard", value: hardSolved.toLocaleString() },
-                        ]
+                        { label: "Easy", value: easySolved.toLocaleString() },
+                        {
+                          label: "Medium",
+                          value: medSolved.toLocaleString(),
+                        },
+                        { label: "Hard", value: hardSolved.toLocaleString() },
+                      ]
                       : []),
                     {
                       label: "Streak",
@@ -4757,7 +5029,8 @@ function HomeContent() {
                   )}
 
                 {/* A7: Show equipped items on other devs' buildings (mimetic desire) */}
-                {!isOwnBuilding &&
+                {identityResolved &&
+                  !isOwnBuilding &&
                   (() => {
                     const equipped: string[] = [];
                     if (selectedBuilding.loadout?.crown)
@@ -4801,9 +5074,9 @@ function HomeContent() {
                             </span>
                           )}
                         </div>
-                        {session && !isOwnBuilding && (
+                        {identityResolved && session && !isOwnBuilding && (
                           <Link
-                            href={`/shop/${authLogin}`}
+                            href={`/shop/${selfLogin}`}
                             className="btn-press mt-2 block w-full py-1.5 text-center text-[9px] text-bg"
                             style={{
                               backgroundColor: theme.accent,
@@ -4818,7 +5091,7 @@ function HomeContent() {
                   })()}
 
                 {/* Kudos: give kudos (other's building, logged in) */}
-                {session && !isOwnBuilding && (
+                {identityResolved && session && !isOwnBuilding && (
                   <div className="relative mx-4 mb-3">
                     {/* Floating emoji animation on success */}
                     {kudosSent && (
@@ -4900,7 +5173,7 @@ function HomeContent() {
                 )}
 
                 {/* A3: Disabled action buttons for non-logged users */}
-                {!session && (
+                {identityResolved && !session && (
                   <div className="mx-4 mb-3 space-y-1.5">
                     <button
                       onClick={() => {
@@ -4933,12 +5206,12 @@ function HomeContent() {
                 )}
 
                 {/* Own building: copy invite link */}
-                {selectedBuilding.login.toLowerCase() === authLogin && (
+                {identityResolved && isOwnBuilding && (
                   <div className="mx-4 mb-3">
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          `${window.location.origin}/?ref=${authLogin}`,
+                          `${window.location.origin}/?ref=${selfLogin}`,
                         );
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
@@ -4951,7 +5224,7 @@ function HomeContent() {
                 )}
 
                 {/* Compare button */}
-                {!flyMode && !isOwnBuilding && (
+                {identityResolved && !flyMode && !isOwnBuilding && (
                   <div className="mx-4 mb-3">
                     <button
                       onClick={() => {
@@ -4967,49 +5240,51 @@ function HomeContent() {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
-                  {selectedBuilding.login.toLowerCase() === authLogin ? (
-                    <>
-                      <Link
-                        href={`/shop/${selectedBuilding.login}?tab=loadout`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        Loadout
-                      </Link>
-                      <Link
-                        href={`/dev/${selectedBuilding.login}`}
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        Profile
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href={`/dev/${selectedBuilding.login}`}
-                        className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
-                        style={{
-                          backgroundColor: theme.accent,
-                          boxShadow: `2px 2px 0 0 ${theme.shadow}`,
-                        }}
-                      >
-                        View Profile
-                      </Link>
-                      <a
-                        href={`https://leetcode.com/u/${selectedBuilding.login}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
-                      >
-                        LeetCode
-                      </a>
-                    </>
-                  )}
-                </div>
+                {identityResolved && (
+                  <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
+                    {isOwnBuilding ? (
+                      <>
+                        <Link
+                          href={`/shop/${selfLogin}?tab=loadout`}
+                          className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          Loadout
+                        </Link>
+                        <Link
+                          href={`/dev/${selfLogin}`}
+                          className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                        >
+                          Profile
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href={`/dev/${selectedBuilding.login}`}
+                          className="btn-press flex-1 py-2 text-center text-[10px] text-bg"
+                          style={{
+                            backgroundColor: theme.accent,
+                            boxShadow: `2px 2px 0 0 ${theme.shadow}`,
+                          }}
+                        >
+                          View Profile
+                        </Link>
+                        <a
+                          href={`https://leetcode.com/u/${selectedBuilding.login}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-press flex-1 border-[2px] border-border py-2 text-center text-[10px] text-cream transition-colors hover:border-border-light"
+                        >
+                          LeetCode
+                        </a>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </>
@@ -5082,12 +5357,12 @@ function HomeContent() {
             key: keyof CityBuilding;
             invert?: boolean;
           }[] = [
-            { label: "City Rank", key: "rank", invert: true },
-            { label: "Solved", key: "contributions" },
-            { label: "Reputation", key: "total_stars" },
-            { label: "LC Rank", key: "public_repos", invert: true },
-            { label: "Kudos", key: "kudos_count" },
-          ];
+              { label: "City Rank", key: "rank", invert: true },
+              { label: "Solved", key: "contributions" },
+              { label: "Reputation", key: "total_stars" },
+              { label: "LC Rank", key: "public_repos", invert: true },
+              { label: "Kudos", key: "kudos_count" },
+            ];
           let totalAWins = 0;
           let totalBWins = 0;
           const cmpRows = compareStatDefs.map((s) => {
@@ -5155,10 +5430,10 @@ function HomeContent() {
                   </div>
 
                   {/* ── Header: Avatars + VS ── */}
-                  <div className="flex items-start justify-center gap-5 px-5 pt-1 pb-4 sm:pt-4">
+                  <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-3 md:gap-5 px-5 pt-3 pb-4 md:pt-4">
                     <Link
                       href={`/dev/${comparePair[0].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full md:w-[110px]"
                     >
                       {comparePair[0].avatar_url && (
                         <Image
@@ -5176,7 +5451,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full md:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[0].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5185,7 +5460,7 @@ function HomeContent() {
                     </Link>
 
                     <span
-                      className="text-base shrink-0 pt-4"
+                      className="text-base shrink-0 md:pt-4"
                       style={{ color: theme.accent }}
                     >
                       VS
@@ -5193,7 +5468,7 @@ function HomeContent() {
 
                     <Link
                       href={`/dev/${comparePair[1].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full md:w-[110px]"
                     >
                       {comparePair[1].avatar_url && (
                         <Image
@@ -5211,7 +5486,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full md:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[1].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5225,10 +5500,10 @@ function HomeContent() {
                     {cmpRows.map((s, i) => (
                       <div
                         key={s.key}
-                        className={`flex items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
+                        className={`grid grid-cols-[1fr_auto_1fr] items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
                       >
                         <span
-                          className="w-[72px] text-right text-[11px] tabular-nums"
+                          className="min-w-0 truncate text-right text-[10px] md:text-[11px] tabular-nums"
                           style={{
                             color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                           }}
@@ -5239,11 +5514,11 @@ function HomeContent() {
                               : "-"
                             : s.a.toLocaleString()}
                         </span>
-                        <span className="flex-1 text-center text-[8px] text-muted uppercase tracking-wider">
+                        <span className="text-center text-[7px] md:text-[8px] text-muted uppercase tracking-wider mx-2">
                           {s.label}
                         </span>
                         <span
-                          className="w-[72px] text-left text-[11px] tabular-nums"
+                          className="min-w-0 truncate text-left text-[10px] md:text-[11px] tabular-nums"
                           style={{
                             color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                           }}
@@ -5271,7 +5546,7 @@ function HomeContent() {
                   </div>
 
                   {/* ── Actions ── */}
-                  <div className="px-4 pt-3 pb-1 flex gap-2">
+                  <div className="px-4 pt-3 pb-1 flex flex-col md:flex-row gap-2">
                     <a
                       href={`https://x.com/intent/tweet?text=${encodeURIComponent(
                         `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`,
@@ -5303,8 +5578,8 @@ function HomeContent() {
                   </div>
 
                   {/* Download with lang toggle */}
-                  <div className="px-4 flex items-center gap-2 pb-1">
-                    <div className="flex gap-0.5 shrink-0">
+                  <div className="px-4 flex flex-col md:flex-row items-stretch md:items-center gap-2 pb-1">
+                    <div className="flex justify-center md:justify-start gap-0.5 shrink-0">
                       {(["en", "pt"] as const).map((l) => (
                         <button
                           key={l}
@@ -5365,7 +5640,7 @@ function HomeContent() {
                   </div>
 
                   {/* Compare Again + Close */}
-                  <div className="flex gap-2 px-4 pt-1 pb-5 sm:pb-4">
+                  <div className="flex gap-2 px-4 pt-1 pb-5 md:pb-4">
                     <button
                       onClick={() => {
                         const first = comparePair[0];
@@ -5597,6 +5872,13 @@ function HomeContent() {
         </div>
       )}
 
+      <CodexModal
+        isOpen={isCodexOpen}
+        onClose={() => setIsCodexOpen(false)}
+        accentColor={theme.accent}
+        shadowColor={theme.shadow}
+      />
+
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
@@ -5607,6 +5889,10 @@ function HomeContent() {
             themeIndex={themeIndex}
             themesLength={THEMES.length}
             isMounted={isMounted}
+            dayNightCycleActive={dayNightCycleActive}
+            setDayNightCycleActive={setDayNightCycleActive}
+            weatherMode={weatherMode}
+            cycleWeather={cycleWeather}
           />
         </div>
       )}
@@ -5638,6 +5924,7 @@ function HomeContent() {
               setFlyElapsedSec(0);
               setQuotaReached(false);
               setQuotaNotified(false);
+              setQuotaDismissed(false);
               setFlyMode(true);
             }}
           />
@@ -5700,6 +5987,11 @@ function HomeContent() {
         <ActivityTicker
           events={feedEvents}
           hasBottomBar={!exploreMode && buildings.length > 0}
+          renewalProgress={
+            stats?.renewal_raised_inr !== undefined && stats?.renewal_target_inr !== undefined
+              ? { raised: stats.renewal_raised_inr, target: stats.renewal_target_inr }
+              : null
+          }
           onEventClick={(evt) => {
             if (compareBuilding || comparePair) return;
             const login = evt.actor?.login;
@@ -5924,6 +6216,9 @@ function HomeContent() {
                   flyPausedAt.current = 0;
                   flyTotalPauseMs.current = 0;
                   setFlyElapsedSec(0);
+                  setQuotaReached(false);
+                  setQuotaNotified(false);
+                  setQuotaDismissed(false);
                   try {
                     setFlyPersonalBest(
                       parseInt(
@@ -6379,11 +6674,32 @@ function HomeContent() {
     </main>
   );
 }
-
 export default function Home() {
   return (
-    <Suspense>
-      <HomeContent />
-    </Suspense>
+    <ErrorBoundary fallback={
+      <div className="h-screen w-screen bg-black flex items-center justify-center">
+        <div className="text-red-500 font-pixel text-center px-4">
+          Something went wrong loading the city.
+          <button 
+            onClick={() => window.location.reload()}
+            className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+    }>
+      <WeatherProvider>
+        <Suspense fallback={
+          <div className="h-screen w-screen bg-black flex items-center justify-center">
+            <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+              Loading...
+            </div>
+          </div>
+        }>
+          <HomeContent />
+        </Suspense>
+      </WeatherProvider>
+    </ErrorBoundary>
   );
 }

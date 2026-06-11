@@ -4,18 +4,47 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 /**
  * @param {import('next/server').NextRequest} request
  */
+
+type DeveloperRow = {
+  id: number;
+
+  kudos_count?: number | null;
+  visit_count?: number | null;
+
+  app_streak?: number | null;
+  raid_xp?: number | null;
+
+  current_week_contributions?: number | null;
+  current_week_kudos_given?: number | null;
+  current_week_kudos_received?: number | null;
+
+  rabbit_completed?: boolean | null;
+
+  xp_total?: number | null;
+  xp_level?: number | null;
+
+  [key: string]: unknown;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const from = Math.max(0, parseInt(searchParams.get("from") ?? "0", 10));
-  const to = Math.min(
-    from + 1000,
-    parseInt(searchParams.get("to") ?? "500", 10)
-  );
+  const rawFrom = parseInt(searchParams.get("from") ?? "0", 10);
+  const rawTo = parseInt(searchParams.get("to") ?? "500", 10);
+
+  if (isNaN(rawFrom) || isNaN(rawTo)) {
+    return NextResponse.json(
+      { error: "Invalid pagination parameters: 'from' and 'to' must be numbers." },
+      { status: 400 }
+    );
+  }
+
+  const from = Math.max(0, rawFrom);
+  const to = Math.min(from + 1000, rawTo);
 
   const sb = getSupabaseAdmin();
 
-  // Round 1: devs + stats in parallel
-  const [devsResult, statsResult] = await Promise.all([
+  // Round 1: devs + stats + support progress in parallel
+  const [devsResult, statsResult, supportProgressResult] = await Promise.all([
     sb
       .from("developers")
       .select(
@@ -25,17 +54,25 @@ export async function GET(request: Request) {
       .order("rank", { ascending: true })
       .range(from, to - 1),
     sb.from("city_stats").select("*").eq("id", 1).single(),
+    sb.from("items").select("metadata").eq("id", "support_renewal").maybeSingle(),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const devs = (devsResult.data ?? []) as Record<string, any>[];
-  const devIds = devs.map((d: Record<string, any>) => d.id);
+  const devs = (devsResult.data ?? []) as DeveloperRow[];
+  const devIds = devs.map((d) => d.id);
+
+  const supportMeta = (supportProgressResult?.data?.metadata as Record<string, any>) || {};
+  const renewalRaisedInr = supportMeta.raised_inr ?? 0;
+  const renewalTargetInr = supportMeta.target_inr ?? 2900;
 
   if (devIds.length === 0) {
     return NextResponse.json(
       {
         developers: [],
-        stats: statsResult.data ?? { total_developers: 0, total_contributions: 0 },
+        stats: {
+          ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+          renewal_raised_inr: renewalRaisedInr,
+          renewal_target_inr: renewalTargetInr,
+        },
       },
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
     );
@@ -45,13 +82,13 @@ export async function GET(request: Request) {
   const [purchasesResult, giftPurchasesResult, customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
-      .select("developer_id, item_id")
+      .select("developer_id, item_id, provider, amount_cents")
       .in("developer_id", devIds)
       .is("gifted_to", null)
       .eq("status", "completed"),
     sb
       .from("purchases")
-      .select("gifted_to, item_id")
+      .select("gifted_to, item_id, provider, amount_cents")
       .in("gifted_to", devIds)
       .eq("status", "completed"),
     sb
@@ -73,10 +110,16 @@ export async function GET(request: Request) {
   // Build owned items map (direct purchases + received gifts)
   const ownedItemsMap: Record<number, string[]> = {};
   for (const row of purchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     if (!ownedItemsMap[row.developer_id]) ownedItemsMap[row.developer_id] = [];
     ownedItemsMap[row.developer_id].push(row.item_id);
   }
   for (const row of giftPurchasesResult.data ?? []) {
+    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+      continue;
+    }
     const devId = row.gifted_to as number;
     if (!ownedItemsMap[devId]) ownedItemsMap[devId] = [];
     ownedItemsMap[devId].push(row.item_id);
@@ -118,8 +161,9 @@ export async function GET(request: Request) {
   // Build a quick style map
   const styleMap: Record<number, string> = {};
   for (const row of customizationsResult.data ?? []) {
-    if (row.item_id === "building_style" && typeof (row.config as any)?.style === "string") {
-      styleMap[row.developer_id] = (row.config as any).style;
+    const config = row.config as Record<string, unknown>;
+    if (row.item_id === "building_style" && typeof config.style === "string") {
+      styleMap[row.developer_id] = config.style;
     }
   }
 
@@ -166,9 +210,10 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       developers: developersWithItems,
-      stats: statsResult.data ?? {
-        total_developers: 0,
-        total_contributions: 0,
+      stats: {
+        ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+        renewal_raised_inr: renewalRaisedInr,
+        renewal_target_inr: renewalTargetInr,
       },
     },
     {

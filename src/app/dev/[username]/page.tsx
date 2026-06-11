@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Developer Not Found - LeetCode City" };
   }
 
-  const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
+  const contribs = dev.contributions ?? 0;
   const title = `@${dev.github_login} - LeetCode City | ${contribs.toLocaleString()} solved`;
   const description = `See @${dev.github_login}'s building in LeetCode City. ${contribs.toLocaleString()} solved, ${dev.total_stars.toLocaleString()} reputation. Rank #${dev.rank ?? "?"} in the city.`;
 
@@ -87,6 +87,55 @@ export default async function DevPage({ params }: Props) {
     tier: (a.achievements as Record<string, unknown>)?.tier as string ?? "bronze",
   }));
 
+  // Fetch arena titles
+  const { data: arenaInventory } = await sb
+    .from("arena_inventory")
+    .select("arena_items(slug)")
+    .eq("user_id", dev.id);
+
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
+
+  const ownedTitlesSlugs = (arenaInventory ?? [])
+    .map((inv: any) => inv.arena_items?.slug)
+    .filter((slug): slug is string => typeof slug === "string");
+
+  if (isDeveloper) {
+    ownedTitlesSlugs.push("title_creator", "title_lead_dev", "title_sys_op");
+  }
+
+  // Fetch selected title customization
+  const { data: customizationData } = await sb
+    .from("developer_customizations")
+    .select("config")
+    .eq("developer_id", dev.id)
+    .eq("item_id", "selected_title")
+    .maybeSingle();
+  const selectedTitleSlug = (customizationData?.config as any)?.slug ?? null;
+
+  const TITLE_PRESETS = [
+    { slug: "title_creator", name: "City Creator", titleText: "The Architect", color: "#ec4899", icon: "/assets/items/crown_of_code.png", priority: 10 },
+    { slug: "title_lead_dev", name: "Core Engineer", titleText: "Root Access", color: "#10b981", icon: "/assets/items/celestial_orb.png", priority: 9 },
+    { slug: "title_sys_op", name: "Database Master", titleText: "SysOp", color: "#3b82f6", icon: "/assets/items/soul_gem.png", priority: 8 },
+    { slug: "crown_of_code", name: "Crown of Code", titleText: "Code King/Queen", color: "#f59e0b", icon: "/assets/items/crown_of_code.png", priority: 7 },
+    { slug: "badge_legendary", name: "Legendary Sentinel", titleText: "The Sentinel", color: "#a855f7", icon: "/assets/items/badge_legendary.png", priority: 6 },
+    { slug: "badge_diamond", name: "Diamond Grandmaster", titleText: "The Grandmaster", color: "#06b6d4", icon: "/assets/items/badge_diamond.png", priority: 5 },
+    { slug: "badge_platinum", name: "Platinum Architect", titleText: "The Architect", color: "#3b82f6", icon: "/assets/items/badge_platinum.png", priority: 4 },
+    { slug: "badge_gold", name: "Gold Developer", titleText: "The Builder", color: "#eab308", icon: "/assets/items/badge_gold.png", priority: 3 },
+    { slug: "badge_silver", name: "Silver Hacker", titleText: "The Script Kiddie", color: "#94a3b8", icon: "/assets/items/badge_silver.png", priority: 2 },
+    { slug: "badge_bronze", name: "Bronze Coder", titleText: "The Apprentice", color: "#b45309", icon: "/assets/items/badge_bronze.png", priority: 1 },
+  ];
+
+  let activeTitle: typeof TITLE_PRESETS[0] | null = null;
+  if (selectedTitleSlug && selectedTitleSlug !== "auto" && ownedTitlesSlugs.includes(selectedTitleSlug)) {
+    activeTitle = TITLE_PRESETS.find(t => t.slug === selectedTitleSlug) ?? null;
+  } else {
+    // Auto-detect: find the highest priority owned title
+    const ownedPresets = TITLE_PRESETS.filter(t => ownedTitlesSlugs.includes(t.slug));
+    if (ownedPresets.length > 0) {
+      activeTitle = ownedPresets.reduce((highest, current) => current.priority > highest.priority ? current : highest, ownedPresets[0]);
+    }
+  }
+
   // Fetch referred developers (who this dev brought to the city)
   const { data: referredDevs } = await sb
     .from("developers")
@@ -120,7 +169,7 @@ export default async function DevPage({ params }: Props) {
       alternateName: dev.github_login,
       image: dev.avatar_url,
       url: `${baseUrl}/dev/${dev.github_login}`,
-      sameAs: `https://github.com/${dev.github_login}`,
+      sameAs: `https://leetcode.com/${dev.github_login}`,
     },
   };
 
@@ -174,19 +223,126 @@ export default async function DevPage({ params }: Props) {
             )}
 
             <div className="flex-1 text-center sm:text-left">
-              {dev.name && (
-                <h1 className="text-xl text-cream sm:text-2xl">{dev.name}</h1>
-              )}
+              <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                <div className="flex items-center gap-3">
+                  {dev.name && (
+                    <h1 className="text-xl text-cream sm:text-2xl">{dev.name}</h1>
+                  )}
+                </div>
+
+                {activeTitle && (() => {
+                  const bannerImages: Record<string, string> = {
+                    title_creator: "/assets/banners/banner_city_creator.png",
+                    title_lead_dev: "/assets/banners/banner_core_engineer.png",
+                    title_sys_op: "/assets/banners/banner_database_master.png",
+                  };
+
+                  const imageUrl = bannerImages[activeTitle.slug];
+
+                  if (imageUrl) {
+                    return (
+                      <div className="flex-shrink-0 select-none">
+                        <Image
+                          src={imageUrl}
+                          alt={activeTitle.name}
+                          width={180}
+                          height={18}
+                          className="h-[18px] w-[180px]"
+                          style={{ imageRendering: "pixelated" }}
+                        />
+                      </div>
+                    );
+                  }
+
+                  // Dynamic HTML/CSS Banner for other titles
+                  const symbols: Record<string, string> = {
+                    badge_bronze: "[ >_ ] ⛭",
+                    badge_silver: "[ $ ] ⛭",
+                    badge_gold: "[ ■ ] ⚒",
+                    badge_platinum: "[ ❖ ] ✦",
+                    badge_diamond: "[ ◆ ] ✦",
+                    badge_legendary: "[ ⚔ ] ✦",
+                    crown_of_code: "[ ♔ ] ✦",
+                  };
+
+                  const symbol = symbols[activeTitle.slug] ?? "[ ★ ]";
+
+                  // Design borders based on category (shorter, no description text, smaller)
+                  if (activeTitle.slug === "badge_platinum" || activeTitle.slug === "badge_diamond") {
+                    return (
+                      <div className="relative flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border border-solid flex-shrink-0"
+                        style={{
+                          borderColor: activeTitle.color,
+                          backgroundColor: "#1b1921",
+                          color: activeTitle.color,
+                        }}
+                      >
+                        <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l" style={{ borderColor: activeTitle.color }} />
+                        <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r" style={{ borderColor: activeTitle.color }} />
+                        <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l" style={{ borderColor: activeTitle.color }} />
+                        <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r" style={{ borderColor: activeTitle.color }} />
+                        
+                        <span className="font-mono text-[9px]">{symbol}</span>
+                        <span>{activeTitle.name.toUpperCase()}</span>
+                      </div>
+                    );
+                  }
+
+                  if (activeTitle.slug === "badge_legendary" || activeTitle.slug === "crown_of_code") {
+                    return (
+                      <div className="flex items-center flex-shrink-0">
+                        <div className="w-2.5 h-4.5 border-y border-l flex-shrink-0" style={{
+                          borderColor: activeTitle.color,
+                          backgroundColor: "#1b1921",
+                          clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
+                        }} />
+                        
+                        <div
+                          className="flex items-center gap-1.5 py-0.5 px-2 text-[8px] font-bold tracking-wide border-y border-x-[0.5px]"
+                          style={{
+                            borderColor: activeTitle.color,
+                            backgroundColor: "#1b1921",
+                            color: activeTitle.color,
+                          }}
+                        >
+                          <span className="font-mono text-[9px]">{symbol}</span>
+                          <span>{activeTitle.name.toUpperCase()}</span>
+                        </div>
+
+                        <div className="w-2.5 h-4.5 border-y border-r flex-shrink-0" style={{
+                          borderColor: activeTitle.color,
+                          backgroundColor: "#1b1921",
+                          clipPath: "polygon(0 0, 100% 50%, 0 100%)",
+                        }} />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      className="flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border-[2px] border-double flex-shrink-0"
+                      style={{
+                        borderColor: activeTitle.color,
+                        backgroundColor: "#1b1921",
+                        color: activeTitle.color,
+                      }}
+                    >
+                      <span className="font-mono text-[9px]">{symbol}</span>
+                      <span>{activeTitle.name.toUpperCase()}</span>
+                    </div>
+                  );
+                })()}
+              </div>
               <p className="mt-1 text-sm text-muted">@{dev.github_login}</p>
 
               {/* Rank Badges — Global LC rank + City ranking */}
               {dev.rank && dev.rank < 999999 && (
-                <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <div className="inline-block border-[2px] px-3 py-1 text-sm" style={{ borderColor: accent, color: accent }}>
+                <div className="mt-2.5 flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: accent, color: accent }}>
                     🌍 LC Rank #{dev.rank.toLocaleString()}
                   </div>
                   {(dev as any).contest_rating > 0 && (
-                    <div className="inline-block border-[2px] px-3 py-1 text-sm" style={{ borderColor: "#a855f7", color: "#a855f7" }}>
+                    <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: "#a855f7", color: "#a855f7" }}>
                       ⚔️ Contest {(dev as any).contest_rating.toLocaleString()}
                     </div>
                   )}
@@ -195,15 +351,15 @@ export default async function DevPage({ params }: Props) {
 
               {/* District badge */}
               {dev.district && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2 justify-center sm:justify-start">
                   <span
-                    className="px-2 py-0.5 text-[10px] text-bg"
+                    className="px-1.5 py-0.5 text-[8.5px] text-bg"
                     style={{ backgroundColor: DISTRICT_COLORS[dev.district] ?? '#888' }}
                   >
                     {DISTRICT_NAMES[dev.district] ?? dev.district}
                   </span>
                   {dev.district_rank && (
-                    <span className="text-[10px] text-muted">
+                    <span className="text-[8.5px] text-muted">
                       {dev.district_rank === 1 ? 'Mayor' : `#${dev.district_rank}`} in {DISTRICT_NAMES[dev.district]}
                     </span>
                   )}
@@ -310,7 +466,7 @@ export default async function DevPage({ params }: Props) {
             <div className="flex flex-wrap items-center justify-center gap-2">
               <ShareButtons
                 login={dev.github_login}
-                contributions={(dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions}
+                contributions={dev.contributions ?? 0}
                 rank={dev.rank}
                 accent={accent}
                 shadow={shadow}

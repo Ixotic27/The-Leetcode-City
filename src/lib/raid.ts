@@ -32,8 +32,8 @@ export interface AttackInputs {
   appStreak: number;
   weeklyKudosGiven: number;
   boostBonus?: number;
-  stealthCloakActive?: boolean;
   empShieldActive?: boolean;
+  vehicle?: string;
 }
 
 export interface DefenseInputs {
@@ -53,6 +53,7 @@ export interface ScoreBreakdown {
   kudos: number;
   boost?: number;
   boost_item?: string;
+  vehicle_bonus?: number;
 }
 
 export function calculateAttackScore(inputs: AttackInputs): {
@@ -60,12 +61,37 @@ export function calculateAttackScore(inputs: AttackInputs): {
   breakdown: ScoreBreakdown;
 } {
   const commits = inputs.weeklyContributions * 3;
-  // Stealth cloak caps attacker streak contribution to 0
-  const streak = inputs.stealthCloakActive ? 0 : inputs.appStreak * 1;
+  const streak = inputs.appStreak * 1;
   const kudos = inputs.weeklyKudosGiven * 2;
   const boost = inputs.boostBonus ?? 0;
   
-  let total = commits + streak + kudos + boost;
+  // Calculate vehicle bonus/damage points
+  let vehicle_bonus = 0;
+  switch (inputs.vehicle) {
+    case "raid_helicopter":
+      vehicle_bonus = 5;
+      break;
+    case "vehicle_tank":
+      vehicle_bonus = 10;
+      break;
+    case "raid_drone":
+      vehicle_bonus = 15;
+      break;
+    case "raid_rocket":
+      vehicle_bonus = 20;
+      break;
+    case "raid_b2_bomber":
+      vehicle_bonus = 25;
+      break;
+    case "raid_ufo":
+      vehicle_bonus = 35;
+      break;
+    default:
+      vehicle_bonus = 0;
+      break;
+  }
+  
+  let total = commits + streak + kudos + boost + vehicle_bonus;
   
   // EMP Shield reduces final attack score by 20%
   if (inputs.empShieldActive) {
@@ -79,6 +105,7 @@ export function calculateAttackScore(inputs: AttackInputs): {
       streak,
       kudos,
       ...(boost > 0 ? { boost } : {}),
+      ...(vehicle_bonus > 0 ? { vehicle_bonus } : {}),
     },
   };
 }
