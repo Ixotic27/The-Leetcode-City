@@ -101,7 +101,10 @@ export async function GET(request: NextRequest) {
 
           await sb
             .from("sky_ads")
-            .update({ expiry_notified: "expired" })
+            .update({ 
+              active: false,
+              expiry_notified: "expired" 
+            })
             .eq("id", ad.id);
 
           results.expired++;
