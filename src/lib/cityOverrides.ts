@@ -12,7 +12,9 @@ export function applyLocalStorageOverrides(allDevs: any[]): void {
         localStorage.removeItem("leetcodecity:loadout_override");
       }
     }
+  } catch (err) { console.warn(err); }
 
+  try {
     const rawStyle = localStorage.getItem("leetcodecity:style_override");
     if (rawStyle) {
       const { developerId, value, ts } = JSON.parse(rawStyle);
@@ -24,7 +26,9 @@ export function applyLocalStorageOverrides(allDevs: any[]): void {
         localStorage.removeItem("leetcodecity:style_override");
       }
     }
+  } catch (err) { console.warn(err); }
 
+  try {
     const rawColor = localStorage.getItem("leetcodecity:color_override");
     if (rawColor) {
       const { developerId, value, ts } = JSON.parse(rawColor);
@@ -35,10 +39,10 @@ export function applyLocalStorageOverrides(allDevs: any[]): void {
         localStorage.removeItem("leetcodecity:color_override");
       }
     }
+  } catch (err) { console.warn(err); }
 
-    const rawBillboard = localStorage.getItem(
-      "leetcodecity:billboard_override",
-    );
+  try {
+    const rawBillboard = localStorage.getItem("leetcodecity:billboard_override");
     if (rawBillboard) {
       const { developerId, value, ts } = JSON.parse(rawBillboard);
       if (Date.now() - ts < TTL) {
@@ -49,7 +53,9 @@ export function applyLocalStorageOverrides(allDevs: any[]): void {
         localStorage.removeItem("leetcodecity:billboard_override");
       }
     }
+  } catch (err) { console.warn(err); }
 
+  try {
     const rawLed = localStorage.getItem("leetcodecity:led_banner_override");
     if (rawLed) {
       const { developerId, value, ts } = JSON.parse(rawLed);
@@ -61,19 +67,20 @@ export function applyLocalStorageOverrides(allDevs: any[]): void {
         localStorage.removeItem("leetcodecity:led_banner_override");
       }
     }
+  } catch (err) { console.warn(err); }
 
+  try {
     const rawTitle = localStorage.getItem("leetcodecity:selected_title_override");
     if (rawTitle) {
       const { developerId, value, ts } = JSON.parse(rawTitle);
       if (Date.now() - ts < TTL) {
         const idx = allDevs.findIndex((d) => Number(d.id) === Number(developerId));
-        if (idx !== -1)
-          allDevs[idx] = { ...allDevs[idx], selected_title: value };
+        if (idx !== -1) {
+           allDevs[idx] = { ...allDevs[idx], selected_title: value };
+        }
       } else {
         localStorage.removeItem("leetcodecity:selected_title_override");
       }
     }
-  } catch (err) {
-    console.warn("[cityOverrides] Failed to apply overrides:", err);
-  }
+  } catch (err) { console.warn(err); }
 }
