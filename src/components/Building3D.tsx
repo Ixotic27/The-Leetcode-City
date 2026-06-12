@@ -54,12 +54,20 @@ const ATLAS_LIT_PCTS = [0.2, 0.35, 0.5, 0.65, 0.8, 0.95];
 
 // Parse hex/named color to ABGR uint32 for direct pixel writes (little-endian)
 function colorToABGR(hex: string): number {
-  const c = new THREE.Color(hex);
+  let h = hex;
+  if (h.startsWith("#")) h = h.slice(1);
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  
+  const num = parseInt(h, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  
   return (
     255 << 24 |
-    (Math.round(c.b * 255) << 16) |
-    (Math.round(c.g * 255) << 8) |
-    Math.round(c.r * 255)
+    (b << 16) |
+    (g << 8) |
+    r
   );
 }
 
@@ -586,8 +594,7 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
 
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {
-      const blended = new THREE.Color(colors.face)
-        .lerp(new THREE.Color(building.custom_color), 0.5);
+      const blended = new THREE.Color(building.custom_color);
       const blendedHex = '#' + blended.getHexString();
       const front = createWindowTexture(
         building.floors, building.windowsPerFloor,
