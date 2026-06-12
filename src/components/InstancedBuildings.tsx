@@ -85,18 +85,29 @@ const fragmentShader = /* glsl */ `
     float isRoof = step(0.5, absN.y);
 
     bool isFrontBack = absN.z > absN.x;
-    vec4 uvParams = isFrontBack ? vUvFront : vUvSide;
+    vec4 uvRect = isFrontBack ? vUvFront : vUvSide;
+    float atlasWidth = uvRect.z;
+    float atlasHeight = uvRect.w;
 
-    vec2 atlasUv = uvParams.xy + vUv * uvParams.zw;
-    vec3 wallColor = texture2D(uAtlas, atlasUv).rgb;
-
-    if (vTint.a > 0.5) {
-      float isFacePixel = step(length(wallColor - uFaceColor), 0.08);
-      vec3 blendedTint = mix(uFaceColor, vTint.rgb, 0.5);
-      wallColor = mix(wallColor, blendedTint, isFacePixel);
+    vec3 wallColor;
+    if (atlasWidth <= 0.0001) {
+      // Solid wall (no windows on this face)
+      wallColor = uFaceColor;
+    } else {
+      vec2 atlasUv = uvRect.xy + vUv * uvRect.zw;
+      wallColor = texture2D(uAtlas, atlasUv).rgb;
     }
 
-    float isWindow = step(0.12, length(wallColor - uFaceColor));
+    // Detect face vs window BEFORE tint replacement
+    // Threshold needs headroom for sRGB-to-linear precision differences
+    float preTintFace = step(length(wallColor - uFaceColor), 0.15);
+
+    if (vTint.a > 0.5) {
+      wallColor = mix(wallColor, vTint.rgb, preTintFace);
+    }
+
+    // Exclude tinted face pixels from being treated as windows
+    float isWindow = step(0.12, length(wallColor - uFaceColor)) * (1.0 - preTintFace * step(0.5, vTint.a));
     float totalSolved = vLcStats.x + vLcStats.y + vLcStats.z;
     if (totalSolved > 0.01 && isRoof < 0.5 && isWindow > 0.5) {
       float easyEdge = vLcStats.x / totalSolved;
@@ -119,7 +130,11 @@ const fragmentShader = /* glsl */ `
     float nightGlowMultiplier = mix(3.5, 0.5, uTimeOfDay);
     vec3 emissive = wallColor * nightGlowMultiplier * energyCube * isWindow;
 
-    vec3 wallFinal = wallColor * ambientBase + emissive;
+    // Custom colored walls should remain bright to match the shop preview
+    float hasTint = step(0.5, vTint.a);
+    vec3 baseWall = mix(wallColor * ambientBase, wallColor * max(0.8, ambientBase), hasTint * preTintFace);
+    vec3 wallFinal = baseWall + emissive;
+
     if (uSnowIntensity > 0.01) {
       vec3 frostColor = vec3(0.93, 0.95, 1.0);
       wallFinal = mix(wallFinal, frostColor * ambientBase, uSnowIntensity * 0.12);
@@ -137,6 +152,13 @@ const fragmentShader = /* glsl */ `
     vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
     float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.5, uTimeOfDay) + mix(0.5, 0.8, uTimeOfDay);
     color *= diffuse;
+
+    // Custom-colored walls: bypass scene lighting and apply a brightness
+    // boost that matches the ShopPreview's specific "Midnight" theme lights.
+    // The preview has emissive 2.0 + strong blueish ambient/directional lights.
+    vec3 previewLightMult = vec3(2.8, 3.1, 3.7);
+    float tintedWall = step(0.5, vTint.a) * preTintFace * (1.0 - isRoof);
+    color = mix(color, vTint.rgb * previewLightMult, tintedWall);
 
     float isFocused = step(abs(vInstanceId - uFocusedId), 0.5)
                     + step(abs(vInstanceId - uFocusedIdB), 0.5);
@@ -169,6 +191,8 @@ const fragmentShader = /* glsl */ `
     color = mix(color, uFogColor, fogFactor);
 
     gl_FragColor = vec4(color, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -250,6 +274,7 @@ export default memo(function InstancedBuildings({
       },
       vertexShader,
       fragmentShader,
+      toneMapped: true,
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
