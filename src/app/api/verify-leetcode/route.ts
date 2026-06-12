@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         const aboutMe = await fetchLeetCodeAboutMe(leetcode_username);
 
         if (aboutMe === null) {
-            return NextResponse.json({ error: "Could not find this GitHub account" }, { status: 404 });
+            return NextResponse.json({ error: "Could not find this LeetCode account" }, { status: 404 });
         }
 
         if (!aboutMe.includes(expectedToken)) {
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
             .maybeSingle();
 
         if (existingClaim && existingClaim.claimed_by && existingClaim.claimed_by !== user.id) {
-            return NextResponse.json({ error: "This GitHub account is already linked to another LeetCode user." }, { status: 409 });
+            return NextResponse.json({ error: "This LeetCode account is already linked to another user." }, { status: 409 });
         }
 
         // Fetch full LC stats: easy/medium/hard, contest rating, streak
