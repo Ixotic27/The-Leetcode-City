@@ -901,12 +901,16 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           s.bannerResources.tex.dispose();
         }
       });
+    };
+  }, [ships]);
+
+  useEffect(() => {
+    return () => {
       boxGeo.dispose();
       coneGeo.dispose();
       cylinderGeo.dispose();
     };
-  }, [ships, boxGeo, coneGeo, cylinderGeo]);
-
+  }, [boxGeo, coneGeo, cylinderGeo]);
   useFrame((state, delta) => {
     const time = state.clock.elapsedTime;
     if (!groupRef.current) return;
