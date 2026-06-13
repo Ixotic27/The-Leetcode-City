@@ -21,6 +21,30 @@
 
 ---
 
+## Table of Contents 
+
+- [What is LeetCode City?](#what-is-leetcode-city)
+- [Features](#features)
+- [How Buildings Work](#how-buildings-work)
+- [Architecture & Rendering Flow](#architecture--rendering-flow)
+- [LeetCode Data Pipeline](#leetcode-data-pipeline)
+- [The Journey of a Single Developer](#the-journey-of-a-single-developer)
+- [Data Source](#data-source)
+- [Data Collection Pipeline](#data-collection-pipeline)
+- [Rate Limiting & Reliability](#rate-limiting--reliability)
+- [Database Layer](#database-layer)
+- [Building Generation](#building-generation)
+- [City Rendering](#city-rendering)
+- [📁 Key Files](#-key-files)
+- [Tech Stack](#tech-stack)
+- [🚀 Getting Started](#-getting-started)
+- [🔧 Environment Variables](#-environment-variables)
+- [🤝 Contributing](#-contributing)
+- [👥 Contributors](#-contributors)
+- [License](#license)
+
+---
+
 ## What is LeetCode City?
 
 LeetCode City transforms every LeetCode profile into a unique pixel art building. The more you solve, the taller your building grows. Explore an interactive 3D city, fly between buildings, and discover developers from around the world.
@@ -470,6 +494,16 @@ Please see our comprehensive [Contributing Guide](CONTRIBUTING.md) for full deta
 - 📝 Assignment rules and PR guidelines
 - 🏷️ Our label system and automated reviews
 - 🏆 GSSoC 2026 Scoring and information
+
+---
+
+## 👥 Contributors
+
+Thanks to all contributors ❤️
+
+[![Contributors](https://contrib.rocks/image?repo=Ixotic27/The-Leetcode-City)](https://github.com/Ixotic27/The-Leetcode-City/graphs/contributors)
+
+<!-- toc update fix -->
 
 ---
 
