@@ -25,20 +25,29 @@ function SupportContent() {
   const [loadingProgress, setLoadingProgress] = useState(true);
 
   useEffect(() => {
+    const ac = new AbortController();
+    let isMounted = true;
+
     if (orderIdParam) {
       const verify = async () => {
         try {
-          const res = await fetch(`/api/support/status?order_id=${orderIdParam}`);
-          if (res.ok) {
+          const res = await fetch(`/api/support/status?order_id=${orderIdParam}`, {
+            signal: ac.signal,
+          });
+          if (isMounted && res.ok) {
             const data = await res.json();
-            if (data.isPaid) {
+            if (data.isPaid && isMounted) {
               setVerifiedThanks(true);
             }
           }
         } catch (err) {
-          console.error("Error verifying payment:", err);
+          if (err instanceof Error && err.name !== "AbortError") {
+            console.error("Error verifying payment:", err);
+          }
         } finally {
-          setVerifyingPayment(false);
+          if (isMounted) {
+            setVerifyingPayment(false);
+          }
         }
       };
       verify();
@@ -46,6 +55,11 @@ function SupportContent() {
       setVerifiedThanks(true);
       setVerifyingPayment(false);
     }
+
+    return () => {
+      isMounted = false;
+      ac.abort();
+    };
   }, [thanksParam, orderIdParam]);
 
   useEffect(() => {

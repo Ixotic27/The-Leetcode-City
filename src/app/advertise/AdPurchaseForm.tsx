@@ -140,7 +140,7 @@ export function AdPurchaseForm() {
           text: text.trim(),
           color,
           bgColor,
-          currency: "usd",
+          currency,
           provider,
           phone: phoneVal,
           dev_mode: typeof window !== "undefined" && localStorage.getItem("leetcodecity:dev_mode") === "true",
