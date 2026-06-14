@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { levelFromXp } from "@/lib/xp";
 
 /**
  * @param {import('next/server').NextRequest} req
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
     // Verify the user has a linked developer account
     const { data: dev } = await sb
       .from("developers")
-      .select("id, xp_total")
+      .select("id, xp_total, xp_level")
       .eq("claimed_by", user.id)
       .single();
 
@@ -60,14 +61,13 @@ export async function POST(req: Request) {
     }
 
     // ── Atomic redemption via RPC ─────────────────────────────────────
-    // redeem_xp_code() does three things atomically:
+    // redeem_xp_code() does everything atomically:
     //   1. INSERT xp_code_usages ON CONFLICT DO NOTHING — per-user CAS
     //   2. UPDATE xp_redeem_codes SET used_count = used_count + 1
     //      WHERE used_count < max_uses — atomic cap-safe increment
-    //   3. Returns ok + error_code so we only grant XP if both passed
-    //
-    // XP is applied AFTER the RPC succeeds — usage is recorded first,
-    // so a failure in XP update cannot leave an unredeemed code slot.
+    //   3. UPDATE developers SET xp_total = xp_total + p_xp_amount — XP grant
+    // All three steps succeed or fail together so there is no window
+    // where the code is consumed but XP is not granted.
     const { data: rpcResult, error: rpcError } = await sb.rpc("redeem_xp_code", {
       p_code_id:      redeemCode.id,
       p_developer_id: dev.id,
@@ -103,47 +103,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: mapped.error }, { status: mapped.status });
     }
 
-    // ── Apply XP — only reached if RPC won the race ───────────────────
+    // ── RPC committed the XP update — read the new total ──────────────
     const xpAmount = result.xp_amount;
-    const { data: xpResult, error: xpError } = await sb.rpc("grant_xp_atomic", {
-      p_developer_id: dev.id,
-      p_source: `xp_code:${redeemCode.id}`,
-      p_amount: xpAmount,
-    });
+    const newXpTotal = (dev.xp_total ?? 0) + xpAmount;
+    const newLevel = levelFromXp(newXpTotal);
 
-    if (xpError) {
-      console.error("[redeem-xp] grant_xp_atomic failed after successful redemption:", xpError.message);
-      return NextResponse.json(
-        { error: "Code was redeemed but XP could not be applied. Contact support." },
-        { status: 500 }
-      );
-    }
-
-    let newXpTotal: number;
-    let newLevel: number;
-    if (xpResult) {
-     const grant = xpResult as { granted: number; new_total: number; new_level: number };
-      newXpTotal = grant.new_total;
-      newLevel = grant.new_level;
-    } else {
-      console.warn(
-        `[redeem-xp] grant_xp_atomic returned null (duplicate source key) for dev ${dev.id}, code ${redeemCode.id}`
-      );
-      const { data: refreshed } = await sb
-        .from("developers")
-        .select("xp_total, xp_level")
-        .eq("id", dev.id)
-        .single();
-      newXpTotal = refreshed?.xp_total ?? dev.xp_total ?? 0;
-      newLevel = refreshed?.xp_level ?? 1;
-    }
+    // Best-effort level sync (not critical — derived from xp_total)
+    await sb.from("developers").update({ xp_level: newLevel }).eq("id", dev.id);
 
     return NextResponse.json({
       success: true,
       xp_granted: xpAmount,
       new_xp_total: newXpTotal,
       new_xp_level: newLevel,
-      message: `🎉 You claimed ${xpAmount} XP! Your building has grown stronger.`,
+      message: `You claimed ${xpAmount} XP!`,
     });
   } catch (error) {
     console.error("[Redeem XP API Error]", error);
