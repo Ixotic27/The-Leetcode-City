@@ -686,13 +686,25 @@ function HomeContent() {
   const [vsCodeKeyLoading, setVsCodeKeyLoading] = useState(false);
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
+  const mountedRef = useRef(true);
+  const generateControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      generateControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (codingPanelOpen && hasVsCodeKey === null) {
-      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
+      const controller = new AbortController();
+
+      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store", signal: controller.signal })
         .then(r => r.json())
         .then(d => {
-          if (typeof d.hasKey === "boolean") {
+          if (mountedRef.current && typeof d.hasKey === "boolean") {
             setHasVsCodeKey(d.hasKey);
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
@@ -701,6 +713,10 @@ function HomeContent() {
           }
         })
         .catch(() => { });
+
+      return () => {
+        controller.abort();
+      };
     }
   }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
@@ -3765,24 +3781,33 @@ function HomeContent() {
                               <button
                                 onClick={async () => {
                                   setVsCodeKeyLoading(true);
+                                  const controller = new AbortController();
+                                  generateControllerRef.current = controller;
                                   try {
                                     const res = await fetch("/api/vscode-key", {
                                       method: "POST",
+                                      signal: controller.signal,
                                     });
                                     const data = await res.json();
-                                    if (data.key) {
+                                    if (mountedRef.current && data.key) {
                                       setVsCodeKey(data.key);
                                       setHasVsCodeKey(true);
                                       try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
-                                      setTimeout(
-                                        () => setVsCodeKeyCopied(false),
-                                        2000,
-                                      );
+                                      setTimeout(() => {
+                                        if (mountedRef.current) setVsCodeKeyCopied(false);
+                                      }, 2000);
                                     }
+                                  } catch (e: any) {
+                                    if (e.name === "AbortError") return;
                                   } finally {
-                                    setVsCodeKeyLoading(false);
+                                    if (mountedRef.current) {
+                                      setVsCodeKeyLoading(false);
+                                      if (generateControllerRef.current === controller) {
+                                        generateControllerRef.current = null;
+                                      }
+                                    }
                                   }
                                 }}
                                 disabled={vsCodeKeyLoading}
