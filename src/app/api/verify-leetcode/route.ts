@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
-import { calculateLeetcodeXp } from "@/lib/xp";
+import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
 
 type TagProblem = {
     tagName: string;
@@ -239,12 +239,18 @@ export async function POST(req: Request) {
         const newBaseXp = calculateLeetcodeXp({ easy_solved, medium_solved, hard_solved, contest_rating, lc_streak });
 
         // Atomic claim check: First, try to claim an unclaimed building or update own claim
-        // This prevents TOCTOU race conditions by using database-level constraints
+        // This prevents TOCTOU race conditions by using database-level constraints.
+        // Also pull existing XP so re-verification preserves earned (non-base) XP.
         const { data: existingDev } = await admin
             .from("developers")
-            .select("id, claimed_by")
+            .select("id, claimed_by, xp_total, xp_github")
             .eq("github_login", leetcode_username.toLowerCase())
             .maybeSingle();
+
+        // Re-verification must update the base XP without wiping XP earned from
+        // other sources (check-ins, dailies, rewards, redemptions, raids, etc.).
+        // For a first-time claim existingDev is null, so this is just newBaseXp.
+        const newXpTotal = mergeBaseXp(existingDev?.xp_total, existingDev?.xp_github, newBaseXp);
 
         let devId: string | undefined;
 
@@ -300,7 +306,7 @@ export async function POST(req: Request) {
                     lc_github: lc_github,
                     lc_tag_stats: lc_tag_stats,
                     xp_github: newBaseXp,
-                    xp_total: newBaseXp,
+                    xp_total: newXpTotal,
                     contributions_total: Math.round(litPercentage * 1000),
                 })
                 .eq("id", existingDev.id)

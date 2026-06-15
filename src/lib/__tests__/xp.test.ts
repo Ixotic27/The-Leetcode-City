@@ -5,6 +5,7 @@ import {
   tierFromLevel,
   levelProgress,
   calculateLeetcodeXp,
+  mergeBaseXp,
   xpForAchievementTier,
 } from "../xp";
 
@@ -138,6 +139,41 @@ describe("calculateLeetcodeXp", () => {
   it("streak contributes positively", () => {
     const withStreak = calculateLeetcodeXp({ easy_solved: 0, medium_solved: 0, hard_solved: 0, contest_rating: 0, lc_streak: 10 });
     expect(withStreak).toBeGreaterThan(0);
+  });
+});
+
+describe("mergeBaseXp", () => {
+  it("preserves earned XP when base XP increases (re-verification)", () => {
+    // xp_github=1000, xp_total=1300 → earned=300; new base=1500 → 1800
+    expect(mergeBaseXp(1300, 1000, 1500)).toBe(1800);
+  });
+
+  it("does not reset total to the new base XP", () => {
+    expect(mergeBaseXp(1300, 1000, 1500)).not.toBe(1500);
+  });
+
+  it("returns the new base XP for a first-time verification (null prev)", () => {
+    expect(mergeBaseXp(null, null, 1500)).toBe(1500);
+    expect(mergeBaseXp(undefined, undefined, 1500)).toBe(1500);
+  });
+
+  it("treats no earned XP as base-only total", () => {
+    // earned = 1000 - 1000 = 0 → total = new base
+    expect(mergeBaseXp(1000, 1000, 1500)).toBe(1500);
+  });
+
+  it("preserves earned XP when base XP drops", () => {
+    // earned = 300; reduced base 800 → 1100
+    expect(mergeBaseXp(1300, 1000, 800)).toBe(1100);
+  });
+
+  it("treats missing/null XP values as zero", () => {
+    expect(mergeBaseXp(undefined, 1000, 500)).toBe(500); // earned clamps to 0
+    expect(mergeBaseXp(1300, undefined, 500)).toBe(1800); // earned = 1300
+  });
+
+  it("never produces negative XP when prev total is below prev base", () => {
+    expect(mergeBaseXp(500, 1000, 300)).toBe(300); // earned clamped to 0
   });
 });
 

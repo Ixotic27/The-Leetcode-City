@@ -44,7 +44,7 @@ const LC_HEADERS = {
 };
 
 import { parseMaxStreak } from "@/lib/leetcode";
-import { calculateLeetcodeXp } from "@/lib/xp";
+import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
 
 async function fetchLeetCodeUser(username: string) {
   const currentYear = new Date().getFullYear();
@@ -268,13 +268,15 @@ export async function GET(
       lc_streak: record.lc_streak
     });
 
-    // We must merge new Base XP with existing Base XP safely. 
+    // We must merge new Base XP with existing Base XP safely.
     // Wait to upsert until we check if the user exists so we know what to append.
-    const mergeRecord = { ...record, xp_github: newBaseXp, xp_total: newBaseXp };
-    
-    if (cached) {
-        mergeRecord.xp_total = (cached.xp_total - cached.xp_github) + newBaseXp;
-    }
+    // mergeBaseXp preserves earned (non-base) XP and never goes negative; for a
+    // brand-new record (no cache) prev values are 0, so it returns newBaseXp.
+    const mergeRecord = {
+      ...record,
+      xp_github: newBaseXp,
+      xp_total: mergeBaseXp(cached?.xp_total, cached?.xp_github, newBaseXp),
+    };
 
     const { data: upsertedResult, error: upsertError } = await sb
       .from("developers")
