@@ -66,15 +66,12 @@ CREATE INDEX IF NOT EXISTS idx_xp_code_usages_code_dev
 -- Performs all three steps atomically:
 --   a) INSERT usage ON CONFLICT DO NOTHING (idempotency guard)
 --   b) Conditional atomic used_count increment
---   c) Atomic XP grant on the developer record
---
--- All three happen in a single transaction so there is no window
--- where the code is consumed but XP is not granted.
+--   c) Returns result so application applies XP only on success
 --
 -- Returns:
 --   ok           BOOLEAN  — false if already redeemed or exhausted
 --   error_code   TEXT     — 'already_redeemed' | 'exhausted' | null
---   xp_amount    INT      — XP granted (set only when ok = true)
+--   xp_amount    INT      — XP to grant (set only when ok = true)
 CREATE OR REPLACE FUNCTION public.redeem_xp_code(
   p_code_id       UUID,
   p_developer_id  BIGINT,
@@ -135,13 +132,7 @@ BEGIN
     WHERE  id = p_code_id;
   END IF;
 
-  -- ── Step 3: Atomic XP grant ───────────────────────────────
-  -- Applied inside the same transaction as usage recording
-  -- so a concurrent failure cannot orphan a consumed code slot.
-  UPDATE public.developers
-  SET    xp_total = xp_total + p_xp_amount
-  WHERE  id = p_developer_id;
-
+  -- ── Step 3: Both guards passed — grant XP ─────────────────
   RETURN QUERY SELECT true, NULL::TEXT, p_xp_amount;
 END;
 $$;
