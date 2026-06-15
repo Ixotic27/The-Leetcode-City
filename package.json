@@ -47,6 +47,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.106.2",
     "@types/three": "^0.183.0",
+    "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
     "cashfree-pg": "^6.0.4",

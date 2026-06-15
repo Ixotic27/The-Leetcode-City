@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing receiver_login" }, { status: 400 });
   }
 
-  const { ok } = rateLimit(`kudos:${user.id}`, 1, 1000);
+  const { ok } = await rateLimit(`kudos:${user.id}`, 1, 1000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }

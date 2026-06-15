@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { ok } = rateLimit(`buy-points:${user.id}`, 1, 5_000);
+    const { ok } = await rateLimit(`buy-points:${user.id}`, 1, 5_000);
     if (!ok) {
         return NextResponse.json({ error: "Too fast" }, { status: 429 });
     }

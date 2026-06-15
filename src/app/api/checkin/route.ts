@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   }
 
   // Per-user rate limit: 1 req/5s
-  const { ok } = rateLimit(`checkin:${user.id}`, 1, 5000);
+  const { ok } = await rateLimit(`checkin:${user.id}`, 1, 5000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }

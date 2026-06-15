@@ -78,7 +78,7 @@ export async function middleware(request: NextRequest) {
   const ip = getClientIp(request);
   const { limit, window, group } = getLimitForPath(pathname);
   const key = `${ip}:${group}`;
-  const { ok, remaining, reset } = rateLimit(key, limit, window);
+  const { ok, remaining, reset } = await rateLimit(key, limit, window);
 
   if (!ok) {
     return new NextResponse(

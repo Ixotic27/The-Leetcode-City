@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { ok } = rateLimit(`district:${user.id}`, 2, 60_000);
+  const { ok } = await rateLimit(`district:${user.id}`, 2, 60_000);
   if (!ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

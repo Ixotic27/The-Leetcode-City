@@ -57,7 +57,7 @@ export async function POST() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { ok } = rateLimit(`github_star:${user.id}`, 1, 5000);
+  const { ok } = await rateLimit(`github_star:${user.id}`, 1, 5000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }

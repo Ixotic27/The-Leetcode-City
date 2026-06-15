@@ -4,6 +4,8 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
+import RelicModal from "@/components/RelicModal";
+import { STATIC_RELICS, type Relic } from "@/lib/relics";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
 
@@ -588,6 +590,17 @@ function HomeContent() {
   const [exploreMode, setExploreMode] = useState(false);
   const [themeIndex, setThemeIndex] = useState(0);
   const [isCodexOpen, setIsCodexOpen] = useState(false);
+  const [isRelicModalOpen, setIsRelicModalOpen] = useState(false);
+  const [relics, setRelics] = useState<Relic[]>(STATIC_RELICS);
+  const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
+  const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
+  
+  // New World travel cinematic states
+  const [showNewWorldPrompt, setShowNewWorldPrompt] = useState(false);
+  const [newWorldCinematicActive, setNewWorldCinematicActive] = useState(false);
+  const [hasTraveledToNewWorld, setHasTraveledToNewWorld] = useState(false);
+  const [newWorldTakeoffPos, setNewWorldTakeoffPos] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [newWorldTakeoffYaw, setNewWorldTakeoffYaw] = useState<number | null>(null);
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
@@ -1107,6 +1120,16 @@ function HomeContent() {
     !!selectedBuilding &&
     !!linkedLeetCodeUsername &&
     selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase();
+
+  // Reset fly timer state upon entering flyMode (e.g. from developer/test bypass query parameters)
+  useEffect(() => {
+    if (flyMode) {
+      flyStartTime.current = Date.now();
+      flyPausedAt.current = 0;
+      flyTotalPauseMs.current = 0;
+      setFlyElapsedSec(0);
+    }
+  }, [flyMode]);
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1988,6 +2011,9 @@ function HomeContent() {
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
       setFlyPaused(false);
+      setHasTraveledToNewWorld(false);
+      setNewWorldCinematicActive(false);
+      setShowNewWorldPrompt(false);
       lastDistrictRef.current = null;
       setDistrictAnnouncement(null);
       clearTimeout(announceTimerRef.current);
@@ -2041,6 +2067,37 @@ function HomeContent() {
     },
     [session],
   );
+
+  const handlePromptNewWorldTravel = useCallback((x: number, y: number, z: number, yaw: number) => {
+    setNewWorldTakeoffPos({ x, y, z });
+    setNewWorldTakeoffYaw(yaw);
+    setShowNewWorldPrompt(true);
+    setFlyPaused(true);
+  }, []);
+
+  const handleConfirmNewWorldTravel = useCallback(() => {
+    setShowNewWorldPrompt(false);
+    const takeoffX = newWorldTakeoffPos?.x ?? 0;
+    const takeoffY = newWorldTakeoffPos?.y ?? 120;
+    const takeoffZ = newWorldTakeoffPos?.z ?? 400;
+    const takeoffYaw = newWorldTakeoffYaw ?? 0;
+    window.location.href = `/new-world?x=${takeoffX}&y=${takeoffY}&z=${takeoffZ}&yaw=${takeoffYaw}`;
+  }, [newWorldTakeoffPos, newWorldTakeoffYaw]);
+
+  const handleCancelNewWorldTravel = useCallback(() => {
+    setShowNewWorldPrompt(false);
+    setFlyPaused(false);
+    setFlyPauseSignal((prev) => prev + 1); // Resume
+  }, []);
+
+  const handleNewWorldCinematicEnd = useCallback(() => {
+    setNewWorldCinematicActive(false);
+    setHasTraveledToNewWorld(true);
+  }, []);
+
+  const handleReturnToCity = useCallback(() => {
+    setHasTraveledToNewWorld(false);
+  }, []);
 
   const endIntro = useCallback(() => {
     setIntroMode(false);
@@ -2188,6 +2245,81 @@ function HomeContent() {
     window.addEventListener("leetcodecity:loadout-saved", handler);
     return () => window.removeEventListener("leetcodecity:loadout-saved", handler);
   }, [reloadCity]);
+
+  // Load relics and current equipped relic on load
+  useEffect(() => {
+    fetch("/api/relics")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.relics) {
+          setRelics(data.relics);
+        }
+        if (data.equippedRelicId) {
+          setEquippedRelicId(data.equippedRelicId);
+          const active = (data.relics || STATIC_RELICS).find(
+            (r: any) => r.id === data.equippedRelicId
+          );
+          if (active) {
+            setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load relics:", err);
+      });
+  }, []);
+
+  // Reload relic status when loadout/relic is updated in shop
+  useEffect(() => {
+    const handler = () => {
+      fetch("/api/relics")
+        .then((res) => res.json())
+        .then((data) => {
+          setEquippedRelicId(data.equippedRelicId);
+          if (data.equippedRelicId) {
+            const active = (data.relics || relics).find(
+              (r: Relic) => r.id === data.equippedRelicId
+            );
+            if (active) {
+              setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+            }
+          } else {
+            setRelicFocus(null);
+          }
+        })
+        .catch((err) => console.error("Error reloading relics:", err));
+    };
+
+    window.addEventListener("leetcodecity:relic-saved", handler);
+    window.addEventListener("leetcodecity:loadout-saved", handler);
+    return () => {
+      window.removeEventListener("leetcodecity:relic-saved", handler);
+      window.removeEventListener("leetcodecity:loadout-saved", handler);
+    };
+  }, [relics]);
+
+  const handleEquipRelic = async (relicId: string | null) => {
+    try {
+      const res = await fetch("/api/relics/equip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relicId }),
+      });
+      if (res.ok) {
+        setEquippedRelicId(relicId);
+        if (relicId) {
+          const active = relics.find((r) => r.id === relicId);
+          if (active) {
+            setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+          }
+        } else {
+          setRelicFocus(null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to equip relic:", err);
+    }
+  };
 
   const searchUser = useCallback(async () => {
     const trimmed = username.trim().toLowerCase();
@@ -2647,6 +2779,18 @@ function HomeContent() {
       .catch(() => { });
   }, [stats.total_developers, milestoneCelebrations]);
 
+  // Developer bypass for testing the New World cinematic travel sequence
+  useEffect(() => {
+    if (loadStage === "done" && searchParams.get("test_new_world") === "true") {
+      setEquippedRelicId("relic_new_world");
+      const timer = setTimeout(() => {
+        setFlyVehicle("airplane");
+        setFlyMode(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [loadStage, searchParams]);
+
   // Feature 1: Daily Challenge Nudge — show after load if user has history but hasn't played today
   useEffect(() => {
     if (loadStage !== "done" || isMobile || !session || flyMode || introMode)
@@ -2711,6 +2855,7 @@ function HomeContent() {
         river={river}
         bridges={bridges}
         flyMode={flyMode}
+        relicFocus={relicFocus}
         flyVehicle={flyVehicle}
         onExitFly={endFly}
         themeIndex={themeIndex}
@@ -2774,9 +2919,17 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding}
+        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "done"}
+        equippedRelicId={equippedRelicId}
+        newWorldCinematic={newWorldCinematicActive}
+        onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
+        onPromptNewWorldTravel={handlePromptNewWorldTravel}
+        newWorldTakeoffPos={newWorldTakeoffPos}
+        newWorldTakeoffYaw={newWorldTakeoffYaw}
+        hasTraveledToNewWorld={hasTraveledToNewWorld}
+        onReturnToCity={handleReturnToCity}
         celebrationActive={celebrationActive}
         skyAds={skyAds}
         onAdClick={(ad) => {
@@ -4438,18 +4591,33 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* Codex Button */}
-              <button
-                onClick={() => setIsCodexOpen(true)}
-                className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-28 sm:w-32"
-                style={{
-                  borderColor: theme.accent,
-                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                }}
-                title="Open Codex"
-              >
-                <span>CODEX</span>
-              </button>
+              <div className="flex gap-2">
+                {/* Codex Button */}
+                <button
+                  onClick={() => setIsCodexOpen(true)}
+                  className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-24 sm:w-28"
+                  style={{
+                    borderColor: theme.accent,
+                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                  }}
+                  title="Open Codex"
+                >
+                  <span>CODEX</span>
+                </button>
+
+                {/* Relics Button */}
+                <button
+                  onClick={() => setIsRelicModalOpen(true)}
+                  className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-24 sm:w-28"
+                  style={{
+                    borderColor: "#ffa116",
+                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                  }}
+                  title="Open Relic Vault"
+                >
+                  <span>RELICS</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -4508,6 +4676,13 @@ function HomeContent() {
             >
               &#9819; Rank
             </Link>
+            <button
+              onClick={() => setIsRelicModalOpen(true)}
+              className="btn-press border-[2px] border-border px-3 py-1.5 text-[10px] transition-colors active:bg-white/5 text-cream"
+              style={{ color: "#ffa116" }}
+            >
+              Relics
+            </button>
             {!session ? (
               <button
                 onClick={handleSignIn}
@@ -5908,6 +6083,16 @@ function HomeContent() {
         shadowColor={theme.shadow}
       />
 
+      <RelicModal
+        isOpen={isRelicModalOpen}
+        onClose={() => setIsRelicModalOpen(false)}
+        equippedRelicId={equippedRelicId}
+        onEquip={handleEquipRelic}
+        relics={relics}
+        accentColor={theme.accent}
+        shadowColor={theme.shadow}
+      />
+
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
@@ -6697,6 +6882,44 @@ function HomeContent() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── New World Travel Prompt Modal ─── */}
+      {showNewWorldPrompt && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
+          <div
+            className="w-full max-w-md border-[3px] bg-bg-raised p-6 text-cream shadow-2xl relative text-center"
+            style={{
+              borderColor: theme.accent,
+              boxShadow: `6px 6px 0 0 ${theme.shadow}`,
+            }}
+          >
+            <h2 className="text-lg font-bold tracking-widest mb-2 font-pixel" style={{ color: theme.accent }}>
+              NEW WORLD DETECTED
+            </h2>
+            <p className="text-[11px] text-muted normal-case mb-6 leading-relaxed font-pixel">
+              Your equipped New World Relic is vibrating intensely. Do you want to navigate across the fog of war to the Outer Wildlands?
+            </p>
+            <div className="flex gap-4 justify-center font-pixel items-center">
+              <span
+                className="px-6 py-2.5 text-[11px] font-bold select-none cursor-not-allowed"
+                style={{
+                  color: theme.accent,
+                  border: `2px dashed ${theme.accent}`,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+              >
+                COMING SOON
+              </span>
+              <button
+                onClick={handleCancelNewWorldTravel}
+                className="px-6 py-2.5 text-[11px] font-bold border-2 border-muted hover:border-cream text-muted hover:text-cream active:scale-95 transition-all"
+              >
+                STAY IN CITY
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -123,8 +123,8 @@ const fragmentShader = /* glsl */ `
     float energyCube = uCityEnergy * uCityEnergy * uCityEnergy;
 
     // Dynamic Day/Night lighting logic
-    float ambientDay = mix(0.08, 0.7, uTimeOfDay);
-    float ambientBase = ambientDay + 0.22 * energyCube;
+    float ambientDay = mix(0.08, 0.55, uTimeOfDay);
+    float ambientBase = ambientDay + 0.15 * energyCube;
 
     // Windows glow more at night
     float nightGlowMultiplier = mix(3.5, 0.5, uTimeOfDay);
@@ -132,17 +132,17 @@ const fragmentShader = /* glsl */ `
 
     // Custom colored walls should remain bright to match the shop preview
     float hasTint = step(0.5, vTint.a);
-    vec3 baseWall = mix(wallColor * ambientBase, wallColor * max(0.8, ambientBase), hasTint * preTintFace);
+    vec3 baseWall = mix(wallColor * ambientBase, wallColor * max(0.7, ambientBase), hasTint * preTintFace);
     vec3 wallFinal = baseWall + emissive;
 
     if (uSnowIntensity > 0.01) {
       vec3 frostColor = vec3(0.93, 0.95, 1.0);
       wallFinal = mix(wallFinal, frostColor * ambientBase, uSnowIntensity * 0.12);
     }
-    vec3 liveBoost = vec3(1.4, 1.35, 1.2);
+    vec3 liveBoost = vec3(1.3, 1.25, 1.15);
     wallFinal = mix(wallFinal, wallFinal * liveBoost, vLive);
 
-    vec3 roofFinal = uRoofColor * (ambientDay + 1.4 * uCityEnergy);
+    vec3 roofFinal = uRoofColor * (ambientDay + 0.75 * uCityEnergy);
     vec3 snowColor = vec3(0.97, 0.98, 1.0);
     roofFinal = mix(roofFinal, snowColor * (ambientDay + 1.0), uSnowIntensity);
 
@@ -150,13 +150,13 @@ const fragmentShader = /* glsl */ `
 
     // Directional light changes based on time
     vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
-    float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.5, uTimeOfDay) + mix(0.5, 0.8, uTimeOfDay);
+    float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.38, uTimeOfDay) + mix(0.5, 0.7, uTimeOfDay);
     color *= diffuse;
 
     // Custom-colored walls: bypass scene lighting and apply a brightness
     // boost that matches the ShopPreview's specific "Midnight" theme lights.
     // The preview has emissive 2.0 + strong blueish ambient/directional lights.
-    vec3 previewLightMult = vec3(2.8, 3.1, 3.7);
+    vec3 previewLightMult = vec3(2.2, 2.4, 2.8);
     float tintedWall = step(0.5, vTint.a) * preTintFace * (1.0 - isRoof);
     color = mix(color, vTint.rgb * previewLightMult, tintedWall);
 

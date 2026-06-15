@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const { ok } = rateLimit(`ad:${ip}`, 120, 60_000);
+  const { ok } = await rateLimit(`ad:${ip}`, 120, 60_000);
   if (!ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }

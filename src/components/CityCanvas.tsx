@@ -15,6 +15,8 @@ import RaidSequence3D, { VehicleMesh } from "./RaidSequence3D";
 import type { RaidPhase } from "@/lib/useRaidSequence";
 import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
+import LeaderboardHolograms from "./LeaderboardHolograms";
+import Colosseum from "./Colosseum";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
@@ -24,6 +26,7 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import TrafficSystem from "./TrafficSystem";
+import OuterWildlands from "./OuterWildlands";
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -364,11 +367,13 @@ function CameraFocus({
   buildings,
   focusedBuilding,
   focusedBuildingB,
+  relicFocus,
   controlsRef,
 }: {
   buildings: CityBuilding[];
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
+  relicFocus?: { x: number; y: number; z: number } | null;
   controlsRef: React.RefObject<any>;
 }) {
   const { camera } = useThree();
@@ -384,6 +389,25 @@ function CameraFocus({
   buildingsRef.current = buildings;
 
   useEffect(() => {
+    if (relicFocus) {
+      startPos.current.copy(camera.position);
+      if (controlsRef.current) {
+        startLook.current.copy(controlsRef.current.target);
+      }
+      endLook.current.set(relicFocus.x, relicFocus.y, relicFocus.z);
+      endPos.current.set(
+        relicFocus.x + 80,
+        relicFocus.y + 60,
+        relicFocus.z + 80
+      );
+      progress.current = 0;
+      active.current = true;
+      if (controlsRef.current) {
+        controlsRef.current.autoRotate = false;
+      }
+      return;
+    }
+
     if (!focusedBuilding) {
       // Re-enable auto-rotate when focus is cleared
       if (controlsRef.current) {
@@ -466,7 +490,7 @@ function CameraFocus({
       controlsRef.current.autoRotate = false;
     }
      
-  }, [focusedBuilding, focusedBuildingB, camera, controlsRef]);
+  }, [focusedBuilding, focusedBuildingB, relicFocus, camera, controlsRef]);
 
   useFrame((_, delta) => {
     if (!active.current || progress.current >= 1) return;
@@ -522,7 +546,39 @@ const _idealLook = new THREE.Vector3();
 const _blendedPos = new THREE.Vector3();
 const _yAxis = new THREE.Vector3(0, 1, 0);
 
-function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = false, startPaused = false, vehicleType = "airplane", posRef }: { onExit: (aborted: boolean) => void; onHud: (s: number, a: number, x: number, z: number, yaw: number) => void; onPause: (paused: boolean) => void; pauseSignal?: number; hasOverlay?: boolean; startPaused?: boolean; vehicleType?: string; posRef?: React.MutableRefObject<THREE.Vector3> }) {
+function AirplaneFlight({
+  onExit,
+  onHud,
+  onPause,
+  pauseSignal = 0,
+  hasOverlay = false,
+  startPaused = false,
+  vehicleType = "airplane",
+  posRef,
+  equippedRelicId,
+  cityRadius,
+  onPromptNewWorldTravel,
+  hasTraveledToNewWorld,
+  onReturnToCity,
+  initialPosition,
+  initialYaw,
+}: {
+  onExit: (aborted: boolean) => void;
+  onHud: (s: number, a: number, x: number, z: number, yaw: number) => void;
+  onPause: (paused: boolean) => void;
+  pauseSignal?: number;
+  hasOverlay?: boolean;
+  startPaused?: boolean;
+  vehicleType?: string;
+  posRef?: React.MutableRefObject<THREE.Vector3>;
+  equippedRelicId?: string | null;
+  cityRadius: number;
+  onPromptNewWorldTravel?: (x: number, y: number, z: number, yaw: number) => void;
+  hasTraveledToNewWorld?: boolean;
+  onReturnToCity?: () => void;
+  initialPosition?: THREE.Vector3;
+  initialYaw?: number;
+}) {
   const { camera } = useThree();
   const ref = useRef<THREE.Group>(null);
   const orbitRef = useRef<any>(null);
@@ -539,6 +595,8 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
   const flySpeed = useRef(DEFAULT_FLY_SPEED);
   const bank = useRef(0);
   const pitch = useRef(0);
+  const hasVisitedDocksThisSession = useRef(false);
+  const hasPromptedNewWorld = useRef(false);
 
   // Camera smoothing
   const camPos = useRef(new THREE.Vector3(0, 140, 450));
@@ -556,14 +614,33 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
   const lastHudSpeed = useRef(-1);
   const lastHudAlt = useRef(-1);
 
-  // Initialize flight from current camera position and direction
+  // Initialize flight from current camera position and direction or initial position
   useEffect(() => {
+    if (initialPosition) {
+      pos.current.copy(initialPosition);
+      yaw.current = initialYaw ?? 0;
+
+      // Camera follow position: behind and above the airplane
+      const behindOffset = new THREE.Vector3(
+        Math.sin(yaw.current) * 50,
+        20,
+        Math.cos(yaw.current) * 50
+      );
+      camPos.current.copy(initialPosition).add(behindOffset);
+      camLook.current.copy(initialPosition);
+
+      camera.position.copy(camPos.current);
+      camera.lookAt(camLook.current);
+      if (startPaused) onPause(true);
+      return;
+    }
+
     const camDir = new THREE.Vector3();
     camera.getWorldDirection(camDir);
 
     // Derive yaw from camera look direction (projected onto XZ plane)
-    const initialYaw = Math.atan2(-camDir.x, -camDir.z);
-    yaw.current = initialYaw;
+    const initialYawDerived = Math.atan2(-camDir.x, -camDir.z);
+    yaw.current = initialYawDerived;
 
     // Place airplane ahead of camera in the look direction
     const startPos = camera.position.clone();
@@ -573,9 +650,9 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
 
     // Camera follow position: behind and above the airplane
     const behindOffset = new THREE.Vector3(
-      Math.sin(initialYaw) * 50,
+      Math.sin(yaw.current) * 50,
       20,
-      Math.cos(initialYaw) * 50
+      Math.cos(yaw.current) * 50
     );
     camPos.current.copy(startPos).add(behindOffset);
     camLook.current.copy(startPos);
@@ -583,7 +660,7 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
     camera.position.copy(camPos.current);
     camera.lookAt(camLook.current);
     if (startPaused) onPause(true);
-  }, [camera]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [camera, initialPosition, initialYaw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Mouse tracking for flight steering
   useEffect(() => {
@@ -756,6 +833,37 @@ function AirplaneFlight({ onExit, onHud, onPause, pauseSignal = 0, hasOverlay = 
     pos.current.addScaledVector(_fwd, actualSpeed * dt);
 
     if (posRef) posRef.current.copy(pos.current);
+
+    if (!hasVisitedDocksThisSession.current) {
+      const dx = pos.current.x - 120;
+      const dz = pos.current.z - 150;
+      const distXZ = Math.sqrt(dx * dx + dz * dz);
+      if (distXZ < 80 && pos.current.y < 100) {
+        hasVisitedDocksThisSession.current = true;
+        fetch("/api/relics/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "visit_docks" }),
+        }).catch((err) => console.error("Error tracking docks visit:", err));
+      }
+    }
+
+    if (equippedRelicId === "relic_new_world") {
+      const distXZ = Math.sqrt(pos.current.x * pos.current.x + pos.current.z * pos.current.z);
+      if (distXZ > cityRadius * 1.5) {
+        if (!hasTraveledToNewWorld && !hasPromptedNewWorld.current) {
+          hasPromptedNewWorld.current = true;
+          if (onPromptNewWorldTravel) {
+            onPromptNewWorldTravel(pos.current.x, pos.current.y, pos.current.z, yaw.current);
+          }
+        }
+      } else if (distXZ < cityRadius) {
+        hasPromptedNewWorld.current = false;
+        if (hasTraveledToNewWorld && onReturnToCity) {
+          onReturnToCity();
+        }
+      }
+    }
 
     const targetBank = -turnInput * MAX_BANK;
     bank.current += (targetBank - bank.current) * 5 * dt;
@@ -1090,7 +1198,7 @@ function CircularCityPlatform({ radius, color, weatherMode }: { radius: number; 
 
     // Concrete ring paths matching decoration ring positions
     // These are the same radii used in rebuildCircularCityDecorations
-    const CENTER_CLEARANCE = 170;
+    const CENTER_CLEARANCE = 700;
     const RING_SPACING = 72;
     const paths: number[] = [];
     let ring = 1;
@@ -1864,7 +1972,17 @@ function Waterfront({ river, dockColor }: { river: CityRiver; dockColor: string 
 
 // ─── Orbit Scene (controls + focus) ──────────────────────────
 
-function OrbitScene({ buildings, focusedBuilding, focusedBuildingB }: { buildings: CityBuilding[]; focusedBuilding: string | null; focusedBuildingB?: string | null }) {
+function OrbitScene({
+  buildings,
+  focusedBuilding,
+  focusedBuildingB,
+  relicFocus,
+}: {
+  buildings: CityBuilding[];
+  focusedBuilding: string | null;
+  focusedBuildingB?: string | null;
+  relicFocus?: { x: number; y: number; z: number } | null;
+}) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -1876,7 +1994,7 @@ function OrbitScene({ buildings, focusedBuilding, focusedBuildingB }: { building
 
   return (
     <>
-      <CameraFocus buildings={buildings} focusedBuilding={focusedBuilding} focusedBuildingB={focusedBuildingB} controlsRef={controlsRef} />
+      <CameraFocus buildings={buildings} focusedBuilding={focusedBuilding} focusedBuildingB={focusedBuildingB} relicFocus={relicFocus} controlsRef={controlsRef} />
       <OrbitControls
         ref={controlsRef}
         enableDamping
@@ -1973,19 +2091,36 @@ interface Props {
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  relicFocus?: { x: number; y: number; z: number } | null;
+  equippedRelicId?: string | null;
+  newWorldCinematic?: boolean;
+  onNewWorldCinematicEnd?: () => void;
+  onPromptNewWorldTravel?: (x: number, y: number, z: number, yaw: number) => void;
+  newWorldTakeoffPos?: { x: number; y: number; z: number } | null;
+  newWorldTakeoffYaw?: number | null;
+  hasTraveledToNewWorld?: boolean;
+  onReturnToCity?: () => void;
+  initialFlightPos?: THREE.Vector3 | null;
+  initialFlightYaw?: number | null;
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
+// cityEnergy ranges from 0.15 (nobody coding) to 1.4 (25+ devs).
+// We map this to a toneMappingExposure range of [1.0, 1.4] so the scene
+// is always well-lit even when nobody is online.
 function CityExposure({ cityEnergy }: { cityEnergy: number }) {
   const gl = useThree((s) => s.gl);
-  const targetRef = useRef(1.3);
-  targetRef.current = cityEnergy; // Directly use 0.10 to 1.40 scale
+  const targetRef = useRef(1.0);
+  // Map cityEnergy (0.15 -> 1.4) into exposure (0.85 -> 1.15)
+  // Clamp floor at 0.85 so the scene never goes dark, but not overexposed.
+  const mapped = 0.85 + Math.min(Math.max(cityEnergy, 0), 1.4) * 0.214;
+  targetRef.current = Math.min(mapped, 1.15);
 
   useFrame(() => {
     const current = gl.toneMappingExposure;
     const target = targetRef.current;
     if (Math.abs(current - target) > 0.001) {
-      gl.toneMappingExposure += (target - current) * 0.02;
+      gl.toneMappingExposure += (target - current) * 0.08;
     }
   });
 
@@ -1995,7 +2130,65 @@ function CityExposure({ cityEnergy }: { cityEnergy: number }) {
 // Plaza indices for rabbit sightings (progressively further from center)
 const RABBIT_PLAZA_INDICES = [1, 2, 4, 7, 10]; // plazas[1]=slot3, [2]=slot7, [4]=slot18, [7]=slot42, [10]=slot75
 
-export default function CityCanvas({ buildings, plazas, decorations, river, bridges, flyMode, flyVehicle, onExitFly, onCollect, themeIndex, dayNightCycleActive, onHud, onPause, focusedBuilding, focusedBuildingB, accentColor, onClearFocus, onBuildingClick, onFocusInfo, flyPauseSignal, flyHasOverlay, flyStartPaused, skyAds, onAdClick, onAdViewed, introMode, onIntroEnd, raidPhase, raidData, raidAttacker, raidDefender, onRaidPhaseComplete, onLandmarkClick, rabbitSighting, onRabbitCaught, rabbitCinematic, onRabbitCinematicEnd, rabbitCinematicTarget, ghostPreviewLogin, holdRise, celebrationActive, wallpaperMode, wallpaperSpeed, liveByLogin, cityEnergy, weatherMode = "sunny" }: Props) {
+export default function CityCanvas({
+  buildings,
+  plazas,
+  decorations,
+  river,
+  bridges,
+  flyMode,
+  flyVehicle,
+  onExitFly,
+  onCollect,
+  themeIndex,
+  dayNightCycleActive,
+  onHud,
+  onPause,
+  focusedBuilding,
+  focusedBuildingB,
+  accentColor,
+  onClearFocus,
+  onBuildingClick,
+  onFocusInfo,
+  flyPauseSignal,
+  flyHasOverlay,
+  flyStartPaused,
+  skyAds,
+  onAdClick,
+  onAdViewed,
+  introMode,
+  onIntroEnd,
+  raidPhase,
+  raidData,
+  raidAttacker,
+  raidDefender,
+  onRaidPhaseComplete,
+  onLandmarkClick,
+  rabbitSighting,
+  onRabbitCaught,
+  rabbitCinematic,
+  onRabbitCinematicEnd,
+  rabbitCinematicTarget,
+  ghostPreviewLogin,
+  holdRise,
+  celebrationActive,
+  wallpaperMode,
+  wallpaperSpeed,
+  liveByLogin,
+  cityEnergy,
+  weatherMode = "sunny",
+  relicFocus,
+  equippedRelicId,
+  newWorldCinematic,
+  onNewWorldCinematicEnd,
+  onPromptNewWorldTravel,
+  newWorldTakeoffPos,
+  newWorldTakeoffYaw,
+  hasTraveledToNewWorld,
+  onReturnToCity,
+  initialFlightPos,
+  initialFlightYaw,
+}: Props) {
   const { isRaining } = useWeather();
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
@@ -2100,10 +2293,28 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
             />
           )}
 
-          {!introMode && flyMode && (
+          {!introMode && flyMode && !newWorldCinematic && (
             <>
-              <AirplaneFlight onExit={onExitFly} onHud={onHud ?? (() => { })} onPause={onPause ?? (() => { })} pauseSignal={flyPauseSignal} hasOverlay={flyHasOverlay} startPaused={flyStartPaused} vehicleType={flyVehicle} posRef={flyPosRef} />
-              <SkyCollectibles playerPosRef={flyPosRef} accentColor={accentColor ?? "#6090e0"} onCollect={onCollect ?? (() => { })} cityRadius={cityRadius} />
+              <AirplaneFlight
+                onExit={onExitFly}
+                onHud={onHud ?? (() => { })}
+                onPause={onPause ?? (() => { })}
+                pauseSignal={flyPauseSignal}
+                hasOverlay={flyHasOverlay}
+                startPaused={flyStartPaused}
+                vehicleType={flyVehicle}
+                posRef={flyPosRef}
+                equippedRelicId={equippedRelicId}
+                cityRadius={cityRadius}
+                onPromptNewWorldTravel={onPromptNewWorldTravel}
+                hasTraveledToNewWorld={hasTraveledToNewWorld}
+                onReturnToCity={onReturnToCity}
+                initialPosition={initialFlightPos ?? undefined}
+                initialYaw={initialFlightYaw ?? undefined}
+              />
+              {!hasTraveledToNewWorld && (
+                <SkyCollectibles playerPosRef={flyPosRef} accentColor={accentColor ?? "#6090e0"} onCollect={onCollect ?? (() => { })} cityRadius={cityRadius} />
+              )}
             </>
           )}
         </>
@@ -2155,16 +2366,76 @@ export default function CityCanvas({ buildings, plazas, decorations, river, brid
       <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
       <TrafficSystem />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
+      {!hasTraveledToNewWorld && (
         <>
-          <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
-          <BuildingAds
-            ads={skyAds}
+          <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
+          <CircularCityPlatform radius={cityRadius} color={t.groundColor} weatherMode={weatherMode} />
+        </>
+      )}
+
+      {/* Outer Wildlands — rendered when player has traveled to the new world */}
+      {hasTraveledToNewWorld && (
+        <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
+      )}
+
+
+
+      {!hasTraveledToNewWorld && (
+        <>
+          <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
+          <Colosseum />
+          <LeaderboardHolograms buildings={buildings} onBuildingClick={onBuildingClick} />
+
+          {!wallpaperMode && celebrationActive && <CelebrationEffect cityRadius={cityRadius} />}
+
+          {!wallpaperMode && rabbitSighting && rabbitSighting >= 1 && rabbitSighting <= 5 && (() => {
+            const plazaIdx = RABBIT_PLAZA_INDICES[rabbitSighting - 1];
+            const plaza = plazas[plazaIdx];
+            if (!plaza) return null;
+            const pos: [number, number, number] = [plaza.position[0], 0.5, plaza.position[2]];
+            return (
+              <WhiteRabbit
+                position={pos}
+                visible={true}
+                onCaught={onRabbitCaught ?? (() => { })}
+              />
+            );
+          })()}
+
+          <CityScene
             buildings={buildings}
-            onAdClick={onAdClick}
-            onAdViewed={onAdViewed}
+            colors={t.building}
             focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
             focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
+            hideEffectsFor={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : null}
+            accentColor={t.building.accent}
+            onBuildingClick={onBuildingClick}
+            onFocusInfo={onFocusInfo}
+            introMode={introMode}
+            flyMode={flyMode}
+            ghostPreviewLogin={ghostPreviewLogin}
+            holdRise={holdRise}
+            liveByLogin={liveByLogin}
+            cityEnergy={cityEnergy}
+            timeRef={timeRef}
+            weatherMode={weatherMode}
           />
+
+          <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
+
+          {!wallpaperMode && skyAds && skyAds.length > 0 && (
+            <>
+              <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
+              <BuildingAds
+                ads={skyAds}
+                buildings={buildings}
+                onAdClick={onAdClick}
+                onAdViewed={onAdViewed}
+                focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
+                focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
+              />
+            </>
+          )}
         </>
       )}
       {isRaining && (

@@ -344,6 +344,48 @@ export async function POST(request: Request) {
     ]);
     await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
     await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+
+    // Track raid win to update relic progress
+    try {
+      const { data: custom } = await admin
+        .from("developer_customizations")
+        .select("config")
+        .eq("developer_id", attacker.id)
+        .eq("item_id", "relic_progress")
+        .maybeSingle();
+
+      const progress = custom?.config ?? {
+        docks_visits: 0,
+        arena_solves: 0,
+        raid_wins: 0,
+      };
+
+      progress.raid_wins = (progress.raid_wins ?? 0) + 1;
+
+      await admin.from("developer_customizations").upsert(
+        {
+          developer_id: attacker.id,
+          item_id: "relic_progress",
+          config: progress,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id,item_id" }
+      );
+
+      if (progress.raid_wins >= 1) {
+        await admin.from("developer_relics").upsert(
+          {
+            developer_id: attacker.id,
+            relic_id: "relic_requiem_void_core",
+            is_equipped: false,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: "developer_id,relic_id" }
+        );
+      }
+    } catch (err) {
+      console.error("[raid/execute] Failed to track raid win for relic:", err);
+    }
   } else {
     // Atomic increment — avoid overwriting concurrent XP changes.
     await admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_LOSE_DEFENDER });

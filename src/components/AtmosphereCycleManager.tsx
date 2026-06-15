@@ -15,6 +15,8 @@ function lerpColor(c1: string, c2: string, alpha: number): string {
 
 interface AtmosphereState {
   fogColor: string;
+  fogNear: number;
+  fogFar: number;
   ambientColor: string;
   ambientIntensity: number;
   sunColor: string;
@@ -32,6 +34,8 @@ const ATMOSPHERE_STATES: AtmosphereState[] = [
   // 0: Midnight
   {
     fogColor: "#0a1428",
+    fogNear: 400,
+    fogFar: 2500,
     ambientColor: "#304880",
     ambientIntensity: 0.18,
     sunColor: "#7090d0",
@@ -47,6 +51,8 @@ const ATMOSPHERE_STATES: AtmosphereState[] = [
   // 1: Dawn
   {
     fogColor: "#4a2c3a",
+    fogNear: 500,
+    fogFar: 3000,
     ambientColor: "#8a6a7c",
     ambientIntensity: 0.5,
     sunColor: "#ffcc88",
@@ -56,27 +62,31 @@ const ATMOSPHERE_STATES: AtmosphereState[] = [
     hemiSky: "#9a6a8c",
     hemiGround: "#281e24",
     hemiIntensity: 0.45,
-    skyStops: ["#080a15", "#d5836a", "#4a2c3a", "#4a2c3a", "#4a2c3a"],
+    skyStops: ["#0c1028", "#d5836a", "#4a2c3a", "#4a2c3a", "#4a2c3a"],
     uTimeOfDay: 0.4,
   },
   // 2: Noon (Day)
   {
-    fogColor: "#8cbeff",
-    ambientColor: "#ffffff",
-    ambientIntensity: 0.85,
+    fogColor: "#5a90c8",
+    fogNear: 800,
+    fogFar: 4000,
+    ambientColor: "#e8ecf0",
+    ambientIntensity: 0.75,
     sunColor: "#fffcf0",
     sunIntensity: 1.3,
-    fillColor: "#a0c0ff",
-    fillIntensity: 0.4,
-    hemiSky: "#a0c8ff",
+    fillColor: "#80a0d0",
+    fillIntensity: 0.35,
+    hemiSky: "#80a8d8",
     hemiGround: "#403830",
-    hemiIntensity: 0.75,
-    skyStops: ["#103ca0", "#2a68d0", "#8cbeff", "#8cbeff", "#8cbeff"],
+    hemiIntensity: 0.65,
+    skyStops: ["#1848b0", "#3070d0", "#5a90c8", "#5a90c8", "#5a90c8"],
     uTimeOfDay: 1.0,
   },
   // 3: Sunset
   {
     fogColor: "#602c40",
+    fogNear: 500,
+    fogFar: 3000,
     ambientColor: "#d08060",
     ambientIntensity: 0.55,
     sunColor: "#f0a060",
@@ -86,7 +96,7 @@ const ATMOSPHERE_STATES: AtmosphereState[] = [
     hemiSky: "#c06070",
     hemiGround: "#382028",
     hemiIntensity: 0.6,
-    skyStops: ["#08040d", "#f0b878", "#602c40", "#602c40", "#602c40"],
+    skyStops: ["#1a1848", "#f0b878", "#602c40", "#602c40", "#602c40"],
     uTimeOfDay: 0.4,
   },
 ];
@@ -1427,6 +1437,7 @@ interface AtmosphereCycleManagerProps {
   timeRef: React.MutableRefObject<number>;
   cityRadius?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  hasTraveledToNewWorld?: boolean;
 }
 
 export default function AtmosphereCycleManager({
@@ -1436,6 +1447,7 @@ export default function AtmosphereCycleManager({
   timeRef,
   cityRadius,
   weatherMode = "sunny",
+  hasTraveledToNewWorld = false,
 }: AtmosphereCycleManagerProps) {
   const { scene } = useThree();
 
@@ -1626,16 +1638,22 @@ export default function AtmosphereCycleManager({
         fogColorToUse = lerpColor(currentFog, "#c8d6e5", 0.65);
       }
 
+      // Interpolate fog distances for time-of-day (daytime = clear views, night = closer fog)
+      const currentFogNear = s1.fogNear + (s2.fogNear - s1.fogNear) * f;
+      const currentFogFar = s1.fogFar + (s2.fogFar - s1.fogFar) * f;
+
       const fog = scene.fog as THREE.Fog | null;
       if (fog) {
         fog.color.set(lightningIntensity > 0 ? "#e2f0ff" : fogColorToUse);
+        fog.near = currentFogNear;
+        fog.far = currentFogFar;
       }
       scene.background = new THREE.Color(lightningIntensity > 0 ? "#cbd5e1" : fogColorToUse);
 
       // 2. Update Lights
       if (ambientLightRef.current) {
         ambientLightRef.current.color.set(lightningIntensity > 0 ? "#cbd5e1" : currentAmbientColor);
-        ambientLightRef.current.intensity = (currentAmbientIntensity + lightningIntensity * 0.7) * 3.0;
+        ambientLightRef.current.intensity = (currentAmbientIntensity + lightningIntensity * 0.7) * 2.2;
       }
 
       // Calculate dynamic positions for Sun and Moon
@@ -1654,7 +1672,7 @@ export default function AtmosphereCycleManager({
           intensityFactor = 0.45; // Dim the sun for cozy snow clouds!
         }
         sunLightRef.current.intensity = isAboveHorizon
-          ? Math.sin(theta) * currentSunIntensity * 3.5 * intensityFactor + lightningIntensity * 1.5
+          ? Math.sin(theta) * currentSunIntensity * 2.5 * intensityFactor + lightningIntensity * 1.5
           : lightningIntensity * 1.5;
       }
 
@@ -1667,15 +1685,15 @@ export default function AtmosphereCycleManager({
         );
         const sunIsBelowHorizon = Math.sin(theta) <= 0.0;
         const baseIntensity = sunIsBelowHorizon
-          ? -Math.sin(theta) * currentFillIntensity * 2.5
-          : (1.0 - Math.sin(theta)) * currentFillIntensity * 1.5;
+          ? -Math.sin(theta) * currentFillIntensity * 1.8
+          : (1.0 - Math.sin(theta)) * currentFillIntensity * 1.1;
         fillLightRef.current.intensity = baseIntensity + lightningIntensity * 1.2;
       }
 
       if (hemiLightRef.current) {
         hemiLightRef.current.color.set(lightningIntensity > 0 ? "#e2f0ff" : currentHemiSky);
         hemiLightRef.current.groundColor.set(currentHemiGround);
-        hemiLightRef.current.intensity = (currentHemiIntensity + lightningIntensity * 0.6) * 3.5;
+        hemiLightRef.current.intensity = (currentHemiIntensity + lightningIntensity * 0.6) * 2.4;
       }
 
       // 3. Move Physical Sun and Moon relative to camera (unreachable background elements)
@@ -1717,25 +1735,25 @@ export default function AtmosphereCycleManager({
       // 2. Reset Lights to Static Theme
       if (ambientLightRef.current) {
         ambientLightRef.current.color.set(theme.ambientColor);
-        ambientLightRef.current.intensity = theme.ambientIntensity * 3.0;
+        ambientLightRef.current.intensity = theme.ambientIntensity * 2.2;
       }
 
       if (sunLightRef.current) {
         sunLightRef.current.color.set(theme.sunColor);
         sunLightRef.current.position.set(theme.sunPos[0], theme.sunPos[1], theme.sunPos[2]);
-        sunLightRef.current.intensity = theme.sunIntensity * 3.5;
+        sunLightRef.current.intensity = theme.sunIntensity * 2.5;
       }
 
       if (fillLightRef.current) {
         fillLightRef.current.color.set(theme.fillColor);
         fillLightRef.current.position.set(theme.fillPos[0], theme.fillPos[1], theme.fillPos[2]);
-        fillLightRef.current.intensity = theme.fillIntensity * 3.0;
+        fillLightRef.current.intensity = theme.fillIntensity * 2.2;
       }
 
       if (hemiLightRef.current) {
         hemiLightRef.current.color.set(theme.hemiSky);
         hemiLightRef.current.groundColor.set(theme.hemiGround);
-        hemiLightRef.current.intensity = theme.hemiIntensity * 3.5;
+        hemiLightRef.current.intensity = theme.hemiIntensity * 2.4;
       }
 
       // 3. Static Physical Sun and Moon Placement relative to camera
@@ -1783,8 +1801,12 @@ export default function AtmosphereCycleManager({
 
       <SkyDome timeRef={timeRef} theme={theme} active={active} />
       <VoxelClouds active={active} timeRef={timeRef} />
-      <AmbientOceanShips cityRadius={cityRadius ?? 800} />
-      <FlyingCityShips cityRadius={cityRadius ?? 800} />
+      {!hasTraveledToNewWorld && (
+        <>
+          <AmbientOceanShips cityRadius={cityRadius ?? 800} />
+          <FlyingCityShips cityRadius={cityRadius ?? 800} />
+        </>
+      )}
 
       {/* Visual Jagged Lightning Bolt (Voxel Aesthetic, themed accent color) */}
       <group ref={boltGroupRef} visible={false}>
