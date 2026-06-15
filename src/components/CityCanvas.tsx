@@ -2365,7 +2365,7 @@ export default function CityCanvas({
 
       <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
       <TrafficSystem />
-      {!wallpaperMode && skyAds && skyAds.length > 0 && (
+
       {!hasTraveledToNewWorld && (
         <>
           <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
@@ -2425,6 +2425,7 @@ export default function CityCanvas({
 
           {!wallpaperMode && skyAds && skyAds.length > 0 && (
             <>
+            
               <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
               <BuildingAds
                 ads={skyAds}
