@@ -25,7 +25,6 @@ import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
-import OuterWildlands from "./OuterWildlands";
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -2328,11 +2327,7 @@ export default function CityCanvas({
       )}
 
       {/* Outer Wildlands — rendered when player has traveled to the new world */}
-      {hasTraveledToNewWorld && (
-        <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
-      )}
-
-
+      
 
       {!hasTraveledToNewWorld && (
         <>
