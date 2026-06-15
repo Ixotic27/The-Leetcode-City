@@ -1,17 +1,11 @@
-/**
- * In-memory sliding window rate limiter.
- *
- * State is per-process: each serverless cold-start gets its own Map.
- * Good enough for most abuse prevention. For true distributed rate
- * limiting, swap for Upstash Redis (@upstash/ratelimit).
- */
+import { Redis } from "@upstash/redis";
 
 interface Entry {
   count: number;
   resetAt: number;
 }
 
-const store = new Map<string, Entry>();
+const memStore = new Map<string, Entry>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 60_000;
 
@@ -19,40 +13,46 @@ function cleanup() {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL) return;
   lastCleanup = now;
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) store.delete(key);
+  for (const [key, entry] of memStore) {
+    if (now > entry.resetAt) memStore.delete(key);
   }
 }
 
-/**
- * Check (and consume) one request against a fixed-window counter.
- *
- * @param key     Unique identifier – usually `${ip}:${routeGroup}`
- * @param limit   Max requests allowed in `windowMs`
- * @param windowMs  Window size in milliseconds
- * @returns       `ok` = allowed, plus remaining quota & reset timestamp
- */
-export function rateLimit(
+let redisClient: Redis | null = null;
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+if (redisUrl && redisToken) {
+  redisClient = new Redis({ url: redisUrl, token: redisToken });
+}
+
+export async function rateLimit(
   key: string,
   limit: number,
   windowMs: number,
-): { ok: boolean; remaining: number; reset: number } {
-  cleanup();
-
-  const now = Date.now();
-  const entry = store.get(key);
-
-  // First request in this window (or window expired)
-  if (!entry || now > entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true, remaining: Math.max(0, limit - 1), reset: now + windowMs };
+): Promise<{ ok: boolean; remaining: number; reset: number }> {
+  if (redisClient) {
+    const windowKey = `rl:${key}`;
+    const resetAt = Date.now() + windowMs;
+    const count = await redisClient.incr(windowKey);
+    if (count === 1) {
+      await redisClient.expire(windowKey, Math.ceil(windowMs / 1000));
+    }
+    if (count > limit) {
+      return { ok: false, remaining: 0, reset: resetAt };
+    }
+    return { ok: true, remaining: Math.max(0, limit - count), reset: resetAt };
   }
 
-  // Window still active – check quota
+  cleanup();
+  const now = Date.now();
+  const entry = memStore.get(key);
+  if (!entry || now > entry.resetAt) {
+    memStore.set(key, { count: 1, resetAt: now + windowMs });
+    return { ok: true, remaining: Math.max(0, limit - 1), reset: now + windowMs };
+  }
   if (entry.count >= limit) {
     return { ok: false, remaining: 0, reset: entry.resetAt };
   }
-
   entry.count++;
   return { ok: true, remaining: Math.max(0, limit - entry.count), reset: entry.resetAt };
 }

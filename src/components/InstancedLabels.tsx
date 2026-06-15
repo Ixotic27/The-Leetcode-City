@@ -386,13 +386,27 @@ export default memo(function InstancedLabels({
   });
 
   // Cleanup
+  // Dispose geometry only on unmount.
+  // geo is memoized once, so it should not be disposed when material or atlas changes.
   useEffect(() => {
     return () => {
       geo.dispose();
+    };
+  }, [geo]);
+
+  // Dispose old material when material changes.
+  useEffect(() => {
+    return () => {
       material?.dispose();
+    };
+  }, [material]);
+
+  // Dispose old atlas texture when atlas changes.
+  useEffect(() => {
+    return () => {
       atlas?.dispose();
     };
-  }, [geo, material, atlas]);
+  }, [atlas]);
 
   if (!material || count === 0) return null;
 

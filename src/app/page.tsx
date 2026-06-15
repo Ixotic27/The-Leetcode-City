@@ -4,6 +4,8 @@ import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
 import CodexModal from "@/components/CodexModal";
+import RelicModal from "@/components/RelicModal";
+import { STATIC_RELICS, type Relic } from "@/lib/relics";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
 
@@ -100,6 +102,8 @@ interface CityStats {
   total_developers: number;
   total_contributions: number;
   total_stars?: number;
+  renewal_raised_inr?: number;
+  renewal_target_inr?: number;
 }
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
@@ -114,7 +118,7 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
 });
 
 // Feature flags — flip to switch milestone banner
-const MILESTONE_MODE: "stars" | "devs" = "stars"; // "stars" = LeetCode stars road to 1K, "devs" = total developers
+const MILESTONE_MODE: "stars" | "devs" | "donation" = "donation"; // "donation" = website renewal donation bar, "stars" = LeetCode stars road to 1K, "devs" = total developers
 
 const THEMES = [
   { name: "Midnight", accent: "#ffa116", shadow: "#cc8111" },
@@ -586,6 +590,17 @@ function HomeContent() {
   const [exploreMode, setExploreMode] = useState(false);
   const [themeIndex, setThemeIndex] = useState(0);
   const [isCodexOpen, setIsCodexOpen] = useState(false);
+  const [isRelicModalOpen, setIsRelicModalOpen] = useState(false);
+  const [relics, setRelics] = useState<Relic[]>(STATIC_RELICS);
+  const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
+  const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
+  
+  // New World travel cinematic states
+  const [showNewWorldPrompt, setShowNewWorldPrompt] = useState(false);
+  const [newWorldCinematicActive, setNewWorldCinematicActive] = useState(false);
+  const [hasTraveledToNewWorld, setHasTraveledToNewWorld] = useState(false);
+  const [newWorldTakeoffPos, setNewWorldTakeoffPos] = useState<{ x: number; y: number; z: number } | null>(null);
+  const [newWorldTakeoffYaw, setNewWorldTakeoffYaw] = useState<number | null>(null);
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
@@ -684,13 +699,25 @@ function HomeContent() {
   const [vsCodeKeyLoading, setVsCodeKeyLoading] = useState(false);
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
+  const mountedRef = useRef(true);
+  const generateControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      generateControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (codingPanelOpen && hasVsCodeKey === null) {
-      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store" })
+      const controller = new AbortController();
+
+      fetch(`/api/vscode-key?t=${Date.now()}`, { cache: "no-store", signal: controller.signal })
         .then(r => r.json())
         .then(d => {
-          if (typeof d.hasKey === "boolean") {
+          if (mountedRef.current && typeof d.hasKey === "boolean") {
             setHasVsCodeKey(d.hasKey);
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
@@ -699,6 +726,10 @@ function HomeContent() {
           }
         })
         .catch(() => { });
+
+      return () => {
+        controller.abort();
+      };
     }
   }, [codingPanelOpen, hasVsCodeKey]);
   const [session, setSession] = useState<Session | null>(null);
@@ -1089,6 +1120,16 @@ function HomeContent() {
     !!selectedBuilding &&
     !!linkedLeetCodeUsername &&
     selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase();
+
+  // Reset fly timer state upon entering flyMode (e.g. from developer/test bypass query parameters)
+  useEffect(() => {
+    if (flyMode) {
+      flyStartTime.current = Date.now();
+      flyPausedAt.current = 0;
+      flyTotalPauseMs.current = 0;
+      setFlyElapsedSec(0);
+    }
+  }, [flyMode]);
 
   // Fly timer — ticks every second while flying and not paused
   useEffect(() => {
@@ -1970,6 +2011,9 @@ function HomeContent() {
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
       setFlyPaused(false);
+      setHasTraveledToNewWorld(false);
+      setNewWorldCinematicActive(false);
+      setShowNewWorldPrompt(false);
       lastDistrictRef.current = null;
       setDistrictAnnouncement(null);
       clearTimeout(announceTimerRef.current);
@@ -2023,6 +2067,37 @@ function HomeContent() {
     },
     [session],
   );
+
+  const handlePromptNewWorldTravel = useCallback((x: number, y: number, z: number, yaw: number) => {
+    setNewWorldTakeoffPos({ x, y, z });
+    setNewWorldTakeoffYaw(yaw);
+    setShowNewWorldPrompt(true);
+    setFlyPaused(true);
+  }, []);
+
+  const handleConfirmNewWorldTravel = useCallback(() => {
+    setShowNewWorldPrompt(false);
+    const takeoffX = newWorldTakeoffPos?.x ?? 0;
+    const takeoffY = newWorldTakeoffPos?.y ?? 120;
+    const takeoffZ = newWorldTakeoffPos?.z ?? 400;
+    const takeoffYaw = newWorldTakeoffYaw ?? 0;
+    window.location.href = `/new-world?x=${takeoffX}&y=${takeoffY}&z=${takeoffZ}&yaw=${takeoffYaw}`;
+  }, [newWorldTakeoffPos, newWorldTakeoffYaw]);
+
+  const handleCancelNewWorldTravel = useCallback(() => {
+    setShowNewWorldPrompt(false);
+    setFlyPaused(false);
+    setFlyPauseSignal((prev) => prev + 1); // Resume
+  }, []);
+
+  const handleNewWorldCinematicEnd = useCallback(() => {
+    setNewWorldCinematicActive(false);
+    setHasTraveledToNewWorld(true);
+  }, []);
+
+  const handleReturnToCity = useCallback(() => {
+    setHasTraveledToNewWorld(false);
+  }, []);
 
   const endIntro = useCallback(() => {
     setIntroMode(false);
@@ -2170,6 +2245,81 @@ function HomeContent() {
     window.addEventListener("leetcodecity:loadout-saved", handler);
     return () => window.removeEventListener("leetcodecity:loadout-saved", handler);
   }, [reloadCity]);
+
+  // Load relics and current equipped relic on load
+  useEffect(() => {
+    fetch("/api/relics")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.relics) {
+          setRelics(data.relics);
+        }
+        if (data.equippedRelicId) {
+          setEquippedRelicId(data.equippedRelicId);
+          const active = (data.relics || STATIC_RELICS).find(
+            (r: any) => r.id === data.equippedRelicId
+          );
+          if (active) {
+            setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load relics:", err);
+      });
+  }, []);
+
+  // Reload relic status when loadout/relic is updated in shop
+  useEffect(() => {
+    const handler = () => {
+      fetch("/api/relics")
+        .then((res) => res.json())
+        .then((data) => {
+          setEquippedRelicId(data.equippedRelicId);
+          if (data.equippedRelicId) {
+            const active = (data.relics || relics).find(
+              (r: Relic) => r.id === data.equippedRelicId
+            );
+            if (active) {
+              setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+            }
+          } else {
+            setRelicFocus(null);
+          }
+        })
+        .catch((err) => console.error("Error reloading relics:", err));
+    };
+
+    window.addEventListener("leetcodecity:relic-saved", handler);
+    window.addEventListener("leetcodecity:loadout-saved", handler);
+    return () => {
+      window.removeEventListener("leetcodecity:relic-saved", handler);
+      window.removeEventListener("leetcodecity:loadout-saved", handler);
+    };
+  }, [relics]);
+
+  const handleEquipRelic = async (relicId: string | null) => {
+    try {
+      const res = await fetch("/api/relics/equip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relicId }),
+      });
+      if (res.ok) {
+        setEquippedRelicId(relicId);
+        if (relicId) {
+          const active = relics.find((r) => r.id === relicId);
+          if (active) {
+            setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
+          }
+        } else {
+          setRelicFocus(null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to equip relic:", err);
+    }
+  };
 
   const searchUser = useCallback(async () => {
     const trimmed = username.trim().toLowerCase();
@@ -2629,6 +2779,18 @@ function HomeContent() {
       .catch(() => { });
   }, [stats.total_developers, milestoneCelebrations]);
 
+  // Developer bypass for testing the New World cinematic travel sequence
+  useEffect(() => {
+    if (loadStage === "done" && searchParams.get("test_new_world") === "true") {
+      setEquippedRelicId("relic_new_world");
+      const timer = setTimeout(() => {
+        setFlyVehicle("airplane");
+        setFlyMode(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [loadStage, searchParams]);
+
   // Feature 1: Daily Challenge Nudge — show after load if user has history but hasn't played today
   useEffect(() => {
     if (loadStage !== "done" || isMobile || !session || flyMode || introMode)
@@ -2693,6 +2855,7 @@ function HomeContent() {
         river={river}
         bridges={bridges}
         flyMode={flyMode}
+        relicFocus={relicFocus}
         flyVehicle={flyVehicle}
         onExitFly={endFly}
         themeIndex={themeIndex}
@@ -2756,9 +2919,17 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding}
+        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "done"}
+        equippedRelicId={equippedRelicId}
+        newWorldCinematic={newWorldCinematicActive}
+        onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
+        onPromptNewWorldTravel={handlePromptNewWorldTravel}
+        newWorldTakeoffPos={newWorldTakeoffPos}
+        newWorldTakeoffYaw={newWorldTakeoffYaw}
+        hasTraveledToNewWorld={hasTraveledToNewWorld}
+        onReturnToCity={handleReturnToCity}
         celebrationActive={celebrationActive}
         skyAds={skyAds}
         onAdClick={(ad) => {
@@ -3763,24 +3934,33 @@ function HomeContent() {
                               <button
                                 onClick={async () => {
                                   setVsCodeKeyLoading(true);
+                                  const controller = new AbortController();
+                                  generateControllerRef.current = controller;
                                   try {
                                     const res = await fetch("/api/vscode-key", {
                                       method: "POST",
+                                      signal: controller.signal,
                                     });
                                     const data = await res.json();
-                                    if (data.key) {
+                                    if (mountedRef.current && data.key) {
                                       setVsCodeKey(data.key);
                                       setHasVsCodeKey(true);
                                       try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
-                                      setTimeout(
-                                        () => setVsCodeKeyCopied(false),
-                                        2000,
-                                      );
+                                      setTimeout(() => {
+                                        if (mountedRef.current) setVsCodeKeyCopied(false);
+                                      }, 2000);
                                     }
+                                  } catch (e: any) {
+                                    if (e.name === "AbortError") return;
                                   } finally {
-                                    setVsCodeKeyLoading(false);
+                                    if (mountedRef.current) {
+                                      setVsCodeKeyLoading(false);
+                                      if (generateControllerRef.current === controller) {
+                                        generateControllerRef.current = null;
+                                      }
+                                    }
                                   }
                                 }}
                                 disabled={vsCodeKeyLoading}
@@ -3858,9 +4038,48 @@ function HomeContent() {
 
             {/* Milestone progress banner — hidden on mobile to reduce clutter */}
             <div className="hidden sm:flex sm:justify-center w-full">
-              {MILESTONE_MODE === "stars"
-                ? // ── LeetCode Stars mode ──
-                (() => {
+              {(() => {
+                if (MILESTONE_MODE === "donation") {
+                  const current = stats?.renewal_raised_inr ?? 0;
+                  const target = stats?.renewal_target_inr ?? 2900;
+                  const pct = Math.min(100, (current / target) * 100);
+                  const isDone = current >= target;
+
+                  return (
+                    <div className="pointer-events-auto mt-4 w-full max-w-[320px] rounded border border-border bg-bg/80 p-3 pt-2 shadow-xl backdrop-blur-md">
+                      <div className="mb-1.5 flex items-center justify-between text-[8px] uppercase tracking-widest text-cream">
+                        <span>
+                          {isDone ? "RENEWAL SECURED!" : "WEBSITE RENEWAL GOAL"}
+                        </span>
+                        <span style={{ color: theme.accent }}>
+                          {isDone ? "SECURED" : `${Math.round(pct)}% FUNDED`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg shadow-inner">
+                        <div
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: theme.accent,
+                            boxShadow: `0 0 10px ${theme.accent}`,
+                          }}
+                        />
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-[8px] text-[#ffa116] uppercase tracking-wider">
+                        <span className="text-dim">
+                          ₹{current.toLocaleString()} / ₹{target.toLocaleString()}
+                        </span>
+                        <a
+                          href="/support"
+                          className="hover:underline text-right"
+                        >
+                          SUPPORT THE SIGNAL
+                        </a>
+                      </div>
+                    </div>
+                  );
+                } else if (MILESTONE_MODE === "stars") {
+                  // ── LeetCode Stars mode ──
                   const MILESTONES = [100, 250, 500, 1000, 2000, 5000];
                   const current = githubStars;
                   const target = MILESTONES.find((m) => current < m) || 10000;
@@ -3915,9 +4134,8 @@ function HomeContent() {
                       </div>
                     </div>
                   );
-                })()
-                : // ── Total Developers mode ──
-                (() => {
+                } else {
+                  // ── Total Developers mode ──
                   const MILESTONES = [10000, 20000, 50000, 100000];
                   const count = stats.total_developers;
                   if (count <= 0) return null;
@@ -3970,7 +4188,8 @@ function HomeContent() {
                       </div>
                     </div>
                   );
-                })()}
+                }
+              })()}
             </div>
 
             {/* Search / Welcome CTA takeover */}
@@ -4025,7 +4244,7 @@ function HomeContent() {
                       ? "search any LeetCode username"
                       : "type your LeetCode username"
                   }
-                  className="min-w-0 flex-1 border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none transition-colors placeholder:text-dim sm:px-4 sm:py-2.5"
+                  className="min-w-0 flex-1 border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none transition-colors placeholder:text-dim sm:px-4 sm:py-2.5 normal-case"
                   style={{ borderColor: undefined }}
                   onFocus={(e) =>
                     (e.currentTarget.style.borderColor = theme.accent)
@@ -4372,18 +4591,33 @@ function HomeContent() {
                 )}
               </div>
 
-              {/* Codex Button */}
-              <button
-                onClick={() => setIsCodexOpen(true)}
-                className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-28 sm:w-32"
-                style={{
-                  borderColor: theme.accent,
-                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                }}
-                title="Open Codex"
-              >
-                <span>CODEX</span>
-              </button>
+              <div className="flex gap-2">
+                {/* Codex Button */}
+                <button
+                  onClick={() => setIsCodexOpen(true)}
+                  className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-24 sm:w-28"
+                  style={{
+                    borderColor: theme.accent,
+                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                  }}
+                  title="Open Codex"
+                >
+                  <span>CODEX</span>
+                </button>
+
+                {/* Relics Button */}
+                <button
+                  onClick={() => setIsRelicModalOpen(true)}
+                  className="btn-press flex items-center justify-center border-[3px] border-border bg-bg/95 py-0.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light text-cream font-bold shadow-md w-24 sm:w-28"
+                  style={{
+                    borderColor: "#ffa116",
+                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                  }}
+                  title="Open Relic Vault"
+                >
+                  <span>RELICS</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -4442,6 +4676,13 @@ function HomeContent() {
             >
               &#9819; Rank
             </Link>
+            <button
+              onClick={() => setIsRelicModalOpen(true)}
+              className="btn-press border-[2px] border-border px-3 py-1.5 text-[10px] transition-colors active:bg-white/5 text-cream"
+              style={{ color: "#ffa116" }}
+            >
+              Relics
+            </button>
             {!session ? (
               <button
                 onClick={handleSignIn}
@@ -4873,6 +5114,10 @@ function HomeContent() {
                         acceptanceRate >= 0
                           ? `${(acceptanceRate * 100).toFixed(1)}%`
                           : "--",
+                    },
+                    {
+                      label: "Language",
+                      value: (selectedBuilding as any)?.primary_language ?? "--",
                     },
                     ...(easySolved || medSolved || hardSolved
                       ? [
@@ -5389,10 +5634,10 @@ function HomeContent() {
                   </div>
 
                   {/* ── Header: Avatars + VS ── */}
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-3 sm:gap-5 px-5 pt-3 pb-4 sm:pt-4">
+                  <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-3 md:gap-5 px-5 pt-3 pb-4 md:pt-4">
                     <Link
                       href={`/dev/${comparePair[0].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full md:w-[110px]"
                     >
                       {comparePair[0].avatar_url && (
                         <Image
@@ -5410,7 +5655,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-full sm:max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full md:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[0].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5419,7 +5664,7 @@ function HomeContent() {
                     </Link>
 
                     <span
-                      className="text-base shrink-0 sm:pt-4"
+                      className="text-base shrink-0 md:pt-4"
                       style={{ color: theme.accent }}
                     >
                       VS
@@ -5427,7 +5672,7 @@ function HomeContent() {
 
                     <Link
                       href={`/dev/${comparePair[1].login}`}
-                      className="flex flex-col items-center gap-1.5 group w-full sm:w-[110px]"
+                      className="flex flex-col items-center gap-1.5 group w-full md:w-[110px]"
                     >
                       {comparePair[1].avatar_url && (
                         <Image
@@ -5445,7 +5690,7 @@ function HomeContent() {
                           }}
                         />
                       )}
-                      <p className="truncate text-[10px] text-cream normal-case max-w-[110px] transition-colors group-hover:text-white">
+                      <p className="truncate text-[10px] text-cream normal-case max-w-full md:max-w-[110px] transition-colors group-hover:text-white">
                         @{comparePair[1].login}
                       </p>
                       <p className="text-[8px] text-muted normal-case text-center">
@@ -5459,10 +5704,10 @@ function HomeContent() {
                     {cmpRows.map((s, i) => (
                       <div
                         key={s.key}
-                        className={`flex items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
+                        className={`grid grid-cols-[1fr_auto_1fr] items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
                       >
                         <span
-                          className="w-[60px] sm:w-[72px] shrink text-right text-[10px] sm:text-[11px] tabular-nums"
+                          className="min-w-0 truncate text-right text-[10px] md:text-[11px] tabular-nums"
                           style={{
                             color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                           }}
@@ -5473,11 +5718,11 @@ function HomeContent() {
                               : "-"
                             : s.a.toLocaleString()}
                         </span>
-                        <span className="flex-1 text-center text-[7px] sm:text-[8px] text-muted uppercase tracking-wider mx-1">
+                        <span className="text-center text-[7px] md:text-[8px] text-muted uppercase tracking-wider mx-2">
                           {s.label}
                         </span>
                         <span
-                          className="w-[60px] sm:w-[72px] shrink text-left text-[10px] sm:text-[11px] tabular-nums"
+                          className="min-w-0 truncate text-left text-[10px] md:text-[11px] tabular-nums"
                           style={{
                             color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                           }}
@@ -5505,7 +5750,7 @@ function HomeContent() {
                   </div>
 
                   {/* ── Actions ── */}
-                  <div className="px-4 pt-3 pb-1 flex flex-col sm:flex-row gap-2">
+                  <div className="px-4 pt-3 pb-1 flex flex-col md:flex-row gap-2">
                     <a
                       href={`https://x.com/intent/tweet?text=${encodeURIComponent(
                         `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`,
@@ -5537,8 +5782,8 @@ function HomeContent() {
                   </div>
 
                   {/* Download with lang toggle */}
-                  <div className="px-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pb-1">
-                    <div className="flex justify-center sm:justify-start gap-0.5 shrink-0">
+                  <div className="px-4 flex flex-col md:flex-row items-stretch md:items-center gap-2 pb-1">
+                    <div className="flex justify-center md:justify-start gap-0.5 shrink-0">
                       {(["en", "pt"] as const).map((l) => (
                         <button
                           key={l}
@@ -5599,7 +5844,7 @@ function HomeContent() {
                   </div>
 
                   {/* Compare Again + Close */}
-                  <div className="flex gap-2 px-4 pt-1 pb-5 sm:pb-4">
+                  <div className="flex gap-2 px-4 pt-1 pb-5 md:pb-4">
                     <button
                       onClick={() => {
                         const first = comparePair[0];
@@ -5838,6 +6083,16 @@ function HomeContent() {
         shadowColor={theme.shadow}
       />
 
+      <RelicModal
+        isOpen={isRelicModalOpen}
+        onClose={() => setIsRelicModalOpen(false)}
+        equippedRelicId={equippedRelicId}
+        onEquip={handleEquipRelic}
+        relics={relics}
+        accentColor={theme.accent}
+        shadowColor={theme.shadow}
+      />
+
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
@@ -5946,6 +6201,11 @@ function HomeContent() {
         <ActivityTicker
           events={feedEvents}
           hasBottomBar={!exploreMode && buildings.length > 0}
+          renewalProgress={
+            stats?.renewal_raised_inr !== undefined && stats?.renewal_target_inr !== undefined
+              ? { raised: stats.renewal_raised_inr, target: stats.renewal_target_inr }
+              : null
+          }
           onEventClick={(evt) => {
             if (compareBuilding || comparePair) return;
             const login = evt.actor?.login;
@@ -6550,7 +6810,7 @@ function HomeContent() {
                       value={linkInput}
                       onChange={(e) => setLinkInput(e.target.value)}
                       placeholder="LeetCode Username"
-                      className="flex-1 bg-black/50 border border-border px-3 py-2 text-[12px] text-cream outline-none focus:border-border-light"
+                      className="flex-1 bg-black/50 border border-border px-3 py-2 text-[12px] text-cream outline-none focus:border-border-light normal-case"
                     />
                     <button
                       type="button"
@@ -6622,6 +6882,44 @@ function HomeContent() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── New World Travel Prompt Modal ─── */}
+      {showNewWorldPrompt && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
+          <div
+            className="w-full max-w-md border-[3px] bg-bg-raised p-6 text-cream shadow-2xl relative text-center"
+            style={{
+              borderColor: theme.accent,
+              boxShadow: `6px 6px 0 0 ${theme.shadow}`,
+            }}
+          >
+            <h2 className="text-lg font-bold tracking-widest mb-2 font-pixel" style={{ color: theme.accent }}>
+              NEW WORLD DETECTED
+            </h2>
+            <p className="text-[11px] text-muted normal-case mb-6 leading-relaxed font-pixel">
+              Your equipped New World Relic is vibrating intensely. Do you want to navigate across the fog of war to the Outer Wildlands?
+            </p>
+            <div className="flex gap-4 justify-center font-pixel items-center">
+              <span
+                className="px-6 py-2.5 text-[11px] font-bold select-none cursor-not-allowed"
+                style={{
+                  color: theme.accent,
+                  border: `2px dashed ${theme.accent}`,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+              >
+                COMING SOON
+              </span>
+              <button
+                onClick={handleCancelNewWorldTravel}
+                className="px-6 py-2.5 text-[11px] font-bold border-2 border-muted hover:border-cream text-muted hover:text-cream active:scale-95 transition-all"
+              >
+                STAY IN CITY
+              </button>
+            </div>
           </div>
         </div>
       )}

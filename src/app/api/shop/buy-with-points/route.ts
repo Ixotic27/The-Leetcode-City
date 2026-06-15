@@ -17,7 +17,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { ok } = rateLimit(`buy-points:${user.id}`, 1, 5_000);
+    const { ok } = await rateLimit(`buy-points:${user.id}`, 1, 5_000);
     if (!ok) {
         return NextResponse.json({ error: "Too fast" }, { status: 429 });
     }
@@ -94,22 +94,23 @@ export async function POST(request: Request) {
 
         // 4. Atomic conditional deduction — only succeeds if balance is still sufficient
         const { data: deducted, error: deductError } = await admin
-            .from("developers")
-            .update({ points: dev.points - item.price_points })
-            .eq("id", dev.id)
-            .gte("points", item.price_points) // guard — race condition loses here
-            .eq("points", dev.points)         // optimistic lock on exact snapshot value
-            .select("points")
+            .rpc("deduct_points_atomic", {
+                p_developer_id: dev.id,
+                p_price_points: item.price_points,
+            })
+            .select("success, remaining_points")
             .maybeSingle();
 
-        if (deductError || !deducted) {
+        if (deductError || !deducted?.success) {
             return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
         }
-        deductedPoints = deducted.points;
+        deductedPoints = deducted.remaining_points;
     }
 
     // Fulfill/grant consumable items to developers (updates tables and determines correct status string)
     const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
+
+    const idempotencyKey = `points_${dev.id}_${item_id}_${Date.now()}`;
 
     const { data: purchase, error: purchaseError } = await admin
         .from("purchases")
@@ -117,6 +118,7 @@ export async function POST(request: Request) {
             developer_id: dev.id,
             item_id: item_id,
             provider: "points",
+            idempotency_key: idempotencyKey,
             amount_cents: 0,
             currency: "usd",
             status: purchaseStatus,
@@ -126,11 +128,11 @@ export async function POST(request: Request) {
 
     if (purchaseError) {
         if (!isDev) {
-            // Safe rollback: add price back to current DB value, not snapshot
-            await admin
-                .from("developers")
-                .update({ points: deductedPoints + item.price_points })
-                .eq("id", dev.id);
+            // Atomic rollback — add points back to the current DB value
+            await admin.rpc("add_points_atomic", {
+                p_developer_id: dev.id,
+                p_price_points: item.price_points,
+            });
         }
         return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
     }

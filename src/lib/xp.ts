@@ -165,6 +165,31 @@ export function calculateLeetcodeXp(dev: {
   return solvedXp + ratingXp + streakXp;
 }
 
+// ─── Base XP Merge (preserve earned XP on re-verification) ───
+
+/**
+ * Merge freshly computed base XP (GitHub/LeetCode-derived) into a developer's
+ * total XP while preserving XP earned from every other source — check-ins,
+ * dailies, rewards, redemptions, raids, referrals, bonuses, etc.
+ *
+ * Earned XP is whatever in the previous total wasn't base XP:
+ *   earned   = prevTotal - prevBase
+ * The new total re-applies that earned XP on top of the new base:
+ *   newTotal = earned + newBase
+ *
+ * Null/undefined previous values are treated as 0 (e.g. first-time
+ * verification), and both the earned portion and the result are clamped to be
+ * non-negative so the merge can never introduce negative XP.
+ */
+export function mergeBaseXp(
+  prevTotal: number | null | undefined,
+  prevBase: number | null | undefined,
+  newBase: number,
+): number {
+  const earned = Math.max(0, (prevTotal ?? 0) - (prevBase ?? 0));
+  return Math.max(0, earned + newBase);
+}
+
 // ─── Achievement XP ─────────────────────────────────────────
 
 const ACHIEVEMENT_XP: Record<string, number> = {

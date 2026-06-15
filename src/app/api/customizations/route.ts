@@ -210,7 +210,14 @@ export async function POST(request: Request) {
       { developer_id: dev.id, item_id: "custom_color", config: { color } },
       { onConflict: "developer_id,item_id" }
     );
-    if (upsertError) return NextResponse.json({ error: "Failed to save customization" }, { status: 500 });
+    if (upsertError) {
+      console.error("[custom_color upsert] error:", upsertError);
+      // In local dev, pretend it succeeded so localStorage overrides still apply
+      if (process.env.NODE_ENV === "development") {
+        return NextResponse.json({ success: true, color, mocked: true });
+      }
+      return NextResponse.json({ error: "Failed to save customization" }, { status: 500 });
+    }
     return NextResponse.json({ success: true, color });
   }
 

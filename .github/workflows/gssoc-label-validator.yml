@@ -1,0 +1,212 @@
+name: GSSoC Label Validator
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  validate-labels:
+    name: GSSoC Label Audit
+    runs-on: ubuntu-latest
+    # Skip bot-triggered label events unless it's a review submission to avoid loops
+    if: >
+      github.actor != 'github-actions[bot]' ||
+      github.event_name == 'pull_request_review'
+
+    steps:
+      - name: Audit GSSoC Labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const prAuthor = context.payload.pull_request.user.login;
+
+            // ── Fetch current labels ──
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: prNumber
+            });
+            const labelNames = labels.map(l => l.name);
+
+            console.log(`PR #${prNumber} by @${prAuthor}`);
+            console.log(`Labels: ${labelNames.join(', ')}`);
+
+            const DIFFICULTY_LABELS = ['level:beginner', 'level:intermediate', 'level:advanced', 'level:critical'];
+            const QUALITY_LABELS = ['quality:clean', 'quality:exceptional'];
+            const TYPE_LABELS = ['type:bug', 'type:feature', 'type:docs', 'type:testing', 'type:refactor', 'type:design', 'type:accessibility', 'type:performance', 'type:devops', 'type:security'];
+            const BLOCKING_LABELS = ['gssoc:invalid', 'gssoc:spam', 'gssoc:ai-slop'];
+
+            const errors = [];
+            const warnings = [];
+            let isBlocked = false;
+
+            // 1. Check for blocking labels
+            const blockingFound = labelNames.filter(l => BLOCKING_LABELS.includes(l));
+            if (blockingFound.length > 0) {
+              isBlocked = true;
+              errors.push(`🚫 **Blocked from scoring/merge** — this PR has blocking label(s): \`${blockingFound.join('`, `')}\`.`);
+            }
+
+            // 2. Check for gssoc:approved
+            const hasApproved = labelNames.includes('gssoc:approved');
+            if (!hasApproved && !isBlocked) {
+              errors.push(`❌ **Missing \`gssoc:approved\`** — this PR is missing the approval label required to score and merge.`);
+            }
+
+            // 3. Check difficulty labels (exactly ONE required)
+            const diffLabels = labelNames.filter(l => DIFFICULTY_LABELS.includes(l));
+            if (diffLabels.length === 0) {
+              errors.push(`❌ **Missing difficulty label** — every GSSoC PR needs exactly one: \`level:beginner\`, \`level:intermediate\`, \`level:advanced\`, or \`level:critical\`.`);
+            } else if (diffLabels.length > 1) {
+              errors.push(`❌ **Multiple difficulty labels detected**: \`${diffLabels.join('`, \` ')}\`. PR must have exactly one difficulty label.`);
+            }
+
+            // 4. Check quality labels (at most ONE)
+            const qualLabels = labelNames.filter(l => QUALITY_LABELS.includes(l));
+            if (qualLabels.length > 1) {
+              errors.push(`❌ **Multiple quality labels detected**: \`${qualLabels.join('`, \` ')}\`. PR must have at most one quality label.`);
+            }
+
+            // 5. Check type labels (at least ONE required)
+            const typeLabels = labelNames.filter(l => TYPE_LABELS.includes(l));
+            if (typeLabels.length === 0) {
+              errors.push(`❌ **Missing type label** — every GSSoC PR needs at least one type label (e.g. \`type:bug\`, \`type:feature\`, etc.).`);
+            }
+
+            // 6. Validate quality:exceptional requires a substantive review comment
+            if (qualLabels.includes('quality:exceptional')) {
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner, repo, pull_number: prNumber
+              });
+
+              const hasSubstantiveReview = reviews.some(r =>
+                r.state === 'APPROVED' &&
+                r.body && r.body.trim().length > 30 &&
+                r.user?.login !== prAuthor  // Must be from a reviewer, not the author
+              );
+
+              if (!hasSubstantiveReview) {
+                warnings.push(`⚠️ **\`quality:exceptional\` lacks justification** — a reviewer must leave an approval review comment (>30 chars) explaining why this PR is exceptional. Without it, the GSSoC scoring engine may ignore the multiplier.`);
+              }
+            }
+
+            // 7. Check level:critical matches the PR content
+            if (diffLabels.includes('level:critical')) {
+              // Fetch PR files to verify it touches high-stakes areas
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner, repo, pull_number: prNumber, per_page: 100
+              });
+              const filePaths = files.map(f => f.filename);
+
+              const criticalPatterns = [
+                /auth/i, /login/i, /session/i, /security/i,
+                /webhook/i, /payment/i, /checkout/i, /stripe/i, /cashfree/i,
+                /migration/i, /\.sql$/i,
+                /rate.?limit/i, /ci\.yml$/i, /\.github\/workflows\//i,
+                /middleware/i, /csrf/i, /xss/i, /inject/i
+              ];
+
+              const touchesCritical = filePaths.some(fp =>
+                criticalPatterns.some(pat => pat.test(fp))
+              );
+
+              if (!touchesCritical) {
+                warnings.push(`⚠️ **\`level:critical\` may be over-applied** — this PR doesn't appear to touch high-stakes areas (auth, payments, database migrations, security, CI/CD). Critical is reserved for changes where a mistake would cause data loss, security breaches, or service outages.`);
+              }
+            }
+
+            // 8. Validate type:security matches PR content
+            if (typeLabels.includes('type:security')) {
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner, repo, pull_number: prNumber, per_page: 100
+              });
+              const filePaths = files.map(f => f.filename);
+              const secPatterns = [/auth/i, /security/i, /webhook/i, /middleware/i, /rate/i, /csrf/i, /xss/i, /sanitiz/i, /escape/i, /helmet/i, /cors/i, /rate.?limit/i, /auth/i];
+              const touchesSec = filePaths.some(fp => secPatterns.some(p => p.test(fp)));
+
+              let diffHasSec = false;
+              try {
+                const diffRes = await github.rest.pulls.get({
+                  owner, repo, pull_number: prNumber,
+                  mediaType: { format: 'diff' }
+                });
+                const diff = typeof diffRes.data === 'string' ? diffRes.data : '';
+                const secDiffPatterns = [/xss/i, /csrf/i, /injection/i, /sanitiz/i, /escape/i, /helmet/i, /cors/i, /rate.?limit/i, /auth/i];
+                diffHasSec = secDiffPatterns.some(p => p.test(diff));
+              } catch(e) { /* ignore */ }
+
+              if (!touchesSec && !diffHasSec) {
+                warnings.push(`⚠️ **\`type:security\` may not apply** — the changed files and diff don't appear to address a security vulnerability. This label should only be used when the primary purpose is security hardening.`);
+              }
+            }
+
+            // ── Build validation report comment ──
+            const COMMENT_TAG = '<!-- gssoc-label-audit-bot -->';
+            let body = `${COMMENT_TAG}\n`;
+            body += `## 📋 GSSoC Label Validation Report\n\n`;
+
+            if (errors.length > 0) {
+              body += `### ❌ Issues Found\n\n`;
+              body += errors.map(e => `- ${e}`).join('\n') + `\n\n`;
+            }
+            if (warnings.length > 0) {
+              body += `### ⚠️ Warnings\n\n`;
+              body += warnings.map(w => `- ${w}`).join('\n') + `\n\n`;
+            }
+
+            if (errors.length === 0 && warnings.length === 0) {
+              body += `✅ **All label requirements met.** This PR passes the pre-merge label check.\n\n`;
+            } else if (errors.length === 0) {
+              body += `ℹ️ **Required labels present.** Only minor warnings found. This PR is ready for merge.\n\n`;
+            } else {
+              body += `🛑 **Please fix the errors listed above before merging.**\n\n`;
+            }
+
+            body += `---\n`;
+            body += `<details><summary>📖 Label Reference</summary>\n\n`;
+            body += `| Category | Valid Labels | Rules |\n`;
+            body += `|----------|--------------|-------|\n`;
+            body += `| **Approval** | \`gssoc:approved\` | Required to score and merge |\n`;
+            body += `| **Difficulty** | \`level:beginner\` / \`intermediate\` / \`advanced\` / \`critical\` | Exactly one is required |\n`;
+            body += `| **Quality** | \`quality:clean\` / \`quality:exceptional\` | Optional (max one); exceptional requires reviewer comment |\n`;
+            body += `| **Type** | \`type:bug\`, \`type:feature\`, \`type:docs\`, \`type:testing\`, \`type:refactor\`, \`type:design\`, \`type:accessibility\`, \`type:performance\`, \`type:devops\`, \`type:security\` | At least one is required |\n`;
+            body += `| **Blocking** | \`gssoc:invalid\`, \`gssoc:spam\`, \`gssoc:ai-slop\` | Excludes PR from scoring and blocks merge |\n\n`;
+            body += `</details>\n`;
+
+            // ── Update or create the comment ──
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: prNumber, per_page: 100
+            });
+
+            const existingComment = comments.find(c =>
+              c.user?.login === 'github-actions[bot]' &&
+              c.body?.includes(COMMENT_TAG)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existingComment.id, body
+              });
+              console.log(`Updated label validation comment on PR #${prNumber}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: prNumber, body
+              });
+              console.log(`Created label validation comment on PR #${prNumber}`);
+            }
+
+            // ── Fail check run if errors exist ──
+            if (errors.length > 0) {
+              core.setFailed(`GSSoC label check failed: ${errors.length} error(s) found.`);
+            }

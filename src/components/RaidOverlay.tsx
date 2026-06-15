@@ -14,10 +14,21 @@ interface Props {
 function AnimatedScore({ target, duration = 1200 }: { target: number; duration?: number }) {
   const [value, setValue] = useState(0);
   const startRef = useRef<number | null>(null);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (target <= 0) return;
     startRef.current = null;
+    if (target <= 0) {
+      frameRef.current = requestAnimationFrame(() => {
+        setValue(0);
+      });
+      return () => {
+        if (frameRef.current !== null) {
+          cancelAnimationFrame(frameRef.current);
+          frameRef.current = null;
+        }
+      };
+    }
 
     function animate(ts: number) {
       if (!startRef.current) startRef.current = ts;
@@ -25,10 +36,19 @@ function AnimatedScore({ target, duration = 1200 }: { target: number; duration?:
       // easeOutExpo
       const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
       setValue(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(animate);
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      }
     }
 
-    requestAnimationFrame(animate);
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    };
   }, [target, duration]);
 
   return <span>{value}</span>;
@@ -45,38 +65,59 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
   const showScore = phase === "share";
 
   useEffect(() => {
+    let frameId: number | null = null;
+
     if (showBars) {
-      requestAnimationFrame(() => setBarsVisible(true));
+      frameId = requestAnimationFrame(() => setBarsVisible(true));
     } else {
-      setBarsVisible(false);
+      frameId = requestAnimationFrame(() => setBarsVisible(false));
     }
+
+    return () => {
+      if (frameId !== null) {
+        cancelAnimationFrame(frameId);
+      }
+    };
   }, [showBars]);
 
   // Screen flash on explosion
   useEffect(() => {
+    let frameId1: number | null = null;
+    let frameId2: number | null = null;
+    let frameId3: number | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     if (phase === "outro_win") {
-      setFlashPhase("peak");
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      frameId1 = requestAnimationFrame(() => {
+        setFlashPhase("peak");
+        frameId2 = requestAnimationFrame(() => {
           setFlashPhase("fading");
         });
       });
-      const timer = setTimeout(() => setFlashPhase("none"), 700);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setFlashPhase("none"), 700);
     } else {
-      setFlashPhase("none");
+      frameId3 = requestAnimationFrame(() => setFlashPhase("none"));
     }
+
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+      if (frameId1 !== null) cancelAnimationFrame(frameId1);
+      if (frameId2 !== null) cancelAnimationFrame(frameId2);
+      if (frameId3 !== null) cancelAnimationFrame(frameId3);
+    };
   }, [phase]);
 
   // Staggered reveal for result screen
   useEffect(() => {
     if (!showScore) {
-      setRevealStep(0);
-      return;
+      const resetFrame = requestAnimationFrame(() => setRevealStep(0));
+      return () => cancelAnimationFrame(resetFrame);
     }
 
-    // Layer 1 (0ms): dark backdrop
-    setRevealStep(1);
+    const initialFrame = requestAnimationFrame(() => {
+      // Layer 1 (0ms): dark backdrop
+      setRevealStep(1);
+    });
 
     // Layer 2 (300ms): headline
     const t1 = setTimeout(() => setRevealStep(2), 300);
@@ -86,6 +127,7 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
     const t3 = setTimeout(() => setRevealStep(4), 1800);
 
     return () => {
+      cancelAnimationFrame(initialFrame);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);

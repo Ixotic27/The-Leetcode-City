@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { ok } = rateLimit(`dailies-claim:${user.id}`, 2, 10_000);
+  const { ok } = await rateLimit(`dailies-claim:${user.id}`, 2, 10_000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   const points_granted = 15;
   // Grant XP for completing all dailies
-  await admin.rpc("grant_xp", { p_developer_id: dev.id, p_source: "dailies", p_amount: 25 });
+  await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "dailies", p_amount: 25 });
 
   // Grant streak freeze every 7 completions (cap at 2)
   // ── BEFORE (read-then-write race): ─────────────────────────────────────────

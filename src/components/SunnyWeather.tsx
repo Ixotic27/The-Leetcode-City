@@ -209,11 +209,11 @@ export const SunnyWeather = ({
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-camera-far={2500}
-        shadow-camera-left={-600}
-        shadow-camera-right={600}
-        shadow-camera-top={600}
-        shadow-camera-bottom={-600}
-        shadow-bias={-0.0005}
+        shadow-camera-left={-1500}
+        shadow-camera-right={1500}
+        shadow-camera-top={1500}
+        shadow-camera-bottom={-1500}
+        shadow-bias={-0.0002}
       />
 
       {/* Warm Ambient Reflection Secondary Bounce */}

@@ -335,16 +335,62 @@ export async function POST(request: Request) {
       expires_at: new Date(Date.now() + RAID_TAG_DURATION_DAYS * 86400000).toISOString(),
     });
 
+    // Use atomic DB-level increments to prevent race condition data loss.
+    // Passing raw SQL expressions via rpc avoids the stale-read overwrite
+    // that would occur if we used in-memory values computed before execute_raid().
     await Promise.all([
-      admin.from("developers").update({ raid_xp: (attacker.raid_xp ?? 0) + XP_WIN_ATTACKER }).eq("id", attacker.id),
-      admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_WIN_DEFENDER }).eq("id", defender.id),
+      admin.rpc("increment_raid_xp", { p_developer_id: attacker.id, p_amount: XP_WIN_ATTACKER }),
+      admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_WIN_DEFENDER }),
     ]);
-    await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
-    await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+
+    // Track raid win to update relic progress
+    try {
+      const { data: custom } = await admin
+        .from("developer_customizations")
+        .select("config")
+        .eq("developer_id", attacker.id)
+        .eq("item_id", "relic_progress")
+        .maybeSingle();
+
+      const progress = custom?.config ?? {
+        docks_visits: 0,
+        arena_solves: 0,
+        raid_wins: 0,
+      };
+
+      progress.raid_wins = (progress.raid_wins ?? 0) + 1;
+
+      await admin.from("developer_customizations").upsert(
+        {
+          developer_id: attacker.id,
+          item_id: "relic_progress",
+          config: progress,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id,item_id" }
+      );
+
+      if (progress.raid_wins >= 1) {
+        await admin.from("developer_relics").upsert(
+          {
+            developer_id: attacker.id,
+            relic_id: "relic_requiem_void_core",
+            is_equipped: false,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: "developer_id,relic_id" }
+        );
+      }
+    } catch (err) {
+      console.error("[raid/execute] Failed to track raid win for relic:", err);
+    }
   } else {
-    await admin.from("developers").update({ raid_xp: (defender.raid_xp ?? 0) + XP_LOSE_DEFENDER }).eq("id", defender.id);
-    await admin.rpc("grant_xp", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
-    await admin.rpc("grant_xp", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+    // Atomic increment — avoid overwriting concurrent XP changes.
+    await admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_LOSE_DEFENDER });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
+    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   }
 
   await admin.from("activity_feed").insert({
@@ -364,8 +410,14 @@ export async function POST(request: Request) {
   if (success) await trackDailyMission(attacker.id, "win_battle");
   sendRaidAlertNotification(defender.id, defender.github_login, attacker.github_login, raidId, success, attack.total, defense.total);
 
-  const newAttackerXp = (attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0);
-  const newDefenderXp = (defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER);
+  // Re-fetch updated raid_xp to ensure response and achievements use the latest atomic value
+  const [{ data: updatedAttacker }, { data: updatedDefender }] = await Promise.all([
+    admin.from("developers").select("raid_xp").eq("id", attacker.id).maybeSingle(),
+    admin.from("developers").select("raid_xp").eq("id", defender.id).maybeSingle(),
+  ]);
+
+  const newAttackerXp = updatedAttacker?.raid_xp ?? ((attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0));
+  const newDefenderXp = updatedDefender?.raid_xp ?? ((defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER));
 
   const [attackerAchievements] = await Promise.all([
     checkAchievements(attacker.id, {

@@ -30,6 +30,18 @@ jobs:
             
             if (issueState === 'closed') return;
 
+            const currentLabels = issue.labels.map(l => l.name);
+            
+            // For type:3d issues, skip all automated workflows. Only manual assignment is allowed.
+            if (currentLabels.includes('type:3d')) {
+              if (context.eventName === 'issues' && context.payload.action === 'assigned') {
+                console.log("Proceeding with manual assignment for type:3d issue.");
+              } else {
+                console.log("Skipping automated workflow for type:3d issue.");
+                return;
+              }
+            }
+
             // Handle triage approval (label removed)
             if (context.eventName === 'issues' && context.payload.action === 'unlabeled') {
               if (context.payload.label.name === 'needs-triage') {

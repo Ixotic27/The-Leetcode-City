@@ -62,6 +62,7 @@ export async function createCheckoutSession(
       developer_id: String(developerId),
       item_id: itemId,
       github_login: githubLogin,
+      idempotency_key: `stripe_${developerId}_${itemId}_${Date.now()}`,
       ...(giftedToDevId ? { gifted_to: String(giftedToDevId) } : {}),
     },
     success_url: giftedToLogin

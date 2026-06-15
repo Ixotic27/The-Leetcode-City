@@ -28,35 +28,51 @@ type DeveloperRow = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const from = Math.max(0, parseInt(searchParams.get("from") ?? "0", 10));
-  const to = Math.min(
-    from + 1000,
-    parseInt(searchParams.get("to") ?? "500", 10)
-  );
+  const rawFrom = parseInt(searchParams.get("from") ?? "0", 10);
+  const rawTo = parseInt(searchParams.get("to") ?? "500", 10);
+
+  if (isNaN(rawFrom) || isNaN(rawTo)) {
+    return NextResponse.json(
+      { error: "Invalid pagination parameters: 'from' and 'to' must be numbers." },
+      { status: 400 }
+    );
+  }
+
+  const from = Math.max(0, rawFrom);
+  const to = Math.min(from + 1000, rawTo);
 
   const sb = getSupabaseAdmin();
 
-  // Round 1: devs + stats in parallel
-  const [devsResult, statsResult] = await Promise.all([
+  // Round 1: devs + stats + support progress in parallel
+  const [devsResult, statsResult, supportProgressResult] = await Promise.all([
     sb
       .from("developers")
       .select(
-        "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, acceptance_rate"
+        "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, acceptance_rate"
       )
       .not("easy_solved", "is", null)
       .order("rank", { ascending: true })
       .range(from, to - 1),
     sb.from("city_stats").select("*").eq("id", 1).single(),
+    sb.from("items").select("metadata").eq("id", "support_renewal").maybeSingle(),
   ]);
 
   const devs = (devsResult.data ?? []) as DeveloperRow[];
   const devIds = devs.map((d) => d.id);
 
+  const supportMeta = (supportProgressResult?.data?.metadata as Record<string, any>) || {};
+  const renewalRaisedInr = supportMeta.raised_inr ?? 0;
+  const renewalTargetInr = supportMeta.target_inr ?? 2900;
+
   if (devIds.length === 0) {
     return NextResponse.json(
       {
         developers: [],
-        stats: statsResult.data ?? { total_developers: 0, total_contributions: 0 },
+        stats: {
+          ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+          renewal_raised_inr: renewalRaisedInr,
+          renewal_target_inr: renewalTargetInr,
+        },
       },
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
     );
@@ -194,9 +210,10 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       developers: developersWithItems,
-      stats: statsResult.data ?? {
-        total_developers: 0,
-        total_contributions: 0,
+      stats: {
+        ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+        renewal_raised_inr: renewalRaisedInr,
+        renewal_target_inr: renewalTargetInr,
       },
     },
     {

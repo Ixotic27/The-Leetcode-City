@@ -105,7 +105,7 @@ export async function POST(request: Request) {
   }
 
   // Per-user rate limit: 1 req/5s
-  const { ok } = rateLimit(`checkin:${user.id}`, 1, 5000);
+  const { ok } = await rateLimit(`checkin:${user.id}`, 1, 5000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
 
     if (!xpLogError) {
       // Insert succeeded — we are the first instance, safe to grant XP
-      const { data: xpData } = await sb.rpc("grant_xp", {
+      const { data: xpData } = await sb.rpc("grant_xp_atomic", {
         p_developer_id: dev.id,
         p_source: "checkin",
         p_amount: 10,

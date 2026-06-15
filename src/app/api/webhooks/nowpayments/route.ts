@@ -42,8 +42,20 @@ export async function POST(request: Request) {
     switch (paymentStatus) {
       case "finished":
       case "confirmed": {
-        // Check if it is a sky ad purchase (linked to orderId)
-        let { data: ad } = await sb
+        // Idempotency check using order_id as idempotency key
+        const idempotencyKey = `nowpayments_${orderId}`;
+        const { data: existingIdem } = await sb
+          .from("purchases")
+          .select("id")
+          .eq("idempotency_key", idempotencyKey)
+          .maybeSingle();
+        if (existingIdem) {
+          console.log(`[NOWPayments webhook] Duplicate event for ${orderId}, skipping`);
+          break;
+        }
+
+        // Check if it is a sky ad purchase
+        const { data: ad } = await sb
           .from("sky_ads")
           .select("id, plan_id, active")
           .eq("stripe_session_id", orderId)
@@ -89,7 +101,27 @@ export async function POST(request: Request) {
           .eq("provider_tx_id", orderId)
           .maybeSingle();
 
-        if (!purchase) break; // already completed or not found
+        if (!purchase) {
+          // Could be a concurrent request already claimed it (status is now "processing")
+          // or genuinely not found. Either way, do not fulfill.
+          console.log(`[NOWPayments webhook] No pending purchase for order ${orderId} — skipping`);
+          break;
+        }
+
+        // Atomic claim: transition pending → processing in one UPDATE.
+        // If a concurrent request already claimed it, claimed will be null.
+        const { data: claimed } = await sb
+          .from("purchases")
+          .update({ status: "processing" })
+          .eq("id", purchase.id)
+          .eq("status", "pending")
+          .select("id")
+          .maybeSingle();
+
+        if (!claimed) {
+          console.log(`[NOWPayments webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`);
+          break;
+        }
 
         const ownerId = purchase.gifted_to ?? purchase.developer_id;
         const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
@@ -100,6 +132,7 @@ export async function POST(request: Request) {
           .update({
             status: purchaseStatus,
             provider_tx_id: paymentId ?? orderId,
+            idempotency_key: idempotencyKey,
           })
           .eq("id", purchase.id);
 

@@ -2,7 +2,28 @@ import { getSupabaseAdmin } from "./supabase";
 import { createServerSupabase } from "./supabase-server";
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = process.env.ARENA_CRYPTO_KEY || "leetcode-city-arena-secret-key-32ch";
+const MIN_ARENA_CRYPTO_KEY_LENGTH = 32;
+
+function getArenaCryptoKey(): Buffer {
+  const secret = process.env.ARENA_CRYPTO_KEY?.trim();
+
+  if (!secret) {
+    throw new Error(
+      "ARENA_CRYPTO_KEY must be configured before encrypting arena hidden tests"
+    );
+  }
+
+  if (secret.length < MIN_ARENA_CRYPTO_KEY_LENGTH) {
+    throw new Error(
+      `ARENA_CRYPTO_KEY must contain at least ${MIN_ARENA_CRYPTO_KEY_LENGTH} characters`
+    );
+  }
+
+  return crypto
+    .createHash("sha256")
+    .update(secret, "utf8")
+    .digest();
+}
 
 export interface CFProblem {
   contestId?: number;
@@ -488,13 +509,13 @@ export async function getAuthenticatedDeveloper(req: Request) {
 /** Encrypt hidden tests using AES-256-CBC */
 export function encryptHiddenTests(tests: any[]): { iv: string; encryptedData: string } {
   const algorithm = "aes-256-cbc";
-  const key = crypto.createHash("sha256").update(ENCRYPTION_KEY).digest();
+  const key = getArenaCryptoKey();
   const iv = crypto.randomBytes(16);
-  
+
   const cipher = crypto.createCipheriv(algorithm, key, iv);
   let encrypted = cipher.update(JSON.stringify(tests), "utf8", "hex");
   encrypted += cipher.final("hex");
-  
+
   return {
     iv: iv.toString("hex"),
     encryptedData: encrypted

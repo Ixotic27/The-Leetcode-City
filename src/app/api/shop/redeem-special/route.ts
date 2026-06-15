@@ -115,7 +115,8 @@ export async function POST(req: Request) {
       await sb
         .from("special_codes")
         .update({ used_count: specialCode.used_count + 1 })
-        .eq("id", specialCode.id);
+        .eq("id", specialCode.id)
+        .eq("used_count", specialCode.used_count);
 
       const grantedIds = toGrant.map(i => i.id);
 

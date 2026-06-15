@@ -1,7 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useWeatherMap } from '@/hooks/useWeatherMap'; // We will import our API hook
+import React, { createContext, useContext, useState } from 'react';
 
 interface WeatherContextType {
   isRaining: boolean;
@@ -12,23 +11,14 @@ interface WeatherContextType {
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
 
+// Weather is purely time-of-day driven via the AtmosphereCycleManager.
+// No geolocation or external weather API calls — the manual weatherMode
+// button in the UI is the only way to change weather effects.
 export function WeatherProvider({ children }: { children: React.ReactNode }) {
-  const { isRaining: apiIsRaining, isLoading, error } = useWeatherMap();
   const [isRaining, setIsRaining] = useState(false);
-  const lastSyncedApiValue = useRef<boolean | null>(null);
-
-  useEffect(() => {
-    if (!isLoading && !error) {
-      // Only update local state if the API value has actually changed since our last sync
-      if (lastSyncedApiValue.current === null || apiIsRaining !== lastSyncedApiValue.current) {
-        setIsRaining(apiIsRaining);
-        lastSyncedApiValue.current = apiIsRaining;
-      }
-    }
-  }, [apiIsRaining, isLoading, error]);
 
   return (
-    <WeatherContext.Provider value={{ isRaining, setIsRaining, isLoading, error }}>
+    <WeatherContext.Provider value={{ isRaining, setIsRaining, isLoading: false, error: null }}>
       {children}
     </WeatherContext.Provider>
   );

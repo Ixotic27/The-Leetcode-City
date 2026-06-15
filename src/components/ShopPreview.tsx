@@ -219,36 +219,23 @@ function ShopPreviewScene({
     return null;
   }, [highlightItemId, customColor]);
 
-  // City-matching per-face textures (regenerated when shape or face color changes)
+  // City-matching per-face textures (regenerated when shape or face color changes).
+  // Canvas drawing happens synchronously here so textures are never blank on first render.
   const textures = useMemo(() => {
     const seed = 42 * 137; // deterministic for preview
-    const frontCanvas = document.createElement("canvas");
-    const sideCanvas = document.createElement("canvas");
-    const front = new THREE.CanvasTexture(frontCanvas);
-    const side = new THREE.CanvasTexture(sideCanvas);
-    front.magFilter = THREE.NearestFilter;
-    front.minFilter = THREE.NearestFilter;
-    front.colorSpace = THREE.SRGBColorSpace;
-    side.magFilter = THREE.NearestFilter;
-    side.minFilter = THREE.NearestFilter;
-    side.colorSpace = THREE.SRGBColorSpace;
-    return { front, side, frontCanvas, sideCanvas, seed };
-  }, [floors, windowsPerFloor, sideWindowsPerFloor, faceColor]);
-
-  const drawTextures = useCallback(() => {
     const WS = 6;
     const GAP = 2;
     const PAD = 3;
     const litPct = 0.65;
 
-    const draw = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, rCount: number, cCount: number, seedVal: number) => {
+    const drawCanvas = (rCount: number, cCount: number, seedVal: number) => {
       const w = PAD * 2 + cCount * WS + Math.max(0, cCount - 1) * GAP;
       const h = PAD * 2 + rCount * WS + Math.max(0, rCount - 1) * GAP;
-      
+
+      const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      const ctx = canvas.getContext("2d")!;
 
       ctx.fillStyle = faceColor || THEME.face;
       ctx.fillRect(0, 0, w, h);
@@ -271,17 +258,18 @@ function ShopPreviewScene({
           ctx.fillRect(x, y, WS, WS);
         }
       }
-      tex.needsUpdate = true;
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.NearestFilter;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
     };
 
-    draw(textures.frontCanvas, textures.front, floors, windowsPerFloor, textures.seed);
-    draw(textures.sideCanvas, textures.side, floors, sideWindowsPerFloor, textures.seed + 7919);
-  }, [textures, floors, windowsPerFloor, sideWindowsPerFloor, faceColor]);
-
-  // Redraw when faceColor changes
-  useEffect(() => {
-    drawTextures();
-  }, [drawTextures]);
+    const front = drawCanvas(floors, windowsPerFloor, seed);
+    const side = drawCanvas(floors, sideWindowsPerFloor, seed + 7919);
+    return { front, side };
+  }, [floors, windowsPerFloor, sideWindowsPerFloor, faceColor]);
 
   // 6-material array matching city Building3D: [side, side, roof, roof, front, front]
   const materials = useMemo(() => {

@@ -49,6 +49,12 @@ jobs:
               const assignees = issue.assignees ?? [];
               if (assignees.length === 0) continue;
 
+              const labels = issue.labels.map(l => l.name);
+              if (labels.includes('type:3d')) {
+                console.log(`#${issue.number}: Has type:3d label, skipping deadline enforcement.`);
+                continue;
+              }
+
               // Skip issues by the repo owner (admins)
               const isAdminIssue = assignees.some(a => a.login === 'Ixotic27');
               if (isAdminIssue) continue;
