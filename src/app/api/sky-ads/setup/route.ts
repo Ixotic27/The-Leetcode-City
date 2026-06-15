@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const { ok } = rateLimit(`setup:${ip}`, 1, 5_000);
+  const { ok } = await rateLimit(`setup:${ip}`, 1, 5_000);
   if (!ok) {
     return NextResponse.json(
       { error: "Too many requests. Try again in a few seconds." },

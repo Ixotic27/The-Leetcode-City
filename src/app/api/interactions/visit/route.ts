@@ -24,7 +24,7 @@ export async function POST(request: Request) {
   }
 
   // Per-user rate limit
-  const { ok } = rateLimit(`visit:${user.id}`, 2, 1000);
+  const { ok } = await rateLimit(`visit:${user.id}`, 2, 1000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }

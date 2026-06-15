@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   }
 
   // Rate limit: 1 checkout per 10 seconds per user
-  const { ok } = rateLimit(`checkout:${user.id}`, 1, 10_000);
+  const { ok } = await rateLimit(`checkout:${user.id}`, 1, 10_000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
   }
