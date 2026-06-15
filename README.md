@@ -23,25 +23,25 @@
 
 ## Table of Contents 
 
-- [What is LeetCode City?](#what-is-leetcode-city)
-- [Features](#features)
-- [How Buildings Work](#how-buildings-work)
-- [Architecture & Rendering Flow](#architecture--rendering-flow)
-- [LeetCode Data Pipeline](#leetcode-data-pipeline)
-- [The Journey of a Single Developer](#the-journey-of-a-single-developer)
-- [Data Source](#data-source)
-- [Data Collection Pipeline](#data-collection-pipeline)
-- [Rate Limiting & Reliability](#rate-limiting--reliability)
-- [Database Layer](#database-layer)
-- [Building Generation](#building-generation)
-- [City Rendering](#city-rendering)
-- [📁 Key Files](#-key-files)
-- [Tech Stack](#tech-stack)
-- [🚀 Getting Started](#-getting-started)
-- [🔧 Environment Variables](#-environment-variables)
-- [🤝 Contributing](#-contributing)
-- [👥 Contributors](#-contributors)
-- [License](#license)
+- <a href="#what-is-leetcode-city">What is LeetCode City?</a>
+- <a href="#features">Features</a>
+- <a href="#how-buildings-work">How Buildings Work</a>
+- <a href="#architecture--rendering-flow">Architecture & Rendering Flow</a>
+- <a href="#leetcode-data-pipeline">LeetCode Data Pipeline</a>
+- <a href="#the-journey-of-a-single-developer">The Journey of a Single Developer</a>
+- <a href="#data-source">Data Source</a>
+- <a href="#data-collection-pipeline">Data Collection Pipeline</a>
+- <a href="#rate-limiting--reliability">Rate Limiting & Reliability</a>
+- <a href="#database-layer">Database Layer</a>
+- <a href="#building-generation">Building Generation</a>
+- <a href="#city-rendering">City Rendering</a>
+- <a href="#-key-files">📁 Key Files</a>
+- <a href="#tech-stack">Tech Stack</a>
+- <a href="#-getting-started">🚀 Getting Started</a>
+- <a href="#-environment-variables">🔧 Environment Variables</a>
+- <a href="#-contributing">🤝 Contributing</a>
+- <a href="#-contributors">👥 Contributors</a>
+- <a href="#license">License</a>
 
 ---
 

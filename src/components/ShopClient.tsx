@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ShopItem } from "@/lib/items";
 import { levelFromXp } from "@/lib/xp";
+import { STATIC_RELICS, type Relic } from "@/lib/relics";
 import {
   ZONE_ITEMS,
   ZONE_LABELS,
@@ -694,11 +695,89 @@ export default function ShopClient({
   const [confirmBuyItem, setConfirmBuyItem] = useState<string | null>(null);
   const [verifyingStar, setVerifyingStar] = useState(false);
   const [starVerifyStep, setStarVerifyStep] = useState<"idle" | "opened" | "verifying">("idle");
-  const [activeTab, setActiveTab] = useState<"building" | "raid" | "consumables" | "points">(() => {
+  const [activeTab, setActiveTab] = useState<"building" | "raid" | "consumables" | "points" | "relics">(() => {
     if (purchasedItem && [...RAID_VEHICLE_ITEMS, ...RAID_TAG_ITEMS, ...RAID_BOOST_ITEMS].includes(purchasedItem)) return "raid";
     if (purchasedItem && RAID_CONSUMABLE_ITEMS.includes(purchasedItem)) return "consumables";
     return "building";
   });
+
+  const [relics, setRelics] = useState<Relic[]>([]);
+  const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
+  const [loadingRelics, setLoadingRelics] = useState(false);
+  const [selectedRelic, setSelectedRelic] = useState<Relic | null>(null);
+  const [equippingRelic, setEquippingRelic] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === "relics") {
+      setLoadingRelics(true);
+      fetch("/api/relics")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.relics) {
+            setRelics(data.relics);
+            if (!selectedRelic && data.relics.length > 0) {
+              const active = data.relics.find((r: any) => r.id === data.equippedRelicId);
+              setSelectedRelic(active || data.relics[0]);
+            }
+          }
+          setEquippedRelicId(data.equippedRelicId);
+          setLoadingRelics(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load relics:", err);
+          setRelics(STATIC_RELICS);
+          if (!selectedRelic) setSelectedRelic(STATIC_RELICS[0]);
+          setLoadingRelics(false);
+        });
+    }
+  }, [activeTab]);
+
+  const handleEquipRelic = async (relicId: string | null) => {
+    setEquippingRelic(relicId ?? "unequip");
+    try {
+      const res = await fetch("/api/relics/equip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ relicId }),
+      });
+      if (res.ok) {
+        setEquippedRelicId(relicId);
+        window.dispatchEvent(new CustomEvent("leetcodecity:relic-saved"));
+      }
+    } catch (err) {
+      console.error("Failed to equip relic:", err);
+    } finally {
+      setEquippingRelic(null);
+    }
+  };
+
+  const ERA_THEMES = {
+    Lith: {
+      border: "#b77030", // Bronze
+      bg: "radial-gradient(circle, #3d2414 0%, #150d08 100%)",
+      glyph: "▲",
+    },
+    Meso: {
+      border: "#d87040", // Copper
+      bg: "radial-gradient(circle, #481e0c 0%, #170a04 100%)",
+      glyph: "◈",
+    },
+    Neo: {
+      border: "#a0a0a0", // Silver / Steel
+      bg: "radial-gradient(circle, #2a2c30 0%, #0d0f12 100%)",
+      glyph: "◆",
+    },
+    Axi: {
+      border: "#ffa116", // Gold
+      bg: "radial-gradient(circle, #482f0c 0%, #170d04 100%)",
+      glyph: "❖",
+    },
+    Requiem: {
+      border: "#a855f7", // Void / Purple
+      bg: "radial-gradient(circle, #330c48 0%, #100417 100%)",
+      glyph: "👁",
+    },
+  };
 
   const [pixModal, setPixModal] = useState<PixModalData | null>(null);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
@@ -1620,6 +1699,19 @@ export default function ShopClient({
         >
           POINT SHOP [P]
         </button>
+        <button
+          onClick={() => setActiveTab("relics")}
+          className={`px-5 py-2 text-[11px] border-[2px] transition-colors ${activeTab === "relics"
+            ? "bg-bg-card border-cream/20"
+            : "border-border text-muted hover:text-cream hover:border-border-light"
+            }`}
+          style={{
+            color: activeTab === "relics" ? "#ffa116" : undefined,
+            borderColor: activeTab === "relics" ? "#ffa11644" : undefined
+          }}
+        >
+          RELICS
+        </button>
       </div>
 
       {/* ─── Building and Point Shop Tabs Layout ─── */}
@@ -2486,6 +2578,186 @@ export default function ShopClient({
         </div>
       )}
 
+      {/* ─── Relics Tab ─── */}
+      {activeTab === "relics" && (
+        <div className="max-w-[720px] mx-auto space-y-5 animate-[fade-in_0.3s_ease-out]">
+          <div className="border-[3px] border-border bg-bg-raised p-4 sm:p-6">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3 mb-5">
+              <h3 className="text-sm font-bold tracking-wider" style={{ color: "#ffa116" }}>
+                RELIC VAULT
+              </h3>
+              <span className="text-[9px] text-muted normal-case font-bold">
+                CIRCULAR ARTIFACTS
+              </span>
+            </div>
+
+            {loadingRelics ? (
+              <div className="py-12 text-center text-xs text-muted">
+                <span className="blink-dot">Loading Vault...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                {/* Relics list */}
+                <div className="md:col-span-3 space-y-3">
+                  <p className="text-[8px] uppercase tracking-wider text-muted font-bold">Resonators</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {relics.map((relic) => {
+                      const isEquipped = relic.id === equippedRelicId;
+                      const isSelected = relic.id === selectedRelic?.id;
+                      const eraTheme = ERA_THEMES[relic.era];
+                      const isLocked = relic.locked;
+
+                      return (
+                        <div
+                          key={relic.id}
+                          onClick={() => setSelectedRelic(relic)}
+                          className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                        >
+                          <div
+                            className={`relative flex h-14 w-14 items-center justify-center rounded-full border-[3px] transition-all duration-300 ${
+                              isSelected ? "scale-110 shadow-lg" : "hover:scale-105"
+                            } ${isLocked ? "opacity-60 saturate-50" : ""}`}
+                            style={{
+                              borderColor: isSelected ? "#ffa116" : (isLocked ? "#3f3f46" : eraTheme.border),
+                              background: isLocked ? "radial-gradient(circle, #18181b 0%, #09090b 100%)" : eraTheme.bg,
+                              boxShadow: isSelected
+                                ? `0 0 12px #ffa11680`
+                                : (isLocked ? "none" : `0 0 8px ${eraTheme.border}40`),
+                            }}
+                          >
+                            <div className="absolute inset-1 rounded-full border border-dashed border-white/20" />
+                            <span className="text-base" style={{ color: isLocked ? "#71717a" : eraTheme.border }}>
+                              {isLocked ? "🔒" : eraTheme.glyph}
+                            </span>
+                            {isEquipped && (
+                              <div
+                                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-bg animate-pulse"
+                                style={{ backgroundColor: "#ffa116" }}
+                              >
+                                ✓
+                              </div>
+                            )}
+                          </div>
+                          <span
+                            className={`text-[8px] text-center tracking-wide truncate w-full font-bold ${
+                              isSelected ? "text-cream" : "text-muted group-hover:text-cream"
+                            }`}
+                          >
+                            {relic.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Relic detail panel */}
+                <div className="md:col-span-2 border-[2px] border-border bg-bg/50 p-4 flex flex-col justify-between">
+                  {selectedRelic ? (
+                    <div className="h-full flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`flex h-12 w-12 items-center justify-center rounded-full border-[3px] flex-shrink-0 ${selectedRelic.locked ? "opacity-60 saturate-50" : ""}`}
+                            style={{
+                              borderColor: selectedRelic.locked ? "#3f3f46" : ERA_THEMES[selectedRelic.era].border,
+                              background: selectedRelic.locked ? "radial-gradient(circle, #18181b 0%, #09090b 100%)" : ERA_THEMES[selectedRelic.era].bg,
+                            }}
+                          >
+                            <span className="text-base" style={{ color: selectedRelic.locked ? "#71717a" : ERA_THEMES[selectedRelic.era].border }}>
+                              {selectedRelic.locked ? "🔒" : ERA_THEMES[selectedRelic.era].glyph}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm inline-block"
+                                style={{
+                                  backgroundColor: selectedRelic.locked ? "#27272a" : ERA_THEMES[selectedRelic.era].border + "22",
+                                  color: selectedRelic.locked ? "#71717a" : ERA_THEMES[selectedRelic.era].border,
+                                  border: `1px solid ${selectedRelic.locked ? "#3f3f46" : ERA_THEMES[selectedRelic.era].border + "40"}`,
+                                }}
+                              >
+                                {selectedRelic.era.toUpperCase()} ERA
+                              </div>
+                              {selectedRelic.locked && (
+                                <div className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm inline-block bg-red-500/10 text-red-400 border border-red-500/20 tracking-wider">
+                                  LOCKED
+                                </div>
+                              )}
+                            </div>
+                            <h4 className="text-[10px] font-bold text-cream mt-0.5">{selectedRelic.name}</h4>
+                          </div>
+                        </div>
+
+                        {selectedRelic.description && (
+                          <div className="space-y-1">
+                            <p className="text-[9px] italic leading-relaxed text-cream/90 normal-case">
+                              "{selectedRelic.description}"
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-muted font-bold tracking-wider">ABILITIES</span>
+                          <p className="text-[9px] leading-relaxed text-cream normal-case font-medium">
+                            {selectedRelic.abilities}
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-muted font-bold tracking-wider">HOW TO ACHIEVE</span>
+                          <p className="text-[9px] leading-relaxed text-cream normal-case font-medium">
+                            {selectedRelic.howToAchieve}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-border/30">
+                        {selectedRelic.locked ? (
+                          <button
+                            disabled
+                            className="w-full py-2 text-center text-[9px] text-muted border-[2px] border-border bg-bg/20 cursor-not-allowed opacity-50 font-bold"
+                          >
+                            LOCKED
+                          </button>
+                        ) : equippedRelicId === selectedRelic.id ? (
+                          <button
+                            onClick={() => handleEquipRelic(null)}
+                            disabled={equippingRelic !== null}
+                            className="btn-press w-full py-2 text-center text-[9px] text-cream border-[2px] border-red-500/60 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          >
+                            {equippingRelic === "unequip" ? "UNEQUIPPING..." : "UNEQUIP RELIC"}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleEquipRelic(selectedRelic.id)}
+                            disabled={equippingRelic !== null}
+                            className="btn-press w-full py-2 text-center text-[9px] text-bg font-bold transition-all disabled:opacity-50"
+                            style={{
+                              backgroundColor: "#ffa116",
+                              boxShadow: `2px 2px 0 0 ${SHADOW}`,
+                            }}
+                          >
+                            {equippingRelic ? "EQUIPPING..." : "EQUIP RELIC"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-[9px] text-muted">
+                      No relic selected
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-center text-[10px] text-dim normal-case">
+            Equipping relics grants active abilities.
+          </p>
+        </div>
+      )}
 
     </>
   );

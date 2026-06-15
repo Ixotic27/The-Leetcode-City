@@ -33,7 +33,7 @@ export default function ShareButtons({
   const profileUrl =
     mounted && typeof window !== "undefined"
       ? `${window.location.origin}/dev/${login}`
-      : `https://theleetcode.city/dev/${login}`;
+      : `https://theleetcodecity.tech/dev/${login}`;
 
   const formattedContributions = mounted
     ? contributions.toLocaleString()
