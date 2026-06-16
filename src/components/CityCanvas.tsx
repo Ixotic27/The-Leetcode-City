@@ -17,6 +17,7 @@ import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
 import LeaderboardHolograms from "./LeaderboardHolograms";
 import Colosseum from "./Colosseum";
+import ImportedColosseum from "./ImportedColosseum";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
@@ -2384,6 +2385,7 @@ export default function CityCanvas({
         <>
           <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
           <Colosseum />
+          <ImportedColosseum />
           <LeaderboardHolograms buildings={buildings} onBuildingClick={onBuildingClick} />
 
           {!wallpaperMode && celebrationActive && <CelebrationEffect cityRadius={cityRadius} />}
