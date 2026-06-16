@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 const CAR_COUNT = 30;
-const ROAD_Y = 70;
-const TRAFFIC_RADIUS = 350;
+const ROAD_Y = 2.5;
+const TRAFFIC_RADIUS = 700;
 
 type CarData = {
   progress: number;
