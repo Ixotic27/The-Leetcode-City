@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { levelFromXp } from "@/lib/xp";
 
 /**
  * @param {import('next/server').NextRequest} req
@@ -106,23 +105,37 @@ export async function POST(req: Request) {
 
     // ── Apply XP — only reached if RPC won the race ───────────────────
     const xpAmount = result.xp_amount;
-    const newXpTotal = (dev.xp_total ?? 0) + xpAmount;
-    const newLevel = levelFromXp(newXpTotal);
-
-    const { error: xpError } = await sb
-      .from("developers")
-      .update({ xp_total: newXpTotal, xp_level: newLevel })
-      .eq("id", dev.id);
+    const { data: xpResult, error: xpError } = await sb.rpc("grant_xp_atomic", {
+      p_developer_id: dev.id,
+      p_source: `xp_code:${redeemCode.id}`,
+      p_amount: xpAmount,
+    });
 
     if (xpError) {
-      // RPC already committed usage + incremented used_count.
-      // Log the failure but do not return an error that would let the
-      // user retry — the code slot has been consumed.
-      console.error("[redeem-xp] XP update failed after successful RPC:", xpError.message);
+      console.error("[redeem-xp] grant_xp_atomic failed after successful redemption:", xpError.message);
       return NextResponse.json(
         { error: "Code was redeemed but XP could not be applied. Contact support." },
         { status: 500 }
       );
+    }
+
+    let newXpTotal: number;
+    let newLevel: number;
+    if (xpResult) {
+     const grant = xpResult as { granted: number; new_total: number; new_level: number };
+      newXpTotal = grant.new_total;
+      newLevel = grant.new_level;
+    } else {
+      console.warn(
+        `[redeem-xp] grant_xp_atomic returned null (duplicate source key) for dev ${dev.id}, code ${redeemCode.id}`
+      );
+      const { data: refreshed } = await sb
+        .from("developers")
+        .select("xp_total, xp_level")
+        .eq("id", dev.id)
+        .single();
+      newXpTotal = refreshed?.xp_total ?? dev.xp_total ?? 0;
+      newLevel = refreshed?.xp_level ?? 1;
     }
 
     return NextResponse.json({

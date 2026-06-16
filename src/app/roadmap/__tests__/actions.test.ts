@@ -34,15 +34,15 @@ interface AdminClient {
   from(table: string): unknown;
 }
 
-const upsertSpy = vi.fn<Promise<{ error: null }>, [Record<string, unknown>, Record<string, unknown>?]>(async () => ({ error: null }));
-const insertSpy = vi.fn<Promise<{ error: null }>, [Record<string, unknown>]>(async () => ({ error: null }));
-const deleteSpy = vi.fn<Promise<{ error: null }>, [string, string | number]>(async () => ({ error: null }));
+const upsertSpy = vi.fn(async (row: Record<string, unknown>, opts?: Record<string, unknown>) => ({ error: null }));
+const insertSpy = vi.fn(async (row: Record<string, unknown>) => ({ error: null }));
+const deleteSpy = vi.fn(async (col: string, val: string | number) => ({ error: null }));
 
 // Create a single admin object so tests can mutate its returned "from" instance
 // Shared roadmap_votes from-object so tests can mutate its __existing field
-const roadmapFromObj: RoadmapFromWithExisting = {
+const roadmapFromObj: any = {
   select: () => {
-    const obj: SelectEq = {
+    const obj: any = {
       eq(col: string, val?: string | number) {
         return obj;
       },
@@ -55,7 +55,7 @@ const roadmapFromObj: RoadmapFromWithExisting = {
   upsert: (row: Record<string, unknown>, opts?: Record<string, unknown>) => { upsertSpy(row, opts); return { error: null }; },
 };
 
-const adminObj: AdminClient = {
+const adminObj: any = {
   from(table: string) {
     if (table === "developers") {
       return {
@@ -65,7 +65,7 @@ const adminObj: AdminClient = {
     if (table === "roadmap_votes") {
       return roadmapFromObj;
     }
-    return { select: () => ({ maybeSingle: async () => ({ data: null }) }) } as unknown;
+    return { select: () => ({ maybeSingle: async () => ({ data: null }) }) };
   }
 };
 
@@ -91,7 +91,7 @@ describe("toggleVote idempotency behaviour", () => {
 
   it("adds a vote when none exists (calls upsert)", async () => {
     // Ensure roadmap_votes select.maybeSingle returns no existing vote
-    const admin = (await import("@/lib/supabase")).getSupabaseAdmin() as AdminClient;
+    const admin = (await import("@/lib/supabase")).getSupabaseAdmin() as any;
     const fromObj = admin.from("roadmap_votes");
     fromObj.__existing = { data: null };
 
@@ -102,7 +102,7 @@ describe("toggleVote idempotency behaviour", () => {
   });
 
   it("removes vote when existing row present (calls delete)", async () => {
-    const admin = (await import("@/lib/supabase")).getSupabaseAdmin() as AdminClient;
+    const admin = (await import("@/lib/supabase")).getSupabaseAdmin() as any;
     const fromObj = admin.from("roadmap_votes");
     fromObj.__existing = { data: { id: 99 } };
 
