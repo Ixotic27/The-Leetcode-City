@@ -63,7 +63,8 @@
     "svix": "^1.95.1",
     "swr": "^2.4.1",
     "three": "^0.183.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@emnapi/core": "^1.10.0",
