@@ -37,6 +37,22 @@ export async function POST(request: Request) {
 
   const sb = getSupabaseAdmin();
 
+  // ─── Idempotency Check ───
+  // Attempt to log the event ID. If it already exists, this is a duplicate delivery.
+  const { error: idempotencyError } = await sb
+    .from("stripe_processed_events")
+    .insert({ id: event.id });
+
+  if (idempotencyError) {
+    if (idempotencyError.code === "23505") {
+      // 23505 = unique_violation (event already processed)
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // For other transient DB errors, return 500 so Stripe retries
+    console.error("Stripe idempotency check failed:", idempotencyError);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
