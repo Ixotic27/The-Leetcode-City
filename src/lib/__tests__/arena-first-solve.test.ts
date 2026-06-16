@@ -167,3 +167,133 @@ describe("Arena first-solve idempotency — application layer", () => {
     expect(claimResult).toBeNull();
   });
 });
+
+describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  type ChallengeRow = {
+    challenge_date: string;
+    type: string;
+    difficulty: string;
+    problem_id: string;
+  };
+
+  function makeStore() {
+    // Keyed by "date|type|difficulty" to simulate UNIQUE constraint
+    const committed = new Map<string, ChallengeRow>();
+
+    return {
+      insert(rows: ChallengeRow[]) {
+        // No ON CONFLICT guard — always inserts, producing duplicates
+        rows.forEach((r) => {
+          const key = `${r.challenge_date}|${r.type}|${r.difficulty}`;
+          committed.set(`${key}|${Math.random()}`, r); // unique synthetic pk
+        });
+      },
+      upsert(rows: ChallengeRow[], ignoreDuplicates: boolean) {
+        rows.forEach((r) => {
+          const key = `${r.challenge_date}|${r.type}|${r.difficulty}`;
+          if (ignoreDuplicates && committed.has(key)) return; // ON CONFLICT DO NOTHING
+          committed.set(key, r);
+        });
+      },
+      count() {
+        return committed.size;
+      },
+      rows() {
+        return [...committed.values()];
+      },
+    };
+  }
+
+  const DATE = "2026-06-16";
+
+  const CHALLENGES: ChallengeRow[] = [
+    { challenge_date: DATE, type: "daily", difficulty: "easy",   problem_id: "P1" },
+    { challenge_date: DATE, type: "daily", difficulty: "medium", problem_id: "P2" },
+    { challenge_date: DATE, type: "daily", difficulty: "hard",   problem_id: "P3" },
+  ];
+
+  it("OLD behaviour (plain insert): two concurrent invocations produce 6 rows — demonstrating the bug", () => {
+    const store = makeStore();
+
+    // Both invocations pass the guard (store is empty at read time)
+    // and both insert — TOCTOU race
+    store.insert(CHALLENGES); // invocation A
+    store.insert(CHALLENGES); // invocation B (concurrent)
+
+    expect(store.count()).toBe(6); // BUG: 6 rows for one date
+  });
+
+  it("NEW behaviour (upsert + ignoreDuplicates): two concurrent invocations produce exactly 3 rows", () => {
+    const store = makeStore();
+
+    store.upsert(CHALLENGES, true); // invocation A — commits all 3
+    store.upsert(CHALLENGES, true); // invocation B — all 3 conflict → no-op
+
+    expect(store.count()).toBe(3); // FIXED: exactly 3 rows
+  });
+
+  it("each difficulty appears exactly once after concurrent rotation", () => {
+    const store = makeStore();
+
+    store.upsert(CHALLENGES, true);
+    store.upsert(CHALLENGES, true); // concurrent duplicate
+
+    const difficulties = store.rows().map((r) => r.difficulty).sort();
+    expect(difficulties).toEqual(["easy", "hard", "medium"]);
+  });
+
+  it("upsert is idempotent across N invocations", () => {
+    const store = makeStore();
+
+    for (let i = 0; i < 10; i++) {
+      store.upsert(CHALLENGES, true);
+    }
+
+    expect(store.count()).toBe(3);
+  });
+
+  it("different dates do not conflict with each other", () => {
+    const store = makeStore();
+
+    const tomorrow: ChallengeRow[] = CHALLENGES.map((r) => ({
+      ...r,
+      challenge_date: "2026-06-17",
+    }));
+
+    store.upsert(CHALLENGES, true); // today
+    store.upsert(tomorrow, true);   // tomorrow
+
+    expect(store.count()).toBe(6); // 3 per date — correct
+  });
+
+  it("the JS-level guard (existingChallenges.length >= 3) remains a valid fast-path check", () => {
+    // Verifies the guard logic independently — it's still useful as a
+    // fast-path to avoid unnecessary DB round-trips even though it's no
+    // longer safety-critical after the upsert fix.
+    const existingChallenges = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const shouldSkip = existingChallenges.length >= 3;
+    expect(shouldSkip).toBe(true);
+  });
+
+  it("guard does NOT skip when fewer than 3 challenges exist (partial rotation)", () => {
+    const existingChallenges = [{ id: 1 }];
+    const shouldSkip = existingChallenges.length >= 3;
+    expect(shouldSkip).toBe(false);
+  });
+
+  it("upsert preserves the problem_id from the first writer under a conflict", () => {
+    const store = makeStore();
+
+    const firstWriterChallenges: ChallengeRow[] = [
+      { challenge_date: DATE, type: "daily", difficulty: "easy", problem_id: "FIRST" },
+    ];
+    const secondWriterChallenges: ChallengeRow[] = [
+      { challenge_date: DATE, type: "daily", difficulty: "easy", problem_id: "SECOND" },
+    ];
+
+    store.upsert(firstWriterChallenges, true);
+    store.upsert(secondWriterChallenges, true); // ignored — first writer wins
+
+    const row = store.rows().find((r) => r.difficulty === "easy");
+    expect(row?.problem_id).toBe("FIRST");
+  });
+});

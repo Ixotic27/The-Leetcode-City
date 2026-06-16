@@ -35,7 +35,6 @@ const DEFAULT_API: [number, number] = [60, WINDOW_1_MIN_MS];
 const DEFAULT_PAGE: [number, number] = [120, WINDOW_1_MIN_MS];
 
 function getLimitForPath(pathname: string): {
-
   limit: number;
   window: number;
   group: string;
@@ -45,7 +44,6 @@ function getLimitForPath(pathname: string): {
   if (pathname.startsWith("/api/webhooks")) {
     return { limit: 1000, window: WINDOW_1_MIN_MS, group: "webhooks" };
   }
-
 
   for (const [prefix, limit, window] of ROUTE_LIMITS) {
     if (pathname.startsWith(prefix)) {
@@ -60,12 +58,21 @@ function getLimitForPath(pathname: string): {
   return { limit: DEFAULT_PAGE[0], window: DEFAULT_PAGE[1], group: "/pages" };
 }
 
+/**
+ * Extract the real client IP from the request.
+ *
+ * Vercel's reverse proxy appends the true client IP as the LAST entry in
+ * x-forwarded-for. Trusting the first entry is spoofable: an attacker can
+ * send `X-Forwarded-For: 1.2.3.4` which becomes `1.2.3.4, <real-ip>` after
+ * Vercel appends its value — reading [0] returns the forged address.
+ */
 function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ips.length > 0) return ips[ips.length - 1];
+  }
+  return request.headers.get("x-real-ip") ?? "unknown";
 }
 
 // ---------------------------------------------------------------------------
@@ -97,9 +104,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── 2. Supabase Session Refresh ──────────────────────────────────────
-  // Only call Supabase when the user is actually logged in (has auth
-  // cookies).  For anonymous visitors (~80%+ of viral traffic) we skip
-  // the external HTTP call entirely, saving latency and Supabase quota.
   const hasSession = request.cookies
     .getAll()
     .some((c) => c.name.startsWith("sb-"));
@@ -131,30 +135,23 @@ export async function middleware(request: NextRequest) {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
 
-      // If Supabase returns an auth error, handle it explicitly.
       if (error) {
         console.error(
           "Supabase authentication validation failed:",
           error.message || error,
         );
-
-        // Proceed as anonymous: do not block request lifecycle.
       } else {
-        // `user` is intentionally unused here; middleware only needs to
-        // validate/refresh session cookies.
+        void user; // session refreshed; user object not needed here
       }
     } catch (error) {
-      // Network failures / invalid session / infra drops can throw.
       console.error(
         "Supabase authentication validation threw an error:",
         error instanceof Error ? error.message : error,
       );
-
-      // Proceed as anonymous: do not crash middleware.
     }
   }
 
-  // ── 3. Security headers
+  // ── 3. Security headers ───────────────────────────────────────────────
   supabaseResponse.headers.set("X-Frame-Options", "DENY");
   supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
   supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
