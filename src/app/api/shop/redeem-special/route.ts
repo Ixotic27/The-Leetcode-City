@@ -112,11 +112,37 @@ export async function POST(req: Request) {
         }
       }
 
-      await sb
+      const { data: updatedCode, error: updateErr } = await sb
         .from("special_codes")
         .update({ used_count: specialCode.used_count + 1 })
         .eq("id", specialCode.id)
-        .eq("used_count", specialCode.used_count);
+        .eq("used_count", specialCode.used_count)
+        .select("id");
+
+      if (updateErr || !updatedCode || updatedCode.length === 0) {
+        // Rollback usage insert
+        await sb
+          .from("special_code_usages")
+          .delete()
+          .eq("code_id", specialCode.id)
+          .eq("developer_id", dev.id);
+
+        // Rollback purchases insert
+        if (toGrant.length > 0) {
+          const providerTxIds = toGrant.map(
+            item => `special_code_${specialCode.id}_${dev.id}_${item.id}`
+          );
+          await sb
+            .from("purchases")
+            .delete()
+            .in("provider_tx_id", providerTxIds);
+        }
+
+        return NextResponse.json(
+          { error: "Code could not be redeemed. Please try again." },
+          { status: 409 }
+        );
+      }
 
       const grantedIds = toGrant.map(i => i.id);
 
