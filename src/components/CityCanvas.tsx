@@ -26,8 +26,8 @@ import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
-import TrafficSystem from "./TrafficSystem";
 import OuterWildlands from "./OuterWildlands";
+import TrafficSystem from "./TrafficSystem";
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -2322,51 +2322,6 @@ export default function CityCanvas({
       )}
 
       <InfiniteWater waterColor={t.waterColor} waterEmissive={t.waterEmissive} />
-      <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
-      <CircularCityPlatform radius={cityRadius} color={t.groundColor} weatherMode={weatherMode} />
-
-      <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
-
-      {!wallpaperMode && celebrationActive && <CelebrationEffect cityRadius={cityRadius} />}
-
-      {!wallpaperMode && rabbitSighting && rabbitSighting >= 1 && rabbitSighting <= 5 && (() => {
-        const plazaIdx = RABBIT_PLAZA_INDICES[rabbitSighting - 1];
-        const plaza = plazas[plazaIdx];
-        if (!plaza) return null;
-        const pos: [number, number, number] = [plaza.position[0], 0.5, plaza.position[2]];
-        return (
-          <WhiteRabbit
-            position={pos}
-            visible={true}
-            onCaught={onRabbitCaught ?? (() => { })}
-          />
-        );
-      })()}
-
-
-
-      <CityScene
-        buildings={buildings}
-        colors={t.building}
-        focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
-        focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
-        hideEffectsFor={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : null}
-        accentColor={t.building.accent}
-        onBuildingClick={onBuildingClick}
-        onFocusInfo={onFocusInfo}
-        introMode={introMode}
-        flyMode={flyMode}
-        ghostPreviewLogin={ghostPreviewLogin}
-        holdRise={holdRise}
-        liveByLogin={liveByLogin}
-        cityEnergy={cityEnergy}
-        timeRef={timeRef}
-        weatherMode={weatherMode}
-      />
-
-      <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
-      <TrafficSystem />
-
       {!hasTraveledToNewWorld && (
         <>
           <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
@@ -2424,10 +2379,9 @@ export default function CityCanvas({
           />
 
           <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
-
+          <TrafficSystem />
           {!wallpaperMode && skyAds && skyAds.length > 0 && (
             <>
-            
               <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
               <BuildingAds
                 ads={skyAds}
