@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cannot give kudos to yourself" }, { status: 400 });
   }
 
-  const { today, yesterday } = getUtcDateStrings();
+  const { today } = getUtcDateStrings();
 
   const { data: rpcResult, error: rpcError } = await admin.rpc("insert_kudos_atomic", {
     p_giver_id: giver.id,
@@ -93,20 +93,12 @@ export async function POST(request: Request) {
     },
   });
 
-  const lastKudosDate = giver.last_kudos_given_date as string | null;
-  let newKudosStreak = giver.kudos_streak ?? 0;
-
-  if (lastKudosDate === today) {
-  } else if (lastKudosDate === yesterday) {
-    newKudosStreak += 1;
-  } else {
-    newKudosStreak = 1;
-  }
-
-  await admin
-    .from("developers")
-    .update({ kudos_streak: newKudosStreak, last_kudos_given_date: today })
-    .eq("id", giver.id);
+  const { data: streakResult, error: streakError } = await admin.rpc("update_kudos_streak", {
+    p_giver_id: giver.id, p_given_date: today,
+  });
+  
+  if (streakError) { console.warn("[kudos] update_kudos_streak RPC error:", streakError.message); }
+  const newKudosStreak = (streakResult?.kudos_streak as number | undefined) ?? giver.kudos_streak ?? 0;
 
   try {
     await admin.rpc("increment_kudos_week", {
