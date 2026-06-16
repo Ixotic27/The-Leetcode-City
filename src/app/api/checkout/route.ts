@@ -7,7 +7,7 @@ import { createCryptoInvoice } from "@/lib/nowpayments";
 import { createCashfreeCheckout } from "@/lib/cashfree";
 import { rateLimit } from "@/lib/rate-limit";
 
-import { fulfillItemPurchase } from "@/lib/items";
+import { fulfillItemPurchase, autoEquipIfSolo } from "@/lib/items";
 
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
 // middleware rate limit.  This one is keyed by Supabase user ID so it
@@ -262,7 +262,8 @@ export async function POST(request: Request) {
 
   if (isDev || isFree) {
     console.log(`Bypassing payment for ${githubLogin} (Dev: ${isDev}, Free: ${isFree})`);
-    const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, sb);
+    const recipientId = giftedToDevId ?? dev.id;
+    const { status: purchaseStatus } = await fulfillItemPurchase(recipientId, item_id, sb);
     const { data: purchase, error: purchaseError } = await sb
       .from("purchases")
       .insert({
@@ -281,6 +282,8 @@ export async function POST(request: Request) {
     if (purchaseError) {
       return NextResponse.json({ error: "Failed to create dev/free purchase" }, { status: 500 });
     }
+
+    await autoEquipIfSolo(recipientId, item_id);
 
     // Return a success URL that redirects back to the shop/city
     return NextResponse.json({
