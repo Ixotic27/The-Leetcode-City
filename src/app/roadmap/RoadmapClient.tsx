@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabase";
 import { ROADMAP_PHASES, VOTABLE_ITEM_IDS } from "@/lib/roadmap-data";
 import type { RoadmapPhase, RoadmapItem, ItemStatus } from "@/lib/roadmap-data";
 import { toggleVote } from "./actions";
+import { performVoteWithRollback } from "./vote-helper";
 
 const ACCENT = "#ffa116";
 const CREAM = "#e8dcc8";
@@ -90,9 +91,9 @@ export default function RoadmapClient({
           <h1 className="text-3xl text-cream md:text-4xl">
             Road<span style={{ color: ACCENT }}>map</span>
           </h1>
-          <p className="mt-3 text-xs text-muted normal-case">
-            What we've built, what we're building, and what's coming next
-          </p>
+            <p className="mt-3 text-xs text-muted normal-case">
+              What we&apos;ve built, what we&apos;re building, and what&apos;s coming next
+            </p>
         </div>
 
         {/* Progress bar */}
@@ -260,7 +261,7 @@ function ItemRow({
 
   const [optimistic, setOptimistic] = useOptimistic(
     { votes: initialVotes, hasVoted: initialHasVoted },
-    (state, _action: "toggle") => ({
+    (state) => ({
       votes: state.hasVoted ? state.votes - 1 : state.votes + 1,
       hasVoted: !state.hasVoted,
     })
@@ -272,8 +273,7 @@ function ItemRow({
       return;
     }
     startTransition(async () => {
-      setOptimistic("toggle");
-      await toggleVote(item.id);
+      await performVoteWithRollback({ setOptimistic, toggleVoteFn: toggleVote, itemId: item.id });
     });
   }
 

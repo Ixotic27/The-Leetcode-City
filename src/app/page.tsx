@@ -45,7 +45,6 @@ import { useCodingPresence } from "@/lib/useCodingPresence";
 import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
-import RaidPreviewModal from "@/components/RaidPreviewModal";
 import RaidOverlay from "@/components/RaidOverlay";
 import PillModal from "@/components/PillModal";
 import FounderMessage from "@/components/FounderMessage";
@@ -115,6 +114,13 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
       </div>
     </div>
   ),
+});
+
+// Lazy-loaded: pulls in Three.js / @react-three/fiber, so it must stay out of
+// the initial homepage bundle. The Three.js chunk only loads when the raid
+// preview modal is actually opened (raidState.phase === "preview").
+const RaidPreviewModal = dynamic(() => import("@/components/RaidPreviewModal"), {
+  ssr: false,
 });
 
 // Feature flags — flip to switch milestone banner
