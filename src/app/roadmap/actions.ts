@@ -57,10 +57,13 @@ export async function toggleVote(itemId: string) {
     await admin.from("roadmap_votes").delete().eq("id", existing.id);
   } else {
     // Add vote (ON CONFLICT DO NOTHING for safety)
-    await admin.from("roadmap_votes").insert({
-      developer_id: dev.id,
-      item_id: itemId,
-    });
+    await admin.from("roadmap_votes").upsert(
+      {
+        developer_id: dev.id,
+        item_id: itemId,
+      },
+      { onConflict: "developer_id,item_id", ignoreDuplicates: true }
+    );
   }
 
   revalidatePath("/roadmap");
