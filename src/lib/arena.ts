@@ -457,9 +457,14 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
       }
     ];
 
-    const { error } = await sb.from("arena_challenges").insert(challengesToInsert);
+    const { error } = await sb
+      .from("arena_challenges")
+      .upsert(challengesToInsert, {
+        onConflict: "challenge_date,type,difficulty",
+        ignoreDuplicates: true,
+      });
     if (error) {
-      console.error(`Error inserting daily challenges:`, error.message);
+      console.error(`Error upserting daily challenges:`, error.message);
       return false;
     }
 

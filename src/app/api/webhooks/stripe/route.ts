@@ -5,6 +5,7 @@ import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
+import { InfrastructureError } from "@/lib/errors";
 import type Stripe from "stripe";
 
 // Disable body parsing — Stripe needs raw body for signature verification
@@ -303,10 +304,14 @@ export async function POST(request: Request) {
       }
     }
   } catch (err) {
-    // Log but return 200 — we don't want Stripe to retry on business logic errors
-    console.error("Stripe webhook handler error:", err);
+    if (err instanceof InfrastructureError) {
+      // Transient failure — let Stripe retry by returning 500
+      console.error("[Stripe webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    // BusinessLogicError or unknown — return 200 to prevent futile retries
+    console.error("[Stripe webhook] Business logic or unexpected error:", err);
   }
 
-  // Always return 200 to prevent Stripe retries
   return NextResponse.json({ received: true });
 }
