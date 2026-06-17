@@ -74,74 +74,63 @@ export async function POST(req: Request) {
         .select("item_id")
         .eq("developer_id", dev.id)
         .is("gifted_to", null)
-        .eq("status", "completed");
+        .in("status", ["completed", "delivered"]);
 
       const alreadyOwned = new Set((ownedRows ?? []).map(r => r.item_id));
       const toGrant = allItems.filter(i => !alreadyOwned.has(i.id));
 
-      const { error: usageInsertErr } = await sb
-        .from("special_code_usages")
-        .insert({
-          code_id: specialCode.id,
-          developer_id: dev.id,
+      if (toGrant.length > 0) {
+        const itemIds = toGrant.map(i => i.id);
+
+        const { error: rpcError } = await sb.rpc("redeem_special_all_items", {
+          p_code_id: specialCode.id,
+          p_dev_id: dev.id,
+          p_item_ids: itemIds,
+          p_expected_used_count: specialCode.used_count,
         });
 
-      if (usageInsertErr) {
-        if (usageInsertErr.code?.includes("23505")) {
-          return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
-        }
-        console.error("[redeem-special] usage insert error:", usageInsertErr);
-        return NextResponse.json({ error: "Failed to redeem code. Please try again." }, { status: 500 });
-      }
-
-      if (toGrant.length > 0) {
-        const inserts = toGrant.map(item => ({
-          developer_id: dev.id,
-          item_id: item.id,
-          provider: "free",
-          provider_tx_id: `special_code_${specialCode.id}_${dev.id}_${item.id}`,
-          amount_cents: 0,
-          currency: "usd",
-          status: "completed",
-        }));
-
-        const { error: insertErr } = await sb.from("purchases").insert(inserts);
-        if (insertErr && !insertErr.code?.includes("23505")) {
-          console.error("[redeem-special] insert error:", insertErr);
+        if (rpcError) {
+          if (rpcError.message?.includes("23505") || rpcError.message?.includes("duplicate")) {
+            return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
+          }
+          console.error("[redeem-special] RPC error:", rpcError);
           return NextResponse.json({ error: "Failed to grant items. Please try again." }, { status: 500 });
         }
-      }
-
-      const { data: updatedCode, error: updateErr } = await sb
-        .from("special_codes")
-        .update({ used_count: specialCode.used_count + 1 })
-        .eq("id", specialCode.id)
-        .eq("used_count", specialCode.used_count)
-        .select("id");
-
-      if (updateErr || !updatedCode || updatedCode.length === 0) {
-        // Rollback usage insert
-        await sb
+      } else {
+        const { error: usageInsertErr } = await sb
           .from("special_code_usages")
-          .delete()
-          .eq("code_id", specialCode.id)
-          .eq("developer_id", dev.id);
+          .insert({
+            code_id: specialCode.id,
+            developer_id: dev.id,
+          });
 
-        // Rollback purchases insert
-        if (toGrant.length > 0) {
-          const providerTxIds = toGrant.map(
-            item => `special_code_${specialCode.id}_${dev.id}_${item.id}`
-          );
-          await sb
-            .from("purchases")
-            .delete()
-            .in("provider_tx_id", providerTxIds);
+        if (usageInsertErr) {
+          if (usageInsertErr.code?.includes("23505")) {
+            return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
+          }
+          console.error("[redeem-special] usage insert error:", usageInsertErr);
+          return NextResponse.json({ error: "Failed to redeem code. Please try again." }, { status: 500 });
         }
 
-        return NextResponse.json(
-          { error: "Code could not be redeemed. Please try again." },
-          { status: 409 }
-        );
+        const { data: updatedCode, error: updateErr } = await sb
+          .from("special_codes")
+          .update({ used_count: specialCode.used_count + 1 })
+          .eq("id", specialCode.id)
+          .eq("used_count", specialCode.used_count)
+          .select("id");
+
+        if (updateErr || !updatedCode || updatedCode.length === 0) {
+          await sb
+            .from("special_code_usages")
+            .delete()
+            .eq("code_id", specialCode.id)
+            .eq("developer_id", dev.id);
+
+          return NextResponse.json(
+            { error: "Code could not be redeemed. Please try again." },
+            { status: 409 }
+          );
+        }
       }
 
       const grantedIds = toGrant.map(i => i.id);
