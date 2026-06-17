@@ -58,3 +58,12 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- 🚀 TRIGGER ACTIVATION INJECTION: Automatically executes the tracking function before upsert updates commit
+DROP TRIGGER IF EXISTS trigger_upsert_developer_session ON public.developer_sessions;
+
+CREATE TRIGGER trigger_upsert_developer_session
+  BEFORE INSERT OR UPDATE ON public.developer_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.upsert_developer_session_safely();
+
