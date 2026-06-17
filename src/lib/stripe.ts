@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { randomUUID } from "crypto";
 import { getBaseUrl } from "./base-url";
 import { getSupabaseAdmin } from "./supabase";
 
@@ -23,6 +24,7 @@ export async function createCheckoutSession(
   customerEmail?: string,
   giftedToDevId?: number | null,
   giftedToLogin?: string | null,
+  idempotencyKey?: string,
 ): Promise<{ url: string }> {
   const sb = getSupabaseAdmin();
 
@@ -42,7 +44,7 @@ export async function createCheckoutSession(
   const unitAmount =
     currency === "brl" ? item.price_brl_cents : item.price_usd_cents;
 
-  const session = await stripe.checkout.sessions.create({
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: "payment",
     customer_email: customerEmail || undefined,
     line_items: [
@@ -69,7 +71,11 @@ export async function createCheckoutSession(
       ? `${getBaseUrl()}/?user=${giftedToLogin}&gifted=${itemId}`
       : `${getBaseUrl()}/shop/${githubLogin}?purchased=${itemId}`,
     cancel_url: `${getBaseUrl()}/shop/${githubLogin}`,
-  });
+  };
+
+  const session = idempotencyKey
+    ? await stripe.checkout.sessions.create(sessionParams, { idempotencyKey })
+    : await stripe.checkout.sessions.create(sessionParams);
 
   return { url: session.url! };
 }

@@ -215,44 +215,65 @@ export async function POST(request: Request) {
             sendPurchaseNotification(Number(developerId), githubLogin ?? "", pending.id, itemId);
           }
         } else {
-          // No pending row found. Check if already processing or completed —
-          // query by developer_id+item_id+provider, NOT provider_tx_id, because
-          // a concurrent winning request may not have written provider_tx_id yet.
-          const { data: existing } = await sb
+          const giftedTo = session.metadata?.gifted_to;
+          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
+
+          // Verify amount and currency match the item's expected price
+          const expectedItem = await sb
+            .from("items")
+            .select("price_usd_cents, price_brl_cents")
+            .eq("id", itemId)
+            .single();
+          if (expectedItem.data) {
+            const expectedCents = session.currency === "brl"
+              ? expectedItem.data.price_brl_cents
+              : expectedItem.data.price_usd_cents;
+            if (Number(session.amount_total) !== expectedCents) {
+              console.error(
+                `Price mismatch for item ${itemId}: expected ${expectedCents} ${session.currency}, ` +
+                `got ${session.amount_total}`
+              );
+              break;
+            }
+          }
+
+          // Check if this txId already has a completed/delivered purchase
+          const { data: alreadyProcessed } = await sb
             .from("purchases")
             .select("id, status")
             .eq("provider_tx_id", txId)
+            .in("status", ["completed", "delivered"])
+            .maybeSingle();
+          if (alreadyProcessed) {
+            console.log(`Purchase ${alreadyProcessed.id} already fulfilled — skipping duplicate webhook`);
+            break;
+          }
+
+          // Use the UNIQUE constraint on provider_tx_id to guard against
+          // concurrent insert — only the first webhook wins
+          const { data: inserted } = await sb
+            .from("purchases")
+            .insert({
+              developer_id: Number(developerId),
+              item_id: itemId,
+              provider: "stripe",
+              provider_tx_id: txId,
+              idempotency_key: idempotencyKey ?? null,
+              amount_cents: session.amount_total ?? 0,
+              currency: session.currency ?? "usd",
+              status: "processing",
+              ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
+            })
+            .select("id")
             .maybeSingle();
 
-          if (!existing) {
-            const giftedTo = session.metadata?.gifted_to;
-            const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
-            
-            // Atomic insert to ensure only one fulfillment proceeds for this txId
-            const { data: inserted } = await sb
+          if (inserted) {
+            const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+            await sb
               .from("purchases")
-              .insert({
-                developer_id: Number(developerId),
-                item_id: itemId,
-                provider: "stripe",
-                provider_tx_id: txId,
-                idempotency_key: idempotencyKey ?? null,
-                amount_cents: session.amount_total ?? 0,
-                currency: session.currency ?? "usd",
-                status: "processing",
-                ...(giftedTo ? { gifted_to: Number(giftedTo) } : {}),
-              })
-              .select("id")
-              .maybeSingle();
-
-            if (inserted) {
-              const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
-              await sb
-                .from("purchases")
-                .update({ status: purchaseStatus })
-                .eq("id", inserted.id);
-              await autoEquipIfSolo(ownerId, itemId);
-            }
+              .update({ status: purchaseStatus })
+              .eq("id", inserted.id);
+            await autoEquipIfSolo(ownerId, itemId);
           }
         }
         break;
