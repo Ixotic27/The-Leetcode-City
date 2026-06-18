@@ -7,7 +7,7 @@ import { createCryptoInvoice } from "@/lib/nowpayments";
 import { createCashfreeCheckout } from "@/lib/cashfree";
 import { rateLimit } from "@/lib/rate-limit";
 
-import { fulfillItemPurchase } from "@/lib/items";
+import { fulfillItemPurchase, autoEquipIfSolo } from "@/lib/items";
 
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
 // middleware rate limit.  This one is keyed by Supabase user ID so it
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     const { data: receiver } = await sb
       .from("developers")
       .select("id")
-      .eq("github_login", gifted_to_login.toLowerCase())
+      .ilike("github_login", gifted_to_login)
       .single();
 
     if (!receiver) {
@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     // Fetch building dimensions to calculate max slots
     const { data: devFull } = await sb
       .from("developers")
-      .select("github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos")
+      .select("github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos, building_style")
       .eq("id", dev.id)
       .single();
 
@@ -206,6 +206,7 @@ export async function POST(request: Request) {
         20_000, // maxContrib estimate
         200_000, // maxStars estimate
         (devFull.contributions_total ?? 0) > 0 ? devFull : undefined,
+        devFull.building_style ?? undefined,
       );
       const w = dims.width;
       const d = dims.depth;
@@ -241,27 +242,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // Check for existing pending purchase (prevent double-click)
-  const { data: pendingPurchase } = await sb
-    .from("purchases")
-    .select("id")
-    .eq("developer_id", dev.id)
-    .eq("item_id", item_id)
-    .eq("status", "pending")
-    .maybeSingle();
-
-  if (pendingPurchase) {
-    // Delete stale pending purchase to allow retry
-    await sb.from("purchases").delete().eq("id", pendingPurchase.id);
-  }
-
   // DEV BYPASS: Allow Ishant_27 / ixotic / ixotic27 to get items for free for testing
   const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase()) && body.dev_mode === true;
   const isFree = item.price_usd_cents === 0;
 
   if (isDev || isFree) {
     console.log(`Bypassing payment for ${githubLogin} (Dev: ${isDev}, Free: ${isFree})`);
-    const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, sb);
+    const recipientId = giftedToDevId ?? dev.id;
+    const { status: purchaseStatus } = await fulfillItemPurchase(recipientId, item_id, sb);
     const { data: purchase, error: purchaseError } = await sb
       .from("purchases")
       .insert({
@@ -280,6 +268,8 @@ export async function POST(request: Request) {
     if (purchaseError) {
       return NextResponse.json({ error: "Failed to create dev/free purchase" }, { status: 500 });
     }
+
+    await autoEquipIfSolo(recipientId, item_id);
 
     // Return a success URL that redirects back to the shop/city
     return NextResponse.json({
@@ -307,10 +297,13 @@ export async function POST(request: Request) {
         .single();
 
       if (purchaseError) {
+        if (purchaseError.code === "23505") {
+          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+        }
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 
-      const { url } = await createCheckoutSession(item_id, dev.id, githubLogin, stripeCurrency, user.email, giftedToDevId, gifted_to_login);
+      const { url } = await createCheckoutSession(item_id, dev.id, githubLogin, stripeCurrency, user.email, giftedToDevId, gifted_to_login, purchase.id);
       return NextResponse.json({ url, purchase_id: purchase.id });
     } else if (provider === "nowpayments") {
       // Crypto via NOWPayments
@@ -329,6 +322,9 @@ export async function POST(request: Request) {
         .single();
 
       if (purchaseError) {
+        if (purchaseError.code === "23505") {
+          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+        }
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 
@@ -366,6 +362,9 @@ export async function POST(request: Request) {
         .single();
 
       if (purchaseError) {
+        if (purchaseError.code === "23505") {
+          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+        }
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 
@@ -397,6 +396,9 @@ export async function POST(request: Request) {
         .single();
 
       if (purchaseError) {
+        if (purchaseError.code === "23505") {
+          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+        }
         return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
       }
 

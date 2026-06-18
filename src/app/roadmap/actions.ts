@@ -21,23 +21,13 @@ export async function toggleVote(itemId: string) {
     throw new Error("Not authenticated");
   }
 
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
-
-  if (!githubLogin) {
-    throw new Error("No LeetCode login found");
-  }
-
   const admin = getSupabaseAdmin();
 
   // Get developer ID
   const { data: dev } = await admin
     .from("developers")
     .select("id")
-    .eq("github_login", githubLogin)
+    .eq("claimed_by", user.id)
     .single();
 
   if (!dev) {
@@ -57,10 +47,13 @@ export async function toggleVote(itemId: string) {
     await admin.from("roadmap_votes").delete().eq("id", existing.id);
   } else {
     // Add vote (ON CONFLICT DO NOTHING for safety)
-    await admin.from("roadmap_votes").insert({
-      developer_id: dev.id,
-      item_id: itemId,
-    });
+    await admin.from("roadmap_votes").upsert(
+      {
+        developer_id: dev.id,
+        item_id: itemId,
+      },
+      { onConflict: "developer_id,item_id", ignoreDuplicates: true }
+    );
   }
 
   revalidatePath("/roadmap");

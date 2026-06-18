@@ -6,6 +6,7 @@ import { createBrowserSupabase } from "@/lib/supabase";
 import { ROADMAP_PHASES, VOTABLE_ITEM_IDS } from "@/lib/roadmap-data";
 import type { RoadmapPhase, RoadmapItem, ItemStatus } from "@/lib/roadmap-data";
 import { toggleVote } from "./actions";
+import { performVoteWithRollback } from "./vote-helper";
 
 const ACCENT = "#ffa116";
 const CREAM = "#e8dcc8";
@@ -90,9 +91,9 @@ export default function RoadmapClient({
           <h1 className="text-3xl text-cream md:text-4xl">
             Road<span style={{ color: ACCENT }}>map</span>
           </h1>
-          <p className="mt-3 text-xs text-muted normal-case">
-            What we've built, what we're building, and what's coming next
-          </p>
+            <p className="mt-3 text-xs text-muted normal-case">
+              What we&apos;ve built, what we&apos;re building, and what&apos;s coming next
+            </p>
         </div>
 
         {/* Progress bar */}
@@ -260,7 +261,7 @@ function ItemRow({
 
   const [optimistic, setOptimistic] = useOptimistic(
     { votes: initialVotes, hasVoted: initialHasVoted },
-    (state, _action: "toggle") => ({
+    (state) => ({
       votes: state.hasVoted ? state.votes - 1 : state.votes + 1,
       hasVoted: !state.hasVoted,
     })
@@ -272,8 +273,7 @@ function ItemRow({
       return;
     }
     startTransition(async () => {
-      setOptimistic("toggle");
-      await toggleVote(item.id);
+      await performVoteWithRollback({ setOptimistic, toggleVoteFn: toggleVote, itemId: item.id });
     });
   }
 
@@ -289,9 +289,15 @@ function ItemRow({
       {/* Checkbox */}
       <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border-[2px] border-border text-[8px]">
         {isDone ? (
-          <span style={{ color: "#4ade80" }}>&#10003;</span>
+          <>
+            <span style={{ color: "#4ade80" }} aria-hidden="true">&#10003;</span>
+            <span className="sr-only">Completed</span>
+          </>
         ) : item.status === "building" ? (
-          <span className="blink-dot block h-1.5 w-1.5" style={{ backgroundColor: ACCENT }} />
+          <>
+            <span className="blink-dot block h-1.5 w-1.5" style={{ backgroundColor: ACCENT }} aria-hidden="true" />
+            <span className="sr-only">Building</span>
+          </>
         ) : null}
       </span>
 

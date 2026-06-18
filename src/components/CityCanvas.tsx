@@ -26,6 +26,7 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import OuterWildlands from "./OuterWildlands";
+import TrafficSystem from "./TrafficSystem";
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -1015,16 +1016,22 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
       }
     };
 
-    // Altitudes are absolute — player flies between MIN_ALT(25) and MAX_ALT(900)
-    // Inner ring: 10 commons between buildings, low altitude
-    placeInZone(10, spread * 0.2, spread * 0.4, 80, 250, "common", 1, 6);
-    // Mid ring: 12 commons + 4 rares, medium altitude
-    placeInZone(12, spread * 0.4, spread * 0.7, 200, 500, "common", 1, 6);
-    placeInZone(4, spread * 0.4, spread * 0.7, 300, 600, "rare", 5, 9);
-    // Outer ring: 8 commons + 4 rares + 2 epics, high altitude
-    placeInZone(8, spread * 0.7, spread, 250, 550, "common", 1, 6);
-    placeInZone(4, spread * 0.7, spread, 400, 700, "rare", 5, 9);
-    placeInZone(2, spread * 0.7, spread, 650, 850, "epic", 25, 14);
+    // Altitudes are absolute — player flies between MIN_ALT(25) and MAX_ALT(900).
+    // All rings start at CENTER_CLEARANCE (700) so coins never spawn inside the
+    // central landmark zone where the Colosseum sits at radius ~461 units.
+    const CENTER_CLEARANCE = 700;
+    const outerEdge = Math.max(spread, CENTER_CLEARANCE + 200);
+    const band = outerEdge - CENTER_CLEARANCE;
+
+    // Inner band: just outside the clearance zone, low altitude
+    placeInZone(10, CENTER_CLEARANCE, CENTER_CLEARANCE + band * 0.35, 80, 250, "common", 1, 6);
+    // Mid band: medium altitude
+    placeInZone(12, CENTER_CLEARANCE + band * 0.2, CENTER_CLEARANCE + band * 0.65, 200, 500, "common", 1, 6);
+    placeInZone(4,  CENTER_CLEARANCE + band * 0.2, CENTER_CLEARANCE + band * 0.65, 300, 600, "rare", 5, 9);
+    // Outer band: high altitude
+    placeInZone(8,  CENTER_CLEARANCE + band * 0.5, outerEdge, 250, 550, "common", 1, 6);
+    placeInZone(4,  CENTER_CLEARANCE + band * 0.5, outerEdge, 400, 700, "rare", 5, 9);
+    placeInZone(2,  CENTER_CLEARANCE + band * 0.5, outerEdge, 650, 850, "epic", 25, 14);
 
     return result;
   }, [cityRadius]);
@@ -2205,8 +2212,8 @@ export default function CityCanvas({
 
   return (
     <Canvas
-      camera={{ position: [400, 450, 600], fov: 55, near: 0.5, far: 4000 }}
-      dpr={1}
+      camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
+      dpr={[1, 2]}
       onCreated={({ gl, scene }) => {
         try {
           // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
@@ -2250,7 +2257,7 @@ export default function CityCanvas({
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}
-      gl={{ antialias: false, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
+      gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
       {showPerf && <Stats />}
@@ -2329,9 +2336,8 @@ export default function CityCanvas({
 
       {/* Outer Wildlands — rendered when player has traveled to the new world */}
       {hasTraveledToNewWorld && (
-        <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
-      )}
-
+  <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
+)}
 
 
       {!hasTraveledToNewWorld && (
@@ -2376,7 +2382,7 @@ export default function CityCanvas({
           />
 
           <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
-
+          <TrafficSystem />
           {!wallpaperMode && skyAds && skyAds.length > 0 && (
             <>
               <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />

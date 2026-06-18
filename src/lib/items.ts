@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "./supabase";
+import { InfrastructureError } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -216,53 +217,73 @@ export async function getOwnedItemsForDevelopers(
  * Returns the final status to use for the purchases table.
  */
 export async function fulfillItemPurchase(
-  developerId: number,
-  itemId: string,
-  supabaseAdminClient?: any
-): Promise<{ status: "completed" | "delivered" }> {
-  const sb = supabaseAdminClient || getSupabaseAdmin();
+   developerId: number,
+   itemId: string,
+   supabaseAdminClient?: any
+ ): Promise<{ status: "completed" | "delivered" }> {
+   const sb = supabaseAdminClient || getSupabaseAdmin();
 
-  // 1. Fetch item details to determine category
-  const { data: item } = await sb
-    .from("items")
-    .select("category")
-    .eq("id", itemId)
-    .single();
+   const { data: item, error: itemError } = await sb
+     .from("items")
+     .select("category")
+     .eq("id", itemId)
+     .single();
 
-  const isConsumable = item?.category === "consumable";
-
-  if (!isConsumable) {
-    return { status: "completed" };
+  if (itemError) {
+    throw new InfrastructureError(
+      `[fulfillItemPurchase] Failed to fetch item "${itemId}": ${itemError.message}`,
+      itemError
+    );
   }
 
-  // 2. Fulfill based on specific consumable type
-  if (itemId === "streak_freeze") {
-    // Increment streak freeze counter
-    await sb.rpc("grant_streak_freeze", { p_developer_id: developerId });
-    await sb.from("streak_freeze_log").insert({
-      developer_id: developerId,
-      action: "purchased",
-    });
-  } else {
-    // Battle consumable or other: increment quantity in developer_consumables
-    const BATTLE_CONSUMABLES = [
-      "anti_missile_system",
-      "anti_tank_mines",
-      "scouting_satellite",
-      "emp_shield",
-      "stealth_cloak",
-      "emp_device",
-      "sabotage_virus"
-    ];
+   const isConsumable = item?.category === "consumable";
 
-    if (BATTLE_CONSUMABLES.includes(itemId)) {
-      await sb.rpc("grant_consumable", {
-        p_developer_id: developerId,
-        p_item_id: itemId,
-      });
+   if (!isConsumable) {
+     return { status: "completed" };
+   }
+
+   if (itemId === "streak_freeze") {
+    const { error: freezeError } = await sb.rpc("grant_streak_freeze", { p_developer_id: developerId });
+    if (freezeError) {
+      throw new InfrastructureError(
+        `[fulfillItemPurchase] grant_streak_freeze RPC failed: ${freezeError.message}`,
+        freezeError
+      );
     }
-  }
+    const { error: logError } = await sb.from("streak_freeze_log").insert({
+       developer_id: developerId,
+       action: "purchased",
+     });
+    if (logError) {
+      throw new InfrastructureError(
+        `[fulfillItemPurchase] streak_freeze_log insert failed: ${logError.message}`,
+        logError
+      );
+    }
+   } else {
+     const BATTLE_CONSUMABLES = [
+       "anti_missile_system",
+       "anti_tank_mines",
+       "scouting_satellite",
+       "emp_shield",
+       "stealth_cloak",
+       "emp_device",
+       "sabotage_virus"
+     ];
 
-  // To bypass unique index constraints for completed purchases of consumables, we use 'delivered' status
-  return { status: "delivered" };
-}
+     if (BATTLE_CONSUMABLES.includes(itemId)) {
+      const { error: consumableError } = await sb.rpc("grant_consumable", {
+         p_developer_id: developerId,
+         p_item_id: itemId,
+       });
+      if (consumableError) {
+        throw new InfrastructureError(
+          `[fulfillItemPurchase] grant_consumable RPC failed for "${itemId}": ${consumableError.message}`,
+          consumableError
+        );
+      }
+     }
+   }
+
+   return { status: "delivered" };
+ } 

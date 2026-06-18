@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     admin
       .from("developers")
       .select(raidColumns)
-      .eq("github_login", target_login.toLowerCase())
+      .ilike("github_login", target_login)
       .limit(1)
       .maybeSingle(),
   ]);
@@ -345,34 +345,16 @@ export async function POST(request: Request) {
     await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
     await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
 
-    // Track raid win to update relic progress
+    // Track raid win to update relic progress atomically
     try {
-      const { data: custom } = await admin
-        .from("developer_customizations")
-        .select("config")
-        .eq("developer_id", attacker.id)
-        .eq("item_id", "relic_progress")
-        .maybeSingle();
+      const { data: newWins, error: relicErr } = await admin.rpc("increment_relic_progress", {
+        p_developer_id: attacker.id,
+        p_field: "raid_wins",
+      });
 
-      const progress = custom?.config ?? {
-        docks_visits: 0,
-        arena_solves: 0,
-        raid_wins: 0,
-      };
-
-      progress.raid_wins = (progress.raid_wins ?? 0) + 1;
-
-      await admin.from("developer_customizations").upsert(
-        {
-          developer_id: attacker.id,
-          item_id: "relic_progress",
-          config: progress,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "developer_id,item_id" }
-      );
-
-      if (progress.raid_wins >= 1) {
+      if (relicErr) {
+        console.error("[raid/execute] increment_relic_progress error:", relicErr.message);
+      } else if ((newWins ?? 0) >= 1) {
         await admin.from("developer_relics").upsert(
           {
             developer_id: attacker.id,
