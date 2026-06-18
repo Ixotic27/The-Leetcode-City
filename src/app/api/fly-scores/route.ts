@@ -124,12 +124,39 @@ export async function POST(request: Request) {
   if (insertError?.code === "23505") {
     const { data: existing } = await admin
       .from("fly_scores")
-      .select("id")
+      .select("id, score, flight_ms")
       .eq("developer_id", dev.id)
       .eq("seed", seed)
       .single();
 
-    return NextResponse.json({ id: existing?.id, score, rank_today: null, total: 0 });
+    if (!existing) {
+      return NextResponse.json({ error: "Existing score not found" }, { status: 500 });
+    }
+
+    const { data: higherDevs } = await admin
+      .from("fly_scores")
+      .select("developer_id")
+      .eq("seed", seed)
+      .gt("score", existing.score);
+
+    const { data: tiedFasterDevs } = await admin
+      .from("fly_scores")
+      .select("developer_id")
+      .eq("seed", seed)
+      .eq("score", existing.score)
+      .lt("flight_ms", existing.flight_ms);
+
+    const uniqueHigher = new Set([
+      ...(higherDevs ?? []).map((r: FlyScoreDev) => r.developer_id),
+      ...(tiedFasterDevs ?? []).map((r: FlyScoreDev) => r.developer_id),
+    ]);
+    uniqueHigher.delete(dev.id);
+    const rankToday = uniqueHigher.size + 1;
+
+    const { data: allDevs } = await admin.from("fly_scores").select("developer_id").eq("seed", seed);
+    const totalDevs = new Set((allDevs ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
+
+    return NextResponse.json({ id: existing.id, score: existing.score, rank_today: rankToday, total: totalDevs });
   }
 
   const flyXp = Math.floor(score * 0.1);
