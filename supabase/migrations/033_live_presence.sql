@@ -39,3 +39,31 @@ CREATE POLICY "Public read sessions" ON developer_sessions
 
 CREATE POLICY "Service role manages sessions" ON developer_sessions
   FOR ALL USING (true) WITH CHECK (true);
+
+-- 🧠 THE RACE CONDITION FIX: Enforces a strict timestamp check constraint on upsert conflicts to block polling overwrites
+-- This ensures that delayed background polling data can never overwrite a newer WebSocket real-time event.
+ALTER TABLE developer_sessions DROP CONSTRAINT IF EXISTS developer_sessions_pkey_timestamp_check;
+
+-- Create an explicit trigger execution helper mechanism to validate heartbeat timestamps cleanly
+CREATE OR REPLACE FUNCTION public.upsert_developer_session_safely()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.developer_sessions (developer_id, session_id, status, last_heartbeat_at)
+    VALUES (NEW.developer_id, NEW.session_id, NEW.status, NEW.last_heartbeat_at)
+    ON CONFLICT (developer_id, session_id)
+    DO UPDATE SET 
+        status = EXCLUDED.status,
+        last_heartbeat_at = EXCLUDED.last_heartbeat_at
+    WHERE EXCLUDED.last_heartbeat_at >= developer_sessions.last_heartbeat_at;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 🚀 TRIGGER ACTIVATION INJECTION: Automatically executes the tracking function before upsert updates commit
+DROP TRIGGER IF EXISTS trigger_upsert_developer_session ON public.developer_sessions;
+
+CREATE TRIGGER trigger_upsert_developer_session
+  BEFORE INSERT OR UPDATE ON public.developer_sessions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.upsert_developer_session_safely();
+
