@@ -99,6 +99,12 @@
           "minimum": 60,
           "maximum": 3600,
           "description": "Seconds of inactivity before marking as idle"
+        },
+        "leetcodecity.cryptoKey": {
+          "type": "string",
+          "default": "",
+          "description": "Arena encryption key for decrypting hidden test cases (at least 32 characters). Generate one with: openssl rand -hex 32",
+          "scope": "application"
         }
       }
     }
