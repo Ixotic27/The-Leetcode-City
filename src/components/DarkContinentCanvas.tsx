@@ -1209,6 +1209,7 @@ export default function DarkContinentCanvas() {
         camera={{ position: [0, 300, 800], fov: 65, near: 1, far: 12000 }}
         gl={{
           antialias: true,
+          logarithmicDepthBuffer: true,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
