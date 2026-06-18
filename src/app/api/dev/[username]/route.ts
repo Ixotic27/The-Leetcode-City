@@ -136,7 +136,7 @@ export async function GET(
   const { data: cached } = await sb
     .from("developers")
     .select("*")
-    .eq("github_login", username.toLowerCase())
+    .ilike("github_login", username)
     .single();
 
   if (cached) {
