@@ -2,6 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
+const ALLOWED_STATUSES = new Set([
+  "accepted",
+  "wrong_answer",
+  "time_limit_exceeded",
+  "runtime_error",
+  "compile_error",
+  "memory_limit_exceeded",
+]);
+
+const ALLOWED_LANGUAGES = new Set([
+  "python",
+  "python3",
+  "javascript",
+  "typescript",
+  "java",
+  "cpp",
+  "c",
+  "csharp",
+  "go",
+  "rust",
+  "ruby",
+  "swift",
+  "kotlin",
+  "scala",
+  "php",
+]);
+
+const MAX_CODE_BYTES = 65536;
+const CODE_HASH_RE = /^[0-9a-f]{1,128}$/i;
+
 async function rollItemDrops(
   sb: any,
   difficulty: string,
@@ -107,6 +137,31 @@ export async function POST(request: NextRequest) {
       { error: "Missing required fields" },
       { status: 400 },
     );
+  }
+
+  if (typeof status !== "string" || !ALLOWED_STATUSES.has(status)) {
+    return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+  }
+
+  if (language !== undefined && language !== null) {
+    if (typeof language !== "string" || !ALLOWED_LANGUAGES.has(language)) {
+      return NextResponse.json({ error: "Invalid language value" }, { status: 400 });
+    }
+  }
+
+  if (code !== undefined && code !== null) {
+    if (typeof code !== "string") {
+      return NextResponse.json({ error: "Invalid code value" }, { status: 400 });
+    }
+    if (new TextEncoder().encode(code).length > MAX_CODE_BYTES) {
+      return NextResponse.json({ error: "Code exceeds maximum size limit" }, { status: 400 });
+    }
+  }
+
+  if (code_hash !== undefined && code_hash !== null) {
+    if (typeof code_hash !== "string" || !CODE_HASH_RE.test(code_hash)) {
+      return NextResponse.json({ error: "Invalid code_hash format" }, { status: 400 });
+    }
   }
 
   const sb = getSupabaseAdmin();
@@ -222,34 +277,16 @@ export async function POST(request: NextRequest) {
 
       droppedItems = await rollItemDrops(sb, difficulty, dev.id);
 
-      // Track arena solve to update relic progress
+      // Track arena solve to update relic progress atomically
       try {
-        const { data: custom } = await sb
-          .from("developer_customizations")
-          .select("config")
-          .eq("developer_id", dev.id)
-          .eq("item_id", "relic_progress")
-          .maybeSingle();
+        const { data: newSolves, error: relicErr } = await sb.rpc("increment_relic_progress", {
+          p_developer_id: dev.id,
+          p_field: "arena_solves",
+        });
 
-        const progress = custom?.config ?? {
-          docks_visits: 0,
-          arena_solves: 0,
-          raid_wins: 0,
-        };
-
-        progress.arena_solves = (progress.arena_solves ?? 0) + 1;
-
-        await sb.from("developer_customizations").upsert(
-          {
-            developer_id: dev.id,
-            item_id: "relic_progress",
-            config: progress,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "developer_id,item_id" }
-        );
-
-        if (progress.arena_solves >= 20) {
+        if (relicErr) {
+          console.error("[arena/submit] increment_relic_progress error:", relicErr.message);
+        } else if ((newSolves ?? 0) >= 20) {
           await sb.from("developer_relics").upsert(
             {
               developer_id: dev.id,
