@@ -3637,8 +3637,11 @@ function HomeContent() {
             )}
           </a>
           {liveStatus !== "error" && (
-            <div className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm">
-              <span className="live-dot h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4ade80]" />
+            <div
+              className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm"
+              aria-label={`${liveUsers.toLocaleString()} live users`}
+            >
+              <span className="live-dot h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4ade80]" aria-hidden="true" />
               <span className="text-cream">{liveUsers.toLocaleString()}</span>
               <span className="hidden sm:inline text-muted">live</span>
             </div>
@@ -3674,6 +3677,7 @@ function HomeContent() {
                 >
                   <span
                     className={`${energyDotAnim} h-1.5 w-1.5 flex-shrink-0 rounded-full ${energyDotColor}`}
+                    aria-hidden="true"
                   />
                   {codingCount > 0 ? (
                     <>
@@ -3761,7 +3765,9 @@ function HomeContent() {
                                 </div>
                                 <span
                                   className={`live-dot h-2 w-2 flex-shrink-0 rounded-full ${isCreator ? "bg-[#fbbf24]" : "bg-[#4ade80]"}`}
+                                  aria-hidden="true"
                                 />
+                                <span className="sr-only">live</span>
                               </button>
                             );
                           })}
