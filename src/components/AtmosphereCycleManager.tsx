@@ -1795,7 +1795,7 @@ export default function AtmosphereCycleManager({
       <SceneBackground color={theme.fogColor} />
 
       <ambientLight ref={ambientLightRef} intensity={theme.ambientIntensity * 3} color={theme.ambientColor} />
-      <directionalLight ref={sunLightRef} position={theme.sunPos} intensity={theme.sunIntensity * 3.5} color={theme.sunColor} />
+      <directionalLight ref={sunLightRef} position={theme.sunPos} intensity={theme.sunIntensity * 3.5} color={theme.sunColor} shadow-bias={-0.0005} shadow-normalBias={0.04} />
       <directionalLight ref={fillLightRef} position={theme.fillPos} intensity={theme.fillIntensity * 3} color={theme.fillColor} />
       <hemisphereLight ref={hemiLightRef} args={[theme.hemiSky, theme.hemiGround, theme.hemiIntensity * 3.5]} />
 
