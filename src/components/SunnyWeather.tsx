@@ -213,7 +213,8 @@ export const SunnyWeather = ({
         shadow-camera-right={1500}
         shadow-camera-top={1500}
         shadow-camera-bottom={-1500}
-        shadow-bias={-0.0002}
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.04}
       />
 
       {/* Warm Ambient Reflection Secondary Bounce */}
