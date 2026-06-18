@@ -2256,7 +2256,7 @@ export default function CityCanvas({
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}
-      gl={{ antialias: true, logarithmicDepthBuffer: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
+      gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
       {showPerf && <Stats />}
