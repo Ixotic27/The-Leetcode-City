@@ -13,39 +13,37 @@ export const dynamic = "force-dynamic";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  // Verify webhook secret (set in Resend dashboard)
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
-  
+
+  if (!webhookSecret) {
+    console.error("[app/api/webhooks/resend/route.ts] RESEND_WEBHOOK_SECRET is not configured — webhook disabled");
+    return NextResponse.json(
+      { error: "Webhook not configured" },
+      { status: 503 },
+    );
+  }
+
   const payload = await request.text();
   let body: { type: string; data: Record<string, unknown> };
 
-  if (webhookSecret) {
-    const svix_id = request.headers.get("svix-id");
-    const svix_timestamp = request.headers.get("svix-timestamp");
-    const svix_signature = request.headers.get("svix-signature");
+  const svix_id = request.headers.get("svix-id");
+  const svix_timestamp = request.headers.get("svix-timestamp");
+  const svix_signature = request.headers.get("svix-signature");
 
-    if (!svix_id || !svix_timestamp || !svix_signature) {
-      return NextResponse.json({ error: "Missing svix headers" }, { status: 401 });
-    }
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return NextResponse.json({ error: "Missing svix headers" }, { status: 401 });
+  }
 
-    try {
-      const wh = new Webhook(webhookSecret);
-      body = wh.verify(payload, {
-        "svix-id": svix_id,
-        "svix-timestamp": svix_timestamp,
-        "svix-signature": svix_signature,
-      }) as { type: string; data: Record<string, unknown> };
-    } catch (err) {
-      console.warn("[app/api/webhooks/resend/route.ts] Invalid signature:", err);
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-  } else {
-    try {
-      body = JSON.parse(payload);
-    } catch (err) {
-      console.warn("[app/api/webhooks/resend/route.ts] error:", err);
-      return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-    }
+  try {
+    const wh = new Webhook(webhookSecret);
+    body = wh.verify(payload, {
+      "svix-id": svix_id,
+      "svix-timestamp": svix_timestamp,
+      "svix-signature": svix_signature,
+    }) as { type: string; data: Record<string, unknown> };
+  } catch (err) {
+    console.warn("[app/api/webhooks/resend/route.ts] Invalid signature:", err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
   const sb = getSupabaseAdmin();
   const now = new Date().toISOString();
