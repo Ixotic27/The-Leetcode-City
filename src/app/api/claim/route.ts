@@ -51,7 +51,7 @@ export async function POST() {
       claimed_at: new Date().toISOString(),
       fetch_priority: 1,
     })
-    .eq("github_login", githubLogin)
+    .ilike("github_login", githubLogin)
     .eq("claimed", false)
     .is("claimed_by", null)
     .select("github_login")
@@ -68,7 +68,7 @@ export async function POST() {
   const { data: dev } = await admin
     .from("developers")
     .select("id")
-    .eq("github_login", githubLogin)
+    .eq("claimed_by", user.id)
     .single();
 
   if (dev) { 

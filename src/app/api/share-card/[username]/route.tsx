@@ -123,7 +123,7 @@ export async function GET(
     .select(
       "id, github_login, name, avatar_url, contributions, contributions_total, public_repos, total_stars, rank, kudos_count"
     )
-    .eq("github_login", username.toLowerCase())
+    .ilike("github_login", username)
     .single();
 
   if (!dev) {

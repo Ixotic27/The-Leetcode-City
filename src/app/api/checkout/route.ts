@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     const { data: receiver } = await sb
       .from("developers")
       .select("id")
-      .eq("github_login", gifted_to_login.toLowerCase())
+      .ilike("github_login", gifted_to_login)
       .single();
 
     if (!receiver) {

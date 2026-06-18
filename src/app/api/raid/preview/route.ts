@@ -98,7 +98,7 @@ export async function POST(request: Request) {
   const defenderRes = await admin
     .from("developers")
     .select("id, claimed, app_streak, avatar_url, github_login, contributions, current_week_contributions, current_week_kudos_received, last_raided_at, active_defenses")
-    .eq("github_login", target_login.toLowerCase())
+    .ilike("github_login", target_login)
     .single();
 
   const defender = defenderRes.data as RaidDefender | null;
