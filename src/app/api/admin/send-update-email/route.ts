@@ -20,6 +20,9 @@ const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
