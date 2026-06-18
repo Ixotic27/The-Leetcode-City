@@ -135,8 +135,8 @@ export async function GET(
 
   const fields = "github_login, name, avatar_url, contributions, contributions_total, public_repos, total_stars, rank, kudos_count";
   const [{ data: devA }, { data: devB }] = await Promise.all([
-    supabase.from("developers").select(fields).eq("github_login", userA.toLowerCase()).single(),
-    supabase.from("developers").select(fields).eq("github_login", userB.toLowerCase()).single(),
+    supabase.from("developers").select(fields).ilike("github_login", userA).single(),
+    supabase.from("developers").select(fields).ilike("github_login", userB).single(),
   ]);
 
   if (!devA || !devB) {

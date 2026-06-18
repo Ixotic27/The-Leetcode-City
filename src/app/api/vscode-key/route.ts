@@ -36,7 +36,7 @@ async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: str
     const { data: dev } = await sb
       .from("developers")
       .select("id")
-      .eq("github_login", githubLogin)
+      .ilike("github_login", githubLogin)
       .limit(1)
       .maybeSingle();
     if (dev) return { devId: dev.id };

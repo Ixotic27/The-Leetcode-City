@@ -97,9 +97,16 @@ export async function POST(request: Request) {
    }
   const file = formData.get("file") as File | null;
   const slotIndexRaw = formData.get("slot_index");
-  const slotIndex = slotIndexRaw !== null ? parseInt(slotIndexRaw as string, 10) : 0;
 
-  if (isNaN(slotIndex) || slotIndex < 0) {
+  if (slotIndexRaw === null || slotIndexRaw instanceof File) {
+    return NextResponse.json(
+      { error: "Invalid slot_index" },
+      { status: 400 }
+    );
+  }
+
+  const slotIndex = parseInt(slotIndexRaw, 10);
+  if (!Number.isFinite(slotIndex) || slotIndex < 0) {
     return NextResponse.json(
       { error: "Invalid slot_index" },
       { status: 400 }

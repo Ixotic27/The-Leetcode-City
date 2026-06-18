@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     admin
       .from("developers")
       .select(raidColumns)
-      .eq("github_login", target_login.toLowerCase())
+      .ilike("github_login", target_login)
       .limit(1)
       .maybeSingle(),
   ]);

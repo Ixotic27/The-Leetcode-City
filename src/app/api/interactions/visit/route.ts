@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const { data: visitor } = await admin
     .from("developers")
     .select("id")
-    .eq("github_login", githubLogin)
+    .eq("claimed_by", user.id)
     .single();
 
   if (!visitor) {
@@ -51,8 +51,8 @@ export async function POST(request: Request) {
   // Fetch building owner
   const { data: building } = await admin
     .from("developers")
-    .select("id")
-    .eq("github_login", building_login.toLowerCase())
+    .select("id, github_login")
+    .ilike("github_login", building_login)
     .single();
 
   if (!building) {
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         await admin.from("activity_feed").insert({
           event_type: "visit_milestone",
           target_id: building.id,
-          metadata: { login: building_login.toLowerCase(), visit_count: todayVisits },
+          metadata: { login: building.github_login, visit_count: todayVisits },
         });
       }
     }

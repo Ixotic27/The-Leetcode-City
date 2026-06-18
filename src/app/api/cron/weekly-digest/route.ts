@@ -13,6 +13,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tec
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
