@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const MIN_EVENTS = 8;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -19,6 +20,13 @@ export async function GET(request: Request) {
 
   const limit = Math.min(50, Math.max(1, rawLimit));
   const before = searchParams.get("before"); // UUID cursor
+
+  if (before && !UUID_RE.test(before)) {
+    return NextResponse.json(
+      { error: "Invalid cursor: must be a valid UUID." },
+      { status: 400 }
+    );
+  }
 
   const todayOnly = searchParams.get("today") === "1";
 
@@ -49,16 +57,20 @@ export async function GET(request: Request) {
   }
 
   if (before) {
-    // Get the created_at of the cursor event to page from there
     const { data: cursor } = await sb
       .from("activity_feed")
       .select("created_at")
       .eq("id", before)
-      .single();
+      .maybeSingle();
 
-    if (cursor) {
-      query = query.lt("created_at", cursor.created_at);
+    if (!cursor) {
+      return NextResponse.json(
+        { error: "Cursor not found." },
+        { status: 404 }
+      );
     }
+
+    query = query.lt("created_at", cursor.created_at);
   }
 
   let events = (await query).data ?? [];
