@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   const { data: receiver } = await admin
     .from("developers")
     .select("id, claimed, github_login")
-    .eq("github_login", receiver_login.toLowerCase())
+    .ilike("github_login", receiver_login)
     .single();
 
   if (!receiver) {

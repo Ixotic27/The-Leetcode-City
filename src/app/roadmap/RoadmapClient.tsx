@@ -289,9 +289,15 @@ function ItemRow({
       {/* Checkbox */}
       <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border-[2px] border-border text-[8px]">
         {isDone ? (
-          <span style={{ color: "#4ade80" }}>&#10003;</span>
+          <>
+            <span style={{ color: "#4ade80" }} aria-hidden="true">&#10003;</span>
+            <span className="sr-only">Completed</span>
+          </>
         ) : item.status === "building" ? (
-          <span className="blink-dot block h-1.5 w-1.5" style={{ backgroundColor: ACCENT }} />
+          <>
+            <span className="blink-dot block h-1.5 w-1.5" style={{ backgroundColor: ACCENT }} aria-hidden="true" />
+            <span className="sr-only">Building</span>
+          </>
         ) : null}
       </span>
 
