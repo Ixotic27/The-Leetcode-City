@@ -86,59 +86,24 @@ export async function POST(request: Request) {
     }
   }
 
-  // Update developer
-  const { error: updateError } = await admin
-    .from("developers")
-    .update({
-      district: district_id,
-      district_chosen: true,
-      // Only count actual changes, not first choice
-      district_changes_count: isActualChange
-        ? (dev.district_changes_count ?? 0) + 1
-        : (dev.district_changes_count ?? 0),
-      district_changed_at: isActualChange
-        ? new Date().toISOString()
-        : dev.district_changed_at,
-    })
-    .eq("id", dev.id);
+  // Update developer + district populations atomically
+  const { data: rpcResult, error: rpcError } = await admin.rpc(
+    "change_district_atomic",
+    {
+      p_developer_id: dev.id,
+      p_old_district: oldDistrict,
+      p_new_district: district_id,
+      p_is_actual_change: isActualChange,
+      p_changes_count: dev.district_changes_count ?? 0,
+      p_changed_at: dev.district_changed_at,
+    },
+  );
 
-  if (updateError) {
-    return NextResponse.json({ error: "Failed to update district" }, { status: 500 });
-  }
-
-  // Log the change
-  await admin.from("district_changes").insert({
-    developer_id: dev.id,
-    from_district: oldDistrict,
-    to_district: district_id,
-    reason: "user_choice",
-  });
-
-  // Update district population counts
-  if (oldDistrict) {
-    const { data: oldDist } = await admin
-      .from("districts")
-      .select("population")
-      .eq("id", oldDistrict)
-      .single();
-    if (oldDist) {
-      await admin
-        .from("districts")
-        .update({ population: Math.max(0, (oldDist.population ?? 0) - 1) })
-        .eq("id", oldDistrict);
-    }
-  }
-
-  const { data: newDist } = await admin
-    .from("districts")
-    .select("population")
-    .eq("id", district_id)
-    .single();
-  if (newDist) {
-    await admin
-      .from("districts")
-      .update({ population: (newDist.population ?? 0) + 1 })
-      .eq("id", district_id);
+  if (rpcError || !rpcResult?.ok) {
+    return NextResponse.json(
+      { error: rpcResult?.error ?? "Failed to update district" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true, district: district_id });
