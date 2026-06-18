@@ -77,6 +77,7 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
             yearsToFetch.push(sevenDaysAgoYear);
         }
 
+        const nowTs = Math.floor(now.getTime() / 1000);
         let totalWeeklyCount = 0;
 
         for (const year of yearsToFetch) {
@@ -107,8 +108,7 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
             if (!calendarStr) continue;
 
             const calendar = JSON.parse(calendarStr);
-            now.setUTCHours(0, 0, 0, 0);
-            const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - 7 * 24 * 60 * 60;
+            const sevenDaysAgoTs = nowTs - 7 * 24 * 60 * 60;
 
             for (const [timestampStr, count] of Object.entries(calendar)) {
                 const timestamp = parseInt(timestampStr, 10);
