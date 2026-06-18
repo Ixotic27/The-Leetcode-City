@@ -2336,9 +2336,8 @@ export default function CityCanvas({
 
       {/* Outer Wildlands — rendered when player has traveled to the new world */}
       {hasTraveledToNewWorld && (
-        <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
-      )}
-
+  <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
+)}
 
 
       {!hasTraveledToNewWorld && (
