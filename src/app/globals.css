@@ -346,6 +346,19 @@ body {
   animation: live-pulse 2s ease-in-out infinite;
 }
 
+/* Visually hidden utility for screen readers */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
 /* ─── District fly-by announcement ─── */
 @keyframes district-in {
   0% {

@@ -10,6 +10,35 @@ const ALLOWED_TYPES = new Set([
   "image/gif",
 ]);
 
+const MAGIC_BYTES_TO_READ = 12;
+
+function detectMimeFromBytes(bytes: Uint8Array): string | null {
+  if (bytes.length < MAGIC_BYTES_TO_READ) return null;
+  // PNG: 89 50 4E 47 0D 0A 1A 0A (full 8-byte signature)
+  if (
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  // GIF: 47 49 46 38 (GIF8)
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x38) {
+    return "image/gif";
+  }
+  // WebP: 52 49 46 46 ?? ?? ?? ?? 57 45 42 50 (RIFF....WEBP)
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return null;
+}
+
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -68,9 +97,16 @@ export async function POST(request: Request) {
    }
   const file = formData.get("file") as File | null;
   const slotIndexRaw = formData.get("slot_index");
-  const slotIndex = slotIndexRaw !== null ? parseInt(slotIndexRaw as string, 10) : 0;
 
-  if (isNaN(slotIndex) || slotIndex < 0) {
+  if (slotIndexRaw === null || slotIndexRaw instanceof File) {
+    return NextResponse.json(
+      { error: "Invalid slot_index" },
+      { status: 400 }
+    );
+  }
+
+  const slotIndex = parseInt(slotIndexRaw, 10);
+  if (!Number.isFinite(slotIndex) || slotIndex < 0) {
     return NextResponse.json(
       { error: "Invalid slot_index" },
       { status: 400 }
@@ -113,14 +149,26 @@ export async function POST(request: Request) {
   }
 
   // Upload file (overwrite on re-upload)
-  const ext = file.type.split("/")[1] === "jpeg" ? "jpg" : file.type.split("/")[1];
-  const filePath = `${dev.id}_${slotIndex}.${ext}`;
   const fileBuffer = await file.arrayBuffer();
+
+  // Detect MIME type from magic bytes — file.type comes from the client-controlled
+  // Content-Type part header and cannot be trusted. Use the detected type as the
+  // source of truth: reject if unknown, reject if not in ALLOWED_TYPES.
+  const detectedType = detectMimeFromBytes(new Uint8Array(fileBuffer.slice(0, MAGIC_BYTES_TO_READ)));
+  if (!detectedType || !ALLOWED_TYPES.has(detectedType)) {
+    return NextResponse.json(
+      { error: "File content does not match an allowed image type" },
+      { status: 400 }
+    );
+  }
+
+  const ext = detectedType.split("/")[1] === "jpeg" ? "jpg" : detectedType.split("/")[1];
+  const filePath = `${dev.id}_${slotIndex}.${ext}`;
 
   const { error: uploadError } = await sb.storage
     .from("billboards")
     .upload(filePath, fileBuffer, {
-      contentType: file.type,
+      contentType: detectedType,
       upsert: true,
     });
 

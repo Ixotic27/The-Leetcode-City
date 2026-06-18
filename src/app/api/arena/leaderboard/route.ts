@@ -13,8 +13,10 @@ function getRankTitle(rating: number, index: number): { title: string; badge: st
 export async function GET(request: NextRequest) {
   const sb = getSupabaseAdmin();
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 100);
-  const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
+  const rawLimit = parseInt(searchParams.get("limit") ?? "", 10);
+  const rawOffset = parseInt(searchParams.get("offset") ?? "", 10);
+  const limit = Number.isNaN(rawLimit) ? 100 : Math.min(100, Math.max(1, rawLimit));
+  const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
 
   // Query ratings table, ordering by ELO rating desc
   const { data: leaderboard, error } = await sb

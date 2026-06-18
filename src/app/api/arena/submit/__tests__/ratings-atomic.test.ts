@@ -196,4 +196,81 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
     expect(res.status).toBe(500);
   });
+
+  // ── Input validation ───────────────────────────────────────────────────────
+
+  it("returns 400 for an invalid status value", async () => {
+    const res = await POST(
+      makeRequest({ problem_id: "two-sum", status: "hacked" })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid status/i);
+  });
+
+  it("rejects status values not in the allowlist before reaching any reward path", async () => {
+    const res = await POST(
+      makeRequest({ problem_id: "any-problem", status: "accepted_cheat" })
+    );
+    expect(res.status).toBe(400);
+    expect(mockRpc).not.toHaveBeenCalledWith("claim_first_solve", expect.anything());
+  });
+
+  it("returns 400 for an invalid language value", async () => {
+    const res = await POST(
+      makeRequest({ problem_id: "two-sum", status: "accepted", language: "cobol" })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid language/i);
+  });
+
+  it("returns 400 when code exceeds 65536 bytes", async () => {
+    const bigCode = "a".repeat(65537);
+    const res = await POST(
+      makeRequest({ problem_id: "two-sum", status: "accepted", language: "python", code: bigCode })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/size limit/i);
+  });
+
+  it("returns 400 when code is a non-string value (prevents Buffer.byteLength throw)", async () => {
+    const res = await POST(
+      makeRequest({ problem_id: "two-sum", status: "accepted", language: "python", code: {} })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/invalid code/i);
+  });
+
+  it("returns 400 for a malformed code_hash", async () => {
+    const res = await POST(
+      makeRequest({
+        problem_id: "two-sum",
+        status: "accepted",
+        language: "python",
+        code_hash: "not-a-hex-string!!",
+      })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toMatch(/code_hash/i);
+  });
+
+  it("accepts a valid submission with all fields within limits", async () => {
+    setupMocks();
+
+    const res = await POST(
+      makeRequest({
+        problem_id: "two-sum",
+        status: "accepted",
+        language: "python",
+        code: "def twoSum(nums, target): pass",
+        code_hash: "abc123def456",
+      })
+    );
+
+    expect(res.status).toBe(200);
+  });
 });
