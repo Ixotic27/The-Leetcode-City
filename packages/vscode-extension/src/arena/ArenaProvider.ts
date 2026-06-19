@@ -79,8 +79,8 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
               this._activeSolutionPath = await setupChallengeWorkspace(this._activeChallenge, ext);
               this._context.workspaceState.update(`leetcodecity.activeSolutionPath.${this._activeChallenge.id}`, this._activeSolutionPath);
               this._context.workspaceState.update(`leetcodecity.activeLanguage.${this._activeChallenge.id}`, ext);
-            } catch (err: any) {
-              vscode.window.showErrorMessage(err.message);
+            } catch (err: unknown) {
+              vscode.window.showErrorMessage(err instanceof Error ? err.message : String(err));
             }
           }
           break;
@@ -139,10 +139,12 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           title: ch.problem.title,
           tags: ch.problem.tags,
           difficulty_rating: ch.problem.difficulty_rating,
-          status: (ch as any).status,
+          status: (ch as unknown as { status?: string }).status,
         }))
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      
       // Check if we are pointing to production but local dev server is active
       const config = getConfig();
       if (config.apiUrl.includes("vercel.app") || config.apiUrl.includes("the-leetcode-city")) {
@@ -153,7 +155,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
             const testUrl = `http://localhost:${port}/api/arena/challenge/today`;
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 800);
-            const testRes = await (globalThis as any).fetch(testUrl, { signal: controller.signal });
+            
+            const fetchInit: RequestInit = { signal: controller.signal };
+            const globalFetch = (globalThis as unknown as { fetch: (url: string, init?: RequestInit) => Promise<Response> }).fetch;
+            const testRes = await globalFetch(testUrl, fetchInit);
+            
             clearTimeout(timeoutId);
             if (testRes.status === 200 || testRes.status === 401 || testRes.status === 404) {
               // Any response (even error but not connection refused) means a server is running there
@@ -175,11 +181,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           }
         }
         if (foundLocal) {
-          this._view.webview.postMessage({ type: "dailyError", message: `${err.message} (Local server detected on active port)` });
+          this._view.webview.postMessage({ type: "dailyError", message: `${errorMessage} (Local server detected on active port)` });
           return;
         }
       }
-      this._view.webview.postMessage({ type: "dailyError", message: err.message });
+      this._view.webview.postMessage({ type: "dailyError", message: errorMessage });
     }
   }
 
@@ -192,8 +198,8 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       this._activeSolutionPath = await setupChallengeWorkspace(this._activeChallenge, ext);
       this._context.workspaceState.update(`leetcodecity.activeSolutionPath.${this._activeChallenge.id}`, this._activeSolutionPath);
       this._sendState();
-    } catch (err: any) {
-      vscode.window.showErrorMessage(err.message);
+    } catch (err: unknown) {
+      vscode.window.showErrorMessage(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -271,9 +277,10 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
       // Also tell the webview to navigate to the detail view
       this._view.webview.postMessage({ type: "navigateToDetail" });
-    } catch (err: any) {
-      vscode.window.showErrorMessage(`Failed to load challenge: ${err.message}`);
-      this._view.webview.postMessage({ type: "error", message: err.message });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      vscode.window.showErrorMessage(`Failed to load challenge: ${errorMessage}`);
+      this._view.webview.postMessage({ type: "error", message: errorMessage });
     }
   }
 
@@ -363,8 +370,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       );
 
       this._view?.webview.postMessage({ type: "testResults", results: runResult });
-    } catch (err: any) {
-      this._view?.webview.postMessage({ type: "testResultsError", message: err.message });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      this._view?.webview.postMessage({ type: "testResultsError", message: errorMessage });
     } finally {
       this._isRunningTests = false;
       this._sendState();
@@ -462,8 +470,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       } else {
         vscode.window.showWarningMessage(`Submission status: ${runResult.status.toUpperCase()} (${runResult.testsPassed}/${runResult.testsTotal} passed)`);
       }
-    } catch (err: any) {
-      this._view?.webview.postMessage({ type: "submitError", message: err.message });
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      this._view?.webview.postMessage({ type: "submitError", message: errorMessage });
     } finally {
       this._isSubmitting = false;
       this._sendState();
@@ -1008,17 +1017,14 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
 
-  <!-- ═══════════ HEADER ═══════════ -->
   <div class="header">
     <button id="nav-back-btn" class="back-btn" style="display:none;">&#9664; Back</button>
     <span class="header-title" id="header-title">Coding Arena</span>
     <span class="header-icon">&#9876;</span>
   </div>
 
-  <!-- ═══════════ HOME VIEW ═══════════ -->
   <div id="view-home" class="view active">
 
-    <!-- Daily Challenges Section -->
     <details class="section" id="section-daily" open>
       <summary class="section-header" id="header-daily">
         <span class="section-title">&#9876; Daily Challenges</span>
@@ -1031,7 +1037,6 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       </div>
     </details>
 
-    <!-- Active Quests Section -->
     <details class="section" id="section-quests">
       <summary class="section-header" id="header-quests">
         <span class="section-title">&#128220; Active Quests</span>
@@ -1045,7 +1050,6 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       </div>
     </details>
 
-    <!-- Dungeons Section -->
     <details class="section" id="section-dungeons">
       <summary class="section-header" id="header-dungeons">
         <span class="section-title">&#127984; Dungeons</span>
@@ -1059,7 +1063,6 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       </div>
     </details>
 
-    <!-- Stats Section -->
     <details class="section" id="section-stats">
       <summary class="section-header" id="header-stats">
         <span class="section-title">&#128202; Stats & Leaderboard</span>
@@ -1074,10 +1077,8 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
   </div>
 
-  <!-- ═══════════ DETAIL VIEW ═══════════ -->
   <div id="view-detail" class="view">
 
-    <!-- Problem header -->
     <div class="detail-section">
       <div class="card-top">
         <span id="detail-badge" class="difficulty-badge badge-easy">EASY</span>
@@ -1087,26 +1088,22 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       <div id="detail-tags"></div>
     </div>
 
-    <!-- Description -->
     <div class="detail-section">
       <div class="detail-section-title">Description</div>
       <div id="detail-description" class="description-text"></div>
     </div>
 
-    <!-- Sample Tests -->
     <div class="detail-section">
       <div class="detail-section-title">Sample Tests</div>
       <div id="detail-samples"></div>
     </div>
 
-    <!-- Language + Start Coding -->
     <div class="detail-section">
       <div class="detail-section-title">Choose Language</div>
       <select id="lang-select"></select>
       <button id="btn-start-coding" class="btn">&#9654; Start Coding</button>
     </div>
 
-    <!-- Timer -->
     <div class="detail-section">
       <div class="detail-section-title" style="display:flex; justify-content:space-between; align-items:center;">
         <span>Timer</span>
@@ -1118,7 +1115,6 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       <div class="timer" id="timer">-- : --</div>
     </div>
 
-    <!-- Execution -->
     <div class="detail-section">
       <div class="detail-section-title">Execution</div>
       <div class="btn-row">
@@ -1133,7 +1129,6 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       </div>
     </div>
 
-    <!-- Nav arrows -->
     <div class="nav-arrows">
       <button class="nav-arrow-btn" id="nav-prev">&#9664; Prev</button>
       <button class="nav-arrow-btn" id="nav-next">Next &#9654;</button>
