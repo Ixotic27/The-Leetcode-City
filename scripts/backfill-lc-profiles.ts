@@ -43,7 +43,7 @@ function calendarAliases(): string {
         .join("");
 }
 
-async function fetchLCFullProfile(username: string): Promise<any> {
+async function fetchLCFullProfile(username: string): Promise<Record<string, unknown> | null> {
     const query = `
     query($username: String!) {
       matchedUser(username: $username) {
@@ -83,24 +83,28 @@ async function fetchLCFullProfile(username: string): Promise<any> {
             headers: LC_HEADERS,
             body: JSON.stringify({ query, variables: { username } }),
         });
-        const json = await res.json();
+        const json = await res.json() as Record<string, any>;
         if (json?.data?.matchedUser) {
             json.data.matchedUser.maxStreak = parseMaxStreak(json.data.matchedUser, new Date().getFullYear());
         }
         return json?.data ?? null;
-    } catch {
+    } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error(`⚠️ Network/Parse error fetching profile for ${username}: ${errorMsg}`);
         return null;
     }
 }
 
-async function upsertFullProfile(username: string, data: any): Promise<boolean> {
+async function upsertFullProfile(username: string, data: Record<string, any>): Promise<boolean> {
     const user = data?.matchedUser;
     if (!user) return false;
 
     const acNums = user.submitStats?.acSubmissionNum ?? [];
     const totNums = user.submitStats?.totalSubmissionNum ?? [];
-    const getAC = (d: string) => acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
-    const getTot = (d: string) => totNums.find((x: any) => x.difficulty === d)?.count ?? 1;
+    
+    // Type-safe finder iterations
+    const getAC = (d: string) => acNums.find((x: { difficulty: string; count: number }) => x.difficulty === d)?.count ?? 0;
+    const getTot = (d: string) => totNums.find((x: { difficulty: string; count: number }) => x.difficulty === d)?.count ?? 1;
 
     const totalSolved = getAC("All");
     const totalSub = getTot("All");
@@ -112,22 +116,25 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
     for (const ch of username) hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
 
     const contestStats = data?.userContestRanking;
-    const badges: any[] = user.badges ?? [];
+    
+    // Type-safe mapping
+    const badges: { name: string; icon: string; displayName: string }[] = user.badges ?? [];
     const tagCounts = user.tagProblemCounts;
     const lc_tag_stats = [
         ...(tagCounts?.advanced ?? []),
         ...(tagCounts?.intermediate ?? []),
         ...(tagCounts?.fundamental ?? []),
     ]
-    .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+        .sort((a: { problemsSolved: number }, b: { problemsSolved: number }) => b.problemsSolved - a.problemsSolved)
         .slice(0, 20)
-        .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
+        .map((t: { tagName: string; problemsSolved: number }) => ({ name: t.tagName, solved: t.problemsSolved }));
 
     const languages = user.languageProblemCount ?? [];
     const dominantLanguage = languages.length > 0
-      ? [...languages].sort((a: any, b: any) => 
+      ? [...languages].sort((a: { problemsSolved: number }, b: { problemsSolved: number }) => 
         b.problemsSolved - a.problemsSolved)[0].languageName
       : null;
+
     const { error } = await sb.from("developers").upsert(
         {
             github_login: username.toLowerCase(),
@@ -194,7 +201,10 @@ async function main() {
             .order("claimed", { ascending: false }) // claimed users first
             .range(offset, offset + BATCH_SIZE - 1);
         if (error || !data || data.length === 0) break;
-        logins.push(...data.map((d: any) => d.github_login));
+        
+        // Type-safe iteration
+        logins.push(...data.map((d: { github_login: string }) => d.github_login));
+        
         offset += BATCH_SIZE;
         if (data.length < BATCH_SIZE) break;
     }
@@ -218,9 +228,9 @@ async function main() {
         } else {
             const success = await upsertFullProfile(username, data);
             if (success) {
-                const solved = data.matchedUser?.submitStats?.acSubmissionNum?.find((x: any) => x.difficulty === "All")?.count ?? 0;
-                const streak = data.matchedUser?.maxStreak ?? 0;
-                const badges = data.matchedUser?.badges?.length ?? 0;
+                const solved = (data as Record<string, any>).matchedUser?.submitStats?.acSubmissionNum?.find((x: { difficulty: string; count: number }) => x.difficulty === "All")?.count ?? 0;
+                const streak = (data as Record<string, any>).matchedUser?.maxStreak ?? 0;
+                const badges = (data as Record<string, any>).matchedUser?.badges?.length ?? 0;
                 console.log(`✅  ${solved} solved | streak ${streak} | ${badges} badge(s)`);
                 ok++;
             } else {
@@ -238,4 +248,7 @@ async function main() {
     console.log(`   ETA was: ~${Math.round(logins.length * DELAY_MS / 3600000 * 10) / 10} hours\n`);
 }
 
-main().catch(console.error);
+main().catch((err: unknown) => {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error("Fatal initialization error:", errorMsg);
+});
