@@ -18,7 +18,7 @@ function getEncryptionKey(): string {
   );
 }
 
-export function decryptHiddenTests(encryptedData: string, ivHex: string): any[] {
+export function decryptHiddenTests(encryptedData: string, ivHex: string): unknown[] {
   try {
     const algorithm = "aes-256-cbc";
     const encryptionKey = getEncryptionKey();
@@ -29,9 +29,10 @@ export function decryptHiddenTests(encryptedData: string, ivHex: string): any[] 
     let decrypted = decipher.update(encryptedData, "hex", "utf8");
     decrypted += decipher.final("utf8");
     
-    return JSON.parse(decrypted);
-  } catch (err: any) {
-    console.error("[cryptoUtils] Decryption failed:", err.message);
+    return JSON.parse(decrypted) as unknown[];
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[cryptoUtils] Decryption failed:", errMsg);
     return [];
   }
 }
