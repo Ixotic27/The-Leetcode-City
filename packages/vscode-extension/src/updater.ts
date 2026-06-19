@@ -30,7 +30,7 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for download
 
-  const res = await (globalThis as any).fetch(url, { signal: controller.signal });
+  const res = await fetch(url, { signal: controller.signal });
   clearTimeout(timeoutId);
 
   if (!res.ok) {
@@ -58,7 +58,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    const res = await (globalThis as any).fetch(PACKAGE_JSON_URL, {
+    const res = await fetch(PACKAGE_JSON_URL, {
       signal: controller.signal,
       headers: { "Cache-Control": "no-cache" },
     });
@@ -66,7 +66,11 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
 
     if (!res.ok) return;
 
-    const remote = await res.json();
+    interface RemotePackageJson {
+      version?: string;
+    }
+
+    const remote = (await res.json()) as RemotePackageJson;
     const remoteVersion = remote?.version;
 
     // Validate that the remote version exists and is a string
