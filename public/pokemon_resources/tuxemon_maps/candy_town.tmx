@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="git" orientation="orthogonal" renderorder="right-down" compressionlevel="0" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="215">
+ <properties>
+  <property name="edges" value="clamped"/>
+  <property name="scenario" value="xero"/>
+  <property name="slug" value="candy_town"/>
+  <property name="map_type" value="town"/>
+ </properties>
+ <tileset firstgid="1" source="../gfx/tilesets/core_city_and_country.tsx"/>
+ <tileset firstgid="1441" source="../gfx/tilesets/core_buildings.tsx"/>
+ <tileset firstgid="3791" source="../gfx/tilesets/core_set pieces.tsx"/>
+ <tileset firstgid="5341" source="../gfx/tilesets/core_outdoor.tsx"/>
+ <tileset firstgid="8116" source="../gfx/tilesets/core_outdoor_nature.tsx"/>
+ <tileset firstgid="16308" source="../gfx/tilesets/core_outdoor_water.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHtmM1NBDEMhdMEYn/oBCEa4AI0gIAagAaoAjhTB5SwRcCZC1yxxTzJekomzjhoZ6U9RMlkJ8nnZ8ebzGaZ0ulhSmcH8yybPV/IN7ug33qR0mqmMaj6zVnDXeHr6eNzyVUXjeWykN+gn9a9GO9krfvG8uDg68X4JGs9O8v7YIeXD4xL2c+9ylhugNYtfNbnPdoaN2prjnMOfLAxF99T+b7F3ptA+ZGx4LI1n0Va+cB1K/NHzjTXg23MGeFTtigX26SclnEq33+wgfVEGOFjjkGvf9kuzN2jtnzKadfa89X3UVS/SOyN+Wchcad5+UjyM+Jvin9tPLTGW46vxAVGu15uvGVge+xvnjbPr2ysF7hQb4vPw8axxPaxJj31432gLPwfyfm/xsf2MH/t2c7PfNaPpXns+NI7kX6cRV/knGn52O7XVT4PTeHD/vOeT9U+ziM17Y7Xf7ytfJ4Yxz5ErXxoo67xwWetfNZHWKtW1/geB63AZOtt8HHsWR5uR/lyOYJzhq5p+ziH6O9XRsMvs1cifB4dcBcv3a9ZL36O8GmMY/3S94BP0Ubv4h9SSu+M9WN86X7J9tj9oXywr/V7QOv7Ub430cf7TWDKe5rfWavcc0k/r325OXv27fl8fixpPjf9fgG52v55
+  </data>
+ </layer>
+ <layer id="2" name="Tile Layer 2" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHt1kdMFFEcx/GHgkZMRONFjcoamnjQYLwqxrMt9oMo6MEGGk8WVKTpwd6w4ckCeKLJwd5otuhBlJjQ9GJvND2I38fuxOdk9jG7ZMeN2V/ymTf73sy8v//MLgrhTvgYISKQiEnw9nlNpBBrsQ7rsQHpsJqT8xmQGevqHXoPjzg+xhMsdwmRgr7SV13GegH7ncQpzXiatTM4i0I0R7t3V+sy6il0CXEOhwcLcQRHcQzHcQIyRq/kuVGHPJcxf65mvxrUasY61urxAA9hJ7eo5Tbu4C7u4T5kzDW4Z62P7ezXgU7N2MVaN37gJ+zkE7V8xhd8xTd8R22ynbv/XBMzVIhYxGnGeNYSMBGJ8DdNnvfCfH9WmBC7kQ1zFrDfQizSjItZW4KlWAYZ3fvlvuLvo7fa5FVF1FWMEov6stkvB7maMY+1fOzBXsjo3i/3FfaPqdSVhlUW9ZWyXxnKNWMFa5W4girIeHu/3KuhY387sIXv6lZsw3ZkIphyiXqKUIwSXEYw5Tn1NOAFXqIRoTjTgZYIIVr90MY9/YnuN1p9btQgIYb7YQT32E0119agFnWoh9000YdmP7zxoX/t1NOBTnShG7qc59kXLFxkbhj32jGyjz3U/WP4vsYiDvFIgC5hPHuAhYHMTVfM4DwZM5U5Y30Wc4HKU/r0zEIDc+nsa8jgfCM2KXPG2mbmApUe6hDy+SYRAdzTl3+L2r8p1GT0clqA6hvHc8cjGi5MgC5O92829czBXMzDfOgymXXZNylJOQ9U/zLZYwd2YheyoEsK6yuwEqlI83xezfg/pXIU/4/2oor5f51GTQ2vNGtO1a3W1xouRBuMqPVl8/ciB7nIQz6ciFrfEH5TI+XvqidqfaXUU4ZyVKASTkStL4napnqpr5l6WtCKNryGE1HrM++n9s+85tTnYK/vF9/RHpQr39UKz5wY7VSX+r/PPt63/TiAgziEYMpV6rmG67iBmwimvKWed3iPD/gIX1MQ5esdoetDHdB34DcaOPSR
+  </data>
+ </layer>
+ <layer id="3" name="Tile Layer 3" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHtVrFOAkEQHUEtsKMgoAloBRIbCZ29mtDRAfZ+hw2/xxfAZ6Clswkv2dvgZXZuF8bkJplsNjc78/bNvM0R1VYzUDPw3xjYdol27Fat0SNqslu1IWMbGcbneHuwSl6NK5qBz3bxiDX9rgN8Zfq9vCW6YsdavNlpdmX6fWRsY3asp0Ekq9JqEN0ELjuZNwq9nDC2zl3eWprs6OWC8VmwlPqdX6e/Uahf9PdZwd9XBnyhftFfN38SmwrjJLn+ipkd3kRw5+Is4QNucGcVn8MFDq3wF+oXHJ4LH2YNPfX1C+7C/r6UvNO59QH9uv8AcBfiw12wbjy8wLfnj9/sPwhKuD6xft1/gM/fkt+NlcA/Du9L/4JowH7PnsN8/nyc0lq58fn8+X0+Nz7o1yp/0G9V/l557t7Y3xPP3zH9auZPOgeauN2gqF/N/GnqxpypOn8xtTSxVedPU1NyJpV+JbU0Man0m0JTx3JU1S9yQlPYg6uYfZgDZ92qnT/kBB7skTt27/LgjL/+AtspPCU=
+  </data>
+ </layer>
+ <layer id="4" name="Above Player" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHt1skNglAYReF/oy5tS8WV0wrnoQU7caALtS+nCjw1GESfOTf5lkByAi9E/MbmjYgFllhhjQ2cBcoo4PtVRkXv8akCLc66NjrI0IWzQAoFTrWI8xsuXPMv29Uj9jjgiALOAhZIo8CVs+iGOx54wlnAAmkU6PG/3McAQ4zgLGCBNArkfK9jTDDFDK7aAttmtc/zaRb4doEXnqsdcg==
+  </data>
+ </layer>
+ <objectgroup color="#ff0000" id="5" name="Collisions">
+  <object id="118" type="collision" x="0" y="416" width="80" height="224"/>
+  <object id="119" type="collision" x="224" y="624" width="416" height="16"/>
+  <object id="120" type="collision" x="32" y="0" width="384" height="32"/>
+  <object id="121" type="collision" x="64" y="304" width="16" height="144"/>
+  <object id="122" type="collision" x="80" y="432" width="160" height="16"/>
+  <object id="123" type="collision" x="224" y="320" width="16" height="112"/>
+  <object id="124" type="collision" x="144" y="224" width="240" height="96"/>
+  <object id="125" type="collision" x="80" y="208" width="64" height="48"/>
+  <object id="126" type="collision" x="64" y="240" width="16" height="48"/>
+  <object id="128" type="collision" x="544" y="336" width="80" height="48"/>
+  <object id="129" type="collision" x="96" y="272" width="112" height="112"/>
+  <object id="130" type="collision" x="544" y="432" width="80" height="48"/>
+  <object id="131" type="collision" x="544" y="528" width="80" height="48"/>
+  <object id="132" type="collision" x="544" y="16" width="96" height="48"/>
+  <object id="133" type="collision" x="608" y="80" width="32" height="48"/>
+  <object id="134" type="collision" x="608" y="192" width="32" height="32"/>
+  <object id="135" type="collision" x="608" y="288" width="32" height="32"/>
+  <object id="136" type="collision" x="608" y="384" width="32" height="32"/>
+  <object id="137" type="collision" x="608" y="480" width="32" height="32"/>
+  <object id="138" type="collision" x="608" y="576" width="32" height="32"/>
+  <object id="139" type="collision" x="256" y="592" width="32" height="32"/>
+  <object id="140" type="collision" x="80" y="80" width="48" height="32"/>
+  <object id="142" type="collision" x="16" y="32" width="32" height="32"/>
+  <object id="143" type="collision" x="64" y="32" width="32" height="16"/>
+  <object id="144" type="collision" x="128" y="32" width="32" height="16"/>
+  <object id="145" type="collision" x="288" y="608" width="32" height="16"/>
+  <object id="146" type="collision" x="224" y="608" width="32" height="16"/>
+  <object id="147" type="collision" x="352" y="608" width="32" height="16"/>
+  <object id="148" type="collision" x="416" y="608" width="32" height="16"/>
+  <object id="149" type="collision" x="480" y="608" width="32" height="16"/>
+  <object id="150" type="collision" x="560" y="608" width="80" height="16"/>
+  <object id="151" type="collision" x="528" y="592" width="32" height="32"/>
+  <object id="152" type="collision" x="544" y="192" width="16" height="16"/>
+  <object id="153" type="collision" x="544" y="384" width="16" height="16"/>
+  <object id="154" type="collision" x="416" y="0" width="128" height="16"/>
+  <object id="155" type="collision" x="432" y="16" width="48" height="16"/>
+  <object id="156" type="collision" x="512" y="16" width="32" height="16"/>
+  <object id="157" type="collision" x="192" y="0" width="208" height="112"/>
+  <object id="158" type="collision" x="192" y="112" width="160" height="16"/>
+  <object id="159" type="collision" x="368" y="112" width="32" height="16"/>
+  <object id="160" type="collision" x="384" y="400" width="128" height="16"/>
+  <object id="161" type="collision" x="464" y="512" width="48" height="16"/>
+  <object id="162" type="collision" x="384" y="512" width="48" height="16"/>
+  <object id="163" type="collision-line" x="384" y="416">
+   <polyline points="0,0 0,96"/>
+  </object>
+  <object id="164" type="collision-line" x="512" y="416">
+   <polyline points="0,0 0,96"/>
+  </object>
+  <object id="165" type="collision" x="32" y="256" width="32" height="32"/>
+  <object id="166" type="collision" x="32" y="304" width="32" height="32"/>
+  <object id="167" type="collision" x="16" y="336" width="32" height="32"/>
+  <object id="168" type="collision" x="32" y="368" width="32" height="32"/>
+  <object id="169" type="collision" x="16" y="400" width="32" height="32"/>
+  <object id="170" type="collision" x="544" y="144" width="80" height="48"/>
+  <object id="171" type="collision" x="544" y="240" width="32" height="48"/>
+  <object id="172" type="collision" x="576" y="240" width="48" height="32"/>
+  <object id="173" type="collision" x="592" y="272" width="32" height="16"/>
+  <object id="174" type="collision" x="416" y="80" width="64" height="48"/>
+  <object id="175" type="collision" x="496" y="80" width="16" height="48"/>
+  <object id="176" type="collision" x="480" y="80" width="16" height="32"/>
+  <object id="177" type="collision" x="624" y="64" width="16" height="16"/>
+  <object id="205" type="collision" x="96" y="384" width="48" height="16"/>
+  <object id="206" type="collision" x="160" y="384" width="48" height="16"/>
+  <object id="207" type="collision" x="432" y="448" width="32" height="32"/>
+  <object id="208" type="collision" x="624" y="128" width="16" height="448"/>
+  <object id="212" type="collision" x="176" y="576" width="16" height="16"/>
+ </objectgroup>
+ <objectgroup color="#ffff00" id="6" name="Events">
+  <object id="196" name="Play Music" type="event" x="0" y="0" width="16" height="16">
+   <properties>
+    <property name="act10" value="play_music music_town_theme"/>
+    <property name="cond10" value="not music_playing music_town_theme"/>
+   </properties>
+  </object>
+  <object id="197" name="Teleport to Route 6" type="event" x="112" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,7,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="198" name="Teleport to Route 6" type="event" x="128" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,8,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="199" name="Teleport to Route 6" type="event" x="144" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,9,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="200" name="Teleport to Route 6" type="event" x="160" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,10,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="201" name="Teleport to Route 6" type="event" x="176" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,11,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="202" name="Teleport to Route 6" type="event" x="192" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,12,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="203" name="Teleport to Route 6" type="event" x="208" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,13,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="209" name="Teleport to Sea Route" type="event" x="128" y="496" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,routec.tmx,38,5,0.3"/>
+    <property name="act20" value="char_face player,up"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,up"/>
+   </properties>
+  </object>
+  <object id="211" name="Sign: Candy Town" type="event" x="176" y="576" width="16" height="16">
+   <properties>
+    <property name="act10" value="translated_dialog candy_town"/>
+    <property name="act20" value="translated_dialog candy_town_description"/>
+    <property name="cond1" value="is char_facing_tile player"/>
+    <property name="cond2" value="is button_pressed INTERACT"/>
+   </properties>
+  </object>
+  <object id="213" name="Teleport to Route6" type="event" x="80" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,5,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="214" name="Teleport to Route6" type="event" x="96" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route6.tmx,6,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

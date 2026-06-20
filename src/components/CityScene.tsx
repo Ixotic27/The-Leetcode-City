@@ -8,8 +8,10 @@ import InstancedBuildings from "./InstancedBuildings";
 import InstancedLabels from "./InstancedLabels";
 import EffectsLayer from "./EffectsLayer";
 import LiveDots from "./LiveDots";
+import PlayerNameTags from "./PlayerNameTags";
 import SunnyWeather from "./SunnyWeather";
 import type { LiveSession } from "@/lib/useCodingPresence";
+import type { CityPlayer } from "@/lib/multiplayer/types";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
 
@@ -117,6 +119,8 @@ interface CitySceneProps {
   cityEnergy?: number;
   timeRef?: React.MutableRefObject<number>;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  /** Multiplayer: other players' state from PartyKit */
+  multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
 function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy" }) {
@@ -347,6 +351,7 @@ export default function CityScene({
   cityEnergy,
   timeRef,
   weatherMode = "sunny",
+  multiplayerPlayers,
 }: CitySceneProps) {
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
   const grid = useMemo(
@@ -424,6 +429,11 @@ export default function CityScene({
 
       {liveByLogin && liveByLogin.size > 0 && (
         <LiveDots buildings={buildings} liveByLogin={liveByLogin} />
+      )}
+
+      {/* Multiplayer floating name tags */}
+      {!introMode && multiplayerPlayers && multiplayerPlayers.size > 0 && (
+        <PlayerNameTags players={multiplayerPlayers} buildings={buildings} />
       )}
 
       <InstancedLabels
