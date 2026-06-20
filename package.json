@@ -28,6 +28,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed-lc": "npx tsx --env-file=.env.local scripts/seed-lc.ts",
+    "seed-arcade": "npx tsx --env-file=.env.local scripts/seed-arcade-ixotopia.ts",
     "seed-lc-mass": "npx tsx --env-file=.env.local scripts/seed-lc-mass.ts",
     "seed-lc-infinite": "npx tsx --env-file=.env.local scripts/seed-lc-infinite.ts",
     "backfill-lc": "npx tsx --env-file=.env.local scripts/backfill-lc-profiles.ts",
