@@ -2972,7 +2972,7 @@ function HomeContent() {
         flyPauseSignal={flyPauseSignal}
         flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen}
         flyStartPaused={showFlyControls}
-        holdRise={loadStage !== "done"}
+        holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
         newWorldCinematic={newWorldCinematicActive}
         onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
