@@ -199,31 +199,6 @@ export const SunnyWeather = ({
 
   return (
     <group name="subsystem-sunny-weather">
-      {/* Intense Golden Hour Directional Light System */}
-      <directionalLight
-        ref={directionalLightRef}
-        position={parsedSunPos}
-        color="#fffaed"
-        intensity={2.8 * intensity}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={2500}
-        shadow-camera-left={-1500}
-        shadow-camera-right={1500}
-        shadow-camera-top={1500}
-        shadow-camera-bottom={-1500}
-        shadow-bias={-0.0005}
-        shadow-normalBias={0.04}
-      />
-
-      {/* Warm Ambient Reflection Secondary Bounce */}
-      <ambientLight
-        ref={ambientLightRef}
-        color="#ffebcc"
-        intensity={0.45 * intensity}
-      />
-
       {/* High-Fidelity Rendering Layer Components */}
       <HeatShimmerVolume intensity={intensity} />
       <VolumetricGodRays sunPos={parsedSunPos} />

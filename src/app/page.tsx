@@ -42,6 +42,8 @@ import { ITEM_NAMES, ITEM_EMOJIS } from "@/lib/zones";
 import { useStreakCheckin } from "@/lib/useStreakCheckin";
 import { useLiveUsers } from "@/lib/useLiveUsers";
 import { useCodingPresence } from "@/lib/useCodingPresence";
+import { useCityPresence } from "@/lib/multiplayer/useCityPresence";
+import CityChat from "@/components/CityChat";
 import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
@@ -49,6 +51,7 @@ import RaidPreviewModal from "@/components/RaidPreviewModal";
 import RaidOverlay from "@/components/RaidOverlay";
 import PillModal from "@/components/PillModal";
 import FounderMessage from "@/components/FounderMessage";
+import EArcadeCard from "@/components/EArcadeCard";
 import RabbitCompletion from "@/components/RabbitCompletion";
 import DistrictChooser from "@/components/DistrictChooser";
 import XpBar from "@/components/XpBar";
@@ -772,6 +775,8 @@ function HomeContent() {
   const [discordMembers, setDiscordMembers] = useState<number | null>(null);
   const [pillModalOpen, setPillModalOpen] = useState(false);
   const [founderMessageOpen, setFounderMessageOpen] = useState(false);
+  const [eArcadeOpen, setEArcadeOpen] = useState(false);
+  const [arcadeOnline, setArcadeOnline] = useState<number>(0);
   const [districtChooserOpen, setDistrictChooserOpen] = useState(false);
   const [rabbitCinematic, setRabbitCinematic] = useState(false);
   const [rabbitCinematicPhase, setRabbitCinematicPhase] = useState(-1);
@@ -855,9 +860,23 @@ function HomeContent() {
         })
         .catch(() => { });
     };
+    const fetchArcadeOnline = () => {
+      const pkHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST ?? "localhost:1999";
+      const base = pkHost.startsWith("http") ? pkHost : `${pkHost.includes("localhost") ? "http" : "https"}://${pkHost}`;
+      fetch(`${base}/parties/lobby/main`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { count?: number } | null) => {
+          if (d?.count != null) setArcadeOnline(d.count);
+        })
+        .catch(() => { });
+    };
     fetchStars();
     fetchDiscord();
-    const interval = setInterval(fetchStars, 5 * 60 * 1000); // re-fetch every 5 minutes
+    fetchArcadeOnline();
+    const interval = setInterval(() => {
+      fetchStars();
+      fetchArcadeOnline();
+    }, 5 * 60 * 1000); // re-fetch every 5 minutes
     return () => clearInterval(interval);
   }, []);
 
@@ -1397,7 +1416,7 @@ function HomeContent() {
   // During fly mode: only close overlays (profile card) — AirplaneFlight handles pause/exit
   // Outside fly mode: compare → share modal → profile card → focus → explore mode
   useEffect(() => {
-    if (flyMode && !selectedBuilding) return;
+    if (flyMode && !selectedBuilding && !eArcadeOpen) return;
     if (
       !flyMode &&
       !exploreMode &&
@@ -1410,6 +1429,7 @@ function HomeContent() {
       !compareBuilding &&
       !founderMessageOpen &&
       !pillModalOpen &&
+      !eArcadeOpen &&
       !rabbitCinematic &&
       raidState.phase === "idle"
     )
@@ -1423,6 +1443,10 @@ function HomeContent() {
         }
         if (pillModalOpen) {
           setPillModalOpen(false);
+          return;
+        }
+        if (eArcadeOpen) {
+          setEArcadeOpen(false);
           return;
         }
         // Rabbit cinematic
@@ -1496,6 +1520,7 @@ function HomeContent() {
     compareBuilding,
     founderMessageOpen,
     pillModalOpen,
+    eArcadeOpen,
     rabbitCinematic,
     endRabbitCinematic,
     raidState.phase,
@@ -2708,6 +2733,27 @@ function HomeContent() {
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
+  // Multiplayer presence (PartyKit)
+  const mpLogin = selfLogin || null;
+  const mpAvatarUrl = myBuilding?.avatar_url ?? session?.user?.user_metadata?.avatar_url ?? null;
+  const {
+    players: multiplayerPlayers,
+    playerCount: mpPlayerCount,
+    chatMessages: mpChatMessages,
+    status: mpStatus,
+    sendChat: mpSendChat,
+    sendMove: mpSendMove,
+    isJoined: mpIsJoined,
+  } = useCityPresence(mpLogin, mpAvatarUrl);
+
+  // Use PartyKit player count when connected, fall back to Supabase
+  const effectiveLiveCount = mpStatus === "connected" && mpPlayerCount > 0
+    ? mpPlayerCount
+    : liveUsers;
+  const effectiveLiveStatus = mpStatus === "connected"
+    ? "connected"
+    : liveStatus;
+
   // City energy: devs coding -> city lights up
   // 0 devs = ~10% (city sleeping, very dim)
   // 1 dev  = ~16% (city waking up)
@@ -2919,7 +2965,7 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt}
+        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "done"}
         equippedRelicId={equippedRelicId}
@@ -2995,6 +3041,7 @@ function HomeContent() {
         ghostPreviewLogin={ghostPreviewLogin}
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
+        multiplayerPlayers={multiplayerPlayers}
         raidPhase={raidState.phase}
         raidData={raidState.raidData}
         raidAttacker={raidState.attackerBuilding}
@@ -3002,6 +3049,10 @@ function HomeContent() {
         onRaidPhaseComplete={raidActions.onPhaseComplete}
         onLandmarkClick={() => {
           setPillModalOpen(true);
+          setSelectedBuilding(null);
+        }}
+        onEArcadeClick={() => {
+          setEArcadeOpen(true);
           setSelectedBuilding(null);
         }}
         rabbitSighting={rabbitSighting}
@@ -3057,6 +3108,18 @@ function HomeContent() {
           }
         }}
       />
+
+      {/* Multiplayer Chat Overlay */}
+      {!introMode && !flyMode && (
+        <CityChat
+          messages={mpChatMessages}
+          onSend={mpSendChat}
+          status={mpStatus}
+          isJoined={mpIsJoined}
+          playerCount={mpPlayerCount}
+          accentColor={theme.accent}
+        />
+      )}
 
       {/* Loading screen overlay */}
       {loadStage !== "done" && (
@@ -3669,13 +3732,13 @@ function HomeContent() {
               </span>
             )}
           </a>
-          {liveStatus !== "error" && (
+          {effectiveLiveStatus !== "error" && (
             <div
               className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm"
-              aria-label={`${liveUsers.toLocaleString()} live users`}
+              aria-label={`${effectiveLiveCount.toLocaleString()} live users`}
             >
               <span className="live-dot h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4ade80]" aria-hidden="true" />
-              <span className="text-cream">{liveUsers.toLocaleString()}</span>
+              <span className="text-cream">{effectiveLiveCount.toLocaleString()}</span>
               <span className="hidden sm:inline text-muted">live</span>
             </div>
           )}
@@ -4355,6 +4418,28 @@ function HomeContent() {
                   }}
                 >
                   Explore City
+                  <span className="block text-[8px] opacity-60 normal-case">Browse Buildings</span>
+                </button>
+                <button
+                  onClick={() => setEArcadeOpen(true)}
+                  className="btn-press px-7 py-3 text-xs sm:py-3.5 sm:text-sm text-bg"
+                  style={{
+                    backgroundColor: theme.accent,
+                    boxShadow: `4px 4px 0 0 ${theme.shadow}`,
+                  }}
+                >
+                  <span className="relative">
+                    🕹️ E.Arcade
+                    <span
+                      className="absolute -top-3 -right-8 animate-pulse rounded-sm px-1 py-px text-[7px] font-bold leading-none text-bg"
+                      style={{ backgroundColor: theme.accent }}
+                    >
+                      NEW
+                    </span>
+                  </span>
+                  <span className="block text-[8px] opacity-60 normal-case">
+                    {arcadeOnline > 0 ? `${arcadeOnline} online` : "Meet other devs"}
+                  </span>
                 </button>
                 {!isMobile && (
                   <div className="relative">
@@ -4402,15 +4487,7 @@ function HomeContent() {
                         boxShadow: `4px 4px 0 0 ${theme.shadow}`,
                       }}
                     >
-                      <span className="relative">
-                        &#9992; Fly
-                        <span
-                          className="absolute -top-3 -right-8 animate-pulse rounded-sm px-1 py-px text-[7px] font-bold leading-none text-bg"
-                          style={{ backgroundColor: theme.accent }}
-                        >
-                          NEW
-                        </span>
-                      </span>
+                      &#9992; Fly
                       <span className="block text-[8px] opacity-60 normal-case">
                         Collect PX
                       </span>
@@ -6689,6 +6766,16 @@ function HomeContent() {
       )}
       {founderMessageOpen && (
         <FounderMessage onClose={() => setFounderMessageOpen(false)} />
+      )}
+      {eArcadeOpen && (
+        <EArcadeCard
+          onClose={() => setEArcadeOpen(false)}
+          onEnter={() => {
+            window.location.href = "/arcade";
+          }}
+          session={session}
+          onSignIn={handleSignInWithRef}
+        />
       )}
 
       {/* Rabbit Quest Cinematic Overlay */}
