@@ -4,20 +4,21 @@
  * correct mission pool.
  */
 
-import { getDailyMissions, trackDailyMission } from "../dailies";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { getDailyMissions, trackDailyMission, getTodayStr } from "../dailies";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const mockRpc = jest.fn().mockResolvedValue({ data: null, error: null });
+const mockRpc = vi.fn().mockResolvedValue({ data: null, error: null });
 
-jest.mock("../supabase", () => ({
+vi.mock("../supabase", () => ({
   getSupabaseAdmin: () => ({ rpc: mockRpc }),
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const DEV_ID = 99;
-const DATE = "2025-06-07";
+const DATE = getTodayStr();
 
 // ── getDailyMissions ──────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ describe("getDailyMissions", () => {
 // ── trackDailyMission ─────────────────────────────────────────────────────────
 
 describe("trackDailyMission", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("records progress when mission is in the mobile set", async () => {
     // Find a developer ID where give_kudos is in the mobile mission set

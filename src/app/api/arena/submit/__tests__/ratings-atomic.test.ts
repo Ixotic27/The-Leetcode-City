@@ -5,23 +5,24 @@
  * old read-then-upsert pattern no longer exists in this handler.
  */
 
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { POST } from "../route";
 import { NextRequest } from "next/server";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const mockRpc = jest.fn();
-const mockFrom = jest.fn();
+const mockRpc = vi.fn();
+const mockFrom = vi.fn();
 
-jest.mock("@/lib/supabase", () => ({
+vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => ({
     from: mockFrom,
     rpc: mockRpc,
   }),
 }));
 
-jest.mock("@/lib/arena", () => ({
-  getAuthenticatedDeveloper: jest.fn().mockResolvedValue({ id: 42 }),
+vi.mock("@/lib/arena", () => ({
+  getAuthenticatedDeveloper: vi.fn().mockResolvedValue({ id: 42 }),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -46,11 +47,11 @@ function setupMocks({
   // Default chain: .from().select().eq().gt() → activeBuffs
   //                .from().insert()           → submission insert
   const chainDefault = {
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    gt: jest.fn().mockReturnThis(),
-    maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
-    insert: jest.fn().mockResolvedValue({ error: insertError }),
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gt: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    insert: vi.fn().mockResolvedValue({ error: insertError }),
   };
   mockFrom.mockReturnValue(chainDefault);
 
@@ -70,7 +71,7 @@ function setupMocks({
 
 describe("POST /api/arena/submit — atomic ratings update", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("calls update_arena_ratings_atomic (not a direct upsert) on every submission", async () => {
