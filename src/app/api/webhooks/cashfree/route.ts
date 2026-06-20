@@ -5,6 +5,7 @@ import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
+import { InfrastructureError } from "@/lib/errors";
 
 
 export const dynamic = "force-dynamic";
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
               .eq("id", "support_renewal")
               .single();
 
-            const currentMeta = (item?.metadata as Record<string, any>) || {};
+            const currentMeta = (item?.metadata as Record<string, unknown>) || {};
             const currentRaised = Number(currentMeta.raised_inr || 0);
             const targetInr = Number(currentMeta.target_inr || 2900);
 
@@ -286,9 +287,12 @@ export async function POST(request: Request) {
       }
     }
   } catch (err) {
-    console.error("[Cashfree webhook] Handler error:", err);
+    if (err instanceof InfrastructureError) {
+      console.error("[Cashfree webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    console.error("[Cashfree webhook] Business logic or unexpected error:", err);
   }
 
-  // Always return 200 so Cashfree doesn't retry
   return NextResponse.json({ received: true });
 }

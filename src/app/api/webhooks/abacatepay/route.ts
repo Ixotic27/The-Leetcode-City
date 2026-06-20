@@ -5,6 +5,7 @@ import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notifi
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { verifyAbacatePayWebhook } from "@/lib/abacatepay";
+import { InfrastructureError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -187,9 +188,12 @@ export async function POST(request: Request) {
       }
     }
   } catch (err) {
-    console.error("AbacatePay webhook handler error:", err);
+    if (err instanceof InfrastructureError) {
+      console.error("[AbacatePay webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    console.error("[AbacatePay webhook] Business logic or unexpected error:", err);
   }
 
-  // Always return 200
   return NextResponse.json({ received: true });
 }
