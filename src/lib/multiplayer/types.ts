@@ -1,5 +1,5 @@
 /**
- * Shared types for the multiplayer system (PartyKit presence + chat).
+ * Shared types for the multiplayer system (Supabase Realtime presence + chat).
  * Used by both the client hooks and React components.
  */
 

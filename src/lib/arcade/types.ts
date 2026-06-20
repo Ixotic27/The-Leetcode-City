@@ -35,7 +35,7 @@ export interface AvatarLoadout {
 // ─── Directions ───────────────────────────────────────────────
 export type Direction = "up" | "down" | "left" | "right";
 
-// ─── Player state (synced via PartyKit) ───────────────────────
+// ─── Player state (synced via Supabase Realtime) ───────────────────────
 export interface PlayerState {
   id: string;
   github_login: string;

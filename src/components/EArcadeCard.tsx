@@ -14,14 +14,11 @@ interface EArcadeCardProps {
 export default function EArcadeCard({ onClose, onEnter, session, onSignIn }: EArcadeCardProps) {
   const [onlineCount, setOnlineCount] = useState<number | null>(null);
 
-  // Fetch live player count from PartyKit
+  // Fetch live player count from Supabase
   useEffect(() => {
-    const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-    if (!host) return;
-    const base = host.startsWith("http") ? host : `${host.includes("localhost") ? "http" : "https"}://${host}`;
-    fetch(`${base}/parties/lobby/main`)
+    fetch("/api/arcade/rooms/counts")
       .then((r) => r.json())
-      .then((d: { count?: number }) => setOnlineCount(d.count ?? 0))
+      .then((d: { totalOnline?: number }) => setOnlineCount(d.totalOnline ?? 0))
       .catch(() => {});
   }, []);
 

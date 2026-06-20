@@ -726,7 +726,7 @@ export default function ArcadeRoomPage({
         }
 
         pendingInputsRef.current.push({ seq, dir });
-        sendMove({ type: "move", dir, seq });
+        sendMove({ type: "move", dir, seq, x: localP?.x ?? 0, y: localP?.y ?? 0 });
       };
       cleanupInput = attachInput(onMoveDir, isTyping);
 

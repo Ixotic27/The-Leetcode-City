@@ -861,12 +861,16 @@ function HomeContent() {
         .catch(() => { });
     };
     const fetchArcadeOnline = () => {
-      const pkHost = process.env.NEXT_PUBLIC_PARTYKIT_HOST ?? "localhost:1999";
-      const base = pkHost.startsWith("http") ? pkHost : `${pkHost.includes("localhost") ? "http" : "https"}://${pkHost}`;
-      fetch(`${base}/parties/lobby/main`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d: { count?: number } | null) => {
-          if (d?.count != null) setArcadeOnline(d.count);
+      const supabase = createBrowserSupabase();
+      const cutoff = new Date(Date.now() - 40000).toISOString();
+      supabase
+        .from("arcade_active_players")
+        .select("user_id", { count: "exact", head: true })
+        .gt("last_heartbeat", cutoff)
+        .then((res: any) => {
+          if (res.count != null) {
+            setArcadeOnline(res.count);
+          }
         })
         .catch(() => { });
     };
@@ -876,7 +880,7 @@ function HomeContent() {
     const interval = setInterval(() => {
       fetchStars();
       fetchArcadeOnline();
-    }, 5 * 60 * 1000); // re-fetch every 5 minutes
+    }, 45 * 1000); // re-fetch every 45 seconds for fresher counts
     return () => clearInterval(interval);
   }, []);
 
@@ -2733,7 +2737,7 @@ function HomeContent() {
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
 
-  // Multiplayer presence (PartyKit)
+  // Multiplayer presence (Supabase Realtime)
   const mpLogin = selfLogin || null;
   const mpAvatarUrl = myBuilding?.avatar_url ?? session?.user?.user_metadata?.avatar_url ?? null;
   const {
@@ -2746,7 +2750,7 @@ function HomeContent() {
     isJoined: mpIsJoined,
   } = useCityPresence(mpLogin, mpAvatarUrl);
 
-  // Use PartyKit player count when connected, fall back to Supabase
+  // Use Realtime player count when connected, fall back to Supabase active players count
   const effectiveLiveCount = mpStatus === "connected" && mpPlayerCount > 0
     ? mpPlayerCount
     : liveUsers;
