@@ -25,6 +25,7 @@
 
 - <a href="#what-is-leetcode-city">What is LeetCode City?</a>
 - <a href="#features">Features</a>
+- <a href="#screenshots">Screenshots</a>
 - <a href="#how-buildings-work">How Buildings Work</a>
 - <a href="#architecture--rendering-flow">Architecture & Rendering Flow</a>
 - <a href="#leetcode-data-pipeline">LeetCode Data Pipeline</a>
@@ -60,6 +61,27 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 - **Social Features** — Send kudos, gift items to other developers, refer friends, and see a live activity feed
 - **Compare Mode** — Put two developers side by side and compare their buildings and stats
 - **Share Cards** — Download shareable image cards of your profile in landscape or stories format
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="public/assets/neon_overview.png" alt="LeetCode City overview in neon lighting" />
+    </td>
+    <td align="center">
+      <img src="public/assets/flying_neon.png" alt="LeetCode City flight view over the skyline" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="public/screenshots/profile-card.png" alt="Developer profile card" />
+    </td>
+    <td align="center">
+      <img src="public/screenshots/compare-card.png" alt="Developer compare screen" />
+    </td>
+  </tr>
+</table>
 
 ## How Buildings Work
 
