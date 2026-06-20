@@ -198,11 +198,12 @@ export function useCityPresence(
   // ── Supabase Realtime Subscription ─────────────────────────
   useEffect(() => {
     const supabase = createBrowserSupabase();
-
+    let active = true;
     let cleanChannel: (() => void) | null = null;
 
     async function init() {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
       const localId = session?.user?.id ?? `spectator-${Math.random().toString(36).slice(2, 11)}`;
       localUserIdRef.current = localId;
 
@@ -315,6 +316,7 @@ export function useCityPresence(
     init();
 
     return () => {
+      active = false;
       if (cleanChannel) cleanChannel();
       if (moveTimerRef.current) clearTimeout(moveTimerRef.current);
       setIsJoined(false);
