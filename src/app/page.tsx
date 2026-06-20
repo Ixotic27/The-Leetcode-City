@@ -536,7 +536,7 @@ function MiniLeaderboard({
               </span>
             </span>
             <span className="ml-2 flex-shrink-0 text-[10px] text-muted">
-              {(b[cat.key] as number).toLocaleString()}
+              {((b[cat.key] as number) ?? 0).toLocaleString()}
             </span>
           </a>
         ))}
@@ -1658,17 +1658,17 @@ function HomeContent() {
       total_contributions: 0,
     };
 
-    // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
-    // try {
-    //   const v = Math.floor(Date.now() / 300_000);
-    //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
-    //   const snapshotRes = await fetch(snapshotUrl);
-    //   if (snapshotRes.ok) {
-    //     const snapshot = await snapshotRes.json();
-    //     allDevs = snapshot.developers;
-    //     cityStats = snapshot.stats;
-    //   }
-    // } catch { /* fall through to chunked */ }
+    // Try pre-computed snapshot first
+    try {
+      const v = Math.floor(Date.now() / 300_000);
+      const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
+      const snapshotRes = await fetch(snapshotUrl);
+      if (snapshotRes.ok) {
+        const snapshot = await snapshotRes.json();
+        allDevs = snapshot.developers;
+        cityStats = snapshot.stats;
+      }
+    } catch { /* fall through to chunked */ }
 
     // Fallback to chunked API
     if (allDevs.length === 0) {
@@ -1790,17 +1790,17 @@ function HomeContent() {
           total_contributions: 0,
         };
 
-        // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
-        // try {
-        //   const v = Math.floor(Date.now() / 300_000); // changes every 5 min, aligned with cron
-        //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
-        //   const snapshotRes = await fetch(snapshotUrl);
-        //   if (snapshotRes.ok) {
-        //     const snapshot = await snapshotRes.json();
-        //     allDevs = snapshot.developers;
-        //     cityStats = snapshot.stats;
-        //   }
-        // } catch { /* fall through to chunked */ }
+        // Try pre-computed snapshot first
+        try {
+          const v = Math.floor(Date.now() / 300_000); // changes every 5 min, aligned with cron
+          const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
+          const snapshotRes = await fetch(snapshotUrl);
+          if (snapshotRes.ok) {
+            const snapshot = await snapshotRes.json();
+            allDevs = snapshot.developers;
+            cityStats = snapshot.stats;
+          }
+        } catch { /* fall through to chunked */ }
 
         // Fallback to chunked API
         if (allDevs.length === 0) {
