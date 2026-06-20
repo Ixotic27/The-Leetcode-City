@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/partykit@latest/schema.json",
+  "name": "leetcode-city-multiplayer",
+  "main": "party/presence.ts",
+  "parties": {
+    "lobby": "party/lobby.ts",
+    "arcade": "party/arcade.ts"
+  },
+  "compatibilityDate": "2026-06-01"
+}

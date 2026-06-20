@@ -17,6 +17,8 @@ import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
 import LeaderboardHolograms from "./LeaderboardHolograms";
 import Colosseum from "./Colosseum";
+import EArcadeLandmark from "./EArcadeLandmark";
+import type { CityPlayer } from "@/lib/multiplayer/types";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
@@ -25,7 +27,6 @@ import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
-import OuterWildlands from "./OuterWildlands";
 import TrafficSystem from "./TrafficSystem";
 
 // ─── Theme Definitions ───────────────────────────────────────
@@ -2108,6 +2109,8 @@ interface Props {
   onReturnToCity?: () => void;
   initialFlightPos?: THREE.Vector3 | null;
   initialFlightYaw?: number | null;
+  onEArcadeClick?: () => void;
+  multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -2170,6 +2173,7 @@ export default function CityCanvas({
   raidDefender,
   onRaidPhaseComplete,
   onLandmarkClick,
+  onEArcadeClick,
   rabbitSighting,
   onRabbitCaught,
   rabbitCinematic,
@@ -2194,6 +2198,7 @@ export default function CityCanvas({
   onReturnToCity,
   initialFlightPos,
   initialFlightYaw,
+  multiplayerPlayers,
 }: Props) {
   const { isRaining } = useWeather();
   const t = THEMES[themeIndex] ?? THEMES[0];
@@ -2334,15 +2339,15 @@ export default function CityCanvas({
         </>
       )}
 
-      {/* Outer Wildlands — rendered when player has traveled to the new world */}
-      {hasTraveledToNewWorld && (
-  <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
-)}
-
-
       {!hasTraveledToNewWorld && (
         <>
           <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
+          <EArcadeLandmark
+            onClick={onEArcadeClick ?? (() => { })}
+            themeAccent={t.building.accent}
+            themeWindowLit={t.building.windowLit}
+            themeFace={t.building.face}
+          />
           <Colosseum />
           <LeaderboardHolograms buildings={buildings} onBuildingClick={onBuildingClick} />
 
@@ -2379,6 +2384,7 @@ export default function CityCanvas({
             cityEnergy={cityEnergy}
             timeRef={timeRef}
             weatherMode={weatherMode}
+            multiplayerPlayers={multiplayerPlayers}
           />
 
           <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />

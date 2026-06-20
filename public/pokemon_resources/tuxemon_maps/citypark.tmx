@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="git" orientation="orthogonal" renderorder="right-down" compressionlevel="0" width="40" height="40" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="132">
+ <properties>
+  <property name="edges" value="clamped"/>
+  <property name="scenario" value="xero"/>
+  <property name="slug" value="citypark"/>
+  <property name="map_type" value="route"/>
+ </properties>
+ <tileset firstgid="1" name="Tileset" tilewidth="16" tileheight="16" tilecount="1600" columns="40">
+  <image source="../gfx/tilesets/Superpowers_Tilesheet.png" width="640" height="640"/>
+ </tileset>
+ <tileset firstgid="1601" source="../gfx/tilesets/core_buildings.tsx"/>
+ <tileset firstgid="3951" source="../gfx/tilesets/core_outdoor.tsx"/>
+ <tileset firstgid="6726" source="../gfx/tilesets/core_set pieces.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHt1LEJgDAQheG3gSi6npXDOIu6i7hApojWnkVK0UbuhL840gTyePmSVEmJoQMMYOAjA1MtzS9msT0ef9Fq5w7t82xB842NtFu2I2g+r96KpWy9XP3cjVdvJR+rz7und3rHAAYwgAEMYAADGMAABjAQz0DfxcuEk//fyQlEnrz4
+  </data>
+ </layer>
+ <layer id="2" name="Tile Layer 2" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHtlEkKwkAURP9ON4Kg4JALqAdxAo/jdA4hXkXQAzkdwmqkIBtB0vQQqIaXH5Lu/i8VkrJvdgZlwnpvmT3AE7zAG9DnCq8bSFkHbbMhGIExKAB96GkJxxw+C7AEK7AG9KJnKr1OYbaFzw7swQEcAb3omcrvV1960ZPzJl2zaSRm6FMd7O2u04ue1Xmpzjf4Tt1wlV70/N7J55ijF/PLJyWZKIH6CZx69dfGWHnJ3C9EBjn/Y+jGGuL5ffdsglsTHH3fQ4j1zI01RA/fPWO5uT6xevlmovVKQAkoASWgBJSAElACSuDfBD7dmVz6
+  </data>
+ </layer>
+ <layer id="3" name="Tile Layer 3" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHtlruKVEEQhttEBBEFxwuYLRr5BIKJCrqBBrrGMiYirMaaGy6Comg6oaH3RF/Bh1gfwSewfmc+LIrqPu05sy6IDb3Vp85fVV/3TvVMKf/2eDUr5bXNvzF+nCiFer32i7F9tdmrj7o/3Rf1ei35e/VRR/x/O+4ELh0v5bLNKzbHjlMnx0YOx90zrjv2ub8/gY8q8bM99Vl5xaf9w3cj3AXUgKFl42d76jN8Fx2ffGKEixotLq8nbqqlns7vruPj/OCiDvrMKgb9uix1xKd7V/9f2GSPnFkqqCdfa5JPtqXTu6Hhz2THuNS/T21qxHivXSqG/07l40xiJdiwel/Txlj/7PfEeqyN959nU03yUj/qM7/fE+ux1t8vsMnCRV44pL+Q3Jc1P3G7R1mV0rNGXcsLF5xen93nypP5iTt4jFUpPWvUbyt54YITvTie2Pm9N+sHfu55/07r846vZ62YR7OyuGVT9XxefZ/ABaf0GuJ4Y/qtWZk/tvnL6fw+j959Wu3jqtlrA3NzpSWn5V9YnYXqxbxwwUmM+L6Z3vY1t/3Noz/m2V7VlL1un+vWfBj4lPvdql7MCxecnkP3+YeQS9zc82hlPZ/6rjUzvlpeuODUd7SG9Pye0LkzvB+frOdrnZ3eZXzqD+r5vHDByTtxxN8Telfzez5/dtsW88Cm90U++iOrBxecYtAQh/89sfTW/Z7Pn98LC3xp0/siH/2R1YMLzo0DSxLxZf1U88P30eL8WbE+dPq3/7Np4lB/ZPXggpM4cah/s/tP/thn8Cnen5XWYvM+anhLvZgXLjiJkV59mt1/rf5VPGfmrT8/anir/sjywgUnMeJTP2X3X9Znz0xfu5c37V1r0B9ZXrjgJI/41E/Z/Zf1GXGZjf0QNfSHz8udBhecxIov66ean7jMDvEpRv2R1YMLTvLvmN7/3s78z01Tm+hle/hq9eCC0+f9bvXXMVp8vof8mrpwwYkfu3G4lLM2z9kcO+BTf/rhebK1tHDB6eO1vmlcWzZvJ3zqt56R3ceKy5i8T/0CF5xY6vK83xZOLHw877eN5wNfzUb9Xj/H86lx4Y/6vX7u3T98vfp16Xr3D1+vfl26nyUbJig=
+  </data>
+ </layer>
+ <layer id="4" name="Above Player" width="40" height="40">
+  <data encoding="base64" compression="zlib">
+   eAHt1LEJACAQA8DUjuD+89mI1jqF8nCB9OEePpHKAqNXXm87AQIVBfydilezmQABAgQIECBAgACBHwKzJet23woBAgQIvBc46kcFDQ==
+  </data>
+ </layer>
+ <objectgroup color="#ff0000" id="5" name="Collisions">
+  <object id="1" type="collision" x="0" y="0" width="32" height="640"/>
+  <object id="2" type="collision" x="32" y="0" width="32" height="32"/>
+  <object id="4" type="collision" x="64" y="32" width="192" height="32"/>
+  <object id="5" type="collision" x="256" y="32" width="32" height="16"/>
+  <object id="6" type="collision" x="288" y="32" width="224" height="32"/>
+  <object id="11" type="collision" x="192" y="544" width="448" height="96"/>
+  <object id="12" type="collision" x="608" y="224" width="32" height="320"/>
+  <object id="13" type="collision" x="32" y="608" width="128" height="32"/>
+  <object id="14" type="collision" x="96" y="544" width="96" height="32"/>
+  <object id="17" type="collision" x="208" y="208" width="304" height="32"/>
+  <object id="18" type="collision" x="160" y="144" width="320" height="32"/>
+  <object id="19" type="collision" x="32" y="128" width="464" height="16"/>
+  <object id="20" type="collision" x="176" y="112" width="320" height="16"/>
+  <object id="30" type="collision" x="464" y="176" width="32" height="32"/>
+  <object id="31" type="collision" x="32" y="144" width="112" height="32"/>
+  <object id="32" type="collision" x="608" y="64" width="32" height="96"/>
+  <object id="92" type="collision" x="112" y="288" width="16" height="32"/>
+  <object id="93" type="collision" x="112" y="416" width="16" height="32"/>
+  <object id="94" type="collision" x="496" y="352" width="16" height="32"/>
+  <object id="95" type="collision" x="496" y="272" width="16" height="32"/>
+  <object id="96" type="collision" x="496" y="432" width="16" height="32"/>
+  <object id="97" type="collision" x="608" y="160" width="16" height="16"/>
+  <object id="98" type="collision" x="512" y="48" width="64" height="16"/>
+  <object id="100" type="collision" x="32" y="544" width="32" height="64"/>
+  <object id="114" type="collision" x="32" y="384" width="16" height="16"/>
+  <object id="127" type="collision" x="576" y="32" width="16" height="16"/>
+  <object id="128" type="collision" x="592" y="48" width="16" height="16"/>
+  <object id="130" type="collision" x="96" y="512" width="48" height="32"/>
+ </objectgroup>
+ <objectgroup color="#ffff00" id="6" name="Events">
+  <object id="33" name="random encounter 1" type="event" x="208" y="176" width="128" height="32">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="34" name="encounter 2" type="event" x="144" y="144" width="16" height="48">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="35" name="encounter 3" type="event" x="32" y="176" width="112" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="48" name="encounter 5" type="event" x="304" y="304" width="128" height="128">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="60" name="encounter" type="event" x="480" y="496" width="96" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="61" name="encounter" type="event" x="464" y="512" width="128" height="32">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="62" name="encounter" type="event" x="560" y="96" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="63" name="encounter" type="event" x="592" y="96" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="64" name="encounter" type="event" x="576" y="112" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="65" name="encounter" type="event" x="560" y="128" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="66" name="encounter" type="event" x="592" y="128" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="67" name="encounter" type="event" x="576" y="144" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="68" name="encounter" type="event" x="576" y="176" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="69" name="encounter" type="event" x="592" y="160" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="70" name="encounter" type="event" x="560" y="160" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="71" name="encounter" type="event" x="576" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="72" name="encounter" type="event" x="592" y="192" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="73" name="encounter" type="event" x="560" y="192" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="74" name="encounter" type="event" x="576" y="240" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="75" name="encounter" type="event" x="592" y="224" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="76" name="encounter" type="event" x="560" y="224" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="77" name="encounter" type="event" x="576" y="272" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="78" name="encounter" type="event" x="592" y="256" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="79" name="encounter" type="event" x="560" y="256" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="80" name="encounter" type="event" x="576" y="304" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="81" name="encounter" type="event" x="592" y="288" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="82" name="encounter" type="event" x="560" y="288" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="83" name="encounter" type="event" x="576" y="336" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="84" name="encounter" type="event" x="592" y="320" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="85" name="encounter" type="event" x="560" y="320" width="16" height="16">
+   <properties>
+    <property name="act10" value="random_encounter default_encounter"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_moved player"/>
+   </properties>
+  </object>
+  <object id="86" name="Teleport to Route 2" type="event" x="176" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route2.tmx,11,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="87" name="Teleport to Route 2" type="event" x="160" y="624" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,route2.tmx,10,0,0.3"/>
+    <property name="act20" value="char_face player,down"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,down"/>
+   </properties>
+  </object>
+  <object id="88" name="Teleport to Leather Town" type="event" x="624" y="176" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,leather_town.tmx,0,31,0.3"/>
+    <property name="act20" value="char_face player,right"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,right"/>
+   </properties>
+  </object>
+  <object id="89" name="Teleport to Leather Town" type="event" x="624" y="192" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,leather_town.tmx,0,32,0.3"/>
+    <property name="act20" value="char_face player,right"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,right"/>
+   </properties>
+  </object>
+  <object id="90" name="Teleport to Leather Town" type="event" x="624" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,leather_town.tmx,0,33,0.3"/>
+    <property name="act20" value="char_face player,right"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,right"/>
+   </properties>
+  </object>
+  <object id="91" name="Play Music" type="event" x="0" y="0" width="16" height="16">
+   <properties>
+    <property name="act10" value="play_music music_city_park"/>
+    <property name="cond10" value="not music_playing music_city_park"/>
+   </properties>
+  </object>
+  <object id="101" name="Sign: Achievement Maniac's House" type="event" x="512" y="48" width="16" height="16">
+   <properties>
+    <property name="act10" value="translated_dialog xero_citypark_achievement"/>
+    <property name="cond10" value="is char_facing_tile player"/>
+    <property name="cond20" value="is button_pressed INTERACT"/>
+   </properties>
+  </object>
+  <object id="102" name="Sign: Leather Town" type="event" x="608" y="160" width="16" height="16">
+   <properties>
+    <property name="act10" value="translated_dialog citypark"/>
+    <property name="cond10" value="is char_facing_tile player"/>
+    <property name="cond20" value="is button_pressed INTERACT"/>
+   </properties>
+  </object>
+  <object id="111" name="ripjimmy" type="event" x="32" y="384" width="16" height="16">
+   <properties>
+    <property name="act10" value="translated_dialog ripjimmy"/>
+    <property name="cond10" value="is char_facing_tile player"/>
+    <property name="cond30" value="is button_pressed INTERACT"/>
+   </properties>
+  </object>
+  <object id="112" name="make npcs" type="event" x="48" y="0" width="16" height="16">
+   <properties>
+    <property name="act10" value="create_npc knight1,12,13,stand"/>
+    <property name="act20" value="char_face knight1,right"/>
+    <property name="act30" value="set_variable firstgo:no"/>
+    <property name="cond10" value="not char_exists knight1"/>
+    <property name="cond20" value="not variable_set firstgo:gone"/>
+   </properties>
+  </object>
+  <object id="113" name="hurrytalk" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="char_face knight1,left"/>
+    <property name="act20" value="translated_dialog iamknight"/>
+    <property name="act30" value="set_variable firstgo:yes"/>
+    <property name="act40" value="translated_dialog iamknight2"/>
+    <property name="act50" value="translated_dialog_choice mistaken:thats_me,cityparkchoice"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,right"/>
+    <property name="cond30" value="is button_pressed INTERACT"/>
+    <property name="cond40" value="is variable_set firstgo:no"/>
+   </properties>
+  </object>
+  <object id="115" name="hurrytalkmistaken" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="translated_dialog mistakenknight"/>
+    <property name="act20" value="set_variable firstgo:gone"/>
+    <property name="act30" value="set_variable secondgo:yes"/>
+    <property name="cond10" value="is variable_set firstgo:yes"/>
+    <property name="cond20" value="is variable_set cityparkchoice:mistaken"/>
+   </properties>
+  </object>
+  <object id="116" name="hurrytalkyes" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="set_variable firstgo:gone"/>
+    <property name="act20" value="translated_dialog thatsmeknight"/>
+    <property name="act30" value="set_variable secondgo:yes"/>
+    <property name="cond10" value="is variable_set firstgo:yes"/>
+    <property name="cond20" value="is variable_set cityparkchoice:thats_me"/>
+   </properties>
+  </object>
+  <object id="117" name="hurrytalknow" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="char_face knight1,up"/>
+    <property name="act20" value="wait 0.4"/>
+    <property name="act30" value="char_face knight1,down"/>
+    <property name="act40" value="wait 0.4"/>
+    <property name="act50" value="char_face knight1,left"/>
+    <property name="act60" value="translated_dialog quicklyknight"/>
+    <property name="act70" value="set_variable secondgo:gone"/>
+    <property name="act80" value="set_variable iamsecret:yes"/>
+    <property name="cond10" value="is variable_set secondgo:yes"/>
+   </properties>
+  </object>
+  <object id="118" name="hurrytalksecret" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act010" value="translated_dialog quicklyknight2"/>
+    <property name="act020" value="char_face knight1,up"/>
+    <property name="act030" value="wait 0.2"/>
+    <property name="act040" value="char_face knight1,down"/>
+    <property name="act050" value="wait 0.2"/>
+    <property name="act060" value="char_face knight1,left"/>
+    <property name="act070" value="translated_dialog quicklyknight3"/>
+    <property name="act080" value="char_face knight1,right"/>
+    <property name="act090" value="wait 0.3"/>
+    <property name="act100" value="char_face knight1,left"/>
+    <property name="act110" value="translated_dialog quicklyknight4"/>
+    <property name="act120" value="set_variable iamsecret:ohno"/>
+    <property name="cond10" value="is variable_set iamsecret:yes"/>
+   </properties>
+  </object>
+  <object id="119" name="hurrytalkohno" type="event" x="176" y="208" width="16" height="16">
+   <properties>
+    <property name="act10" value="char_speed knight1, 5"/>
+    <property name="act20" value="pathfind knight1, 3,15"/>
+    <property name="act30" value="translated_dialog omnichannelarrives"/>
+    <property name="act40" value="set_variable omnichannelhere:here"/>
+    <property name="act50" value="char_face player,left"/>
+    <property name="cond10" value="is variable_set iamsecret:ohno"/>
+   </properties>
+  </object>
+  <object id="123" name="Teleport to Leather Town" type="event" x="624" y="160" width="16" height="16">
+   <properties>
+    <property name="act10" value="transition_teleport player,leather_town.tmx,0,30,0.3"/>
+    <property name="act20" value="char_face player,right"/>
+    <property name="cond10" value="is char_at player"/>
+    <property name="cond20" value="is char_facing player,right"/>
+   </properties>
+  </object>
+  <object id="124" name="Environment Day" type="event" x="16" y="0" width="16" height="16">
+   <properties>
+    <property name="act1" value="set_environment grass"/>
+    <property name="cond1" value="not time_is stage_of_day,equals,night"/>
+    <property name="cond2" value="not environment_is grass"/>
+   </properties>
+  </object>
+  <object id="125" name="Environment Night" type="event" x="32" y="0" width="16" height="16">
+   <properties>
+    <property name="act1" value="set_environment night_grass"/>
+    <property name="cond1" value="is time_is stage_of_day,equals,night"/>
+    <property name="cond2" value="not environment_is night_grass"/>
+   </properties>
+  </object>
+  <object id="126" name="Teleport to Maniac House" type="event" x="576" y="48" width="16" height="16">
+   <properties>
+    <property name="act1" value="transition_teleport player,citypark_house1.tmx,6,7,0.3"/>
+    <property name="act2" value="char_face player,up"/>
+    <property name="cond1" value="is char_at player"/>
+    <property name="cond2" value="is char_facing player,up"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

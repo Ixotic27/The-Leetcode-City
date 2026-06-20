@@ -23,7 +23,7 @@
     "nextjs"
   ],
   "scripts": {
-    "dev": "next dev -p 3001",
+    "dev": "npx -y concurrently -k -n next,party -c cyan,magenta \"next dev -p 3001\" \"npx partykit dev --port 1999\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -36,6 +36,7 @@
     "generate-codes": "npx tsx --env-file=.env.local scripts/generate-codes.ts",
     "setup": "node scripts/setup.mjs",
     "setup:check": "node scripts/setup.mjs --check",
+    "party:dev": "npx partykit dev --port 1999",
     "test": "vitest"
   },
   "dependencies": {
@@ -53,8 +54,11 @@
     "@vercel/speed-insights": "^1.3.1",
     "cashfree-pg": "^6.0.4",
     "dotenv": "^17.4.2",
+    "glin-profanity": "^3.3.0",
     "howler": "^2.2.4",
     "next": "16.1.6",
+    "partykit": "^0.0.115",
+    "partysocket": "^1.2.0",
     "postprocessing": "^6.38.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
