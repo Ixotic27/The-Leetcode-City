@@ -55,17 +55,13 @@ function formatEvent(e: FeedEvent): string {
       const login = meta.login ? `@${meta.login}` : actor;
       switch (meta.highlight) {
         case "contributions":
-          return `#  ${login}'s building has ${Number(meta.value).toLocaleString()} contributions`;
+          return `#  ${login} has ${Number(meta.value).toLocaleString()} solved LeetCode problems`;
         case "stars":
-          return `*  ${login} has ${Number(meta.value).toLocaleString()} stars across their repos`;
+          return `*  ${login} has ${Number(meta.value).toLocaleString()} reputation points on LeetCode`;
         case "rank":
           return `>>  ${login} is ranked #${meta.value} in the city`;
         case "streak":
-          return `~  ${login} is on a ${meta.value}-day commit streak`;
-        case "language":
-          return `<>  ${login} builds with ${meta.value}`;
-        case "repos":
-          return `{}  ${login} has ${meta.value} public repos`;
+          return `~  ${login} is on a ${meta.value}-day LeetCode active streak`;
         default:
           return `${login} is in the city`;
       }

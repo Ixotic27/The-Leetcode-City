@@ -149,7 +149,7 @@ export async function GET(request: Request) {
 async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, count: number) {
   const { data: devs } = await sb
     .from("developers")
-    .select("id, github_login, contributions, total_stars, rank, contributions_total, current_streak, primary_language, public_repos")
+    .select("id, github_login, contributions, contributions_total, total_stars, rank, lc_streak")
     .order("contributions", { ascending: false })
     .limit(50);
 
@@ -173,7 +173,12 @@ async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, 
     // Pick a random synthetic event type for each dev
     const roll = Math.random();
 
-    if (roll < 0.25 && dev.contributions > 0) {
+    const solvedCount =
+      dev.contributions_total && dev.contributions_total > 0
+        ? dev.contributions_total
+        : dev.contributions ?? 0;
+
+    if (roll < 0.25 && solvedCount > 0) {
       events.push({
         id: `syn-contrib-${dev.id}`,
         event_type: "dev_highlight",
@@ -182,7 +187,7 @@ async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, 
         metadata: {
           login: dev.github_login,
           highlight: "contributions",
-          value: dev.contributions,
+          value: solvedCount,
         },
         created_at: new Date().toISOString(),
       });
@@ -212,7 +217,7 @@ async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, 
         },
         created_at: new Date().toISOString(),
       });
-    } else if (roll < 0.75 && dev.current_streak && dev.current_streak > 0) {
+    } else if (roll < 0.75 && dev.lc_streak && dev.lc_streak > 0) {
       events.push({
         id: `syn-streak-${dev.id}`,
         event_type: "dev_highlight",
@@ -221,33 +226,7 @@ async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, 
         metadata: {
           login: dev.github_login,
           highlight: "streak",
-          value: dev.current_streak,
-        },
-        created_at: new Date().toISOString(),
-      });
-    } else if (dev.primary_language) {
-      events.push({
-        id: `syn-lang-${dev.id}`,
-        event_type: "dev_highlight",
-        actor_id: dev.id,
-        target_id: null,
-        metadata: {
-          login: dev.github_login,
-          highlight: "language",
-          value: dev.primary_language,
-        },
-        created_at: new Date().toISOString(),
-      });
-    } else if (dev.public_repos > 0) {
-      events.push({
-        id: `syn-repos-${dev.id}`,
-        event_type: "dev_highlight",
-        actor_id: dev.id,
-        target_id: null,
-        metadata: {
-          login: dev.github_login,
-          highlight: "repos",
-          value: dev.public_repos,
+          value: dev.lc_streak,
         },
         created_at: new Date().toISOString(),
       });
