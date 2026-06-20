@@ -3,8 +3,6 @@ import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
-import CodexModal from "@/components/CodexModal";
-import RelicModal from "@/components/RelicModal";
 import { STATIC_RELICS, type Relic } from "@/lib/relics";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
@@ -37,23 +35,15 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import ActivityTicker, { type FeedEvent } from "@/components/ActivityTicker";
-import ActivityPanel from "@/components/ActivityPanel";
 import { ITEM_NAMES, ITEM_EMOJIS } from "@/lib/zones";
 import { useStreakCheckin } from "@/lib/useStreakCheckin";
 import { useLiveUsers } from "@/lib/useLiveUsers";
 import { useCodingPresence } from "@/lib/useCodingPresence";
 import { useCityPresence } from "@/lib/multiplayer/useCityPresence";
-import CityChat from "@/components/CityChat";
 import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
-import RaidPreviewModal from "@/components/RaidPreviewModal";
 import RaidOverlay from "@/components/RaidOverlay";
-import PillModal from "@/components/PillModal";
-import FounderMessage from "@/components/FounderMessage";
-import EArcadeCard from "@/components/EArcadeCard";
-import RabbitCompletion from "@/components/RabbitCompletion";
-import DistrictChooser from "@/components/DistrictChooser";
 import XpBar from "@/components/XpBar";
 import LevelUpToast from "@/components/LevelUpToast";
 import {
@@ -63,8 +53,6 @@ import {
   xpForLevel,
 } from "@/lib/xp";
 import LoadingScreen, { type LoadingStage } from "@/components/LoadingScreen";
-import MiniMap from "@/components/MiniMap";
-import CityAnalyticsDashboard from "@/components/CityAnalyticsDashboard";
 import { getCityCache, setCityCache, clearCityCache } from "@/lib/cityCache";
 import {
   DEFAULT_SKY_ADS,
@@ -119,6 +107,19 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
     </div>
   ),
 });
+
+const CodexModal = dynamic(() => import("@/components/CodexModal"), { ssr: false });
+const RelicModal = dynamic(() => import("@/components/RelicModal"), { ssr: false });
+const ActivityPanel = dynamic(() => import("@/components/ActivityPanel"), { ssr: false });
+const CityChat = dynamic(() => import("@/components/CityChat"), { ssr: false });
+const RaidPreviewModal = dynamic(() => import("@/components/RaidPreviewModal"), { ssr: false });
+const PillModal = dynamic(() => import("@/components/PillModal"), { ssr: false });
+const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ssr: false });
+const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
+const RabbitCompletion = dynamic(() => import("@/components/RabbitCompletion"), { ssr: false });
+const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), { ssr: false });
+const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
+const CityAnalyticsDashboard = dynamic(() => import("@/components/CityAnalyticsDashboard"), { ssr: false });
 
 // Feature flags — flip to switch milestone banner
 const MILESTONE_MODE: "stars" | "devs" | "donation" = "donation"; // "donation" = website renewal donation bar, "stars" = LeetCode stars road to 1K, "devs" = total developers
