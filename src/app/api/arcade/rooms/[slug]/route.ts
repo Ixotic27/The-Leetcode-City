@@ -194,46 +194,5 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Invalidate PartyKit cache
-  const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-  if (host) {
-    const base = host.startsWith("http") ? host : `https://${host}`;
-    try {
-      await fetch(`${base}/parties/main/${slug}/invalidate`, { method: "POST" });
-    } catch {
-      // Best-effort
-    }
-  }
-
   return NextResponse.json({ ok: true });
-}
-
-// POST /api/arcade/rooms/[slug] — invalidate PartyKit cache (admin only)
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ slug: string }> },
-) {
-  const { slug } = await params;
-
-  const authHeader = req.headers.get("authorization");
-  const expectedKey = process.env.ARCADE_ADMIN_KEY;
-  if (!expectedKey || authHeader !== `Bearer ${expectedKey}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-  if (!host) {
-    return NextResponse.json({ error: "PartyKit host not configured" }, { status: 500 });
-  }
-
-  const base = host.startsWith("http") ? host : `https://${host}`;
-  try {
-    const res = await fetch(`${base}/parties/main/${slug}/invalidate`, {
-      method: "POST",
-    });
-    const body = await res.json();
-    return NextResponse.json(body, { status: res.status });
-  } catch {
-    return NextResponse.json({ error: "Failed to reach PartyKit" }, { status: 502 });
-  }
 }

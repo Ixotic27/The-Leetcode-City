@@ -56,26 +56,17 @@ export default function ArcadeBrowserPage() {
     }
   }, []);
 
-  // Fetch live player counts from lobby party
+  // Fetch live player counts from Supabase
   useEffect(() => {
-    const host = process.env.NEXT_PUBLIC_PARTYKIT_HOST;
-    if (!host) return;
-    const base = host.startsWith("http")
-      ? host
-      : `${host.includes("localhost") ? "http" : "https"}://${host}`;
-
-    // Fetch room list with counts
-    fetch(`${base}/parties/lobby/main/rooms`)
+    fetch("/api/arcade/rooms/counts")
       .then((r) => r.json())
-      .then((d: { rooms?: RoomInfo[] }) => {
+      .then((d: { counts?: Record<string, number>; totalOnline?: number }) => {
         const counts = new Map<string, number>();
-        let online = 0;
-        for (const r of d.rooms ?? []) {
-          counts.set(r.slug, r.playerCount);
-          online += r.playerCount;
+        for (const [slug, count] of Object.entries(d.counts ?? {})) {
+          counts.set(slug, count);
         }
         setLiveCounts(counts);
-        setTotalOnline(online);
+        setTotalOnline(d.totalOnline ?? 0);
       })
       .catch(() => {});
   }, []);
