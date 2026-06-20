@@ -4129,15 +4129,6 @@ function HomeContent() {
               <p className="pointer-events-auto mt-1 text-[9px] text-cream/50 normal-case hidden sm:block">
                 built by{" "}
                 <a
-                  href="https://github.com/ishant-27"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-cream"
-                >
-                  Original Creator
-                </a>
-                {" & "}
-                <a
                   href="https://github.com/Ixotic27"
                   target="_blank"
                   rel="noopener noreferrer"
