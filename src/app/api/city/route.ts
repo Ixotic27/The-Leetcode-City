@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { serializeDeveloper } from "@/lib/serialize";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -185,7 +186,7 @@ export async function GET(request: Request) {
   }
 
   // Merge everything
-  const developersWithItems = devs.map((dev) => ({
+  const developersWithItems = devs.map((dev) => serializeDeveloper({
     ...dev,
     kudos_count: dev.kudos_count ?? 0,
     visit_count: dev.visit_count ?? 0,
