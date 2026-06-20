@@ -73,25 +73,49 @@ export default async function DevPage({ params }: Props) {
 
   const accent = "#ffa116";
   const shadow = "#5a7a00";
-  const ownedItems = await getOwnedItems(dev.id);
-
-  // Fetch achievements with name+tier from DB (no hardcoded maps)
   const sb = getSupabaseAdmin();
-  const { data: devAchievements } = await sb
-    .from("developer_achievements")
-    .select("achievement_id, achievements(name, tier)")
-    .eq("developer_id", dev.id);
+
+  // Fetch all independent developer profile details in parallel
+  const [
+    ownedItems,
+    devAchievementsRes,
+    arenaInventoryRes,
+    customizationDataRes,
+    referredDevsRes,
+    authRes
+  ] = await Promise.all([
+    getOwnedItems(dev.id),
+    sb
+      .from("developer_achievements")
+      .select("achievement_id, achievements(name, tier)")
+      .eq("developer_id", dev.id),
+    sb
+      .from("arena_inventory")
+      .select("arena_items(slug)")
+      .eq("user_id", dev.id),
+    sb
+      .from("developer_customizations")
+      .select("config")
+      .eq("developer_id", dev.id)
+      .eq("item_id", "selected_title")
+      .maybeSingle(),
+    sb
+      .from("developers")
+      .select("github_login, avatar_url")
+      .eq("referred_by", dev.github_login)
+      .order("claimed_at", { ascending: false })
+      .limit(20),
+    createServerSupabase().then(client => client.auth.getUser())
+  ]);
+
+  const devAchievements = devAchievementsRes.data;
   const achievements: AchievementRow[] = (devAchievements ?? []).map((a: Record<string, unknown>) => ({
     achievement_id: a.achievement_id as string,
     name: (a.achievements as Record<string, unknown>)?.name as string ?? (a.achievement_id as string),
     tier: (a.achievements as Record<string, unknown>)?.tier as string ?? "bronze",
   }));
 
-  // Fetch arena titles
-  const { data: arenaInventory } = await sb
-    .from("arena_inventory")
-    .select("arena_items(slug)")
-    .eq("user_id", dev.id);
+  const arenaInventory = arenaInventoryRes.data;
 
   const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
 
@@ -103,13 +127,7 @@ export default async function DevPage({ params }: Props) {
     ownedTitlesSlugs.push("title_creator", "title_lead_dev", "title_sys_op");
   }
 
-  // Fetch selected title customization
-  const { data: customizationData } = await sb
-    .from("developer_customizations")
-    .select("config")
-    .eq("developer_id", dev.id)
-    .eq("item_id", "selected_title")
-    .maybeSingle();
+  const customizationData = customizationDataRes.data;
   const selectedTitleSlug = (customizationData?.config as any)?.slug ?? null;
 
   const TITLE_PRESETS = [
@@ -136,17 +154,8 @@ export default async function DevPage({ params }: Props) {
     }
   }
 
-  // Fetch referred developers (who this dev brought to the city)
-  const { data: referredDevs } = await sb
-    .from("developers")
-    .select("github_login, avatar_url")
-    .eq("referred_by", dev.github_login)
-    .order("claimed_at", { ascending: false })
-    .limit(20);
-
-  // Check if the logged-in user owns this building
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const referredDevs = referredDevsRes.data;
+  const { data: { user } } = authRes;
   const authLogin = (
     user?.user_metadata?.user_name ??
     user?.user_metadata?.preferred_username ??
