@@ -120,21 +120,43 @@ body {
   color: #e8dcc8;
 }
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar-track {
+  background-color: var(--color-bg-card);
+  border-left: 1px solid var(--color-border);
+  box-shadow: inset -1px 0 0 0 #000000; 
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #2a2a30;
-  border-radius: 2px;
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-lime);
+  border: 1px solid var(--color-cream);
+  box-shadow: inset -1px -1px 0px var(--color-lime-dark), inset 1px 1px 0px #ffffff;
 }
 
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #3a3a44;
+::-webkit-scrollbar-thumb:hover {
+  background-color: #ffb84d; 
+  border-color: var(--color-cream);
+  box-shadow: inset -1px -1px 0px var(--color-lime), inset 1px 1px 0px #ffffff;
+  cursor: pointer;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--color-lime-dark); 
+  box-shadow: inset 1px 1px 0px #000000;
+}
+
+::-webkit-scrollbar-corner {
+  background-color: var(--color-bg-card);
+}
+
+html, body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-lime) var(--color-bg-card);
 }
 
 /* ─── Free Gift CTA ─── */
