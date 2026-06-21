@@ -102,7 +102,14 @@ export default function ActivityTicker({
     >
       <div
         className="min-w-0 flex-1 overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
         onClick={onOpenPanel}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onOpenPanel?.();
+        }}
       >
         <div
           className="ticker-scroll flex whitespace-nowrap"

@@ -31,6 +31,10 @@
   --color-lime-dark: #cc8111;
   --font-pixel: "Silkscreen", monospace;
 }
+:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 2px;
+}
 
 body {
   background: #0d0d0f;
