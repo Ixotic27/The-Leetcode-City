@@ -480,7 +480,7 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 | 3D rendering & animations | Raids & interactions |
 | Leaderboard & search | API route writes |
 
-> **Need full access?** Ask [@Ixotic27](https://github.com/Ixotic27) for the service role key.
+> **Need full access?** DM me on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/) for the service role key.
 
 ---
 
