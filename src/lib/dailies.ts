@@ -96,12 +96,18 @@ export function getTodayStr(): string {
 export async function trackDailyMission(
   developerId: number,
   missionId: string,
-  extra?: { score?: number; isMobile?: boolean },  // ← add isMobile here
+  extra?: { score?: number; isMobile?: boolean },
 ): Promise<void> {
   try {
     const today = getTodayStr();
-    const missions = getDailyMissions(developerId, today, extra?.isMobile ?? false);  // ← forward flag
-    const mission = missions.find((m) => m.id === missionId);
+    // A user's assigned missions can differ between mobile and desktop
+    // (desktopOnly missions shift the selection), and the device making the
+    // request isn't known here. Credit the mission if it belongs to either
+    // set so mobile users aren't silently denied progress; desktopOnly
+    // missions stay gated by the score checks below.
+    const mission =
+      getDailyMissions(developerId, today, false).find((m) => m.id === missionId) ??
+      getDailyMissions(developerId, today, true).find((m) => m.id === missionId);
     if (!mission) return;
 
     if (missionId === "fly_score_50"  && (extra?.score ?? 0) < 50)  return;
