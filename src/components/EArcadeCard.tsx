@@ -119,7 +119,6 @@ export default function EArcadeCard({ onClose, onEnter, session, onSignIn }: EAr
             </div>
 
             {/* Overworld section */}
-            {/* Overworld section */}
 <div
   className="border-2 border-border p-3 space-y-2 transition-colors hover:border-border-light cursor-pointer"
   role="button"
