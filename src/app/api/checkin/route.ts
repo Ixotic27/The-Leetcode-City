@@ -11,6 +11,25 @@ import { trackDailyMission } from "@/lib/dailies";
 import { fetchLeetCodeWeeklySubmissions } from "@/lib/leetcode";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+type Developer = {
+  id: number;
+  github_login: string;
+  claimed: boolean;
+  contributions: number;
+  public_repos: number;
+  total_stars: number;
+  kudos_count: number;
+  app_streak: number;
+  streak_freeze_30d_claimed: boolean;
+  last_checkin_date: string | null;
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  contest_rating?: number;
+  lc_streak?: number;
+  total_prs?: number;
+};
+ 
 // A12: Streak reward milestones — {milestone: days, pool: item_ids to pick from}
 const STREAK_MILESTONES = [
   { milestone: 3, pool: ["flag"] },
@@ -94,7 +113,7 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
   return fetchLeetCodeWeeklySubmissions(login);
 }
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -104,16 +123,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Per-user rate limit: 1 req/5s
-  const { ok } = await rateLimit(`checkin:${user.id}`, 1, 5000);
-  if (!ok) {
-    return NextResponse.json({ error: "Too fast" }, { status: 429 });
+  // Early rate limit: coarse guard against extreme spam (e.g. scripted floods).
+  // Allows 3 requests per 30s so transient failures don't block retries, but
+  // still caps abuse. A tighter idempotency check fires after the RPC succeeds.
+  const { ok: earlyOk } = await rateLimit(`checkin:${user.id}`, 3, 30_000);
+  if (!earlyOk) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   const sb = getSupabaseAdmin();
 
   // Fetch developer (must be claimed)
-  let { data: devData } = await sb
+  const { data: devData } = await sb
     .from("developers")
     .select(
       "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date",
@@ -121,7 +142,7 @@ export async function POST(request: Request) {
     .eq("claimed_by", user.id)
     .single();
 
-  let dev: any = devData;
+  let dev: Developer | null = devData;
 
   try {
     const { data: v2Data, error: v2Err } = await sb
@@ -176,6 +197,19 @@ export async function POST(request: Request) {
 
   if (checkinResult.error) {
     return NextResponse.json({ error: checkinResult.error }, { status: 400 });
+  }
+
+  // Tight idempotency guard: only consume a token when the check-in actually
+  // succeeded (checked_in = true). This ensures that transient DB/LeetCode
+  // failures earlier in the handler never burn the user's daily slot.
+  // Window: 1 token per 10s — prevents double-submits from double-clicks
+  // while still allowing a quick retry after a real failure.
+  if (checkinResult.checked_in) {
+    const { ok: successOk } = await rateLimit(`checkin:success:${user.id}`, 1, 10_000);
+    if (!successOk) {
+      // Already processed a successful check-in within the last 10s — deduplicate.
+      return NextResponse.json({ error: "Check-in already processed" }, { status: 429 });
+    }
   }
 
   // Track activity
