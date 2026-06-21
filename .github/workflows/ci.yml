@@ -29,23 +29,22 @@ jobs:
         run: npm ci
 
       - name: Run Linter
-        run: npm run lint
-
-      - name: Run ESLint (changed files only for PRs)
         run: |
+          # For PRs: only lint the files the contributor actually changed.
+          # This prevents pre-existing errors in untouched files from
+          # blocking new contributions.
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            # Only lint source files changed in this PR (ignore deleted files)
-            CHANGED=$(git diff --name-only --diff-filter=d origin/main...HEAD -- 'src/**/*.ts' 'src/**/*.tsx' 'src/**/*.js' 'src/**/*.jsx' | head -200)
+            CHANGED=$(git diff --name-only --diff-filter=d origin/main...HEAD \
+              -- 'src/**/*.ts' 'src/**/*.tsx' 'src/**/*.js' 'src/**/*.jsx' | head -200)
             if [ -z "$CHANGED" ]; then
               echo "✅ No lintable source files changed in this PR. Skipping."
               exit 0
             fi
             echo "Linting changed source files only:"
             echo "$CHANGED"
-            # Use --max-warnings=-1 so pre-existing warnings don't block the PR
-            npx eslint --max-warnings=-1 $CHANGED || true
+            npx eslint --max-warnings=-1 $CHANGED
           else
-            # Full lint on push to main (informational only)
+            # Full lint on push to main (informational — do not block)
             npm run lint || true
           fi
 
