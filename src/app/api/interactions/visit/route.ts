@@ -61,8 +61,6 @@ export async function POST(request: Request) {
 
   // Track activity
   await touchLastActive(visitor.id);
-  await trackDailyMission(visitor.id, "visit_building");
-  await trackDailyMission(visitor.id, "visit_3_buildings");
 
   // No self-visits
   if (visitor.id === building.id) {
@@ -95,6 +93,10 @@ export async function POST(request: Request) {
 
     // Grant XP for visiting a building
     await admin.rpc("grant_xp_atomic", { p_developer_id: visitor.id, p_source: "visit", p_amount: 2 });
+
+    // Only credit daily missions for genuine, unique visits
+    await trackDailyMission(visitor.id, "visit_building");
+    await trackDailyMission(visitor.id, "visit_3_buildings");
 
     // Check if building crossed visit milestone (>5 visits today)
     const { count: todayVisits } = await admin
