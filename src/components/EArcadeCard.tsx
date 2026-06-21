@@ -119,21 +119,30 @@ export default function EArcadeCard({ onClose, onEnter, session, onSignIn }: EAr
             </div>
 
             {/* Overworld section */}
-           <div
-              className="border-2 border-border p-3 space-y-2 transition-colors hover:border-border-light cursor-pointer"
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (!session) { onSignIn?.(); return; }
-                onEnter();
-              }}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter" && e.key !== " ") return;
-                e.preventDefault();
-                if (!session) { onSignIn?.(); return; }
-                onEnter();
-              }}
-            >
+            {/* Overworld section */}
+<div
+  className="border-2 border-border p-3 space-y-2 transition-colors hover:border-border-light cursor-pointer"
+  role="button"
+  tabIndex={0}
+  onClick={() => {
+    if (!session) {
+      onSignIn?.();
+      return;
+    }
+    window.location.href = "/arcade/ixotopia";
+  }}
+  onKeyDown={(e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+
+    if (!session) {
+      onSignIn?.();
+      return;
+    }
+
+    window.location.href = "/arcade/ixotopia";
+  }}
+>
               <div className="flex items-center gap-2">
                 <span className="text-sm" style={{ color: ACCENT }}>🗺</span>
                 <span className="text-[11px] text-cream font-bold">Overworld</span>
