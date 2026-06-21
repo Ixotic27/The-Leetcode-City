@@ -111,7 +111,7 @@ export default function CityChat({
       <button
         id="city-chat-toggle"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-50 flex items-center justify-center gap-2.5 border-[3px] border-border bg-bg/80 px-5 py-2 text-[10px] backdrop-blur-md transition-all hover:border-border-light hover:bg-bg/90 min-w-[130px]"
+        className="fixed bottom-[160px] right-4 z-50 flex items-center justify-center gap-2.5 border-[3px] border-border bg-bg/80 px-5 py-2 text-[10px] backdrop-blur-md transition-all hover:border-border-light hover:bg-bg/90 min-w-[130px]"
         style={{
           fontFamily: "'Press Start 2P', 'Courier New', monospace",
         }}
@@ -145,7 +145,7 @@ export default function CityChat({
   return (
     <div
       id="city-chat-panel"
-      className="fixed bottom-4 right-4 z-50 flex flex-col border-[3px] border-border bg-bg/90 backdrop-blur-md"
+      className="fixed bottom-[160px] right-4 z-50 flex flex-col border-[3px] border-border bg-bg/90 backdrop-blur-md"
       style={{
         width: "min(340px, calc(100vw - 32px))",
         height: "280px",
