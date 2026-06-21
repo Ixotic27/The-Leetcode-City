@@ -56,16 +56,12 @@ function formatEvent(e: FeedEvent): string {
       switch (meta.highlight) {
         case "contributions":
           return `#  ${login}'s building has ${Number(meta.value).toLocaleString()} contributions`;
-        case "stars":
-          return `*  ${login} has ${Number(meta.value).toLocaleString()} stars across their repos`;
         case "rank":
           return `>>  ${login} is ranked #${meta.value} in the city`;
-        case "streak":
-          return `~  ${login} is on a ${meta.value}-day commit streak`;
-        case "language":
-          return `<>  ${login} builds with ${meta.value}`;
-        case "repos":
-          return `{}  ${login} has ${meta.value} public repos`;
+        case "reputation":
+          return `⭐ ${login} has ${Number(meta.value).toLocaleString()} reputation points on LeetCode`;
+        case "lc_streak":
+          return `🔥 ${login} is on a ${meta.value}-day LeetCode active streak`;
         default:
           return `${login} is in the city`;
       }
@@ -102,7 +98,14 @@ export default function ActivityTicker({
     >
       <div
         className="min-w-0 flex-1 overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
         onClick={onOpenPanel}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onOpenPanel?.();
+        }}
       >
         <div
           className="ticker-scroll inline-flex whitespace-nowrap"
