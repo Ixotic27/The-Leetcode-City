@@ -98,15 +98,15 @@ export default function ActivityTicker({
 
   return (
     <div
-      className={`fixed ${hasBottomBar ? "bottom-[46px]" : "bottom-0"} sm:bottom-0 left-0 right-0 z-30 flex h-7 items-center border-t border-border/30 bg-bg/90 backdrop-blur-sm`}
+      className={`fixed ${hasBottomBar ? "bottom-11.5" : "bottom-0"} sm:bottom-0 left-0 right-0 z-30 flex h-7 items-center border-t border-border/30 bg-bg/90 backdrop-blur-sm`}
     >
       <div
         className="min-w-0 flex-1 overflow-hidden cursor-pointer"
         onClick={onOpenPanel}
       >
         <div
-          className="ticker-scroll flex whitespace-nowrap"
-          style={{ "--ticker-duration": `${Math.max(20, tickerText.length)}s` } as React.CSSProperties}
+          className="ticker-scroll inline-flex whitespace-nowrap"
+          style={{ "--ticker-duration": `${Math.max(20, tickerText.length * 8)}s` } as React.CSSProperties}
         >
           {[...tickerText, ...tickerText].map((item, i) => (
             <span
