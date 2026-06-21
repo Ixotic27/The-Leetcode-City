@@ -2,6 +2,7 @@
 
 import { useCallback, useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
 import { ROADMAP_PHASES, VOTABLE_ITEM_IDS } from "@/lib/roadmap-data";
 import type { RoadmapPhase, RoadmapItem, ItemStatus } from "@/lib/roadmap-data";
@@ -258,6 +259,7 @@ function ItemRow({
   onSignInPrompt: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const [optimistic, setOptimistic] = useOptimistic(
     { votes: initialVotes, hasVoted: initialHasVoted },
@@ -274,6 +276,9 @@ function ItemRow({
     }
     startTransition(async () => {
       await performVoteWithRollback({ setOptimistic, toggleVoteFn: toggleVote, itemId: item.id });
+      // After successful server update and server-side revalidation,
+      // refresh client to fetch canonical server props.
+      router.refresh();
     });
   }
 
