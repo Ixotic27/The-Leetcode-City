@@ -5,6 +5,7 @@ import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
+import { InfrastructureError } from "@/lib/errors";
 
 
 export const dynamic = "force-dynamic";
@@ -191,7 +192,11 @@ export async function POST(request: Request) {
       // "waiting", "confirming", "sending", "partially_paid" — no action needed
     }
   } catch (err) {
-    console.error("NOWPayments webhook handler error:", err);
+    if (err instanceof InfrastructureError) {
+      console.error("[NOWPayments webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
+      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    }
+    console.error("[NOWPayments webhook] Business logic or unexpected error:", err);
   }
 
   return NextResponse.json({ received: true });
