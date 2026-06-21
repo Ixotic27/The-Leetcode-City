@@ -61,10 +61,10 @@ export default function CityChat({
 }: CityChatProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [hasUnread, setHasUnread] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastMsgCountRef = useRef(messages.length);
+  const [lastSeenCount, setLastSeenCount] = useState(messages.length);
+  const hasUnread = !isOpen && messages.length > lastSeenCount;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -72,19 +72,6 @@ export default function CityChat({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages.length, isOpen]);
-
-  // Track unread
-  useEffect(() => {
-    if (!isOpen && messages.length > lastMsgCountRef.current) {
-      setHasUnread(true);
-    }
-    lastMsgCountRef.current = messages.length;
-  }, [messages.length, isOpen]);
-
-  // Clear unread when opened
-  useEffect(() => {
-    if (isOpen) setHasUnread(false);
-  }, [isOpen]);
 
   const handleSend = useCallback(() => {
     if (input.trim().length === 0) return;
@@ -110,7 +97,7 @@ export default function CityChat({
     return (
       <button
         id="city-chat-toggle"
-        onClick={() => setIsOpen(true)}
+        onClick={() => { setLastSeenCount(messages.length); setIsOpen(true); }}
         className="fixed bottom-[160px] right-4 z-50 flex items-center justify-center gap-2.5 border-[3px] border-border bg-bg/80 px-5 py-2 text-[10px] backdrop-blur-md transition-all hover:border-border-light hover:bg-bg/90 min-w-[130px]"
         style={{
           fontFamily: "'Press Start 2P', 'Courier New', monospace",
