@@ -480,7 +480,7 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 | 3D rendering & animations | Raids & interactions |
 | Leaderboard & search | API route writes |
 
-> **Need full access?** Ask [@Ixotic27](https://github.com/Ixotic27) for the service role key.
+> **Need full access?** DM me on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/) for the service role key.
 
 ---
 
@@ -488,7 +488,7 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 
 LeetCode City features a live multiplayer overworld town (**E.Arcade**) powered by **Supabase Realtime**. This setup uses Broadcast for low-latency player movement and chat synchronization, and Presence for active user tracking.
 
-For detailed setup instructions (applying migrations and enabling realtime replication on your database), please refer to the [Multiplayer Setup Guide in CONTRIBUTING.md](CONTRIBUTING.md#-earcade-multiplayer-supabase-realtime-setup).
+For detailed setup instructions (applying migrations and enabling realtime replication on your database), please refer to the [Multiplayer Setup Guide in CONTRIBUTING.md](CONTRIBUTING.md#earcade-multiplayer-supabase-realtime-setup).
 
 ---
 

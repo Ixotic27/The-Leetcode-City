@@ -106,15 +106,24 @@ export async function POST(request: NextRequest) {
 
   let accepted = 0;
 
-  for (const hb of heartbeats) {
-    // Server generates timestamp, never trust client
-    const now = new Date().toISOString();
-    const isOffline = hb.status === "offline";
+  // Aggregate active heartbeats per session so each session is persisted with
+  // a single atomic RPC (no SELECT-then-upsert per heartbeat). Offline signals
+  // end the session and are applied as direct updates.
+  interface SessionAgg {
+    count: number;
+    activeSeconds: number;
+    language?: string;
+    project?: string;
+    editorName: string;
+    os?: string;
+  }
+  const activeBySession = new Map<string, SessionAgg>();
 
-    if (isOffline) {
+  for (const hb of heartbeats) {
+    if (hb.status === "offline") {
       const { error } = await sb
         .from("developer_sessions")
-        .update({ status: "offline", ended_at: now })
+        .update({ status: "offline", ended_at: new Date().toISOString() })
         .eq("developer_id", dev.id)
         .eq("session_id", hb.sessionId);
 
@@ -122,37 +131,42 @@ export async function POST(request: NextRequest) {
         rejected++;
         continue;
       }
-    } else {
-      const { data: existing } = await sb
-        .from("developer_sessions")
-        .select("total_heartbeats, active_seconds")
-        .eq("developer_id", dev.id)
-        .eq("session_id", hb.sessionId)
-        .single();
-
-      const { error } = await sb.from("developer_sessions").upsert(
-        {
-          developer_id: dev.id,
-          session_id: hb.sessionId,
-          status: "active",
-          current_language: hb.language ?? null,
-          current_project: hb.project ?? null,
-          last_heartbeat_at: now,
-          editor_name: hb.editorName,
-          os: hb.os ?? null,
-          total_heartbeats: (existing?.total_heartbeats ?? 0) + 1,
-          active_seconds: (existing?.active_seconds ?? 0) + hb.activeSeconds,
-        },
-        { onConflict: "developer_id,session_id" },
-      );
-
-      if (error) {
-        rejected++;
-        continue;
-      }
+      accepted++;
+      continue;
     }
 
-    accepted++;
+    // Last writer wins for the descriptive fields; counters accumulate.
+    const agg = activeBySession.get(hb.sessionId) ?? {
+      count: 0,
+      activeSeconds: 0,
+      editorName: hb.editorName,
+    };
+    agg.count += 1;
+    agg.activeSeconds += hb.activeSeconds;
+    agg.language = hb.language;
+    agg.project = hb.project;
+    agg.editorName = hb.editorName;
+    agg.os = hb.os;
+    activeBySession.set(hb.sessionId, agg);
+  }
+
+  for (const [sessionId, agg] of activeBySession) {
+    const { error } = await sb.rpc("record_heartbeat", {
+      p_developer_id: dev.id,
+      p_session_id: sessionId,
+      p_heartbeats: agg.count,
+      p_active_seconds: agg.activeSeconds,
+      p_language: agg.language ?? null,
+      p_project: agg.project ?? null,
+      p_editor_name: agg.editorName,
+      p_os: agg.os ?? null,
+    });
+
+    if (error) {
+      rejected += agg.count;
+      continue;
+    }
+    accepted += agg.count;
   }
 
   // Broadcast to realtime (no internal IDs exposed)
