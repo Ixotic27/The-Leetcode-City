@@ -3,8 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.byteLength !== bufB.byteLength) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 export async function GET(request: NextRequest) {

@@ -8,12 +8,6 @@ export async function GET(req: NextRequest) {
   let totalOnline = 0;
 
   try {
-    // Prune stale entries older than 1 minute before counting
-    await sb
-      .from("arcade_active_players")
-      .delete()
-      .lt("last_heartbeat", new Date(Date.now() - 60 * 1000).toISOString());
-
     const cutoff = new Date(Date.now() - 45 * 1000).toISOString();
     const { data, error } = await sb
       .from("arcade_active_players")
