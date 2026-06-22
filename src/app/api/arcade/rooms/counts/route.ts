@@ -24,8 +24,12 @@ export async function GET(req: NextRequest) {
         totalOnline++;
       }
     }
-  } catch (e) {
-    console.warn("Could not query active players count:", e);
+  } catch (e: any) {
+    if (e && e.code === "PGRST205") {
+      console.warn("Could not query active players count: 'arcade_active_players' table is missing from schema cache (migration 066 not applied).");
+    } else {
+      console.warn("Could not query active players count:", e);
+    }
   }
 
   return NextResponse.json({ counts: activeCounts, totalOnline }, {
