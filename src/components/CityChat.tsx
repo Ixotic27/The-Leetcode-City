@@ -73,6 +73,13 @@ export default function CityChat({
     }
   }, [messages.length, isOpen]);
 
+  // Sync lastSeenCount when open
+  useEffect(() => {
+    if (isOpen) {
+      setLastSeenCount(messages.length);
+    }
+  }, [messages.length, isOpen]);
+
   const handleSend = useCallback(() => {
     if (input.trim().length === 0) return;
     onSend(input);
