@@ -112,7 +112,7 @@ describe("application layer — log insert gated on granted=true", () => {
   });
 
   it("log insert skipped when RPC returns null (error path)", () => {
-    const freezeResult = null;
+    const freezeResult: any = null;
     const granted = freezeResult?.[0]?.granted === true;
     let logInserted = false;
     if (granted) logInserted = true;
