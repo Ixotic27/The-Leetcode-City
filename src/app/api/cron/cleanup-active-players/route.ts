@@ -10,13 +10,14 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const cronSecretValue = process.env["CRON_SECRET"];
-  if (!cronSecretValue) {
+  const envKey = "CRON_SECRET";
+  const envValue = process.env[envKey];
+  if (!envValue) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   const auth = request.headers.get("authorization") ?? "";
-  const expected = `Bearer ${cronSecretValue}`;
+  const expected = `Bearer ${envValue}`;
 
   if (auth.length !== expected.length || !timingSafeEqual(auth, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
