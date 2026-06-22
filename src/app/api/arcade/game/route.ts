@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Broadcast chat to realtime channel
-        await broadcastToChannel(`realtime:arcade:${slug}`, "chat", {
+        await broadcastToChannel(`arcade:${slug}`, "chat", {
           id: "__system__",
           username: "SYSTEM",
           text: chatText,
