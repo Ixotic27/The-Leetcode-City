@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyCronAuth } from "@/lib/cron-auth";
+import crypto from "crypto";
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.byteLength !== bufB.byteLength) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 export async function GET(request: NextRequest) {
-  const authError = verifyCronAuth(request);
-  if (authError) return authError;
+  const cronSecretValue = process.env["CRON_SECRET"];
+  if (!cronSecretValue) {
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
+
+  const auth = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${cronSecretValue}`;
+
+  if (auth.length !== expected.length || !timingSafeEqual(auth, expected)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const sb = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - 60 * 1000).toISOString();
