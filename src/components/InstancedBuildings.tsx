@@ -121,14 +121,17 @@ const fragmentShader = /* glsl */ `
     }
 
     float energyCube = uCityEnergy * uCityEnergy * uCityEnergy;
+    // Guarantee a minimum energy floor so windows always glow (especially at night)
+    float energyForGlow = max(0.35, uCityEnergy);
+    float energyGlowCube = energyForGlow * energyForGlow * energyForGlow;
 
     // Dynamic Day/Night lighting logic
-    float ambientDay = mix(0.08, 0.55, uTimeOfDay);
+    float ambientDay = mix(0.15, 0.55, uTimeOfDay);
     float ambientBase = ambientDay + 0.15 * energyCube;
 
-    // Windows glow more at night
+    // Windows glow more at night — use energyGlowCube (floored) for emissive
     float nightGlowMultiplier = mix(3.5, 0.5, uTimeOfDay);
-    vec3 emissive = wallColor * nightGlowMultiplier * energyCube * isWindow;
+    vec3 emissive = wallColor * nightGlowMultiplier * energyGlowCube * isWindow;
 
     // Custom colored walls should remain bright to match the shop preview
     float hasTint = step(0.5, vTint.a);
@@ -150,7 +153,7 @@ const fragmentShader = /* glsl */ `
 
     // Directional light changes based on time
     vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
-    float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.2, 0.38, uTimeOfDay) + mix(0.5, 0.7, uTimeOfDay);
+    float diffuse = max(dot(vNormal, lightDir), 0.0) * mix(0.25, 0.38, uTimeOfDay) + mix(0.6, 0.7, uTimeOfDay);
     color *= diffuse;
 
     // Custom-colored walls: bypass scene lighting and apply a brightness
