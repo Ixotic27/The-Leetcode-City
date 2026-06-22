@@ -46,12 +46,12 @@ const ACHIEVEMENT_MILESTONES: AchievementDefinition[] = [
 /**
  * Evaluates a developer's current stats against achievement thresholds and
  * unlocks new achievements, logging the events to the activity feed.
- * * @param developerId - The UUID of the developer
+ * @param developerId - The UUID of the developer
  * @param currentStats - The current statistics/metrics for the developer
  */
 export async function evaluateAndUnlockAchievements(
   developerId: string,
-  currentStats: any // Maintained 'any' per requirements, ideally cast to DeveloperStats
+  currentStats: Partial<DeveloperStats> // Fixed: Replaced unvalidated 'any' with Partial<DeveloperStats> to satisfy strict ESLint rules
 ): Promise<void> {
   try {
     // 1. Anti-Duplication Guard: Fetch currently unlocked achievements
@@ -73,8 +73,8 @@ export async function evaluateAndUnlockAchievements(
         return false;
       }
       
-      // Safely check the stat value
-      const statValue = Number(currentStats[milestone.category]) || 0;
+      // Safely check the stat value utilizing nullish coalescing to prevent undefined property lookups
+      const statValue = Number(currentStats[milestone.category] ?? 0);
       return statValue >= milestone.threshold;
     });
 
