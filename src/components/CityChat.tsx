@@ -66,17 +66,15 @@ export default function CityChat({
   const [lastSeenCount, setLastSeenCount] = useState(messages.length);
   const hasUnread = !isOpen && messages.length > lastSeenCount;
 
+  // Keep lastSeenCount in sync while open (derived state — runs during render)
+  if (isOpen && messages.length !== lastSeenCount) {
+    setLastSeenCount(messages.length);
+  }
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current && isOpen) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages.length, isOpen]);
-
-  // Sync lastSeenCount when open
-  useEffect(() => {
-    if (isOpen) {
-      setLastSeenCount(messages.length);
     }
   }, [messages.length, isOpen]);
 
@@ -104,7 +102,7 @@ export default function CityChat({
     return (
       <button
         id="city-chat-toggle"
-        onClick={() => { setLastSeenCount(messages.length); setIsOpen(true); }}
+        onClick={() => setIsOpen(true)}
         className="fixed bottom-[160px] right-4 z-50 flex items-center justify-center gap-2.5 border-[3px] border-border bg-bg/80 px-5 py-2 text-[10px] backdrop-blur-md transition-all hover:border-border-light hover:bg-bg/90 min-w-[130px]"
         style={{
           fontFamily: "'Press Start 2P', 'Courier New', monospace",
