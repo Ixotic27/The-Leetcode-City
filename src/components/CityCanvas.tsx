@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
+import type { OrbitControls as OrbitControlsType } from "three-stdlib";
 import * as THREE from "three";
 import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
@@ -376,7 +377,7 @@ function CameraFocus({
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
   relicFocus?: { x: number; y: number; z: number } | null;
-  controlsRef: React.RefObject<any>;
+  controlsRef: React.RefObject<OrbitControlsType | null>;
 }) {
   const { camera } = useThree();
   const startPos = useRef(new THREE.Vector3());
@@ -583,7 +584,7 @@ function AirplaneFlight({
 }) {
   const { camera } = useThree();
   const ref = useRef<THREE.Group>(null);
-  const orbitRef = useRef<any>(null);
+  const orbitRef = useRef<OrbitControlsType | null>(null);
 
   const mouse = useRef({ x: 0, y: 0 });
   const keys = useRef<Record<string, boolean>>({});
@@ -1991,7 +1992,7 @@ function OrbitScene({
   focusedBuildingB?: string | null;
   relicFocus?: { x: number; y: number; z: number } | null;
 }) {
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsType | null>(null);
   const { camera } = useThree();
 
   // Reset camera on mount — wide panorama centered on founder area
@@ -2021,7 +2022,7 @@ function OrbitScene({
 // ─── Wallpaper Orbit (no interaction, auto-rotate + parallax) ─
 
 function WallpaperOrbitScene({ speed }: { speed: number }) {
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsType | null>(null);
   const { camera } = useThree();
 
   useEffect(() => {
@@ -2244,9 +2245,10 @@ export default function CityCanvas({
           // Also schedule a few post-mount traversal passes to catch textures created
           // by React components after initial renderer creation.
           const applyNearest = () => {
-            scene.traverse((obj: any) => {
-              if (obj.isMesh && obj.material) {
-                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            scene.traverse((obj: THREE.Object3D) => {
+              if ((obj as THREE.Mesh).isMesh && (obj as THREE.Mesh).material) {
+                const mesh = obj as THREE.Mesh;
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
                 for (const m of mats) {
                   const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
                   for (const tx of maps) {

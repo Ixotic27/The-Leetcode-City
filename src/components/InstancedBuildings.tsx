@@ -629,7 +629,7 @@ export default memo(function InstancedBuildings({
       if (
         introRef.current ||
         wasAdPointerConsumed() ||
-        (window as any).__spireClicked
+        (window as Window & { __spireClicked?: boolean }).__spireClicked
       )
         return;
       const id = raycastInstance(e.clientX, e.clientY);
@@ -674,7 +674,7 @@ export default memo(function InstancedBuildings({
             }
             return;
           }
-          if ((window as any).__spireCursor) return;
+          if ((window as Window & { __spireCursor?: boolean }).__spireCursor) return;
           const now = performance.now();
           if (now - lastMoveTime < 125) return;
           lastMoveTime = now;
