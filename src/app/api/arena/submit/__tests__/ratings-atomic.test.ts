@@ -102,7 +102,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
     // If the old code path ran it would call sb.from("arena_ratings").upsert(...)
     const upsertCalls = mockFrom.mock.calls.filter(
-      ([table]: [string]) => table === "arena_ratings"
+      (args: any[]) => args[0] === "arena_ratings"
     );
     expect(upsertCalls).toHaveLength(0);
   });
