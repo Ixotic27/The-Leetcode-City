@@ -209,6 +209,7 @@ interface InstancedBuildingsProps {
   focusedBuildingB?: string | null;
   introMode?: boolean;
   onBuildingClick?: (building: CityBuilding) => void;
+  onBuildingHover?: (building: CityBuilding | null, mouseX: number, mouseY: number) => void;
   dimOpacity?: number;
   dimEmissive?: number;
   holdRise?: boolean;
@@ -235,6 +236,7 @@ export default memo(function InstancedBuildings({
   focusedBuildingB,
   introMode,
   onBuildingClick,
+  onBuildingHover,
   dimOpacity = 0.15,
   dimEmissive = 0.3,
   holdRise,
@@ -585,6 +587,8 @@ export default memo(function InstancedBuildings({
   buildingsRef.current = buildings;
   const onClickRef = useRef(onBuildingClick);
   onClickRef.current = onBuildingClick;
+  const onHoverRef = useRef(onBuildingHover);
+  onHoverRef.current = onBuildingHover;
   const introRef = useRef(introMode);
   introRef.current = introMode;
 
@@ -658,11 +662,16 @@ export default memo(function InstancedBuildings({
 
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     let lastMoveTime = 0;
+    let lastHoveredId: number | null = null;
     const onPointerMove = isTouch
       ? null
       : (e: PointerEvent) => {
           if (introRef.current) {
             document.body.style.cursor = "auto";
+            if (lastHoveredId !== null) {
+              onHoverRef.current?.(null, e.clientX, e.clientY);
+              lastHoveredId = null;
+            }
             return;
           }
           if ((window as any).__spireCursor) return;
@@ -671,6 +680,19 @@ export default memo(function InstancedBuildings({
           lastMoveTime = now;
           const id = raycastInstance(e.clientX, e.clientY);
           document.body.style.cursor = id !== null ? "pointer" : "auto";
+          
+          // Notify hover callback
+          if (id !== lastHoveredId) {
+            if (id !== null && id < buildingsRef.current.length) {
+              onHoverRef.current?.(buildingsRef.current[id], e.clientX, e.clientY);
+            } else {
+              onHoverRef.current?.(null, e.clientX, e.clientY);
+            }
+            lastHoveredId = id;
+          } else if (id !== null && id < buildingsRef.current.length) {
+            // Same building, update mouse position
+            onHoverRef.current?.(buildingsRef.current[id], e.clientX, e.clientY);
+          }
         };
 
     canvas.addEventListener("pointerdown", onPointerDown);

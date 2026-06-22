@@ -673,9 +673,10 @@ interface Props {
   dimmed?: boolean;
   accentColor?: string;
   onClick?: (building: CityBuilding) => void;
+  onHover?: (building: CityBuilding | null) => void;
 }
 
-export default function Building3D({ building, colors, atlasTexture, emissiveAtlasTexture, introMode, focused, dimmed, accentColor, onClick }: Props) {
+export default function Building3D({ building, colors, atlasTexture, emissiveAtlasTexture, introMode, focused, dimmed, accentColor, onClick, onHover }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const spriteRef = useRef<THREE.Sprite>(null);
@@ -910,8 +911,14 @@ useFrame((state, delta) => {
           if (dx * dx + dy * dy > 25) return; // >5px = drag, not click
           onClick?.(building);
         }}
-        onPointerOver={introMode ? undefined : () => { document.body.style.cursor = "pointer"; }}
-        onPointerOut={introMode ? undefined : () => { document.body.style.cursor = "auto"; }}
+        onPointerOver={introMode ? undefined : () => {
+          document.body.style.cursor = "pointer";
+          onHover?.(building);
+        }}
+        onPointerOut={introMode ? undefined : () => {
+          document.body.style.cursor = "auto";
+          onHover?.(null);
+        }}
       />
 
       {labelMaterial && (

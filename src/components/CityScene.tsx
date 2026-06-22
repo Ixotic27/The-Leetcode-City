@@ -110,6 +110,7 @@ interface CitySceneProps {
   hideEffectsFor?: string | null;
   accentColor?: string;
   onBuildingClick?: (building: CityBuilding) => void;
+  onBuildingHover?: (building: CityBuilding | null, mouseX: number, mouseY: number) => void;
   onFocusInfo?: (info: FocusInfo) => void;
   introMode?: boolean;
   flyMode?: boolean;
@@ -342,6 +343,7 @@ export default function CityScene({
   hideEffectsFor,
   accentColor,
   onBuildingClick,
+  onBuildingHover,
   onFocusInfo,
   introMode,
   flyMode,
@@ -417,6 +419,7 @@ export default function CityScene({
         focusedBuilding={focusedBuilding}
         focusedBuildingB={focusedBuildingB}
         onBuildingClick={onBuildingClick}
+        onBuildingHover={onBuildingHover}
         introMode={introMode}
         holdRise={holdRise}
         liveByLogin={liveByLogin}

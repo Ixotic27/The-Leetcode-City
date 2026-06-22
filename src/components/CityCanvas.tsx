@@ -8,6 +8,7 @@ import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding, CityPlaza, CityDecoration, CityRiver, CityBridge } from "@/lib/github";
+import BuildingTooltip from "./BuildingTooltip";
 import SkyAds from "./SkyAds";
 import BuildingAds from "./BuildingAds";
 import type { SkyAd } from "@/lib/skyAds";
@@ -2206,6 +2207,15 @@ export default function CityCanvas({
   const flyPosRef = useRef(new THREE.Vector3());
   const timeRef = useRef(0.0);
 
+  // Tooltip state
+  const [hoveredBuilding, setHoveredBuilding] = useState<CityBuilding | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleBuildingHover = (building: CityBuilding | null, mouseX: number, mouseY: number) => {
+    setHoveredBuilding(building);
+    setMousePos({ x: mouseX, y: mouseY });
+  };
+
   const cityRadius = useMemo(() => {
     let max = 200;
     for (const b of buildings) {
@@ -2216,7 +2226,13 @@ export default function CityCanvas({
   }, [buildings]);
 
   return (
-    <Canvas
+    <>
+      <BuildingTooltip 
+        building={hoveredBuilding} 
+        mouseX={mousePos.x} 
+        mouseY={mousePos.y} 
+      />
+      <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
       dpr={[1, 2]}
       onCreated={({ gl, scene }) => {
@@ -2375,6 +2391,7 @@ export default function CityCanvas({
             hideEffectsFor={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : null}
             accentColor={t.building.accent}
             onBuildingClick={onBuildingClick}
+            onBuildingHover={handleBuildingHover}
             onFocusInfo={onFocusInfo}
             introMode={introMode}
             flyMode={flyMode}
@@ -2414,5 +2431,6 @@ export default function CityCanvas({
       )}
 
     </Canvas>
+    </>
   );
 }
