@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { InfrastructureError } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -227,7 +228,7 @@ export async function getOwnedItemsForDevelopers(
 export async function fulfillItemPurchase(
    developerId: number,
    itemId: string,
-   supabaseAdminClient?: any
+   supabaseAdminClient?: SupabaseClient
  ): Promise<{ status: "completed" | "delivered" }> {
    const sb = supabaseAdminClient || getSupabaseAdmin();
 
