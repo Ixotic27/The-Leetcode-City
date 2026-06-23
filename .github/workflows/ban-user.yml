@@ -33,28 +33,29 @@ jobs:
 
               // Case 1: Triggered by a comment
               if (context.eventName === "issue_comment") {
-                const commentId = context.payload.comment.id;
-                console.log(`Deleting comment ID ${commentId} on issue/PR #${issueNumber}...`);
+                console.log(`Banned user commented on issue/PR #${issueNumber}. Posting notice comment...`);
                 
                 try {
-                  await github.rest.issues.deleteComment({
+                  // Do NOT delete the comment, but post a warning/notice comment for visibility
+                  await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    comment_id: commentId
+                    issue_number: issueNumber,
+                    body: `⚠️ **Notice**: The comment above was posted by a blocked user (**@saurabhhhcodes**). This user is restricted from contributing to this repository due to submitting senseless AI-generated slop and automated pull requests.\n\n*Reference ID: 8df4a6192bc53108c4ea782b5e28a5cf*`
                   });
-                  console.log("✅ Comment deleted successfully.");
+                  console.log("✅ Warning notice comment posted.");
                 } catch (err) {
-                  console.error("Failed to delete comment:", err);
+                  console.error("Failed to post warning comment:", err);
                 }
 
-                // Only delete/close/lock if the issue creator was also the banned user
+                // If the issue creator is also the banned user, perform cleanups (delete issue or close/lock PR)
                 const issueCreator = context.payload.issue.user.login;
                 if (issueCreator.toLowerCase() === bannedUser.toLowerCase()) {
-                  console.log(`The target issue/PR #${issueNumber} was also created by the banned user.`);
+                  console.log(`The target issue/PR #${issueNumber} was created by the banned user.`);
                   const isPullRequest = !!context.payload.issue.pull_request;
                   
                   if (!isPullRequest) {
-                    // It is an issue created by the banned user, so delete it entirely via GraphQL
+                    // Delete their own issue entirely via GraphQL
                     console.log(`Deleting issue #${issueNumber} via GraphQL...`);
                     try {
                       await github.graphql(`
@@ -69,7 +70,7 @@ jobs:
                       console.error("Failed to delete issue:", err);
                     }
                   } else {
-                    // It is a PR created by the banned user, close and lock it
+                    // Close and lock their own PR
                     console.log(`Closing and locking PR #${issueNumber}...`);
                     try {
                       await github.rest.pulls.update({
