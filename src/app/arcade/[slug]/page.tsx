@@ -3,9 +3,9 @@
 import { useRef, useEffect, useLayoutEffect, useState, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
-import type { PlayerState, ChatBubble, ChatLogEntry, Direction, AvatarConfig } from "@/lib/arcade/types";
+import type { PlayerState, ChatBubble, ChatLogEntry, Direction } from "@/lib/arcade/types";
 import { startGameLoop } from "@/lib/arcade/engine/gameLoop";
-import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout, loadoutToAvatar, type CozyLayer } from "@/lib/arcade/engine/sprites";
+import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout } from "@/lib/arcade/engine/sprites";
 import type { AvatarLoadout } from "@/lib/arcade/types";
 import { loadMapFromData, resetMap, isWalkable, type GameMap, type RoomPortal } from "@/lib/arcade/engine/tileMap";
 import { cozyUrl, COZY_BASE, resolveTilesetUrl } from "@/lib/arcade/assetBase";
@@ -38,13 +38,12 @@ import {
   sendChat,
   sendSit,
   sendStand,
-  sendAvatar,
   sendLoadout,
   sendWarp,
   disconnect,
 } from "@/lib/arcade/network/client";
 import { findNearbySeat, findNearbyObject } from "@/lib/arcade/engine/tileMap";
-import { executeCommand, getBootSequence, TOTAL_DISCOVERIES, type TerminalLine } from "@/lib/arcade/terminal";
+import { executeCommand, getBootSequence, type TerminalLine } from "@/lib/arcade/terminal";
 import type { ConnectionStatus } from "@/lib/arcade/network/client";
 import type { GameResult } from "@/lib/arcade/types";
 import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
@@ -54,7 +53,6 @@ import EditorMode from "@/components/arcade/EditorMode";
 const LERP_DURATION = 0.2;
 const BUBBLE_DURATION = 5;
 const CHAT_LOG_MAX = 30;
-const SPRITE_NAMES = ["Alex", "Ruby", "Nova", "Atlas", "Lime", "Rose"];
 
 const ELEVATOR_NOTICES = [
   { title: "NOTICE", body: "Elevator access requires Level 2 clearance. Your current clearance level is: Pending. Please contact your department supervisor for authorization." },
@@ -77,69 +75,7 @@ const FOUNDER_QUOTES = [
   { title: "FOUNDER'S REFLECTION", body: "\"There is a floor in this building that does not exist on any blueprint. If you find it, please do not tell anyone. They already know.\"" },
 ];
 
-// Idle-down frame preview: col 1, row 0, cell 16x32
-function SpritePreview({ charIndex, scale = 3 }: { charIndex: number; scale?: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Try cozy avatar first
-    const avatar = loadoutToAvatar(getDefaultLoadout());
-    const basePath = cozyUrl("walk");
-    const promises = avatar.layers.map((layer: CozyLayer) => {
-      return new Promise<{ layer: CozyLayer; img: HTMLImageElement } | null>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve({ layer, img });
-        img.onerror = () => resolve(null);
-        img.src = `${basePath}/${layer.file}`;
-      });
-    });
-
-    Promise.all(promises).then((results) => {
-      const loaded = results.filter(Boolean) as { layer: CozyLayer; img: HTMLImageElement }[];
-      if (loaded.length === 0) {
-        // Fallback to legacy
-        const img = new Image();
-        img.onload = () => {
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(img, 16, 0, 16, 32, 0, 0, 16 * scale, 32 * scale);
-        };
-        img.src = `/sprites/arcade/char_${charIndex}.png`;
-        return;
-      }
-
-      // Draw each layer with tinting using an offscreen canvas
-      for (const { layer, img } of loaded) {
-        const oc = new OffscreenCanvas(img.width, img.height);
-        const octx = oc.getContext("2d")!;
-        octx.drawImage(img, 0, 0);
-        octx.globalCompositeOperation = "multiply";
-        octx.fillStyle = layer.color;
-        octx.fillRect(0, 0, img.width, img.height);
-        octx.globalCompositeOperation = "destination-in";
-        octx.drawImage(img, 0, 0);
-
-        // Draw idle frame (frame 0, row 0 = down) from the tinted sheet
-        ctx.drawImage(oc, 0, 0, 32, 32, 0, 0, 32 * scale, 32 * scale);
-      }
-    });
-  }, [charIndex, scale]);
-
-  return (
-    <canvas
-      ref={ref}
-      width={32 * scale}
-      height={32 * scale}
-      style={{ imageRendering: "pixelated" }}
-    />
-  );
-}
 
 interface InterpolatedPlayer extends PlayerState {
   prevX: number;
@@ -208,8 +144,6 @@ export default function ArcadeRoomPage({
 
   // Avatar state
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [selectedSprite, setSelectedSprite] = useState(0);
-  const [savingAvatar, setSavingAvatar] = useState(false);
 
   // Terminal state
   const [showTerminal, setShowTerminal] = useState(false);
@@ -311,10 +245,10 @@ export default function ArcadeRoomPage({
       fetch("/api/arcade/rooms?limit=50")
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
-          const allRooms = d?.rooms ?? [];
+          const allRooms = (d?.rooms ?? []) as { slug: string; name: string }[];
           const choices = allRooms
-            .filter((r: any) => r.slug !== slug)
-            .map((r: any) => ({
+            .filter((r) => r.slug !== slug)
+            .map((r) => ({
               type: "elevator" as const,
               x: obj.x,
               y: obj.y,
@@ -617,17 +551,30 @@ export default function ArcadeRoomPage({
       const apiPortals = mapRes.room.portals ?? [];
       const mapPortals = (map.objects ?? [])
         .filter((obj) => obj.type === "door" || obj.type === "stairs" || obj.type === "portal")
-        .map((obj) => ({
-          type: obj.type,
-          x: obj.x,
-          y: obj.y,
-          width: obj.width,
-          height: obj.height,
-          label: obj.label,
-          destination: (obj as any).destination ?? "",
-          targetX: (obj as any).targetX,
-          targetY: (obj as any).targetY,
-        }));
+        .map((obj) => {
+          const typedObj = obj as {
+            type: string;
+            x: number;
+            y: number;
+            width?: number;
+            height?: number;
+            label?: string;
+            destination?: string;
+            targetX?: number;
+            targetY?: number;
+          };
+          return {
+            type: typedObj.type,
+            x: typedObj.x,
+            y: typedObj.y,
+            width: typedObj.width,
+            height: typedObj.height,
+            label: typedObj.label,
+            destination: typedObj.destination ?? "",
+            targetX: typedObj.targetX,
+            targetY: typedObj.targetY,
+          };
+        });
       const seen = new Set(apiPortals.map((p) => `${p.type}-${p.x}-${p.y}`));
       const combinedPortals = [...apiPortals];
       for (const mp of mapPortals) {
@@ -918,43 +865,7 @@ export default function ArcadeRoomPage({
       resetPet();
       resetMap();
     };
-  }, [slug, router, isTyping, connectCallbacks]);
-
-  const handleAvatarConfirm = async () => {
-    setSavingAvatar(true);
-    try {
-      const isFirstTime = spriteIdRef.current === undefined;
-      const res = await fetch("/api/arcade/avatar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sprite_id: selectedSprite }),
-      });
-
-      if (!res.ok) {
-        console.error("Failed to save avatar:", res.status);
-        setShowMessage("Failed to save avatar");
-        setTimeout(() => setShowMessage(null), 3000);
-        return;
-      }
-
-      spriteIdRef.current = selectedSprite;
-      setShowAvatarModal(false);
-
-      if (isFirstTime) {
-        // First time — connect to PartyKit
-        connect(tokenRef.current, connectCallbacks(), selectedSprite, slug!);
-      } else {
-        // Already connected — just update sprite via WS
-        sendAvatar(selectedSprite);
-      }
-    } catch (err) {
-      console.error("Avatar save error:", err);
-      setShowMessage("Connection error");
-      setTimeout(() => setShowMessage(null), 3000);
-    } finally {
-      setSavingAvatar(false);
-    }
-  };
+  }, [slug, router, isTyping, connectCallbacks, handleInteract]);
 
   const handleEditAvatar = () => {
     setShowAvatarModal(true);
@@ -1188,6 +1099,7 @@ export default function ArcadeRoomPage({
       )}
 
       {/* Avatar selection modal */}
+      {/* eslint-disable react-hooks/refs */}
       {showAvatarModal && !loading && loadoutRef.current && (
         <AvatarEditor
           initialLoadout={loadoutRef.current}
@@ -1196,6 +1108,7 @@ export default function ArcadeRoomPage({
           onSave={handleAvatarSave}
         />
       )}
+      {/* eslint-enable react-hooks/refs */}
 
       {/* Game dialog (Lumon-style corporate notice) */}
       {showDialog && (
@@ -1440,6 +1353,7 @@ export default function ArcadeRoomPage({
                 )}
 
                 {/* Editor mode overlay */}
+                {/* eslint-disable react-hooks/refs */}
                 {editorMode && mapRef.current && canvasRef.current && slug && (
                   <EditorMode
                     map={mapRef.current}
@@ -1454,6 +1368,7 @@ export default function ArcadeRoomPage({
                     onExit={() => { setEditorMode(false); editorModeRef.current = false; }}
                   />
                 )}
+                {/* eslint-enable react-hooks/refs */}
 
                 {/* Chat log overlay */}
                 {!loading && chatLog.length > 0 && !(isMobile && chatOpen) && (

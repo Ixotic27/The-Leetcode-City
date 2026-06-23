@@ -69,8 +69,8 @@ async function run() {
     await updateIssueLabels(657, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:security"]);
     await updateIssueLabels(658, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:security"]);
     await updateIssueLabels(659, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:bug"]);
-    await updateIssueLabels(660, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:enhancement"]);
-    await updateIssueLabels(661, ["gssoc 26", "gssoc:approved", "good first issues", "level:advanced", "type:enhancement"]);
+    await updateIssueLabels(660, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:feature"]);
+    await updateIssueLabels(661, ["gssoc 26", "gssoc:approved", "good first issues", "level:advanced", "type:feature"]);
     await updateIssueLabels(662, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:bug"]);
 
     console.log("\nDeleting level:medium and level:hard from repository...");
