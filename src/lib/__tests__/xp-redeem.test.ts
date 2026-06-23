@@ -24,7 +24,7 @@ describe("redeem_xp_code RPC result mapping", () => {
     const r = mapRedeemResult({ ok: true, error_code: null, xp_amount: 500 });
     expect(r.blocked).toBe(false);
     expect(r.status).toBe(200);
-    expect((r as any).xp_amount).toBe(500);
+    expect(r.xp_amount).toBe(500);
   });
 
   // ── error_code mapping ────────────────────────────────────────────
