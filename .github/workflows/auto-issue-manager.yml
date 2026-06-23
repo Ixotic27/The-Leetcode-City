@@ -2,7 +2,7 @@ name: Auto Issue Manager
 
 on:
   issue_comment:
-    types: [created]
+    types: [created, edited]
   issues:
     types: [unlabeled, assigned]
 
@@ -119,7 +119,7 @@ jobs:
                 const issueBody = issue.body || '';
                 const allText = `${issueTitle} ${issueBody}`.toLowerCase();
 
-                let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issue']);
+                let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issues']);
 
                 // 1. Detect Type
                 const prefixMapping = {
@@ -237,6 +237,7 @@ jobs:
             // Handle issue comments (assignment requests)
             if (context.eventName !== 'issue_comment') return;
 
+            const commentAction = context.payload.action;
             const commentBody = context.payload.comment.body.toLowerCase();
             const commenter = context.payload.comment.user.login;
             const assignees = issue.assignees.map(a => a.login);
@@ -244,7 +245,10 @@ jobs:
 
             // Keywords that indicate a user wants to be assigned
             const wantsAssignment =
+              commentBody.includes('/assign') ||
+              commentBody.includes('/claim') ||
               commentBody.includes('assign me') ||
+              commentBody.includes('claim this') ||
               commentBody.includes('i would like to work on this') ||
               commentBody.includes('can i take this') ||
               commentBody.includes('can i work on this') ||
@@ -269,6 +273,9 @@ jobs:
               commentBody.includes('gssoc');
 
             if (!wantsAssignment) return;
+
+            // Do not post comments on comment edits if already assigned to someone else
+            if (commentAction === 'edited' && assignees.length > 0) return;
 
             // Prevent assignment if the issue is still under triage or not approved yet
             if (labels.includes('needs-triage') || !labels.includes('gssoc:approved')) {

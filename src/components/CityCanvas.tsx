@@ -2124,6 +2124,7 @@ interface Props {
   initialFlightYaw?: number | null;
   onEArcadeClick?: () => void;
   onSkyTempleClick?: () => void;
+  onCodeForgeClick?: () => void;
   multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
@@ -2189,6 +2190,7 @@ export default function CityCanvas({
   onLandmarkClick,
   onEArcadeClick,
   onSkyTempleClick,
+  onCodeForgeClick,
   rabbitSighting,
   onRabbitCaught,
   rabbitCinematic,
@@ -2414,7 +2416,7 @@ export default function CityCanvas({
             <AstralObservatory onClick={() => { }} position={landmarkPositions[3]} />
             <CryptOfEchoes onClick={() => { }} position={landmarkPositions[4]} />
             <SunkenSanctum onClick={() => { }} position={landmarkPositions[5]} />
-            <CodeForge onClick={() => { }} position={landmarkPositions[6]} />
+            <CodeForge onClick={onCodeForgeClick ?? (() => { })} position={landmarkPositions[6]} />
           </Suspense>
           <EArcadeLandmark
             onClick={onEArcadeClick ?? (() => { })}

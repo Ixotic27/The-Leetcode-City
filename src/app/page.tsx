@@ -118,6 +118,7 @@ const PillModal = dynamic(() => import("@/components/PillModal"), { ssr: false }
 const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ssr: false });
 const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
 const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), { ssr: false });
+const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), { ssr: false });
 const RabbitCompletion = dynamic(() => import("@/components/RabbitCompletion"), { ssr: false });
 const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), { ssr: false });
 const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
@@ -780,6 +781,7 @@ function HomeContent() {
   const [founderMessageOpen, setFounderMessageOpen] = useState(false);
   const [eArcadeOpen, setEArcadeOpen] = useState(false);
   const [zenCodingOpen, setZenCodingOpen] = useState(false);
+  const [codeForgeOpen, setCodeForgeOpen] = useState(false);
   const [arcadeOnline, setArcadeOnline] = useState<number>(0);
   const [districtChooserOpen, setDistrictChooserOpen] = useState(false);
   const [rabbitCinematic, setRabbitCinematic] = useState(false);
@@ -1424,7 +1426,7 @@ function HomeContent() {
   // During fly mode: only close overlays (profile card) — AirplaneFlight handles pause/exit
   // Outside fly mode: compare → share modal → profile card → focus → explore mode
   useEffect(() => {
-    if (flyMode && !selectedBuilding && !eArcadeOpen && !zenCodingOpen) return;
+    if (flyMode && !selectedBuilding && !eArcadeOpen && !zenCodingOpen && !codeForgeOpen) return;
     if (
       !flyMode &&
       !exploreMode &&
@@ -1439,6 +1441,7 @@ function HomeContent() {
       !pillModalOpen &&
       !eArcadeOpen &&
       !zenCodingOpen &&
+      !codeForgeOpen &&
       !rabbitCinematic &&
       raidState.phase === "idle"
     )
@@ -1460,6 +1463,10 @@ function HomeContent() {
         }
         if (zenCodingOpen) {
           setZenCodingOpen(false);
+          return;
+        }
+        if (codeForgeOpen) {
+          setCodeForgeOpen(false);
           return;
         }
         // Rabbit cinematic
@@ -1535,6 +1542,7 @@ function HomeContent() {
     pillModalOpen,
     eArcadeOpen,
     zenCodingOpen,
+    codeForgeOpen,
     rabbitCinematic,
     endRabbitCinematic,
     raidState.phase,
@@ -2979,7 +2987,7 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen}
+        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
@@ -3071,6 +3079,10 @@ function HomeContent() {
         }}
         onSkyTempleClick={() => {
           setZenCodingOpen(true);
+          setSelectedBuilding(null);
+        }}
+        onCodeForgeClick={() => {
+          setCodeForgeOpen(true);
           setSelectedBuilding(null);
         }}
         rabbitSighting={rabbitSighting}
@@ -6788,6 +6800,9 @@ function HomeContent() {
       )}
       {zenCodingOpen && (
         <ZenCodingModal onClose={() => setZenCodingOpen(false)} />
+      )}
+      {codeForgeOpen && (
+        <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
       )}
 
       {/* Rabbit Quest Cinematic Overlay */}

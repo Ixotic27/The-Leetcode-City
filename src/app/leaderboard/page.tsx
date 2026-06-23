@@ -71,7 +71,7 @@ export default async function LeaderboardPage({
 }) {
   const params = await searchParams;
   const mode = params.mode ?? "developers";
-  const activeTab = (params.tab ?? "contributors") as TabId;
+  const activeTab = (params.tab ?? "solved") as TabId;
 
   const supabase = getSupabaseAdmin();
 
@@ -183,6 +183,7 @@ export default async function LeaderboardPage({
   }));
 
   // A6: "NEW" detection — devs created in last 7 days
+  // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo = Date.now() - 7 * 86400000;
   const newLogins = new Set(
     devs
