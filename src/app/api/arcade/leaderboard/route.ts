@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+type ScoreRow = {
+  user_id: string;
+  best_ms: number;
+  attempts: number;
+  updated_at: string;
+};
+
+type DevLoginRow = {
+  user_id: string;
+  github_login: string;
+};
+
 // GET /api/arcade/leaderboard?game=10s_classic&limit=10
 export async function GET(req: NextRequest) {
   const game = req.nextUrl.searchParams.get("game") ?? "10s_classic";
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10), 50);
 
   const sb = getSupabaseAdmin();
-  let data: any[] = [];
+  let data: ScoreRow[] = [];
   try {
     const { data: dbData, error } = await sb
       .from("arcade_scores")
@@ -30,13 +42,14 @@ export async function GET(req: NextRequest) {
 
   if (userIds.length > 0) {
     try {
-      const { data: devs } = await sb
+      const { data: devRows } = await sb
         .from("developers")
-        .select("user_id, login")
+        .select("user_id, github_login")
         .in("user_id", userIds);
 
-      if (devs) {
-        loginMap = Object.fromEntries(devs.map((d) => [d.user_id, d.login]));
+      const devs = (devRows ?? []) as DevLoginRow[];
+      if (devs.length > 0) {
+        loginMap = Object.fromEntries(devs.map((d) => [d.user_id, d.github_login]));
       }
     } catch (e) {
       console.warn("Could not query developers for leaderboard logins:", e);
