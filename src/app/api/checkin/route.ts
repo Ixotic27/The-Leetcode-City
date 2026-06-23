@@ -113,7 +113,7 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
   return fetchLeetCodeWeeklySubmissions(login);
 }
 
-export async function POST(_request: Request) {
+export async function POST() {
   const supabase = await createServerSupabase();
   const {
     data: { user },
@@ -153,7 +153,7 @@ export async function POST(_request: Request) {
     if (!v2Err && dev && v2Data) {
       dev = { ...dev, ...v2Data };
     }
-  } catch (e) {
+  } catch {
     // Ignore schema errors if migration hasn't run yet
   }
 
