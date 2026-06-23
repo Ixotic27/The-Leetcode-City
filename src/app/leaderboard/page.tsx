@@ -71,7 +71,7 @@ export default async function LeaderboardPage({
 }) {
   const params = await searchParams;
   const mode = params.mode ?? "developers";
-  const activeTab = (params.tab ?? "contributors") as TabId;
+  const activeTab = (params.tab ?? "solved") as TabId;
 
   const supabase = getSupabaseAdmin();
 

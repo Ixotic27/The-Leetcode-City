@@ -478,20 +478,18 @@ export default async function DevPage({ params }: Props) {
         )}
 
         {/* Share + Compare */}
-        {!isOwner && (
-          <div className="mt-5 space-y-3">
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <ShareButtons
-                login={dev.github_login}
-                contributions={dev.contributions ?? 0}
-                rank={dev.rank}
-                accent={accent}
-                shadow={shadow}
-              />
-            </div>
-            <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <ShareButtons
+              login={dev.github_login}
+              contributions={dev.contributions ?? 0}
+              rank={dev.rank}
+              accent={accent}
+              shadow={shadow}
+            />
           </div>
-        )}
+          {!isOwner && <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />}
+        </div>
 
         {/* Stats Grid — LeetCode Metrics */}
         {(() => {

@@ -50,7 +50,8 @@ import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
 import AvatarEditor from "@/components/arcade/AvatarEditor";
 import EditorMode from "@/components/arcade/EditorMode";
 
-const LERP_DURATION = 0.2;
+const REMOTE_PLAYER_SMOOTHING_MS = 180;
+const LERP_DURATION = REMOTE_PLAYER_SMOOTHING_MS / 1000;
 const BUBBLE_DURATION = 5;
 const CHAT_LOG_MAX = 30;
 
@@ -820,7 +821,9 @@ export default function ArcadeRoomPage({
 
           const renderPlayers: RenderPlayer[] = [];
           for (const p of playersRef.current.values()) {
-            const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
+            const rawT = Math.min(p.lerpTimer / LERP_DURATION, 1);
+            const t = 1 - Math.pow(1 - rawT, 3); // cubic ease-out
+
             const rx = (p.prevX + (p.x - p.prevX) * t) * tileSize;
             const ry = (p.prevY + (p.y - p.prevY) * t) * tileSize;
             renderPlayers.push({
