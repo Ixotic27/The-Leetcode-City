@@ -51,18 +51,18 @@ async function run() {
     await createLabel("gssoc 26", "170100", "GSSoC 2026");
     await createLabel("gssoc:approved", "9313a8", "Approved for GSSoC");
     await createLabel("good first issues", "7057ff", "Good for newcomers");
-    await createLabel("level:easy", "0e8a16", "Easy level task");
-    await createLabel("level:medium", "fbca04", "Medium level task");
-    await createLabel("level:hard", "b60205", "Hard level task");
+    await createLabel("level:beginner", "0e8a16", "Beginner level task");
+    await createLabel("level:intermediate", "fbca04", "Intermediate level task");
+    await createLabel("level:advanced", "b60205", "Advanced level task");
     await createLabel("type:bug", "d73a4a", "Bug issue");
     await createLabel("type:security", "e6e600", "Security issue");
 
     console.log("\nUpdating issue labels on GitHub...");
     // Update the 4 issues we just created (656, 657, 658, 659)
-    await updateIssueLabels(656, ["gssoc 26", "gssoc:approved", "good first issues", "level:medium", "type:bug"]);
-    await updateIssueLabels(657, ["gssoc 26", "gssoc:approved", "good first issues", "level:medium", "type:security"]);
-    await updateIssueLabels(658, ["gssoc 26", "gssoc:approved", "good first issues", "level:medium", "type:security"]);
-    await updateIssueLabels(659, ["gssoc 26", "gssoc:approved", "good first issues", "level:medium", "type:bug"]);
+    await updateIssueLabels(656, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:bug"]);
+    await updateIssueLabels(657, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:security"]);
+    await updateIssueLabels(658, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:security"]);
+    await updateIssueLabels(659, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:bug"]);
 
     console.log("\nDone updating labels!");
 }

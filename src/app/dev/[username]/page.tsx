@@ -65,6 +65,14 @@ interface AchievementRow {
   tier: string;
 }
 
+interface DeveloperExtended {
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  lc_streak?: number;
+  contest_rating?: number;
+}
+
 export default async function DevPage({ params }: Props) {
   const { username } = await params;
   const dev = await getDeveloper(username);
@@ -119,8 +127,8 @@ export default async function DevPage({ params }: Props) {
 
   const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
 
-  const ownedTitlesSlugs = (arenaInventory ?? [])
-    .map((inv: any) => inv.arena_items?.slug)
+  const ownedTitlesSlugs = (arenaInventory as unknown as { arena_items: { slug: string } | null }[] ?? [])
+    .map((inv) => inv.arena_items?.slug)
     .filter((slug): slug is string => typeof slug === "string");
 
   if (isDeveloper) {
@@ -128,7 +136,7 @@ export default async function DevPage({ params }: Props) {
   }
 
   const customizationData = customizationDataRes.data;
-  const selectedTitleSlug = (customizationData?.config as any)?.slug ?? null;
+  const selectedTitleSlug = (customizationData?.config as { slug?: string } | null)?.slug ?? null;
 
   const TITLE_PRESETS = [
     { slug: "title_creator", name: "City Creator", titleText: "The Architect", color: "#ec4899", icon: "/assets/items/crown_of_code.png", priority: 10 },
@@ -350,9 +358,9 @@ export default async function DevPage({ params }: Props) {
                   <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: accent, color: accent }}>
                     🌍 LC Rank #{dev.rank.toLocaleString()}
                   </div>
-                  {(dev as any).contest_rating > 0 && (
+                  {((dev as unknown as DeveloperExtended).contest_rating ?? 0) > 0 && (
                     <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: "#a855f7", color: "#a855f7" }}>
-                      ⚔️ Contest {(dev as any).contest_rating.toLocaleString()}
+                      ⚔️ Contest {((dev as unknown as DeveloperExtended).contest_rating ?? 0).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -488,11 +496,12 @@ export default async function DevPage({ params }: Props) {
         {/* Stats Grid — LeetCode Metrics */}
         {(() => {
           const totalSolved = dev.contributions ?? 0;
-          const easySolved = (dev as any).easy_solved as number ?? 0;
-          const medSolved = (dev as any).medium_solved as number ?? 0;
-          const hardSolved = (dev as any).hard_solved as number ?? 0;
-          const streak = (dev as any).lc_streak as number ?? 0;
-          const contestRating = (dev as any).contest_rating as number ?? 0;
+          const devExt = dev as unknown as DeveloperExtended;
+          const easySolved = devExt.easy_solved ?? 0;
+          const medSolved = devExt.medium_solved ?? 0;
+          const hardSolved = devExt.hard_solved ?? 0;
+          const streak = devExt.lc_streak ?? 0;
+          const contestRating = devExt.contest_rating ?? 0;
           const reputation = dev.total_stars ?? 0;
           const hasLCData = easySolved > 0 || medSolved > 0 || hardSolved > 0;
 
