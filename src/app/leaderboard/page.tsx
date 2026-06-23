@@ -183,6 +183,7 @@ export default async function LeaderboardPage({
   }));
 
   // A6: "NEW" detection — devs created in last 7 days
+  // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo = Date.now() - 7 * 86400000;
   const newLogins = new Set(
     devs
