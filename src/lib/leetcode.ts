@@ -28,11 +28,18 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
      }
 }
 
-export function parseMaxStreak(matchedUser: any, currentYear: number): number {
+// Calendars are keyed dynamically as `y<year>` (e.g. y2015, y2016, …),
+// each holding a JSON-encoded submissionCalendar string.
+type YearCalendar = { submissionCalendar?: string };
+
+export function parseMaxStreak(
+    matchedUser: Record<string, unknown> | null | undefined,
+    currentYear: number,
+): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
     for (let y = 2015; y <= currentYear; y++) {
-        const cal = matchedUser[`y${y}`]?.submissionCalendar;
+        const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
                 const parsed = JSON.parse(cal);
