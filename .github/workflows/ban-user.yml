@@ -1,0 +1,110 @@
+name: Ban Spam Contributor
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  ban-user-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Actor and Ban
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bannedUser = "saurabhhhcodes";
+            const actor = context.actor;
+
+            if (actor.toLowerCase() === bannedUser.toLowerCase()) {
+              console.log(`Detected banned user: ${actor}. Initiating automated restriction sequence...`);
+              
+              const issueNumber = context.issue.number;
+
+              // Case 1: Triggered by a comment
+              if (context.eventName === "issue_comment") {
+                const commentId = context.payload.comment.id;
+                console.log(`Deleting comment ID ${commentId} on issue/PR #${issueNumber}...`);
+                
+                try {
+                  await github.rest.issues.deleteComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: commentId
+                  });
+                  console.log("✅ Comment deleted successfully.");
+                } catch (err) {
+                  console.error("Failed to delete comment:", err);
+                }
+              }
+
+              // Case 2: Triggered by opening a Pull Request
+              if (context.eventName === "pull_request_target") {
+                console.log(`Closing PR #${issueNumber}...`);
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `🛑 **Automated Repository Action**\n\nThe user **@saurabhhhcodes** is blocked from contributing to this repository due to submitting senseless AI-generated slop and automated PR generation.\n\nThis pull request has been closed and locked automatically.\n\n*Reference ID: 8df4a6192bc53108c4ea782b5e28a5cf*`
+                  });
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: issueNumber,
+                    state: "closed"
+                  });
+                  console.log("✅ PR closed successfully.");
+                } catch (err) {
+                  console.error("Failed to close PR:", err);
+                }
+              }
+
+              // Case 3: Triggered by opening an Issue
+              if (context.eventName === "issues") {
+                console.log(`Closing Issue #${issueNumber}...`);
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `🛑 **Automated Repository Action**\n\nThe user **@saurabhhhcodes** is blocked from contributing to this repository due to submitting senseless AI-generated slop and automated issue generation.\n\nThis issue has been closed and locked automatically.\n\n*Reference ID: 8df4a6192bc53108c4ea782b5e28a5cf*`
+                  });
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: "closed"
+                  });
+                  console.log("✅ Issue closed successfully.");
+                } catch (err) {
+                  console.error("Failed to close issue:", err);
+                }
+              }
+
+              // Lock the conversation for all trigger types to prevent further comments
+              console.log(`Locking conversation for issue/PR #${issueNumber}...`);
+              try {
+                await github.rest.issues.lock({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  lock_reason: "spam"
+                });
+                console.log("✅ Conversation locked successfully.");
+              } catch (err) {
+                console.error("Failed to lock conversation:", err);
+              }
+            } else {
+              console.log(`Actor ${actor} is not banned. No action taken.`);
+            }
