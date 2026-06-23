@@ -112,11 +112,17 @@ export default function ArcadeBrowserPage() {
   };
 
   const toggleFavorite = async (roomId: string) => {
+    // Capture snapshot for rollback (snapshot at click time)
     const prev = new Set(favorites);
-    const next = new Set(favorites);
-    if (next.has(roomId)) next.delete(roomId);
-    else next.add(roomId);
-    setFavorites(next);
+
+    // Use functional updater to avoid operating on a stale `favorites` snapshot
+    // when multiple toggles happen before a rerender.
+    setFavorites((cur) => {
+      const next = new Set(cur);
+      if (next.has(roomId)) next.delete(roomId);
+      else next.add(roomId);
+      return next;
+    });
 
     try {
       const res = await fetch("/api/arcade/favorites", {
