@@ -264,7 +264,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Broadcast chat to realtime channel
-        await broadcastToChannel(`realtime:arcade:${slug}`, "chat", {
+        await broadcastToChannel(`arcade:${slug}`, "chat", {
           id: "__system__",
           username: "SYSTEM",
           text: chatText,
@@ -279,8 +279,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/arcade/game] error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
