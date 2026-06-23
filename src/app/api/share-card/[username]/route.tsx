@@ -23,35 +23,14 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 // ─── i18n ─────────────────────────────────────────────────────
-type Lang = "en" | "pt";
-
-const i18n: Record<Lang, {
-  inTheCity: string;
-  commits: string;
-  repos: string;
-  stars: string;
-  kudos: string;
-  cta: string;
-  notFound: string;
-}> = {
-  en: {
-    inTheCity: "in the city",
-    commits: "SOLVED",
-    repos: "LC RANK",
-    stars: "REP.",
-    kudos: "KUDOS",
-    cta: "Can you beat this?",
-    notFound: "Developer not found",
-  },
-  pt: {
-    inTheCity: "na cidade",
-    commits: "RESOLVIDOS",
-    repos: "LC RANK",
-    stars: "REP.",
-    kudos: "KUDOS",
-    cta: "Consegue me superar?",
-    notFound: "Desenvolvedor nao encontrado",
-  }
+const i18n = {
+  inTheCity: "in the city",
+  commits: "SOLVED",
+  repos: "LC RANK",
+  stars: "REP.",
+  kudos: "KUDOS",
+  cta: "Can you beat this?",
+  notFound: "Developer not found",
 };
 
 // ─── Colors ───────────────────────────────────────────────────
@@ -107,7 +86,6 @@ export async function GET(
 ) {
   const { username } = await params;
   const format = request.nextUrl.searchParams.get("format") ?? "landscape";
-  const lang = (request.nextUrl.searchParams.get("lang") === "pt" ? "pt" : "en") as Lang;
 
   const fontData = await readFile(
     join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")
@@ -143,7 +121,7 @@ export async function GET(
             border: `6px solid ${border}`,
           }}
         >
-          {i18n[lang].notFound}
+          {i18n.notFound}
         </div>
       ),
       {
@@ -212,9 +190,9 @@ export async function GET(
   const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
   const devEff = { ...dev, contributions: contribs };
 
-  const t = i18n[lang];
+  const t = i18n;
   if (format === "stories") {
-    return renderStories(devEff, achievements, highestTier, titleLabel, fontData, t, lang);
+    return renderStories(devEff, achievements, highestTier, titleLabel, fontData, t);
   }
   return renderLandscape(devEff, achievements, highestTier, titleLabel, fontData, t);
 }
@@ -226,7 +204,7 @@ function renderLandscape(
   highestTier: string | null,
   titleLabel: string | null,
   fontData: Buffer,
-  t: typeof i18n.en
+  t: typeof i18n
 ) {
   const buildingH = Math.round(
     Math.min(
@@ -536,51 +514,33 @@ function renderLandscape(
 }
 
 // ─── Taunt phrases by rank/contributions ──────────────────────
-const TAUNTS: Record<Lang, { rank: [number, string][]; contribs: [number, string][]; fallback: string }> = {
-  en: {
-    rank: [
-      [5, "I AM THE SKYLINE"],
-      [15, "THE VIEW FROM UP HERE IS INSANE"],
-      [50, "I CAN SEE YOUR BUILDING FROM HERE"],
-      [100, "MY ELEVATOR DOESN'T GO THAT LOW"],
-      [250, "PENTHOUSE VIBES ONLY"],
-      [500, "MY BUILDING HAS A ROOFTOP POOL"],
-      [1000, "NOT BAD FOR SOMEONE WHO SLEEPS"],
-    ],
-    contribs: [
-      [5000, "I DON'T TOUCH GRASS. I PUSH CODE."],
-      [2000, "YOUR BUILDING FITS IN MY LOBBY"],
-      [1000, "MY COMMITS HAVE COMMITS"],
-      [500, "TALLER THAN YOUR ATTENTION SPAN"],
-      [200, "SMALL BUILDING, BIG ENERGY"],
-      [50, "EVERY SKYSCRAPER STARTS SOMEWHERE"],
-    ],
-    fallback: "JUST MOVED IN. WATCH ME GROW.",
-  },
-  pt: {
-    rank: [
-      [5, "EU SOU O HORIZONTE"],
-      [15, "A VISTA DAQUI DE CIMA E INSANA"],
-      [50, "DA PRA VER SEU PRÉDIO DAQUI"],
-      [100, "MEU ELEVADOR NAO DESCE ATE AI"],
-      [250, "SÓ COBERTURA"],
-      [500, "MEU PRÉDIO TEM PISCINA NO TOPO"],
-      [1000, "NADA MAL PRA QUEM DORME"],
-    ],
-    contribs: [
-      [5000, "EU NAO TOCO GRAMA. EU FAÇO PUSH."],
-      [2000, "SEU PRÉDIO CABE NO MEU LOBBY"],
-      [1000, "MEUS COMMITS TEM COMMITS"],
-      [500, "MAIS ALTO QUE SUA PACIÊNCIA"],
-      [200, "PRÉDIO PEQUENO, ENERGIA GRANDE"],
-      [50, "TODO ARRANHA-CEU COMEÇA EM ALGUM LUGAR"],
-    ],
-    fallback: "ACABEI DE CHEGAR. ME OBSERVE.",
-  }
+const TAUNTS: {
+  rank: [number, string][];
+  contribs: [number, string][];
+  fallback: string;
+} = {
+  rank: [
+    [5, "I AM THE SKYLINE"],
+    [15, "THE VIEW FROM UP HERE IS INSANE"],
+    [50, "I CAN SEE YOUR BUILDING FROM HERE"],
+    [100, "MY ELEVATOR DOESN'T GO THAT LOW"],
+    [250, "PENTHOUSE VIBES ONLY"],
+    [500, "MY BUILDING HAS A ROOFTOP POOL"],
+    [1000, "NOT BAD FOR SOMEONE WHO SLEEPS"],
+  ],
+  contribs: [
+    [5000, "I DON'T TOUCH GRASS. I PUSH CODE."],
+    [2000, "YOUR BUILDING FITS IN MY LOBBY"],
+    [1000, "MY COMMITS HAVE COMMITS"],
+    [500, "TALLER THAN YOUR ATTENTION SPAN"],
+    [200, "SMALL BUILDING, BIG ENERGY"],
+    [50, "EVERY SKYSCRAPER STARTS SOMEWHERE"],
+  ],
+  fallback: "JUST MOVED IN. WATCH ME GROW.",
 };
 
-function getTaunt(rank: number | null, contributions: number, lang: Lang): string {
-  const t = TAUNTS[lang];
+function getTaunt(rank: number | null, contributions: number): string {
+  const t = TAUNTS;
   if (rank) {
     for (const [threshold, phrase] of t.rank) {
       if (rank <= threshold) return phrase;
@@ -599,8 +559,7 @@ function renderStories(
   highestTier: string | null,
   titleLabel: string | null,
   fontData: Buffer,
-  t: typeof i18n.en,
-  lang: Lang
+  t: typeof i18n
 ) {
   const contributions = dev.contributions as number;
   const rank = dev.rank as number | null;
@@ -609,7 +568,7 @@ function renderStories(
   );
   const BWIDTH = 320;
   const GROUND_Y = 1320;
-  const taunt = getTaunt(rank, contributions, lang);
+  const taunt = getTaunt(rank, contributions);
 
   const stats = [
     { label: t.commits, value: contributions.toLocaleString() },
