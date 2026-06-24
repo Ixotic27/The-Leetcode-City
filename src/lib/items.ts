@@ -81,7 +81,7 @@ export async function grantFreeClaimItem(
   const sb = getSupabaseAdmin();
 
   // Atomically insert the purchase record.
-  // We use `upsert` with `ignoreDuplicates: true` and `onConflict: "developer_id,item_id"`
+  // We use `upsert` with `ignoreDuplicates: true` and `onConflict: "provider_tx_id"`
   // to prevent concurrent requests from inserting duplicate free claims.
   const { data, error } = await sb
     .from("purchases")
@@ -96,7 +96,7 @@ export async function grantFreeClaimItem(
         status: "completed",
       },
       {
-        onConflict: "developer_id,item_id",
+        onConflict: "provider_tx_id",
         ignoreDuplicates: true,
       }
     )
