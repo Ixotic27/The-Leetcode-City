@@ -23,7 +23,12 @@ export interface MapObject {
   width?: number;
   height?: number;
   label?: string;
-  dir?: "up" | "down" | "left" | "right"; // facing direction when sitting
+  dir?: "up" | "down" | "left" | "right";
+
+  // Portal fields
+  destination?: string;
+  targetX?: number;
+  targetY?: number;
 }
 
 export interface RoomPortal {
