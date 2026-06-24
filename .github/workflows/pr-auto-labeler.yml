@@ -142,9 +142,11 @@ jobs:
             }
 
             // Also check PR body for "Fixes #N"
+            // Strip HTML comments first so template placeholders are not matched.
+            const cleanBody = prBody.replace(/<!--[\s\S]*?-->/g, '');
             const issueRegex = /(?:fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#(\d+)/gi;
             let match;
-            while ((match = issueRegex.exec(prBody)) !== null) {
+            while ((match = issueRegex.exec(cleanBody)) !== null) {
               const issueNum = parseInt(match[1]);
               try {
                 const issue = await github.rest.issues.get({ owner, repo, issue_number: issueNum });

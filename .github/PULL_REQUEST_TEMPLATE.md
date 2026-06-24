@@ -4,7 +4,7 @@
 
 ## Related issue
 
-<!-- Link to issue: Fixes #123 -->
+<!-- Link to issue: Fixes #ISSUE_NUMBER -->
 
 ## Screenshots
 
