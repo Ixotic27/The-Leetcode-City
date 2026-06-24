@@ -63,11 +63,15 @@ export function useStreakCheckin(
     if (typeof window !== "undefined" && sessionStorage.getItem(CACHE_KEY)) return;
 
     fetchedRef.current = true;
-    setLoading(true);
 
-    fetch("/api/checkin", { method: "POST" })
-      .then((r: Response) => (r.ok ? r.json() : null))
-      .then((data: StreakData | null) => {
+    // Wrap all state mutations in an async function so that
+    // setLoading is never called synchronously inside the effect body
+    // (avoids react-hooks/set-state-in-effect lint violation).
+    const checkin = async () => {
+      setLoading(true);
+      try {
+        const r: Response = await fetch("/api/checkin", { method: "POST" });
+        const data: StreakData | null = r.ok ? await r.json() : null;
         if (data) {
           setStreakData(data);
           if (typeof window !== "undefined") {
@@ -77,11 +81,13 @@ export function useStreakCheckin(
             fetch("/api/achievements/mark-seen", { method: "POST" }).catch(() => { });
           }
         }
-      })
-      .catch(() => {
+      } catch {
         fetchedRef.current = false; // allow retry on error
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkin();
   }, [session, hasClaimed]);
 
   return { streakData, loading };

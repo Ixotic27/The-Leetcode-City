@@ -2123,6 +2123,7 @@ interface Props {
   initialFlightPos?: THREE.Vector3 | null;
   initialFlightYaw?: number | null;
   onEArcadeClick?: () => void;
+  onSkyTempleClick?: () => void;
   onCodeForgeClick?: () => void;
   multiplayerPlayers?: Map<string, CityPlayer>;
 }
@@ -2188,6 +2189,7 @@ export default function CityCanvas({
   onRaidPhaseComplete,
   onLandmarkClick,
   onEArcadeClick,
+  onSkyTempleClick,
   onCodeForgeClick,
   rabbitSighting,
   onRabbitCaught,
@@ -2425,7 +2427,7 @@ export default function CityCanvas({
           />
           <Suspense fallback={null}>
             <ChronoTower onClick={() => { }} position={landmarkPositions[8]} />
-            <SkyTemple onClick={() => { }} position={landmarkPositions[9]} />
+            <SkyTemple onClick={onSkyTempleClick ?? (() => { })} position={landmarkPositions[9]} />
             <FirecrawlBuilding onClick={() => { }} position={landmarkPositions[10]} />
             <SolanaBuilding onClick={() => { }} position={landmarkPositions[11]} />
             <CyberStation onClick={() => { }} position={landmarkPositions[12]} />
