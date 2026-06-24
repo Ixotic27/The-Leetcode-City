@@ -44,6 +44,7 @@ export async function GET(
     return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prob = challenge.problem as any;
   if (!prob) {
     return NextResponse.json({ error: "Associated problem not found" }, { status: 404 });
