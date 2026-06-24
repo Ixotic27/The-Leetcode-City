@@ -1,6 +1,8 @@
 import { getSupabaseAdmin } from "./supabase";
 import { createServerSupabase } from "./supabase-server";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 const MIN_ARENA_CRYPTO_KEY_LENGTH = 32;
 
@@ -192,8 +194,8 @@ export async function scrapeCodeforcesProblem(contestId: number, index: string) 
       timeLimitMs,
       memoryLimitMb,
     };
-  } catch (err: any) {
-    console.error(`Error scraping problem ${contestId}${index}:`, err.message);
+  } catch (err: unknown) {
+    console.error(`Error scraping problem ${contestId}${index}:`, err instanceof Error ? err.message : err);
     throw err;
   }
 }
@@ -204,8 +206,6 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
   console.log("Seeding problem pool from local predefined_problems.json...");
 
   try {
-    const fs = require("fs");
-    const path = require("path");
     const filePath = path.join(process.cwd(), "src/lib/predefined_problems.json");
     const fileContent = fs.readFileSync(filePath, "utf8");
     const predefinedProblems = JSON.parse(fileContent);
@@ -215,7 +215,7 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
 
     for (const diff of difficulties) {
       let syncedForDiff = 0;
-      const diffProblems = predefinedProblems.filter((p: any) => p.difficulty === diff);
+      const diffProblems = predefinedProblems.filter((p: Record<string, unknown>) => p.difficulty === diff);
 
       for (const p of diffProblems) {
         if (syncedForDiff >= limitPerDifficulty) break;
@@ -261,8 +261,8 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
 
     console.log(`Predefined seed complete. Seeded: ${totalSynced} problems.`);
     return totalSynced;
-  } catch (err: any) {
-    console.warn("Failed to seed from predefined list, falling back to network fetch:", err.message);
+  } catch (err: unknown) {
+    console.warn("Failed to seed from predefined list, falling back to network fetch:", err instanceof Error ? err.message : err);
   }
 
   console.log("Fetching problem list from Codeforces API...");
@@ -324,7 +324,6 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
       try {
         console.log(`Syncing CF problem ${sourceId} (${cand.name}) - ${difficulty}...`);
         const scraped = await scrapeCodeforcesProblem(cand.contestId!, cand.index);
-        const hiddenTests = scraped.sampleTests;
 
         const { error } = await sb.from("arena_problems").insert({
           source: "codeforces",
@@ -337,7 +336,7 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
           time_limit_ms: scraped.timeLimitMs,
           memory_limit_mb: scraped.memoryLimitMb,
           sample_tests: scraped.sampleTests,
-          hidden_tests: hiddenTests,
+          hidden_tests: [],
           hints: []
         });
 
@@ -347,8 +346,8 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
           console.log(`Successfully synced CF problem ${sourceId}`);
           synced++;
         }
-      } catch (err: any) {
-        console.warn(`Skipping candidate ${sourceId} due to sync error:`, err.message);
+      } catch (err: unknown) {
+        console.warn(`Skipping candidate ${sourceId} due to sync error:`, err instanceof Error ? err.message : err);
       }
 
       await new Promise(r => setTimeout(r, 1000));
@@ -470,8 +469,8 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
 
     console.log(`Successfully rotated daily challenges for ${dateStr}!`);
     return true;
-  } catch (err: any) {
-    console.error(`Failed to rotate daily challenges:`, err.message);
+  } catch (err: unknown) {
+    console.error(`Failed to rotate daily challenges:`, err instanceof Error ? err.message : err);
     return false;
   }
 }
@@ -512,7 +511,7 @@ export async function getAuthenticatedDeveloper(req: Request) {
 }
 
 /** Encrypt hidden tests using AES-256-CBC */
-export function encryptHiddenTests(tests: any[]): { iv: string; encryptedData: string } {
+export function encryptHiddenTests(tests: unknown[]): { iv: string; encryptedData: string } {
   const algorithm = "aes-256-cbc";
   const key = getArenaCryptoKey();
   const iv = crypto.randomBytes(16);
