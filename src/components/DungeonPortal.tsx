@@ -198,6 +198,15 @@ export default function DungeonPortal({
 
   const topY = TOTAL_H;
 
+  useFrame((state)) => {
+    const t = state.clock.elapsedTime;
+    if (leftSkullRef.current) {
+      leftSkullRef.current.rotation.y = t * 0.5;
+      leftSkullRef.current.position.y = topY + 22 + Math.sin(t * 2) * 1.5;
+    }
+
+  }
+
   return (
     <group ref={groupRef} position={position} userData={{ isLandmark: true }}>
       {/* Invisible hitbox */}
