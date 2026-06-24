@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { AdStats, ConfirmState, ModalState } from "../_lib/types";
 import { useAdsUrlState } from "../_lib/use-ads-url-state";
 import { useAdsData } from "../_lib/use-ads-data";
@@ -35,9 +35,15 @@ export function AdsDashboard() {
   } = useAdsData({ filters, onToast: addToast });
 
   // Track whether we've ever received data (for skeleton vs stale)
-  const hasDataRef = useRef(false);
-  if (ads.length > 0) hasDataRef.current = true;
-  const isFirstLoad = !hasDataRef.current;
+  const [hasData, setHasData] = useState(false);
+  
+  useEffect(() => {
+    if (ads.length > 0) {
+      setHasData(true);
+    }
+  }, [ads]);
+
+  const isFirstLoad = !hasData;
 
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
