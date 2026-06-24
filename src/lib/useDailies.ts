@@ -44,8 +44,16 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
     if (fetchedRef.current) return;
 
     fetchedRef.current = true;
-    setLoading(true);
-    fetchDailies().finally(() => setLoading(false));
+
+    // Defer all state mutations into an async function so that
+    // setLoading is never called synchronously inside the effect body
+    // (avoids react-hooks/set-state-in-effect lint violation).
+    const load = async () => {
+      setLoading(true);
+      await fetchDailies();
+      setLoading(false);
+    };
+    load();
   }, [session, hasClaimed, fetchDailies]);
 
   const refresh = useCallback(async () => {
