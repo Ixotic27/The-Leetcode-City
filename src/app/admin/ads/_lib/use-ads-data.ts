@@ -14,7 +14,7 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const hasFetchedRef = useRef(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchStats = useCallback(async () => {
     // Keep stale data visible (don't clear ads)
@@ -28,7 +28,7 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
       }
       const data = await res.json();
       setAds(data.ads ?? []);
-      hasFetchedRef.current = true;
+      setHasFetched(true);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -290,7 +290,7 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
     totals,
     activeCount,
     paidCount,
-    hasFetched: hasFetchedRef.current,
+    hasFetched,
     fetchStats,
     handleToggle,
     handleDelete,

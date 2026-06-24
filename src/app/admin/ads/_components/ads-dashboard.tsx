@@ -27,6 +27,7 @@ export function AdsDashboard() {
     totals,
     activeCount,
     paidCount,
+    hasFetched,
     fetchStats,
     handleToggle,
     handleDelete,
@@ -36,17 +37,7 @@ export function AdsDashboard() {
   } = useAdsData({ filters, onToast: addToast });
 
   // Track whether we've ever received data (for skeleton vs stale)
-  const hasDataRef = useRef(false);
-  const [hasData, setHasData] = useState(false);
-
-  useEffect(() => {
-    if (ads.length > 0 && !hasDataRef.current) {
-      hasDataRef.current = true;
-      setHasData(true);
-    }
-  }, [ads]);
-
-  const isFirstLoad = !hasData;
+  const isFirstLoad = loading && !hasFetched;
 
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
