@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const { ok } = rateLimit(`checkout:${ip}`, 1, 5_000);
+  const { ok } = await rateLimit(`checkout:${ip}`, 1, 5_000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
   }
