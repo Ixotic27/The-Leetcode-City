@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getAuthenticatedDeveloper, encryptHiddenTests } from "@/lib/arena";
+import { getAuthenticatedDeveloper } from "@/lib/arena";
 
 export async function GET(
   request: NextRequest,
@@ -44,14 +44,11 @@ export async function GET(
     return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prob = challenge.problem as any;
   if (!prob) {
     return NextResponse.json({ error: "Associated problem not found" }, { status: 404 });
   }
-
-  // Encrypt the hidden tests
-  const hiddenTests = prob.hidden_tests || [];
-  const encrypted = encryptHiddenTests(hiddenTests);
 
   const responsePayload = {
     id: challenge.id,
@@ -68,8 +65,7 @@ export async function GET(
       time_limit_ms: prob.time_limit_ms,
       memory_limit_mb: prob.memory_limit_mb,
       sample_tests: prob.sample_tests,
-      encrypted_hidden_tests: encrypted.encryptedData,
-      iv: encrypted.iv
+      hidden_tests: prob.hidden_tests || []
     }
   };
 
