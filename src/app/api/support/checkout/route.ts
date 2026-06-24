@@ -1,27 +1,20 @@
 import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/base-url";
 import { createCashfreeOrder } from "@/lib/cashfree";
+import { rateLimit } from "@/lib/rate-limit";
 
 const MIN_AMOUNT = 10; // minimum ₹10 INR for checkouts
 
-// Simple IP-based rate limit (1 request per 5 seconds)
-const lastRequest = new Map<string, number>();
-
-/**
- * @param {Request} request
- */
 export async function POST(request: Request) {
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const now = Date.now();
-  const last = lastRequest.get(ip);
-  if (last && now - last < 5_000) {
+  const { ok } = await rateLimit(`checkout:${ip}`, 1, 5_000);
+  if (!ok) {
     return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
   }
-  lastRequest.set(ip, now);
 
   let body: { amount: number; email?: string; name?: string; phone?: string };
   try {
@@ -56,7 +49,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ paymentSessionId, orderId });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Support checkout error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to create checkout" },
