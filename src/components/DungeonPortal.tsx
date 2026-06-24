@@ -108,7 +108,10 @@ export default function DungeonPortal({
 
     let tap: { time: number; x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
-      if (hits(e)) tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      if (hits(e)) {
+        e.stopPropagation();
+        tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      }
     };
     const onUp = (e: PointerEvent) => {
       if (!tap) return;

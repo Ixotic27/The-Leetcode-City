@@ -18,6 +18,7 @@ import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
 import LeaderboardHolograms from "./LeaderboardHolograms";
 import EArcadeLandmark from "./EArcadeLandmark";
+import DungeonModal from "./DungeonModal";
 
 const Colosseum = lazy(() => import("./Colosseum"));
 const VoidObelisk = lazy(() => import("./VoidObelisk"));
@@ -2220,6 +2221,7 @@ export default function CityCanvas({
 }: Props) {
   const { isRaining } = useWeather();
   const router = useRouter();
+  const [dungeonOpen, setDungeonOpen] = useState(false);
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
@@ -2283,50 +2285,50 @@ export default function CityCanvas({
     return () => clearTimeout(timer);
   }, [visibleBuildings.length, buildings]);
   return (
-  <div style={{ position: "relative", width: "100%", height: "100%" }}>
-    {isRecovering && (
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "rgba(0,0,0,0.5)",
-          color: "#fff",
-          zIndex: 1000,
-        }}
-      >
-        Recovering 3D View...
-      </div>
-    )}
+    <>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {isRecovering && (
+          <div
+             style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,0.5)",
+                color: "#fff",
+                zIndex: 1000,
+             }}
+            >
+              Recovering 3D View...
+          </div>
+        )}
+        <Canvas
+            camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
+            dpr={[1, 2]}
+            onCreated={({ gl, scene, camera }) => {
+             try {
+               const canvas = gl.domElement;
 
-    <Canvas
-      camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
-      dpr={[1, 2]}
-      onCreated={({ gl, scene, camera }) => {
-         try {
-           const canvas = gl.domElement;
+                const handleContextLost = (event: Event) => {
+                  event.preventDefault();
+                  console.warn("⚠️ WebGL context lost");
+                  savedCameraPosition.current.copy(camera.position);
+                  setIsRecovering(true);
 
-            const handleContextLost = (event: Event) => {
-              event.preventDefault();
-              console.warn("⚠️ WebGL context lost");
-              savedCameraPosition.current.copy(camera.position);
-              setIsRecovering(true);
+                  if (gl.setAnimationLoop) gl.setAnimationLoop(null);
+                  };
+                
+                  const handleContextRestored = (_event: Event) => {
+                    console.warn("✅ WebGL context restored");
+                      camera.position.copy(savedCameraPosition.current);
+                      camera.updateProjectionMatrix();
+                      if (scene) {
+                        gl.compile(scene, camera);
+                      }
 
-              if (gl.setAnimationLoop) gl.setAnimationLoop(null);
-              };
-             
-              const handleContextRestored = (_event: Event) => {
-                console.warn("✅ WebGL context restored");
-                  camera.position.copy(savedCameraPosition.current);
-                  camera.updateProjectionMatrix();
-                  if (scene) {
-                    gl.compile(scene, camera);
-                  }
-
-                  setIsRecovering(false);
-              };
+                      setIsRecovering(false);
+                  };
 
               canvas.addEventListener("webglcontextlost", handleContextLost as any);
               canvas.addEventListener("webglcontextrestored", handleContextRestored as any);
@@ -2461,7 +2463,6 @@ export default function CityCanvas({
               themeFace={t.building.face}
             />
             <VoidObelisk onClick={() => { }} position={landmarkPositions[1]} />
-            <DungeonPortal onClick={() => { }} position={landmarkPositions[2]} />
             <AstralObservatory onClick={() => { }} position={landmarkPositions[3]} />
             <CryptOfEchoes onClick={() => { }} position={landmarkPositions[4]} />
             <SunkenSanctum onClick={() => { }} position={landmarkPositions[5]} />
@@ -2549,7 +2550,11 @@ export default function CityCanvas({
         </>
       )}
 
-    </Canvas>
-      </div>
+     </Canvas>
+  </div>
+    {dungeonOpen && (
+      <DungeonModal onClose={() => setDungeonOpen(false)} />
+    )}
+  </>
   );
 }
