@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ paymentSessionId, orderId });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Support checkout error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to create checkout" },
