@@ -227,7 +227,7 @@ export default function DailyQuestionsLandmark({
       const sceneHits = raycaster.current.intersectObjects(scene.children, true);
       for (const hit of sceneHits) {
         if (hit.distance >= dqDistance) break;
-        if ((hit.object as any).isInstancedMesh) return false;
+        if ((hit.object as THREE.Object3D & { isInstancedMesh?: boolean }).isInstancedMesh) return false;
         let obj: THREE.Object3D | null = hit.object;
         while (obj) {
           if (obj === group) break;
