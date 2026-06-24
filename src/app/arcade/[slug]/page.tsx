@@ -1,13 +1,32 @@
 "use client";
 
-import { useRef, useEffect, useLayoutEffect, useState, useCallback, use } from "react";
+import {
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  use,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
-import type { PlayerState, ChatBubble, ChatLogEntry, Direction } from "@/lib/arcade/types";
+import type {
+  PlayerState,
+  ChatBubble,
+  ChatLogEntry,
+  Direction,
+  AvatarConfig,
+} from "@/lib/arcade/types";
 import { startGameLoop } from "@/lib/arcade/engine/gameLoop";
-import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout } from "@/lib/arcade/engine/sprites";
+import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout, loadoutToAvatar, type CozyLayer } from "@/lib/arcade/engine/sprites";
 import type { AvatarLoadout } from "@/lib/arcade/types";
-import { loadMapFromData, resetMap, isWalkable, type GameMap, type RoomPortal } from "@/lib/arcade/engine/tileMap";
+import {
+  loadMapFromData,
+  resetMap,
+  isWalkable,
+  type GameMap,
+  type RoomPortal,
+} from "@/lib/arcade/engine/tileMap";
 import { cozyUrl, COZY_BASE, resolveTilesetUrl } from "@/lib/arcade/assetBase";
 import {
   render,
@@ -43,7 +62,7 @@ import {
   disconnect,
 } from "@/lib/arcade/network/client";
 import { findNearbySeat, findNearbyObject } from "@/lib/arcade/engine/tileMap";
-import { executeCommand, getBootSequence, type TerminalLine } from "@/lib/arcade/terminal";
+import { executeCommand, getBootSequence, TOTAL_DISCOVERIES, type TerminalLine } from "@/lib/arcade/terminal";
 import type { ConnectionStatus } from "@/lib/arcade/network/client";
 import type { GameResult } from "@/lib/arcade/types";
 import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
@@ -56,27 +75,134 @@ const BUBBLE_DURATION = 5;
 const CHAT_LOG_MAX = 30;
 
 const ELEVATOR_NOTICES = [
-  { title: "NOTICE", body: "Elevator access requires Level 2 clearance. Your current clearance level is: Pending. Please contact your department supervisor for authorization." },
-  { title: "MAINTENANCE ADVISORY", body: "The elevator is currently undergoing scheduled maintenance. Expected completion: TBD. We appreciate your continued patience and dedication." },
-  { title: "MEMO FROM MANAGEMENT", body: "Floor access has been temporarily restricted due to ongoing organizational restructuring. All employees are encouraged to remain at their assigned workstations." },
-  { title: "SYSTEM NOTIFICATION", body: "Your request to access upper floors has been logged and is pending review. Average processing time: 7-14 business days. Thank you for your understanding." },
-  { title: "REMINDER", body: "The elevator is reserved for authorized personnel only. If you believe you have received this message in error, please submit a formal inquiry through the proper channels." },
+  {
+    title: "NOTICE",
+    body: "Elevator access requires Level 2 clearance. Your current clearance level is: Pending. Please contact your department supervisor for authorization.",
+  },
+  {
+    title: "MAINTENANCE ADVISORY",
+    body: "The elevator is currently undergoing scheduled maintenance. Expected completion: TBD. We appreciate your continued patience and dedication.",
+  },
+  {
+    title: "MEMO FROM MANAGEMENT",
+    body: "Floor access has been temporarily restricted due to ongoing organizational restructuring. All employees are encouraged to remain at their assigned workstations.",
+  },
+  {
+    title: "SYSTEM NOTIFICATION",
+    body: "Your request to access upper floors has been logged and is pending review. Average processing time: 7-14 business days. Thank you for your understanding.",
+  },
+  {
+    title: "REMINDER",
+    body: "The elevator is reserved for authorized personnel only. If you believe you have received this message in error, please submit a formal inquiry through the proper channels.",
+  },
 ];
 
 const FOUNDER_QUOTES = [
-  { title: "FOUNDER'S WISDOM", body: "\"The code must flow. Not because we understand it, but because it understands us.\"" },
-  { title: "DAILY REFLECTION", body: "\"Every bug is a feature that hasn't found its purpose yet. Trust the process.\"" },
-  { title: "THOUGHT OF THE DAY", body: "\"Your commits are your legacy. Each one a small death, each merge a resurrection.\"" },
-  { title: "FOUNDER'S NOTE", body: "\"We don't build software. Software builds us. And what it builds, we must not question.\"" },
-  { title: "MOTIVATIONAL REMINDER", body: "\"You are not lost. You are exactly where the codebase needs you to be. Embrace the uncertainty.\"" },
-  { title: "WEEKLY INSPIRATION", body: "\"Some say the best code is no code at all. The founder disagrees. The best code is the code that writes itself while you sleep.\"" },
-  { title: "FROM THE FOUNDER", body: "\"I started over seven times. Each time, the city grew back different. Better. The eighth time, I stopped counting.\"" },
-  { title: "INTERNAL MEMO", body: "\"If you find a room with no door, do not be alarmed. The door will find you when you are ready.\"" },
-  { title: "NOTICE TO ALL EMPLOYEES", body: "\"The clock on the east wall is not broken. It is simply measuring something other than time.\"" },
-  { title: "FOUNDER'S REFLECTION", body: "\"There is a floor in this building that does not exist on any blueprint. If you find it, please do not tell anyone. They already know.\"" },
+  {
+    title: "FOUNDER'S WISDOM",
+    body: '"The code must flow. Not because we understand it, but because it understands us."',
+  },
+  {
+    title: "DAILY REFLECTION",
+    body: '"Every bug is a feature that hasn\'t found its purpose yet. Trust the process."',
+  },
+  {
+    title: "THOUGHT OF THE DAY",
+    body: '"Your commits are your legacy. Each one a small death, each merge a resurrection."',
+  },
+  {
+    title: "FOUNDER'S NOTE",
+    body: '"We don\'t build software. Software builds us. And what it builds, we must not question."',
+  },
+  {
+    title: "MOTIVATIONAL REMINDER",
+    body: '"You are not lost. You are exactly where the codebase needs you to be. Embrace the uncertainty."',
+  },
+  {
+    title: "WEEKLY INSPIRATION",
+    body: '"Some say the best code is no code at all. The founder disagrees. The best code is the code that writes itself while you sleep."',
+  },
+  {
+    title: "FROM THE FOUNDER",
+    body: '"I started over seven times. Each time, the city grew back different. Better. The eighth time, I stopped counting."',
+  },
+  {
+    title: "INTERNAL MEMO",
+    body: '"If you find a room with no door, do not be alarmed. The door will find you when you are ready."',
+  },
+  {
+    title: "NOTICE TO ALL EMPLOYEES",
+    body: '"The clock on the east wall is not broken. It is simply measuring something other than time."',
+  },
+  {
+    title: "FOUNDER'S REFLECTION",
+    body: '"There is a floor in this building that does not exist on any blueprint. If you find it, please do not tell anyone. They already know."',
+  },
 ];
 
+// Idle-down frame preview: col 1, row 0, cell 16x32
+function SpritePreview({ charIndex, scale = 3 }: { charIndex: number; scale?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
 
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Try cozy avatar first
+    const avatar = loadoutToAvatar(getDefaultLoadout());
+    const basePath = cozyUrl("walk");
+    const promises = avatar.layers.map((layer: CozyLayer) => {
+      return new Promise<{ layer: CozyLayer; img: HTMLImageElement } | null>((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve({ layer, img });
+        img.onerror = () => resolve(null);
+        img.src = `${basePath}/${layer.file}`;
+      });
+    });
+
+    Promise.all(promises).then((results) => {
+      const loaded = results.filter(Boolean) as { layer: CozyLayer; img: HTMLImageElement }[];
+      if (loaded.length === 0) {
+        // Fallback to legacy
+        const img = new Image();
+        img.onload = () => {
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 16, 0, 16, 32, 0, 0, 16 * scale, 32 * scale);
+        };
+        img.src = `/sprites/arcade/char_${charIndex}.png`;
+        return;
+      }
+
+      // Draw each layer with tinting using an offscreen canvas
+      for (const { layer, img } of loaded) {
+        const oc = new OffscreenCanvas(img.width, img.height);
+        const octx = oc.getContext("2d")!;
+        octx.drawImage(img, 0, 0);
+        octx.globalCompositeOperation = "multiply";
+        octx.fillStyle = layer.color;
+        octx.fillRect(0, 0, img.width, img.height);
+        octx.globalCompositeOperation = "destination-in";
+        octx.drawImage(img, 0, 0);
+
+        // Draw idle frame (frame 0, row 0 = down) from the tinted sheet
+        ctx.drawImage(oc, 0, 0, 32, 32, 0, 0, 32 * scale, 32 * scale);
+      }
+    });
+  }, [charIndex, scale]);
+
+  return (
+    <canvas
+      ref={ref}
+      width={32 * scale}
+      height={32 * scale}
+      style={{ imageRendering: "pixelated" }}
+    />
+  );
+}
 
 interface InterpolatedPlayer extends PlayerState {
   prevX: number;
@@ -99,7 +225,8 @@ function applyDir(x: number, y: number, dir: Direction): [number, number] {
 // Logs input, prediction, server acks, reconciliations, and snaps so we can
 // diagnose desync without reading the whole frame loop.
 const debugEnabled = (): boolean =>
-  typeof window !== "undefined" && window.localStorage?.getItem("arcadeDebug") === "1";
+  typeof window !== "undefined" &&
+  window.localStorage?.getItem("arcadeDebug") === "1";
 function dlog(tag: string, data: Record<string, unknown>): void {
   if (!debugEnabled()) return;
   console.log(`[arcade:${tag}] ${performance.now().toFixed(0)}ms`, data);
@@ -115,10 +242,19 @@ export default function ArcadeRoomPage({
   const router = useRouter();
   const unwrappedParams = use(params);
   const routeSlug = unwrappedParams.slug;
-  const slug = (routeSlug === "overworld" || routeSlug === "tuxemon_town" || routeSlug === "ixoria_town") ? "ixotopia" : routeSlug;
+  const slug =
+    routeSlug === "overworld" ||
+    routeSlug === "tuxemon_town" ||
+    routeSlug === "ixoria_town"
+      ? "ixotopia"
+      : routeSlug;
 
   useEffect(() => {
-    if (routeSlug === "overworld" || routeSlug === "tuxemon_town" || routeSlug === "ixoria_town") {
+    if (
+      routeSlug === "overworld" ||
+      routeSlug === "tuxemon_town" ||
+      routeSlug === "ixoria_town"
+    ) {
       router.replace("/arcade/ixotopia");
     }
   }, [routeSlug, router]);
@@ -132,8 +268,13 @@ export default function ArcadeRoomPage({
   const [nearSeat, setNearSeat] = useState(false);
   const [nearInteractable, setNearInteractable] = useState<string | null>(null);
   const [showMessage, setShowMessage] = useState<string | null>(null);
-  const [showDialog, setShowDialog] = useState<{ title: string; body: string } | null>(null);
-  const [elevatorPicker, setElevatorPicker] = useState<RoomPortal[] | null>(null);
+  const [showDialog, setShowDialog] = useState<{
+    title: string;
+    body: string;
+  } | null>(null);
+  const [elevatorPicker, setElevatorPicker] = useState<RoomPortal[] | null>(
+    null,
+  );
   const [playerCount, setPlayerCount] = useState(0);
   const [chatLog, setChatLog] = useState<ChatLogEntry[]>([]);
   const [chatLogOpen, setChatLogOpen] = useState(false);
@@ -188,11 +329,15 @@ export default function ArcadeRoomPage({
   // so we can drop confirmed inputs and reconcile against authoritative state.
   const seqCounterRef = useRef(0);
   const pendingInputsRef = useRef<Array<{ seq: number; dir: Direction }>>([]);
-  const serverPosRef = useRef<{ x: number; y: number; dir: Direction } | null>(null);
+  const serverPosRef = useRef<{ x: number; y: number; dir: Direction } | null>(
+    null,
+  );
 
   const isTyping = useCallback(() => {
-    return document.activeElement === chatInputRef.current
-      || document.activeElement === terminalInputRef.current;
+    return (
+      document.activeElement === chatInputRef.current ||
+      document.activeElement === terminalInputRef.current
+    );
   }, []);
 
   // Detect mobile before effects run
@@ -208,8 +353,14 @@ export default function ArcadeRoomPage({
     if (arcadeGameOpenRef.current) return;
     if (sittingRef.current) {
       // Standing up also closes terminal/game
-      if (terminalOpenRef.current) { setShowTerminal(false); terminalOpenRef.current = false; }
-      if (arcadeGameOpenRef.current) { setShowArcadeGame(false); arcadeGameOpenRef.current = false; }
+      if (terminalOpenRef.current) {
+        setShowTerminal(false);
+        terminalOpenRef.current = false;
+      }
+      if (arcadeGameOpenRef.current) {
+        setShowArcadeGame(false);
+        arcadeGameOpenRef.current = false;
+      }
       sendStand();
       return;
     }
@@ -222,7 +373,7 @@ export default function ArcadeRoomPage({
         p.type === "exit" &&
         localP.x >= p.x - 1 &&
         localP.x <= p.x + (p.width ?? 1) &&
-        Math.abs(localP.y - p.y) <= 1
+        Math.abs(localP.y - p.y) <= 1,
     );
     if (exitPortal) {
       router.push("/arcade/ixotopia");
@@ -260,243 +411,283 @@ export default function ArcadeRoomPage({
           if (choices.length > 0) {
             setElevatorPicker(choices);
           } else {
-            setShowDialog(ELEVATOR_NOTICES[Math.floor(Math.random() * ELEVATOR_NOTICES.length)]);
+            setShowDialog(
+              ELEVATOR_NOTICES[
+                Math.floor(Math.random() * ELEVATOR_NOTICES.length)
+              ],
+            );
           }
         })
         .catch(() => {
-          setShowDialog(ELEVATOR_NOTICES[Math.floor(Math.random() * ELEVATOR_NOTICES.length)]);
+          setShowDialog(
+            ELEVATOR_NOTICES[
+              Math.floor(Math.random() * ELEVATOR_NOTICES.length)
+            ],
+          );
         });
     }
     if (obj?.type === "quote") {
-      setShowDialog(FOUNDER_QUOTES[Math.floor(Math.random() * FOUNDER_QUOTES.length)]);
+      setShowDialog(
+        FOUNDER_QUOTES[Math.floor(Math.random() * FOUNDER_QUOTES.length)],
+      );
     }
   }, [router, slug]);
 
-  const connectCallbacks = useCallback((): Parameters<typeof connect>[1] => ({
-    onSync(players) {
-      const pmap = playersRef.current;
-      pmap.clear();
-      for (const p of players) {
-        // Set avatar for each player (loadout from PartyKit or default)
-        if (p.loadout) {
-          setPlayerAvatar(p.id, p.loadout);
-          preloadLoadout(p.loadout).catch(() => {});
+  const connectCallbacks = useCallback(
+    (): Parameters<typeof connect>[1] => ({
+      onSync(players) {
+        const pmap = playersRef.current;
+        pmap.clear();
+        for (const p of players) {
+          // Set avatar for each player (loadout from PartyKit or default)
+          if (p.loadout) {
+            setPlayerAvatar(p.id, p.loadout);
+            preloadLoadout(p.loadout).catch(() => {});
+          }
+          pmap.set(p.id, {
+            ...p,
+            prevX: p.x,
+            prevY: p.y,
+            lerpTimer: LERP_DURATION,
+            walking: false,
+            idleGrace: 0,
+          });
         }
-        pmap.set(p.id, {
-          ...p,
-          prevX: p.x,
-          prevY: p.y,
+        setPlayerCount(pmap.size);
+        const local = players.find((p) => p.id === localIdRef.current);
+        if (local && mapRef.current) {
+          const ts = mapRef.current.tileSize;
+          snapCamera(
+            local.x * ts + ts / 2,
+            local.y * ts + ts / 2,
+            mapRef.current,
+          );
+          dlog("sync", {
+            localPos: { x: local.x, y: local.y, dir: local.dir },
+            prevPending: pendingInputsRef.current.length,
+            playerCount: pmap.size,
+          });
+          serverPosRef.current = { x: local.x, y: local.y, dir: local.dir };
+          pendingInputsRef.current = [];
+          seqCounterRef.current = 0;
+        }
+      },
+      onJoin(player) {
+        if (player.loadout) {
+          setPlayerAvatar(player.id, player.loadout);
+          preloadLoadout(player.loadout).catch(() => {});
+        }
+        playersRef.current.set(player.id, {
+          ...player,
+          prevX: player.x,
+          prevY: player.y,
           lerpTimer: LERP_DURATION,
           walking: false,
           idleGrace: 0,
         });
-      }
-      setPlayerCount(pmap.size);
-      const local = players.find(p => p.id === localIdRef.current);
-      if (local && mapRef.current) {
-        const ts = mapRef.current.tileSize;
-        snapCamera(local.x * ts + ts / 2, local.y * ts + ts / 2, mapRef.current);
-        dlog("sync", {
-          localPos: { x: local.x, y: local.y, dir: local.dir },
-          prevPending: pendingInputsRef.current.length,
-          playerCount: pmap.size,
-        });
-        serverPosRef.current = { x: local.x, y: local.y, dir: local.dir };
-        pendingInputsRef.current = [];
-        seqCounterRef.current = 0;
-      }
-    },
-    onJoin(player) {
-      if (player.loadout) {
-        setPlayerAvatar(player.id, player.loadout);
-        preloadLoadout(player.loadout).catch(() => {});
-      }
-      playersRef.current.set(player.id, {
-        ...player,
-        prevX: player.x,
-        prevY: player.y,
-        lerpTimer: LERP_DURATION,
-        walking: false,
-        idleGrace: 0,
-      });
-      setPlayerCount(playersRef.current.size);
-    },
-    onLeave(id) {
-      playersRef.current.delete(id);
-      bubblesRef.current = bubblesRef.current.filter((b) => b.id !== id);
-      setPlayerCount(playersRef.current.size);
-    },
-    onMove(id, x, y, dir, ackSeq) {
-      const p = playersRef.current.get(id);
-      if (!p) return;
+        setPlayerCount(playersRef.current.size);
+      },
+      onLeave(id) {
+        playersRef.current.delete(id);
+        bubblesRef.current = bubblesRef.current.filter((b) => b.id !== id);
+        setPlayerCount(playersRef.current.size);
+      },
+      onMove(id, x, y, dir, ackSeq) {
+        const p = playersRef.current.get(id);
+        if (!p) return;
 
-      const isLocal = id === localIdRef.current;
+        const isLocal = id === localIdRef.current;
 
-      // Local player with prediction: reconcile against authoritative state.
-      if (isLocal && ackSeq !== undefined) {
-        const beforePending = pendingInputsRef.current.length;
-        serverPosRef.current = { x, y, dir };
-        pendingInputsRef.current = pendingInputsRef.current.filter((i) => i.seq > ackSeq);
+        // Local player with prediction: reconcile against authoritative state.
+        if (isLocal && ackSeq !== undefined) {
+          const beforePending = pendingInputsRef.current.length;
+          serverPosRef.current = { x, y, dir };
+          pendingInputsRef.current = pendingInputsRef.current.filter(
+            (i) => i.seq > ackSeq,
+          );
 
-        // Replay unacked inputs on top of server position to get new prediction.
-        let px = x, py = y, pdir: Direction = dir;
-        for (const input of pendingInputsRef.current) {
-          const [nx, ny] = applyDir(px, py, input.dir);
-          if (isWalkable(nx, ny)) { px = nx; py = ny; }
-          pdir = input.dir;
-        }
+          // Replay unacked inputs on top of server position to get new prediction.
+          let px = x,
+            py = y,
+            pdir: Direction = dir;
+          for (const input of pendingInputsRef.current) {
+            const [nx, ny] = applyDir(px, py, input.dir);
+            if (isWalkable(nx, ny)) {
+              px = nx;
+              py = ny;
+            }
+            pdir = input.dir;
+          }
 
-        // If prediction already matches rendered state, nothing to do — smooth.
-        if (p.x === px && p.y === py && p.dir === pdir) {
-          dlog("ack/match", {
-            ackSeq, serverPos: { x, y, dir },
-            droppedPending: beforePending - pendingInputsRef.current.length,
-            stillPending: pendingInputsRef.current.length,
+          // If prediction already matches rendered state, nothing to do — smooth.
+          if (p.x === px && p.y === py && p.dir === pdir) {
+            dlog("ack/match", {
+              ackSeq,
+              serverPos: { x, y, dir },
+              droppedPending: beforePending - pendingInputsRef.current.length,
+              stillPending: pendingInputsRef.current.length,
+            });
+            return;
+          }
+
+          // Divergence (rate-limit, map change, etc.): snap render state to prediction.
+          dlog("ack/SNAP", {
+            ackSeq,
+            delta: `render(${p.x},${p.y},${p.dir}) → predicted(${px},${py},${pdir})`,
+            server: `(${x},${y},${dir})`,
+            pending: pendingInputsRef.current
+              .map((i) => `${i.seq}:${i.dir}`)
+              .join(","),
           });
+          const dist = Math.max(Math.abs(p.x - px), Math.abs(p.y - py));
+          if (dist > 2) {
+            p.prevX = px;
+            p.prevY = py;
+            if (mapRef.current) {
+              const ts = mapRef.current.tileSize;
+              snapCamera(px * ts + ts / 2, py * ts + ts / 2, mapRef.current);
+            }
+          } else {
+            const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
+            p.prevX = p.prevX + (p.x - p.prevX) * t;
+            p.prevY = p.prevY + (p.y - p.prevY) * t;
+          }
+          p.x = px;
+          p.y = py;
+          p.dir = pdir;
+          p.lerpTimer = 0;
+          p.walking = p.prevX !== px || p.prevY !== py;
           return;
         }
 
-        // Divergence (rate-limit, map change, etc.): snap render state to prediction.
-        dlog("ack/SNAP", {
-          ackSeq,
-          delta: `render(${p.x},${p.y},${p.dir}) → predicted(${px},${py},${pdir})`,
-          server: `(${x},${y},${dir})`,
-          pending: pendingInputsRef.current.map((i) => `${i.seq}:${i.dir}`).join(","),
-        });
-        const dist = Math.max(Math.abs(p.x - px), Math.abs(p.y - py));
+        // Local without ackSeq shouldn't happen after prediction is on, but if it
+        // does (e.g. older server, or a sync fallback), still use this position
+        // as the authoritative baseline so future predictions stay aligned.
+        if (isLocal) {
+          dlog("move/local-no-ack", { pos: { x, y, dir } });
+          serverPosRef.current = { x, y, dir };
+          pendingInputsRef.current = [];
+        }
+
+        // Remote player (or local without ackSeq): interpolate to new tile.
+        const moved = p.x !== x || p.y !== y;
+        const dist = Math.max(Math.abs(p.x - x), Math.abs(p.y - y));
         if (dist > 2) {
-          p.prevX = px;
-          p.prevY = py;
-          if (mapRef.current) {
+          p.prevX = x;
+          p.prevY = y;
+          if (isLocal && mapRef.current) {
             const ts = mapRef.current.tileSize;
-            snapCamera(px * ts + ts / 2, py * ts + ts / 2, mapRef.current);
+            snapCamera(x * ts + ts / 2, y * ts + ts / 2, mapRef.current);
           }
         } else {
           const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
           p.prevX = p.prevX + (p.x - p.prevX) * t;
           p.prevY = p.prevY + (p.y - p.prevY) * t;
         }
-        p.x = px;
-        p.y = py;
-        p.dir = pdir;
+        p.x = x;
+        p.y = y;
+        p.dir = dir;
         p.lerpTimer = 0;
-        p.walking = p.prevX !== px || p.prevY !== py;
-        return;
-      }
+        p.walking = moved;
+      },
+      onChat(id, text) {
+        const playerBubbles = bubblesRef.current.filter((b) => b.id === id);
+        if (playerBubbles.length >= 3) {
+          const oldest = playerBubbles[0];
+          bubblesRef.current = bubblesRef.current.filter((b) => b !== oldest);
+        }
+        bubblesRef.current.push({ id, text, timer: BUBBLE_DURATION });
 
-      // Local without ackSeq shouldn't happen after prediction is on, but if it
-      // does (e.g. older server, or a sync fallback), still use this position
-      // as the authoritative baseline so future predictions stay aligned.
-      if (isLocal) {
-        dlog("move/local-no-ack", { pos: { x, y, dir } });
-        serverPosRef.current = { x, y, dir };
-        pendingInputsRef.current = [];
-      }
-
-      // Remote player (or local without ackSeq): interpolate to new tile.
-      const moved = p.x !== x || p.y !== y;
-      const dist = Math.max(Math.abs(p.x - x), Math.abs(p.y - y));
-      if (dist > 2) {
+        // Add to chat log
+        const player = playersRef.current.get(id);
+        const username = player?.github_login ?? "???";
+        const entry: ChatLogEntry = { username, text, ts: Date.now() };
+        chatLogRef.current = [
+          ...chatLogRef.current.slice(-(CHAT_LOG_MAX - 1)),
+          entry,
+        ];
+        setChatLog(chatLogRef.current);
+        setChatUnread((n) => (chatLogOpenRef.current ? 0 : n + 1));
+      },
+      onChatHistory(entries) {
+        chatLogRef.current = entries.slice(-CHAT_LOG_MAX);
+        setChatLog(chatLogRef.current);
+      },
+      onSit(id, x, y, dir) {
+        const p = playersRef.current.get(id);
+        if (!p) return;
+        p.x = x;
+        p.y = y;
         p.prevX = x;
         p.prevY = y;
-        if (isLocal && mapRef.current) {
-          const ts = mapRef.current.tileSize;
-          snapCamera(x * ts + ts / 2, y * ts + ts / 2, mapRef.current);
+        p.dir = dir;
+        p.lerpTimer = LERP_DURATION;
+        p.walking = false;
+        if (id === localIdRef.current) {
+          setSitting(true);
+          sittingRef.current = true;
+          serverPosRef.current = { x, y, dir };
+          pendingInputsRef.current = [];
         }
-      } else {
-        const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
-        p.prevX = p.prevX + (p.x - p.prevX) * t;
-        p.prevY = p.prevY + (p.y - p.prevY) * t;
-      }
-      p.x = x;
-      p.y = y;
-      p.dir = dir;
-      p.lerpTimer = 0;
-      p.walking = moved;
-    },
-    onChat(id, text) {
-      const playerBubbles = bubblesRef.current.filter((b) => b.id === id);
-      if (playerBubbles.length >= 3) {
-        const oldest = playerBubbles[0];
-        bubblesRef.current = bubblesRef.current.filter((b) => b !== oldest);
-      }
-      bubblesRef.current.push({ id, text, timer: BUBBLE_DURATION });
-
-      // Add to chat log
-      const player = playersRef.current.get(id);
-      const username = player?.github_login ?? "???";
-      const entry: ChatLogEntry = { username, text, ts: Date.now() };
-      chatLogRef.current = [...chatLogRef.current.slice(-(CHAT_LOG_MAX - 1)), entry];
-      setChatLog(chatLogRef.current);
-      setChatUnread((n) => chatLogOpenRef.current ? 0 : n + 1);
-    },
-    onChatHistory(entries) {
-      chatLogRef.current = entries.slice(-CHAT_LOG_MAX);
-      setChatLog(chatLogRef.current);
-    },
-    onSit(id, x, y, dir) {
-      const p = playersRef.current.get(id);
-      if (!p) return;
-      p.x = x;
-      p.y = y;
-      p.prevX = x;
-      p.prevY = y;
-      p.dir = dir;
-      p.lerpTimer = LERP_DURATION;
-      p.walking = false;
-      if (id === localIdRef.current) {
-        setSitting(true); sittingRef.current = true;
-        serverPosRef.current = { x, y, dir };
-        pendingInputsRef.current = [];
-      }
-    },
-    onStand(id, x, y) {
-      const p = playersRef.current.get(id);
-      if (!p) return;
-      p.x = x;
-      p.y = y;
-      p.prevX = x;
-      p.prevY = y;
-      p.lerpTimer = LERP_DURATION;
-      if (id === localIdRef.current) {
-        setSitting(false); sittingRef.current = false;
-        setShowTerminal(false); terminalOpenRef.current = false;
-        setShowArcadeGame(false); arcadeGameOpenRef.current = false;
-        serverPosRef.current = { x, y, dir: p.dir };
-        pendingInputsRef.current = [];
-      }
-    },
-    onAvatar(id, spriteId) {
-      const p = playersRef.current.get(id);
-      if (p) p.sprite_id = spriteId;
-    },
-    onLoadout(id, loadout) {
-      const p = playersRef.current.get(id);
-      if (p) p.loadout = loadout;
-      setPlayerAvatar(id, loadout);
-      preloadLoadout(loadout).catch(() => {});
-    },
-    onMapReload(mapData) {
-      const map = mapData as unknown as GameMap;
-      loadMapFromData(map);
-      mapRef.current = map;
-      buildLayerCaches(map);
-      const spriteKeys = map.furniture.map((f: { sprite: string }) => f.sprite);
-      loadFurnitureSprites("/sprites/arcade", spriteKeys);
-    },
-    onGameAck(game: string) {
-      // Forward to overlay via window global
-      const handler = (window as unknown as Record<string, unknown>).__arcadeGameAck as ((g: string) => void) | undefined;
-      handler?.(game);
-    },
-    onGameResult(game: string, result: GameResult) {
-      const handler = (window as unknown as Record<string, unknown>).__arcadeGameResult as ((g: string, r: GameResult) => void) | undefined;
-      handler?.(game, result);
-    },
-    onStatusChange(s) {
-      setStatus(s);
-    },
-  }), []);
+      },
+      onStand(id, x, y) {
+        const p = playersRef.current.get(id);
+        if (!p) return;
+        p.x = x;
+        p.y = y;
+        p.prevX = x;
+        p.prevY = y;
+        p.lerpTimer = LERP_DURATION;
+        if (id === localIdRef.current) {
+          setSitting(false);
+          sittingRef.current = false;
+          setShowTerminal(false);
+          terminalOpenRef.current = false;
+          setShowArcadeGame(false);
+          arcadeGameOpenRef.current = false;
+          serverPosRef.current = { x, y, dir: p.dir };
+          pendingInputsRef.current = [];
+        }
+      },
+      onAvatar(id, spriteId) {
+        const p = playersRef.current.get(id);
+        if (p) p.sprite_id = spriteId;
+      },
+      onLoadout(id, loadout) {
+        const p = playersRef.current.get(id);
+        if (p) p.loadout = loadout;
+        setPlayerAvatar(id, loadout);
+        preloadLoadout(loadout).catch(() => {});
+      },
+      onMapReload(mapData) {
+        const map = mapData as unknown as GameMap;
+        loadMapFromData(map);
+        mapRef.current = map;
+        buildLayerCaches(map);
+        const spriteKeys = map.furniture.map(
+          (f: { sprite: string }) => f.sprite,
+        );
+        loadFurnitureSprites("/sprites/arcade", spriteKeys);
+      },
+      onGameAck(game: string) {
+        // Forward to overlay via window global
+        const handler = (window as unknown as Record<string, unknown>)
+          .__arcadeGameAck as ((g: string) => void) | undefined;
+        handler?.(game);
+      },
+      onGameResult(game: string, result: GameResult) {
+        const handler = (window as unknown as Record<string, unknown>)
+          .__arcadeGameResult as
+          | ((g: string, r: GameResult) => void)
+          | undefined;
+        handler?.(game, result);
+      },
+      onStatusChange(s) {
+        setStatus(s);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -542,40 +733,40 @@ export default function ArcadeRoomPage({
         fetch(`/api/arcade/rooms/${slug}`, { cache: "no-store" }).then((r) => {
           if (!r.ok) throw new Error("Room not found");
           return r.json();
-        }) as Promise<{ room: { map_json: GameMap; portals: RoomPortal[] | null } }>,
-        fetch("/api/arcade/avatar").then((r) => r.json()) as Promise<{ loadout: AvatarLoadout | null }>,
-        fetch("/api/arcade/shop").then((r) => r.json()).catch(() => ({ items: [] })) as Promise<{ items: Array<{ id: string; file: string | null; no_tint: boolean; default_color: string | null }> }>,
+        }) as Promise<{
+          room: { map_json: GameMap; portals: RoomPortal[] | null };
+        }>,
+        fetch("/api/arcade/avatar").then((r) => r.json()) as Promise<{
+          loadout: AvatarLoadout | null;
+        }>,
+        fetch("/api/arcade/shop")
+          .then((r) => r.json())
+          .catch(() => ({ items: [] })) as Promise<{
+          items: Array<{
+            id: string;
+            file: string | null;
+            no_tint: boolean;
+            default_color: string | null;
+          }>;
+        }>,
       ]);
       const map = loadMapFromData(mapRes.room.map_json);
       mapRef.current = map;
-      
+
       const apiPortals = mapRes.room.portals ?? [];
       const mapPortals = (map.objects ?? [])
         .filter((obj) => obj.type === "door" || obj.type === "stairs" || obj.type === "portal")
-        .map((obj) => {
-          const typedObj = obj as {
-            type: string;
-            x: number;
-            y: number;
-            width?: number;
-            height?: number;
-            label?: string;
-            destination?: string;
-            targetX?: number;
-            targetY?: number;
-          };
-          return {
-            type: typedObj.type,
-            x: typedObj.x,
-            y: typedObj.y,
-            width: typedObj.width,
-            height: typedObj.height,
-            label: typedObj.label,
-            destination: typedObj.destination ?? "",
-            targetX: typedObj.targetX,
-            targetY: typedObj.targetY,
-          };
-        });
+        .map((obj) => ({
+          type: obj.type,
+          x: obj.x,
+          y: obj.y,
+          width: obj.width,
+          height: obj.height,
+          label: obj.label,
+          destination: obj.destination ?? "",
+          targetX: obj.targetX,
+          targetY: obj.targetY,
+        }));
       const seen = new Set(apiPortals.map((p) => `${p.type}-${p.x}-${p.y}`));
       const combinedPortals = [...apiPortals];
       for (const mp of mapPortals) {
@@ -629,7 +820,10 @@ export default function ArcadeRoomPage({
       const onMoveDir = (dir: Direction) => {
         if (editorModeRef.current) return;
         if (terminalOpenRef.current) return;
-        if (sittingRef.current) { sendStand(); return; }
+        if (sittingRef.current) {
+          sendStand();
+          return;
+        }
 
         const seq = ++seqCounterRef.current;
         const localId = localIdRef.current;
@@ -639,23 +833,38 @@ export default function ArcadeRoomPage({
         // If state isn't ready yet, skip prediction — server will correct us.
         if (localP && server) {
           // Predict from authoritative baseline + all pending inputs (including this one).
-          let px = server.x, py = server.y, pdir: Direction = server.dir;
+          let px = server.x,
+            py = server.y,
+            pdir: Direction = server.dir;
           for (const input of pendingInputsRef.current) {
             const [nx, ny] = applyDir(px, py, input.dir);
-            if (isWalkable(nx, ny)) { px = nx; py = ny; }
+            if (isWalkable(nx, ny)) {
+              px = nx;
+              py = ny;
+            }
             pdir = input.dir;
           }
           const [nx, ny] = applyDir(px, py, dir);
           const hitWall = !isWalkable(nx, ny);
-          if (!hitWall) { px = nx; py = ny; }
+          if (!hitWall) {
+            px = nx;
+            py = ny;
+          }
           pdir = dir;
 
           dlog("input/predict", {
-            seq, dir, hitWall,
+            seq,
+            dir,
+            hitWall,
             server: { x: server.x, y: server.y, dir: server.dir },
             pendingBefore: pendingInputsRef.current.length,
             predicted: { x: px, y: py, dir: pdir },
-            render: { x: localP.x, y: localP.y, dir: localP.dir, lerp: localP.lerpTimer.toFixed(3) },
+            render: {
+              x: localP.x,
+              y: localP.y,
+              dir: localP.dir,
+              lerp: localP.lerpTimer.toFixed(3),
+            },
           });
 
           // Apply predicted state to local render. Preserve current interpolated
@@ -670,11 +879,22 @@ export default function ArcadeRoomPage({
           localP.lerpTimer = 0;
           localP.walking = moved || localP.walking;
         } else {
-          dlog("input/noPredict", { seq, dir, hasLocal: !!localP, hasServer: !!server });
+          dlog("input/noPredict", {
+            seq,
+            dir,
+            hasLocal: !!localP,
+            hasServer: !!server,
+          });
         }
 
         pendingInputsRef.current.push({ seq, dir });
-        sendMove({ type: "move", dir, seq, x: localP?.x ?? 0, y: localP?.y ?? 0 });
+        sendMove({
+          type: "move",
+          dir,
+          seq,
+          x: localP?.x ?? 0,
+          y: localP?.y ?? 0,
+        });
       };
       cleanupInput = attachInput(onMoveDir, isTyping);
 
@@ -684,7 +904,10 @@ export default function ArcadeRoomPage({
           canvas!,
           onMoveDir,
           () => handleInteract(),
-          () => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 0); },
+          () => {
+            setChatOpen(true);
+            setTimeout(() => chatInputRef.current?.focus(), 0);
+          },
           isTyping,
         );
       }
@@ -717,12 +940,16 @@ export default function ArcadeRoomPage({
 
           // Check if local player is standing on any door portal to warp
           const localPlayer = playersRef.current.get(localIdRef.current);
-          if (localPlayer && localPlayer.lerpTimer >= LERP_DURATION && !localPlayer.walking) {
+          if (
+            localPlayer &&
+            localPlayer.lerpTimer >= LERP_DURATION &&
+            !localPlayer.walking
+          ) {
             const portal = portalsRef.current.find(
               (p) =>
                 localPlayer.x >= p.x &&
                 localPlayer.x < p.x + (p.width ?? 1) &&
-                localPlayer.y === p.y
+                localPlayer.y === p.y,
             );
             if (portal) {
               if (portal.type === "door") {
@@ -736,7 +963,11 @@ export default function ArcadeRoomPage({
                   router.push(`/arcade/${portal.destination}`);
                 }
                 return;
-              } else if (portal.type === "stairs" && portal.targetX !== undefined && portal.targetY !== undefined) {
+              } else if (
+                portal.type === "stairs" &&
+                portal.targetX !== undefined &&
+                portal.targetY !== undefined
+              ) {
                 // Prevent double trigger
                 localPlayer.walking = true;
                 sendWarp(portal.targetX, portal.targetY);
@@ -750,8 +981,10 @@ export default function ArcadeRoomPage({
             const lp = playersRef.current.get(localIdRef.current);
             if (lp) {
               const t = Math.min(lp.lerpTimer / LERP_DURATION, 1);
-              const lpx = (lp.prevX + (lp.x - lp.prevX) * t) * tileSize + tileSize / 2;
-              const lpy = (lp.prevY + (lp.y - lp.prevY) * t) * tileSize + tileSize / 2;
+              const lpx =
+                (lp.prevX + (lp.x - lp.prevX) * t) * tileSize + tileSize / 2;
+              const lpy =
+                (lp.prevY + (lp.y - lp.prevY) * t) * tileSize + tileSize / 2;
               updatePet(dt, lpx, lpy);
             }
           }
@@ -766,19 +999,33 @@ export default function ArcadeRoomPage({
           if (localP && !sittingRef.current) {
             const seat = findNearbySeat(localP.x, localP.y);
             const hasSeat = !!seat;
-            if (hasSeat !== nearSeatRef.current) { nearSeatRef.current = hasSeat; setNearSeat(hasSeat); }
+            if (hasSeat !== nearSeatRef.current) {
+              nearSeatRef.current = hasSeat;
+              setNearSeat(hasSeat);
+            }
 
             if (seat) {
-              const seatLabel = seat.type === "pc" ? "Terminal" : seat.type === "arcade_machine" ? "Play" : "Sit";
+              const seatLabel =
+                seat.type === "pc"
+                  ? "Terminal"
+                  : seat.type === "arcade_machine"
+                    ? "Play"
+                    : "Sit";
               promptRef.current = { x: seat.x, y: seat.y, text: seatLabel };
-              if (nearInteractableRef.current !== null) { nearInteractableRef.current = null; setNearInteractable(null); }
+              if (nearInteractableRef.current !== null) {
+                nearInteractableRef.current = null;
+                setNearInteractable(null);
+              }
               setActionLabel(seatLabel);
             } else {
               const obj = findNearbyObject(localP.x, localP.y);
               if (obj) {
                 const label = obj.type === "elevator" ? "Elevator" : obj.type;
                 promptRef.current = { x: obj.x, y: obj.y, text: label };
-                if (nearInteractableRef.current !== obj.type) { nearInteractableRef.current = obj.type; setNearInteractable(obj.type); }
+                if (nearInteractableRef.current !== obj.type) {
+                  nearInteractableRef.current = obj.type;
+                  setNearInteractable(obj.type);
+                }
                 setActionLabel(label);
               } else {
                 const exitPortal = portalsRef.current.find(
@@ -786,17 +1033,30 @@ export default function ArcadeRoomPage({
                     p.type === "exit" &&
                     localP.x >= p.x - 1 &&
                     localP.x <= p.x + (p.width ?? 1) &&
-                    Math.abs(localP.y - p.y) <= 1
+                    Math.abs(localP.y - p.y) <= 1,
                 );
                 if (exitPortal) {
                   const label = "Exit";
-                  promptRef.current = { x: exitPortal.x + Math.floor((exitPortal.width ?? 1) / 2), y: exitPortal.y, text: label };
-                  if (nearInteractableRef.current !== "exit") { nearInteractableRef.current = "exit"; setNearInteractable("exit"); }
+                  promptRef.current = {
+                    x: exitPortal.x + Math.floor((exitPortal.width ?? 1) / 2),
+                    y: exitPortal.y,
+                    text: label,
+                  };
+                  if (nearInteractableRef.current !== "exit") {
+                    nearInteractableRef.current = "exit";
+                    setNearInteractable("exit");
+                  }
                   setActionLabel(label);
                 } else {
                   promptRef.current = null;
-                  if (nearInteractableRef.current !== null) { nearInteractableRef.current = null; setNearInteractable(null); }
-                  if (nearSeatRef.current) { nearSeatRef.current = false; setNearSeat(false); }
+                  if (nearInteractableRef.current !== null) {
+                    nearInteractableRef.current = null;
+                    setNearInteractable(null);
+                  }
+                  if (nearSeatRef.current) {
+                    nearSeatRef.current = false;
+                    setNearSeat(false);
+                  }
                   setActionLabel("");
                 }
               }
@@ -810,8 +1070,14 @@ export default function ArcadeRoomPage({
           const camTarget = playersRef.current.get(localIdRef.current);
           if (camTarget && mapRef.current) {
             const ct = Math.min(camTarget.lerpTimer / LERP_DURATION, 1);
-            const cpx = (camTarget.prevX + (camTarget.x - camTarget.prevX) * ct) * tileSize + tileSize / 2;
-            const cpy = (camTarget.prevY + (camTarget.y - camTarget.prevY) * ct) * tileSize + tileSize / 2;
+            const cpx =
+              (camTarget.prevX + (camTarget.x - camTarget.prevX) * ct) *
+                tileSize +
+              tileSize / 2;
+            const cpy =
+              (camTarget.prevY + (camTarget.y - camTarget.prevY) * ct) *
+                tileSize +
+              tileSize / 2;
             updateCamera(cpx, cpy, dt, mapRef.current);
           }
         },
@@ -832,7 +1098,15 @@ export default function ArcadeRoomPage({
               renderY: ry,
             });
           }
-          render(ctx, m, renderPlayers, bubblesRef.current, localIdRef.current, promptRef.current, gameMessageRef.current);
+          render(
+            ctx,
+            m,
+            renderPlayers,
+            bubblesRef.current,
+            localIdRef.current,
+            promptRef.current,
+            gameMessageRef.current,
+          );
 
           if (isMobileRef.current) {
             const cam = getCameraState();
@@ -868,7 +1142,7 @@ export default function ArcadeRoomPage({
       resetPet();
       resetMap();
     };
-  }, [slug, router, isTyping, connectCallbacks, handleInteract]);
+  }, [slug, router, isTyping, connectCallbacks]);
 
   const handleEditAvatar = () => {
     setShowAvatarModal(true);
@@ -903,15 +1177,26 @@ export default function ArcadeRoomPage({
         .catch(() => {});
       // Scroll to bottom when mobile keyboard opens/closes
       const onResize = () => {
-        setTimeout(() => terminalScrollRef.current?.scrollTo(0, terminalScrollRef.current.scrollHeight), 100);
+        setTimeout(
+          () =>
+            terminalScrollRef.current?.scrollTo(
+              0,
+              terminalScrollRef.current.scrollHeight,
+            ),
+          100,
+        );
       };
       window.visualViewport?.addEventListener("resize", onResize);
-      return () => window.visualViewport?.removeEventListener("resize", onResize);
+      return () =>
+        window.visualViewport?.removeEventListener("resize", onResize);
     }
   }, [showTerminal]);
 
   useEffect(() => {
-    terminalScrollRef.current?.scrollTo(0, terminalScrollRef.current.scrollHeight);
+    terminalScrollRef.current?.scrollTo(
+      0,
+      terminalScrollRef.current.scrollHeight,
+    );
   }, [terminalLines]);
 
   const handleTerminalSubmit = (e: React.FormEvent) => {
@@ -924,7 +1209,8 @@ export default function ArcadeRoomPage({
 
     // Save to history
     terminalHistoryRef.current.unshift(input);
-    if (terminalHistoryRef.current.length > 50) terminalHistoryRef.current.pop();
+    if (terminalHistoryRef.current.length > 50)
+      terminalHistoryRef.current.pop();
 
     if (input.toLowerCase() === "clear") {
       setTerminalLines([]);
@@ -938,7 +1224,8 @@ export default function ArcadeRoomPage({
     }
 
     const { lines, discovery } = executeCommand(input, {
-      githubLogin: playersRef.current.get(localIdRef.current)?.github_login ?? "anonymous",
+      githubLogin:
+        playersRef.current.get(localIdRef.current)?.github_login ?? "anonymous",
       userId: localIdRef.current,
       discoveries: discoveriesRef.current,
     });
@@ -961,7 +1248,10 @@ export default function ArcadeRoomPage({
 
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      const next = Math.min(terminalHistoryIdxRef.current + 1, history.length - 1);
+      const next = Math.min(
+        terminalHistoryIdxRef.current + 1,
+        history.length - 1,
+      );
       terminalHistoryIdxRef.current = next;
       setTerminalInput(history[next]);
     } else if (e.key === "ArrowDown") {
@@ -1013,7 +1303,12 @@ export default function ArcadeRoomPage({
         return;
       }
       if (showDialog) {
-        if (e.key === "Escape" || e.key === "e" || e.key === "E" || e.key === "Enter") {
+        if (
+          e.key === "Escape" ||
+          e.key === "e" ||
+          e.key === "E" ||
+          e.key === "Enter"
+        ) {
           setShowDialog(null);
         }
         return;
@@ -1038,12 +1333,25 @@ export default function ArcadeRoomPage({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, chatOpen, showAvatarModal, showDialog, showTerminal, showArcadeGame, elevatorPicker, handleInteract]);
+  }, [
+    router,
+    chatOpen,
+    showAvatarModal,
+    showDialog,
+    showTerminal,
+    showArcadeGame,
+    elevatorPicker,
+    handleInteract,
+  ]);
 
   return (
     <div
       className="fixed inset-0 z-50 bg-[#0a0a1a] flex flex-col items-center justify-center"
-      style={isMobile ? { touchAction: "none", overscrollBehavior: "none" } : undefined}
+      style={
+        isMobile
+          ? { touchAction: "none", overscrollBehavior: "none" }
+          : undefined
+      }
     >
       {/* Auth required screen */}
       {needsAuth && (
@@ -1061,14 +1369,18 @@ export default function ArcadeRoomPage({
                   const supabase = createBrowserSupabase();
                   await supabase.auth.signInWithOAuth({
                     provider: "github",
-                    options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}` },
+                    options: {
+                      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
+                    },
                   });
                 }}
                 className="cursor-pointer rounded-[4px] px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase transition-all hover:brightness-95"
                 style={{
-                  background: "linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)",
+                  background:
+                    "linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%)",
                   color: "#e8e4df",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
+                  boxShadow:
+                    "0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
                 }}
               >
                 Sign in with GitHub
@@ -1097,7 +1409,9 @@ export default function ArcadeRoomPage({
 
       {!loading && status === "reconnecting" && (
         <div className="absolute inset-0 z-[55] flex items-center justify-center bg-[#e8e4df]/80">
-          <p className="text-[10px] text-gray-500 tracking-widest uppercase">Reconnecting...</p>
+          <p className="text-[10px] text-gray-500 tracking-widest uppercase">
+            Reconnecting...
+          </p>
         </div>
       )}
 
@@ -1106,7 +1420,9 @@ export default function ArcadeRoomPage({
       {showAvatarModal && !loading && loadoutRef.current && (
         <AvatarEditor
           initialLoadout={loadoutRef.current}
-          playerName={playersRef.current.get(localIdRef.current)?.github_login ?? "Player"}
+          playerName={
+            playersRef.current.get(localIdRef.current)?.github_login ?? "Player"
+          }
           onClose={handleAvatarCancel}
           onSave={handleAvatarSave}
         />
@@ -1120,7 +1436,8 @@ export default function ArcadeRoomPage({
             className="w-[340px] rounded-[8px] overflow-hidden"
             style={{
               background: "linear-gradient(180deg, #e8e4df 0%, #d8d4cf 100%)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.5)",
+              boxShadow:
+                "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.5)",
             }}
           >
             {/* Header bar */}
@@ -1145,7 +1462,8 @@ export default function ArcadeRoomPage({
                 style={{
                   background: "linear-gradient(180deg, #c0b8ac, #b0a89c)",
                   color: "#5a5248",
-                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.15)",
+                  boxShadow:
+                    "inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.15)",
                 }}
               >
                 Acknowledged
@@ -1162,7 +1480,8 @@ export default function ArcadeRoomPage({
             className="w-[320px] rounded-[8px] overflow-hidden"
             style={{
               background: "linear-gradient(180deg, #e8e4df 0%, #d8d4cf 100%)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.5)",
+              boxShadow:
+                "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.5)",
             }}
           >
             <div className="px-4 py-2 border-b border-[#c0bbb5]">
@@ -1184,7 +1503,8 @@ export default function ArcadeRoomPage({
                   style={{
                     background: "linear-gradient(180deg, #c0b8ac, #b0a89c)",
                     color: "#5a5248",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.15)",
+                    boxShadow:
+                      "inset 0 1px 0 rgba(255,255,255,0.3), 0 1px 3px rgba(0,0,0,0.15)",
                   }}
                 >
                   {p.label ?? p.destination}
@@ -1227,23 +1547,44 @@ export default function ArcadeRoomPage({
               maxHeight: "100dvh",
               height: isMobile ? "100dvh" : undefined,
               background: "#0c0c0c",
-              boxShadow: isMobile ? "none" : "0 0 60px rgba(200, 160, 60, 0.06), 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(200,160,60,0.1)",
+              boxShadow: isMobile
+                ? "none"
+                : "0 0 60px rgba(200, 160, 60, 0.06), 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(200,160,60,0.1)",
               border: isMobile ? "none" : "1px solid rgba(200,160,60,0.12)",
             }}
           >
             {/* Terminal header */}
             <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-[#1a1a1a]">
-              <span className="text-[10px] tracking-[0.15em] uppercase font-bold" style={{ color: "#c8a03c", fontFamily: "'Courier New', monospace" }}>
+              <span
+                className="text-[10px] tracking-[0.15em] uppercase font-bold"
+                style={{
+                  color: "#c8a03c",
+                  fontFamily: "'Courier New', monospace",
+                }}
+              >
                 E.ARCADE TERMINAL v0.1.4
               </span>
               <button
-                onClick={() => { setShowTerminal(false); terminalOpenRef.current = false; sendStand(); }}
+                onClick={() => {
+                  setShowTerminal(false);
+                  terminalOpenRef.current = false;
+                  sendStand();
+                }}
                 className="text-[10px] cursor-pointer sm:hidden"
-                style={{ color: "#c8a03c", fontFamily: "'Courier New', monospace" }}
+                style={{
+                  color: "#c8a03c",
+                  fontFamily: "'Courier New', monospace",
+                }}
               >
                 [X]
               </button>
-              <span className="text-[10px] hidden sm:inline" style={{ color: "#665520", fontFamily: "'Courier New', monospace" }}>
+              <span
+                className="text-[10px] hidden sm:inline"
+                style={{
+                  color: "#665520",
+                  fontFamily: "'Courier New', monospace",
+                }}
+              >
                 ESC to close
               </span>
             </div>
@@ -1265,9 +1606,12 @@ export default function ArcadeRoomPage({
                 <div
                   key={i}
                   style={{
-                    color: line.type === "input" ? "#c8a03c"
-                      : line.type === "system" ? "#665520"
-                      : "#a09060",
+                    color:
+                      line.type === "input"
+                        ? "#c8a03c"
+                        : line.type === "system"
+                          ? "#665520"
+                          : "#a09060",
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
                   }}
@@ -1278,17 +1622,38 @@ export default function ArcadeRoomPage({
             </div>
 
             {/* Terminal input */}
-            <form onSubmit={handleTerminalSubmit} className="flex items-center px-3 sm:px-4 py-3 border-t border-[#1a1a1a]">
-              <span style={{ color: "#c8a03c", fontFamily: "'Courier New', monospace", fontSize: isMobile ? "13px" : "14px" }}>&gt;&nbsp;</span>
+            <form
+              onSubmit={handleTerminalSubmit}
+              className="flex items-center px-3 sm:px-4 py-3 border-t border-[#1a1a1a]"
+            >
+              <span
+                style={{
+                  color: "#c8a03c",
+                  fontFamily: "'Courier New', monospace",
+                  fontSize: isMobile ? "13px" : "14px",
+                }}
+              >
+                &gt;&nbsp;
+              </span>
               <input
                 ref={terminalInputRef}
                 type="text"
                 value={terminalInput}
                 onChange={(e) => setTerminalInput(e.target.value)}
                 onKeyDown={handleTerminalKeyDown}
-                onBlur={() => setTimeout(() => { if (terminalOpenRef.current) terminalInputRef.current?.focus(); }, 10)}
+                onBlur={() =>
+                  setTimeout(() => {
+                    if (terminalOpenRef.current)
+                      terminalInputRef.current?.focus();
+                  }, 10)
+                }
                 className="flex-1 bg-transparent border-none outline-none"
-                style={{ color: "#c8a03c", fontFamily: "'Courier New', monospace", fontSize: isMobile ? "16px" : "14px", caretColor: "#c8a03c" }}
+                style={{
+                  color: "#c8a03c",
+                  fontFamily: "'Courier New', monospace",
+                  fontSize: isMobile ? "16px" : "14px",
+                  caretColor: "#c8a03c",
+                }}
                 autoComplete="off"
                 spellCheck={false}
                 enterKeyHint="send"
@@ -1300,46 +1665,75 @@ export default function ArcadeRoomPage({
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)",
+              background:
+                "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)",
             }}
           />
         </div>
       )}
 
       {/* Game area — canvas stays in same DOM position always */}
-      <div className={isMobile ? "w-full h-full flex items-center justify-center" : "relative flex flex-col items-center justify-center"}>
+      <div
+        className={
+          isMobile
+            ? "w-full h-full flex items-center justify-center"
+            : "relative flex flex-col items-center justify-center"
+        }
+      >
         <div
           className={`relative flex flex-col ${isMobile ? "" : "rounded-[12px]"}`}
-          style={isMobile ? undefined : {
-            background: "linear-gradient(180deg, #d8d0c4 0%, #c8c0b4 40%, #b8b0a4 100%)",
-            boxShadow: "0 6px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.4)",
-          }}
+          style={
+            isMobile
+              ? undefined
+              : {
+                  background:
+                    "linear-gradient(180deg, #d8d0c4 0%, #c8c0b4 40%, #b8b0a4 100%)",
+                  boxShadow:
+                    "0 6px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.4)",
+                }
+          }
         >
           {/* Top bezel - desktop only */}
           {!isMobile && (
             <div className="flex items-center justify-center px-6 py-2">
-              <span className="text-[11px] text-[#a09888] tracking-[0.2em] uppercase font-medium">E.Arcade</span>
+              <span className="text-[11px] text-[#a09888] tracking-[0.2em] uppercase font-medium">
+                E.Arcade
+              </span>
             </div>
           )}
 
           {/* Screen */}
           <div className={isMobile ? "" : "mx-4 relative"}>
             <div
-              className={isMobile ? "relative" : "relative rounded-[3px] p-[3px]"}
-              style={isMobile ? undefined : {
-                background: "linear-gradient(180deg, #2a2a28 0%, #3a3a38 100%)",
-                boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
-              }}
+              className={
+                isMobile ? "relative" : "relative rounded-[3px] p-[3px]"
+              }
+              style={
+                isMobile
+                  ? undefined
+                  : {
+                      background:
+                        "linear-gradient(180deg, #2a2a28 0%, #3a3a38 100%)",
+                      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)",
+                    }
+              }
             >
-              <div className={`relative overflow-hidden ${isMobile ? "" : "rounded-[1px]"}`}>
-                <canvas ref={canvasRef} className="block" style={isMobile ? { touchAction: "none" } : undefined} />
+              <div
+                className={`relative overflow-hidden ${isMobile ? "" : "rounded-[1px]"}`}
+              >
+                <canvas
+                  ref={canvasRef}
+                  className="block"
+                  style={isMobile ? { touchAction: "none" } : undefined}
+                />
 
                 {/* Scanlines - desktop only */}
                 {!isMobile && (
                   <div
                     className="pointer-events-none absolute inset-0"
                     style={{
-                      background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px)",
+                      background:
+                        "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px)",
                     }}
                   />
                 )}
@@ -1349,7 +1743,8 @@ export default function ArcadeRoomPage({
                   <div
                     className="pointer-events-none absolute inset-0"
                     style={{
-                      background: "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%)",
+                      background:
+                        "linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%)",
                       boxShadow: "inset 0 0 30px rgba(0,0,0,0.08)",
                     }}
                   />
@@ -1368,7 +1763,10 @@ export default function ArcadeRoomPage({
                       setShowMessage("Map saved!");
                       setTimeout(() => setShowMessage(null), 2000);
                     }}
-                    onExit={() => { setEditorMode(false); editorModeRef.current = false; }}
+                    onExit={() => {
+                      setEditorMode(false);
+                      editorModeRef.current = false;
+                    }}
                   />
                 )}
                 {/* eslint-enable react-hooks/refs */}
@@ -1377,45 +1775,71 @@ export default function ArcadeRoomPage({
                 {!loading && chatLog.length > 0 && !(isMobile && chatOpen) && (
                   <div
                     className="absolute z-[51]"
-                    style={isMobile
-                      ? { bottom: 8, left: 8, right: 8 }
-                      : { bottom: 8, left: 8, maxWidth: 280 }
+                    style={
+                      isMobile
+                        ? { bottom: 8, left: 8, right: 8 }
+                        : { bottom: 8, left: 8, maxWidth: 280 }
                     }
                   >
                     {chatLogOpen ? (
                       <div
                         className="rounded-lg overflow-hidden"
-                        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+                        style={{
+                          background: "rgba(0,0,0,0.7)",
+                          backdropFilter: "blur(4px)",
+                        }}
                       >
                         {/* Header */}
                         <button
-                          onClick={() => { setChatLogOpen(false); chatLogOpenRef.current = false; setChatUnread(0); }}
+                          onClick={() => {
+                            setChatLogOpen(false);
+                            chatLogOpenRef.current = false;
+                            setChatUnread(0);
+                          }}
                           className="cursor-pointer w-full flex items-center justify-between px-3 py-1.5 hover:bg-white/5 transition-colors"
                         >
-                          <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Chat</span>
+                          <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">
+                            Chat
+                          </span>
                           <span className="text-[10px] text-white/30">▾</span>
                         </button>
                         {/* Messages */}
                         <div
                           className="overflow-y-auto px-3 pb-2 flex flex-col gap-0.5 scrollbar-thin"
                           style={{ maxHeight: isMobile ? 120 : 160 }}
-                          ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
+                          ref={(el) => {
+                            if (el) el.scrollTop = el.scrollHeight;
+                          }}
                         >
                           {chatLog.map((entry, i) => (
-                            <div key={i} className="text-[11px] leading-[16px] break-words">
-                              <span className="text-[#7eb8ff] font-medium">{entry.username}</span>
-                              <span className="text-white/70"> {entry.text}</span>
+                            <div
+                              key={i}
+                              className="text-[11px] leading-[16px] break-words"
+                            >
+                              <span className="text-[#7eb8ff] font-medium">
+                                {entry.username}
+                              </span>
+                              <span className="text-white/70">
+                                {" "}
+                                {entry.text}
+                              </span>
                             </div>
                           ))}
                         </div>
                       </div>
                     ) : (
                       <button
-                        onClick={() => { setChatLogOpen(true); chatLogOpenRef.current = true; setChatUnread(0); }}
+                        onClick={() => {
+                          setChatLogOpen(true);
+                          chatLogOpenRef.current = true;
+                          setChatUnread(0);
+                        }}
                         className="cursor-pointer flex items-center gap-1.5 rounded-md px-2.5 py-1 hover:bg-white/10 transition-colors"
                         style={{ background: "rgba(0,0,0,0.5)" }}
                       >
-                        <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">Chat</span>
+                        <span className="text-[10px] text-white/50 font-medium tracking-wide uppercase">
+                          Chat
+                        </span>
                         {chatUnread > 0 && (
                           <span
                             className="text-[9px] text-white font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1"
@@ -1437,7 +1861,10 @@ export default function ArcadeRoomPage({
           {!isMobile && (
             <div className="px-5 py-2.5 h-[42px] flex items-center">
               {chatOpen ? (
-                <form onSubmit={handleChatSubmit} className="flex items-center gap-2 w-full">
+                <form
+                  onSubmit={handleChatSubmit}
+                  className="flex items-center gap-2 w-full"
+                >
                   <input
                     ref={chatInputRef}
                     type="text"
@@ -1450,7 +1877,9 @@ export default function ArcadeRoomPage({
                     style={{ boxShadow: "inset 0 2px 4px rgba(0,0,0,0.15)" }}
                   />
                   <span className="text-[10px] text-[#8a8278]">
-                    <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">ESC</kbd>
+                    <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                      ESC
+                    </kbd>
                   </span>
                 </form>
               ) : (
@@ -1474,7 +1903,10 @@ export default function ArcadeRoomPage({
                       <>
                         <span className="text-[#c0bbb5]">|</span>
                         <button
-                          onClick={() => { setEditorMode(true); editorModeRef.current = true; }}
+                          onClick={() => {
+                            setEditorMode(true);
+                            editorModeRef.current = true;
+                          }}
                           className="cursor-pointer text-[11px] text-[#c08040] hover:text-[#e0a060] transition-colors font-medium"
                           title="Edit room layout"
                         >
@@ -1486,30 +1918,57 @@ export default function ArcadeRoomPage({
 
                   <div className="flex items-center gap-3 text-[10px] text-[#8a8278]">
                     {showMessage ? (
-                      <span className="text-[#706860] font-medium">{showMessage}</span>
+                      <span className="text-[#706860] font-medium">
+                        {showMessage}
+                      </span>
                     ) : nearSeat && !sitting ? (
                       <span className="text-[#5a8a5a] font-medium">
-                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">E</kbd> sit
+                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                          E
+                        </kbd>{" "}
+                        sit
                       </span>
                     ) : sitting ? (
                       <span className="text-[#5a8a5a] font-medium">
-                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">E</kbd> stand
+                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                          E
+                        </kbd>{" "}
+                        stand
                       </span>
                     ) : nearInteractable === "elevator" ? (
                       <span className="text-[#5a8a5a] font-medium">
-                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">E</kbd> elevator
+                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                          E
+                        </kbd>{" "}
+                        elevator
                       </span>
                     ) : nearInteractable === "arcade_machine" ? (
                       <span className="text-[#5a8a5a] font-medium">
-                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">E</kbd> play
+                        <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                          E
+                        </kbd>{" "}
+                        play
                       </span>
                     ) : null}
-                    <span><kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">WASD</kbd> move</span>
-                    <span><kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">Enter</kbd> chat</span>
+                    <span>
+                      <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                        WASD
+                      </kbd>{" "}
+                      move
+                    </span>
+                    <span>
+                      <kbd className="bg-[#b8b0a4] px-1 rounded text-[9px] border border-[#a8a094]">
+                        Enter
+                      </kbd>{" "}
+                      chat
+                    </span>
                   </div>
 
                   <span className="text-[11px] text-[#706860]">
-                    <span className="inline-block h-2 w-2 rounded-full bg-[#4a8a4a] mr-1 align-middle" style={{ boxShadow: "0 0 4px rgba(74,138,74,0.4)" }} />
+                    <span
+                      className="inline-block h-2 w-2 rounded-full bg-[#4a8a4a] mr-1 align-middle"
+                      style={{ boxShadow: "0 0 4px rgba(74,138,74,0.4)" }}
+                    />
                     {playerCount} online
                   </span>
                 </div>
@@ -1522,7 +1981,13 @@ export default function ArcadeRoomPage({
       {/* Mobile floating UI */}
       {isMobile && !loading && (
         <>
-          <div className="absolute z-[52] flex items-center gap-1.5" style={{ top: "max(8px, env(safe-area-inset-top, 8px))", left: "8px" }}>
+          <div
+            className="absolute z-[52] flex items-center gap-1.5"
+            style={{
+              top: "max(8px, env(safe-area-inset-top, 8px))",
+              left: "8px",
+            }}
+          >
             <button
               onClick={() => router.push("/")}
               className="cursor-pointer text-white/60 active:text-white/90 rounded-md px-2 py-1 text-[10px] font-medium transition-colors"
@@ -1539,7 +2004,13 @@ export default function ArcadeRoomPage({
             </button>
           </div>
 
-          <div className="absolute z-[52]" style={{ top: "max(8px, env(safe-area-inset-top, 8px))", right: "8px" }}>
+          <div
+            className="absolute z-[52]"
+            style={{
+              top: "max(8px, env(safe-area-inset-top, 8px))",
+              right: "8px",
+            }}
+          >
             <span
               className="text-white/50 rounded-md px-2 py-1 text-[10px] font-medium inline-flex items-center gap-1"
               style={{ background: "rgba(0,0,0,0.25)" }}
@@ -1553,7 +2024,10 @@ export default function ArcadeRoomPage({
 
       {/* Mobile chat input */}
       {isMobile && chatOpen && (
-        <div className="absolute left-0 right-0 z-[52]" style={{ bottom: "max(8px, env(safe-area-inset-bottom, 8px))" }}>
+        <div
+          className="absolute left-0 right-0 z-[52]"
+          style={{ bottom: "max(8px, env(safe-area-inset-bottom, 8px))" }}
+        >
           <form onSubmit={handleChatSubmit} className="flex gap-1.5 mx-3">
             <input
               ref={chatInputRef}
@@ -1565,7 +2039,10 @@ export default function ArcadeRoomPage({
               autoFocus
               className="flex-1 text-white text-[13px] rounded-lg px-3 py-2 border border-white/15
                 placeholder:text-white/30 focus:outline-none focus:border-white/30"
-              style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)" }}
+              style={{
+                background: "rgba(0,0,0,0.5)",
+                backdropFilter: "blur(8px)",
+              }}
             />
             <button
               type="submit"
@@ -1576,7 +2053,10 @@ export default function ArcadeRoomPage({
             </button>
             <button
               type="button"
-              onClick={() => { setChatOpen(false); chatInputRef.current?.blur(); }}
+              onClick={() => {
+                setChatOpen(false);
+                chatInputRef.current?.blur();
+              }}
               className="cursor-pointer text-white/40 active:text-white/70 rounded-lg px-2 py-2 text-[12px]"
               style={{ background: "rgba(0,0,0,0.35)" }}
             >
