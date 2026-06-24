@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability */
-import { useRef, useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useRef, useEffect, useState, useMemo, lazy, Suspense, useCallback } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
 import * as THREE from "three";
@@ -41,7 +41,9 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import TrafficSystem from "./TrafficSystem";
-
+import ViewportTracker from "./ViewportTracker";
+import { useSpatialCulling } from "@/hooks/useSpatialCulling";
+import type { Viewport2D } from "@/lib/spatialGrid";
 // ─── Theme Definitions ───────────────────────────────────────
 
 export const THEME_NAMES = [
@@ -2247,36 +2249,16 @@ export default function CityCanvas({
     return posList;
   }, []);
 
-  const initialBuildings = useMemo(() => {
-    if (buildings.length <= 150) return buildings;
-    const sorted = [...buildings].sort((a, b) => {
-      const distA = a.position[0] ** 2 + a.position[2] ** 2;
-      const distB = b.position[0] ** 2 + b.position[2] ** 2;
-      return distA - distB;
-    });
-    return sorted.slice(0, 150);
-  }, [buildings]);
 
-  const [visibleBuildings, setVisibleBuildings] = useState<CityBuilding[]>(initialBuildings);
+const [viewport, setViewport] = useState<Viewport2D>({
+  minX: -1500, minZ: -1500, maxX: 1500, maxZ: 1500,
+});
 
-  useEffect(() => {
-    setVisibleBuildings(initialBuildings);
-  }, [initialBuildings]);
+const handleViewportChange = useCallback((vp: Viewport2D) => {
+  setViewport(vp);
+}, []);
 
-  useEffect(() => {
-    if (visibleBuildings.length >= buildings.length) return;
-
-    const timer = setTimeout(() => {
-      setVisibleBuildings((prev) => {
-        const prevLogins = new Set(prev.map(b => b.login.toLowerCase()));
-        const remaining = buildings.filter(b => !prevLogins.has(b.login.toLowerCase()));
-        const nextBatch = remaining.slice(0, 250);
-        return [...prev, ...nextBatch];
-      });
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [visibleBuildings.length, buildings]);
+const visibleBuildings = useSpatialCulling(buildings, viewport, 400);
   return (
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
@@ -2329,6 +2311,7 @@ export default function CityCanvas({
     >
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
+<ViewportTracker onViewportChange={handleViewportChange} intervalMs={100} />
       <AtmosphereCycleManager
         theme={t}
         themeIndex={themeIndex}
