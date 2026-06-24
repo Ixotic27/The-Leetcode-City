@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import type { AdStats, AdsFilters, SortKey, SortDir, AdForm } from "./types";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import type { AdStats, AdsFilters, AdForm } from "./types";
 import { getAdStatus, getStatusOrder, generateSlug } from "./helpers";
 
 interface UseAdsDataOptions {
@@ -29,8 +29,8 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
       const data = await res.json();
       setAds(data.ads ?? []);
       setHasFetched(true);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

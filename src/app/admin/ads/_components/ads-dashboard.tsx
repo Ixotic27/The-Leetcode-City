@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { AdStats, ConfirmState, ModalState } from "../_lib/types";
 import { useAdsUrlState } from "../_lib/use-ads-url-state";
 import { useAdsData } from "../_lib/use-ads-data";
