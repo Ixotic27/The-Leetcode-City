@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parseMaxStreak } from "@/lib/leetcode";
+import crypto from "crypto";
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * Cron: LC Profile Refresh
@@ -245,11 +251,13 @@ async function discoverAndInsertNewUsers(
  */
 export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
