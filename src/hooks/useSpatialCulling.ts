@@ -1,8 +1,8 @@
-
+ 
 import { useMemo, useRef } from "react";
 import { SpatialGrid, type Viewport2D } from "@/lib/spatialGrid";
 import type { CityBuilding } from "@/lib/github";
-
+ 
 /**
  * Builds a spatial grid from allBuildings (rebuilt only when buildings change),
  * then returns only buildings visible inside the current camera viewport.
@@ -14,19 +14,22 @@ import type { CityBuilding } from "@/lib/github";
 export function useSpatialCulling(
   allBuildings: CityBuilding[],
   viewport: Viewport2D,
-  padding = 400
+  padding = 800
 ): CityBuilding[] {
   const gridRef = useRef<SpatialGrid | null>(null);
-
+ 
+  // Rebuild grid only when the buildings array changes
   const grid = useMemo(() => {
     const g = new SpatialGrid(600);
     for (const b of allBuildings) g.insert(b);
     gridRef.current = g;
     return g;
   }, [allBuildings]);
-
+ 
+  // Query is cheap — runs on every viewport change
   return useMemo(
     () => grid.query(viewport, padding),
     [grid, viewport, padding]
   );
 }
+ 

@@ -1,58 +1,53 @@
-export interface BuildingData {
-  id: string;
-  x: number;        // world-space X position
-  y: number;        // world-space Y position (or Z if isometric)
-  [key: string]: unknown;
-}
 
-export interface Viewport {
+import type { CityBuilding } from "@/lib/github";
+ 
+export interface Viewport2D {
   minX: number;
-  minY: number;
+  minZ: number;
   maxX: number;
-  maxY: number;
+  maxZ: number;
 }
-
+ 
 /**
- * Uniform spatial grid for O(1) average-case building lookup.
- * cellSize should roughly match the average spacing between buildings.
+ * Uniform spatial grid for fast XZ-plane building queries.
+ * Uses position[0] (X) and position[2] (Z) matching CityBuilding layout.
  */
-export class SpatialGrid<T extends BuildingData> {
-  private cells = new Map<string, T[]>();
-  private cellSize: number;
-
-  constructor(cellSize = 500) {
+export class SpatialGrid {
+  private cells = new Map<string, CityBuilding[]>();
+  private readonly cellSize: number;
+ 
+  constructor(cellSize = 600) {
     this.cellSize = cellSize;
   }
-
-  private cellKey(cx: number, cy: number): string {
-    return `${cx}|${cy}`;
+ 
+  private key(cx: number, cz: number): string {
+    return `${cx}|${cz}`;
   }
-
-  insert(item: T): void {
-    const cx = Math.floor(item.x / this.cellSize);
-    const cy = Math.floor(item.y / this.cellSize);
-    const key = this.cellKey(cx, cy);
-    if (!this.cells.has(key)) this.cells.set(key, []);
-    this.cells.get(key)!.push(item);
+ 
+  insert(b: CityBuilding): void {
+    const cx = Math.floor(b.position[0] / this.cellSize);
+    const cz = Math.floor(b.position[2] / this.cellSize);
+    const k = this.key(cx, cz);
+    if (!this.cells.has(k)) this.cells.set(k, []);
+    this.cells.get(k)!.push(b);
   }
-
-  /** Returns all items whose cell overlaps the given viewport (with optional padding). */
-  query(viewport: Viewport, padding = 0): T[] {
-    const minCX = Math.floor((viewport.minX - padding) / this.cellSize);
-    const minCY = Math.floor((viewport.minY - padding) / this.cellSize);
-    const maxCX = Math.floor((viewport.maxX + padding) / this.cellSize);
-    const maxCY = Math.floor((viewport.maxY + padding) / this.cellSize);
-
-    const results: T[] = [];
+ 
+  query(vp: Viewport2D, padding = 400): CityBuilding[] {
+    const minCX = Math.floor((vp.minX - padding) / this.cellSize);
+    const minCZ = Math.floor((vp.minZ - padding) / this.cellSize);
+    const maxCX = Math.floor((vp.maxX + padding) / this.cellSize);
+    const maxCZ = Math.floor((vp.maxZ + padding) / this.cellSize);
+ 
+    const out: CityBuilding[] = [];
     for (let cx = minCX; cx <= maxCX; cx++) {
-      for (let cy = minCY; cy <= maxCY; cy++) {
-        const cell = this.cells.get(this.cellKey(cx, cy));
-        if (cell) results.push(...cell);
+      for (let cz = minCZ; cz <= maxCZ; cz++) {
+        const cell = this.cells.get(this.key(cx, cz));
+        if (cell) out.push(...cell);
       }
     }
-    return results;
+    return out;
   }
-
+ 
   clear(): void {
     this.cells.clear();
   }

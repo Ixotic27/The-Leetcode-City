@@ -2251,14 +2251,14 @@ export default function CityCanvas({
 
 
 const [viewport, setViewport] = useState<Viewport2D>({
-  minX: -1500, minZ: -1500, maxX: 1500, maxZ: 1500,
+  minX: 2500, minZ: 2500, maxX: 1500, maxZ: 2500,
 });
 
 const handleViewportChange = useCallback((vp: Viewport2D) => {
   setViewport(vp);
 }, []);
 
-const visibleBuildings = useSpatialCulling(buildings, viewport, 400);
+const visibleBuildings = useSpatialCulling(buildings, viewport, 800);
   return (
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
@@ -2311,7 +2311,7 @@ const visibleBuildings = useSpatialCulling(buildings, viewport, 400);
     >
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
-<ViewportTracker onViewportChange={handleViewportChange} intervalMs={100} />
+      <ViewportTracker onViewportChange={handleViewportChange} intervalMs={200} />
       <AtmosphereCycleManager
         theme={t}
         themeIndex={themeIndex}
