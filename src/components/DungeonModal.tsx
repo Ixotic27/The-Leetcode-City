@@ -5,9 +5,9 @@ interface DungeonModalProps { onClose: () => void; }
 interface DailyProblem { title: string; difficulty: string; titleSlug: string; }
 
 const BOSS_MAP: Record<string, { name: string; emoji: string; color: string }> = {
-  Easy: { name: "Goblin", emoji: "👺", color: "#4ade80" },
-  Medium: { name: "Orc", emoji: "👹", color: "#fb923c" },
-  Hard: { name: "Dragon", emoji: "🐉", color: "#ef4444" },
+  Easy:   { name: "Goblin", emoji: "👺", color: "#4ade80" },
+  Medium: { name: "Orc",    emoji: "👹", color: "#fb923c" },
+  Hard:   { name: "Dragon", emoji: "🐉", color: "#ef4444" },
 };
 
 export default function DungeonModal({ onClose }: DungeonModalProps) {
@@ -48,78 +48,66 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
     <div
       role="dialog"
       aria-modal="true"
-      style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85"
       onClick={onClose}
     >
       <div
         aria-labelledby="dungeon-modal-title"
-        style={{
-          backgroundColor: "#0a0a0a",
-          border: "2px solid #ef4444",
-          outline: "2px solid #7f1d1d",
-          padding: "2rem",
-          maxWidth: "420px",
-          width: "90%",
-          textAlign: "center",
-          fontFamily: "'Silkscreen', monospace",
-          color: "white",
-          imageRendering: "pixelated",
-        }}
+        className="relative w-[90%] max-w-[420px] border-[2px] border-red-500/60 bg-bg-raised p-8 text-center font-silkscreen text-cream [image-rendering:pixelated]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="dungeon-modal-title" style={{ color: "#ef4444", fontSize: "1rem", marginBottom: "0.5rem", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+        {/* Title */}
+        <h2
+          id="dungeon-modal-title"
+          className="text-[13px] uppercase tracking-[0.1em] text-red-400"
+        >
           ⚔ DAILY CODING DUNGEON
         </h2>
-        <div style={{ borderTop: "1px solid #7f1d1d", margin: "0.75rem 0" }} />
 
-        {loading && <p style={{ color: "#94a3b8", fontSize: "0.75rem" }}>SUMMONING BOSS...</p>}
-        {error && <p style={{ color: "#ef4444", fontSize: "0.75rem" }}>DUNGEON UNAVAILABLE</p>}
+        <div className="my-3 border-t border-red-500/30" />
 
+        {/* Loading / Error states */}
+        {loading && (
+          <p className="text-[11px] text-muted">SUMMONING BOSS...</p>
+        )}
+        {error && (
+          <p className="text-[11px] text-red-400">DUNGEON UNAVAILABLE</p>
+        )}
+
+        {/* Problem content */}
         {problem && boss && (
           <div>
-            <div style={{ fontSize: "3rem", margin: "1rem 0" }}>{boss.emoji}</div>
-            <p style={{ color: "#64748b", fontSize: "0.65rem", marginBottom: "0.25rem", letterSpacing: "0.15em" }}>TODAY&apos;S BOSS</p>
-            <h3 style={{ color: boss.color, fontSize: "0.85rem", marginBottom: "0.25rem", letterSpacing: "0.1em" }}>
+            <div className="my-4 text-5xl">{boss.emoji}</div>
+
+            <p className="mb-1 text-[10px] tracking-[0.15em] text-muted">
+              TODAY&apos;S BOSS
+            </p>
+
+            <h3 className="mb-1 text-[13px] tracking-[0.1em]" style={{ color: boss.color }}>
               {boss.name.toUpperCase()} — {problem.difficulty.toUpperCase()}
             </h3>
-            <p style={{ color: "#e2e8f0", marginBottom: "1.5rem", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
+
+            <p className="mb-6 text-[11px] tracking-[0.05em] text-cream">
               {problem.title}
             </p>
+
             <a
               href={leetcodeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                backgroundColor: "#ef4444",
-                color: "white",
-                padding: "0.6rem 1.25rem",
-                textDecoration: "none",
-                fontWeight: "bold",
-                display: "inline-block",
-                fontSize: "0.75rem",
-                letterSpacing: "0.1em",
-                border: "2px solid #fca5a5",
-                fontFamily: "'Silkscreen', monospace",
-              }}
+              className="inline-block border-[2px] border-red-300/60 bg-red-500 px-5 py-2.5 text-[11px] font-bold tracking-[0.1em] text-white no-underline transition-opacity hover:opacity-90"
             >
               ⚔ FIGHT BOSS
             </a>
           </div>
         )}
 
-        <div style={{ borderTop: "1px solid #7f1d1d", margin: "1rem 0 0.5rem" }} />
+        <div className="mb-2 mt-4 border-t border-red-500/30" />
+
+        {/* Close button */}
         <button
           onClick={onClose}
-          style={{
-            background: "transparent",
-            border: "1px solid #374151",
-            color: "#64748b",
-            padding: "0.4rem 1rem",
-            cursor: "pointer",
-            fontFamily: "'Silkscreen', monospace",
-            fontSize: "0.65rem",
-            letterSpacing: "0.1em",
-          }}
+          className="btn-press border border-border bg-transparent px-4 py-1.5 text-[10px] tracking-[0.1em] text-muted transition-colors hover:border-border-light hover:text-cream"
         >
           [ RETREAT ]
         </button>
