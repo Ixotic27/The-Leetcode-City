@@ -2482,7 +2482,7 @@ export default function CityCanvas({
              themeAccent={t.building.accent}
              themeWindowLit={t.building.windowLit}
              themeFace={t.building.face}
-             position={landmarkPositions[7]}
+             position={[373, 0, -75]}
           />
           
           <Suspense fallback={null}>
