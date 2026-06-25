@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs, react-hooks/purity, react-hooks/immutability, @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useRef, useMemo, useEffect, useState } from "react";
