@@ -6290,23 +6290,50 @@ function HomeContent() {
       {/* ─── Daily mission progress toasts (top-center, always visible) ─── */}
       {dailyToasts.length > 0 && (
         <div className="pointer-events-none fixed left-1/2 top-4 z-[60] flex -translate-x-1/2 flex-col items-center gap-1.5">
-          {dailyToasts.map((t) => (
-            <div
-              key={t.id}
-              className="pointer-events-none border-[2px] border-border bg-bg-raised/95 px-4 py-2 text-[11px] backdrop-blur-sm"
-              style={{
-                animation:
-                  "toastDrop 0.3s ease-out, toastOut 0.4s ease-in 2s forwards",
-                borderColor: t.done ? theme.accent : undefined,
-              }}
-            >
-              <span style={{ color: theme.accent }}>
-                {t.done ? "\u2713" : "\u2606"}
-              </span>{" "}
-              {t.title}
-              {t.done ? " \u2014 Complete!" : ""}
-            </div>
-          ))}
+         {dailyToasts.map((t) => (
+  <div
+    key={t.id}
+    className="pointer-events-none border-[2px] border-border bg-bg-raised/95 px-4 py-2 text-[11px] backdrop-blur-sm"
+    style={{
+      animation:
+        "toastDrop 0.3s ease-out, toastOut 0.4s ease-in 2s forwards",
+      borderColor: t.done ? theme.accent : undefined,
+    }}
+  >
+    {t.reward ? (
+      <>
+        <div
+          className="font-semibold"
+          style={{ color: theme.accent }}
+        >
+          🎉 Daily Rewards Claimed!
+        </div>
+
+        <div className="mt-1 text-[10px] text-cream">
+          +{t.reward.xp} XP
+        </div>
+
+        <div className="text-[10px] text-cream">
+          +{t.reward.points} Shop Points
+        </div>
+
+        {t.reward.freeze && (
+          <div className="text-[10px] text-cyan-300">
+            ❄️ Streak Freeze Earned!
+          </div>
+        )}
+      </>
+    ) : (
+      <>
+        <span style={{ color: theme.accent }}>
+          {t.done ? "✓" : "☆"}
+        </span>{" "}
+        {t.title}
+        {t.done ? " — Complete!" : ""}
+          </>
+            )}
+          </div>
+        ))}
           <style jsx>{`
             @keyframes toastDrop {
               from {
