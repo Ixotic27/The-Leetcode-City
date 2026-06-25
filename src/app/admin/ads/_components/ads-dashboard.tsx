@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type { AdStats, ConfirmState, ModalState } from "../_lib/types";
 import { useAdsUrlState } from "../_lib/use-ads-url-state";
 import { useAdsData } from "../_lib/use-ads-data";
@@ -12,6 +12,7 @@ import { SummaryCards } from "./summary-cards";
 import { AdFilters } from "./ad-filters";
 import { BatchToolbar } from "./batch-toolbar";
 import { AdTable } from "./ad-table";
+import Link from "next/link";
 
 export function AdsDashboard() {
   const { filters, setFilter, handleSort } = useAdsUrlState();
@@ -26,6 +27,7 @@ export function AdsDashboard() {
     totals,
     activeCount,
     paidCount,
+    hasFetched,
     fetchStats,
     handleToggle,
     handleDelete,
@@ -35,9 +37,7 @@ export function AdsDashboard() {
   } = useAdsData({ filters, onToast: addToast });
 
   // Track whether we've ever received data (for skeleton vs stale)
-  const hasDataRef = useRef(false);
-  if (ads.length > 0) hasDataRef.current = true;
-  const isFirstLoad = !hasDataRef.current;
+  const isFirstLoad = loading && !hasFetched;
 
   // UI state
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -159,12 +159,12 @@ export function AdsDashboard() {
             </p>
           </div>
           <div className="flex gap-3">
-            <a
+            <Link
               href="/"
               className="border border-border px-4 py-2 text-xs text-muted transition-colors hover:border-border-light hover:text-cream"
             >
               BACK
-            </a>
+            </Link>
             <button
               onClick={openCreateModal}
               className="cursor-pointer border-2 border-lime px-4 py-2 text-xs text-lime transition-colors hover:bg-lime/10"
