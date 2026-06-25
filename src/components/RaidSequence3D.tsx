@@ -1673,9 +1673,9 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           );
           camera.position.lerp(_camTarget, 0.12);
 
-          _tempVec.lerpVectors(point, lookTarget, 0.5);
-          _tempVec.y = 2;
-          camera.lookAt(_tempVec);
+          const targetVec = _tempVec.clone();
+targetVec.y = 2;
+camera.lookAt(targetVec);
 
           if (fp >= 1.0) onPhaseComplete("flight");
         } else {
@@ -2366,14 +2366,16 @@ interface ExplosionParticlesProps {
 
 function ExplosionParticles({ position, isDrone = false, onComplete }: ExplosionParticlesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const startTime = useRef(Date.now());
-  const particleCount = 15;
+  const startTime = useRef<number | null>(null);
+if (startTime.current === null) {
+  startTime.current = Date.now();
+}
 
   // Generate directions and scales for our 3D debris cubes
   const [velocities, matrices] = useMemo(() => {
     const vels: THREE.Vector3[] = [];
     const mats: THREE.Matrix4[] = [];
-    
+
     for (let i = 0; i < particleCount; i++) {
       // Burst outward uniformly
       const theta = Math.random() * Math.PI * 2;
@@ -2392,8 +2394,9 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
       matrix.makeScale(scale, scale, scale);
       mats.push(matrix);
     }
+
     return [vels, mats];
-  }, []);
+  }, [particleCount]); // Encapsulated cleanly so randomizers only run once on init
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -2409,12 +2412,14 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
       const pos = new THREE.Vector3().setFromMatrixPosition(mat);
       pos.addScaledVector(vel, delta);
       
-      // Apply deceleration/gravity slightly
-      vel.y -= 5 * delta;
+     // 1. Clone the velocity vector instead of mutating the original reference directly
+const updatedVel = vel.clone();
+updatedVel.y -= 5 * delta;
 
-      // Rebuild the matrix with new position
-      mat.setPosition(pos);
-      meshRef.current.setMatrixAt(i, mat);
+// 2. Rebuild the matrix using the updated position calculation
+// (Make sure to update your position calculation line to use `updatedVel` instead of `vel`)
+pos.addScaledVector(updatedVel, delta); 
+mat.setPosition(pos);
     }
     meshRef.current.instanceMatrix.needsUpdate = true;
 

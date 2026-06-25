@@ -1,5 +1,5 @@
  
-import { useMemo, useRef } from "react";
+import { useMemo, useRef,useEffect } from "react";
 import { SpatialGrid, type Viewport2D } from "@/lib/spatialGrid";
 import type { CityBuilding } from "@/lib/github";
  
@@ -19,12 +19,15 @@ export function useSpatialCulling(
   const gridRef = useRef<SpatialGrid | null>(null);
  
   // Rebuild grid only when the buildings array changes
-  const grid = useMemo(() => {
+ const grid = useMemo(() => {
     const g = new SpatialGrid(600);
     for (const b of allBuildings) g.insert(b);
-    gridRef.current = g;
     return g;
-  }, [allBuildings]);
+  }, [allBuildings]); // <--- useMemo cleanly ends here
+
+  useEffect(() => {
+    gridRef.current = grid;
+  }, [grid]);
  
   // Query is cheap — runs on every viewport change
   return useMemo(

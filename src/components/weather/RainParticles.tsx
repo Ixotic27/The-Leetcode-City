@@ -22,17 +22,15 @@ export function RainParticles({
   const pointsRef = useRef<THREE.Points>(null);
   const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
    
-  const positions = useMemo(() => {
-    const pos = new Float32Array(dropCount * 3);
-
-    for (let i = 0; i < dropCount; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * areaSize;
-      pos[i * 3 + 1] = Math.random() * height;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * areaSize;
-    }
-
-    return pos;
-  }, [dropCount, areaSize, height]);
+ const particlePositions = useMemo(() => {
+  const pos = new Float32Array(dropCount * 3);
+  for (let i = 0; i < dropCount; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * areaSize;
+    pos[i * 3 + 1] = Math.random() * height;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * areaSize;
+  }
+  return pos;
+}, [dropCount, areaSize, height]);
 
   const uniforms = useMemo(
     () => ({
