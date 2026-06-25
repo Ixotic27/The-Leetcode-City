@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
   // ─── Dailies reminders: users with 1-2 missions done but not 3 ────
   const dailiesResults = { reminded: 0, skipped: 0 };
-  const dailiesOffset = 0;
+  let dailiesOffset = 0;
 
   while (true) {
     // Find devs who have some (but not all) missions done today
@@ -128,8 +128,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Only one pass needed since we fetched all progress rows at once
-    break;
+    if (batch.length < batchSize) break;
+    dailiesOffset += batchSize;
   }
 
   return NextResponse.json({ ok: true, ...results, dailies: dailiesResults });
