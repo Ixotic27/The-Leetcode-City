@@ -73,8 +73,8 @@ export async function GET() {
       owned: owned.has(item.id),
     }));
     balance = walletRes.data?.balance ?? 0;
-  } catch (err: any) {
-    console.error("[shop] Failed to load shop data:", err.message);
+  } catch (err: unknown) {
+    console.error("[shop] Failed to load shop data:", err instanceof Error ? err.message : err);
     return NextResponse.json(
       { error: "Failed to load shop data" },
       { status: 500 },
