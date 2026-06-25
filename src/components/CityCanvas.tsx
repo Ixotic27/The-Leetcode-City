@@ -623,7 +623,6 @@ function AirplaneFlight({
   const transitionFrom = useRef(new THREE.Vector3());
   const transitionTo = useRef(new THREE.Vector3());
   const transitionLookFrom = useRef(new THREE.Vector3());
-  const transitionLookTo = useRef(new THREE.Vector3());
   const wasJustUnpaused = useRef(false);
 
   const hudTimer = useRef(0);
@@ -969,7 +968,7 @@ const _cPos = new THREE.Vector3();
 const _cQuat = new THREE.Quaternion();
 const _cEuler = new THREE.Euler();
 
-function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
+function SkyCollectibles({ playerPosRef,  onCollect, cityRadius }: {
   playerPosRef: React.MutableRefObject<THREE.Vector3>;
   accentColor: string;
   onCollect: (score: number, earned: number, combo: number, collected: number, maxCombo: number) => void;
@@ -1188,14 +1187,14 @@ function SkyCollectibles({ playerPosRef, accentColor, onCollect, cityRadius }: {
 
 // ─── Camera Reset (after exiting fly mode) ──────────────────
 
-function CameraReset() {
-  const { camera } = useThree();
-  useEffect(() => {
-    camera.position.set(400, 450, 600);
-    camera.lookAt(0, 30, 0);
-  }, [camera]);
-  return null;
-}
+// function CameraReset() {
+//   const { camera } = useThree();
+//   useEffect(() => {
+//     camera.position.set(400, 450, 600);
+//     camera.lookAt(0, 30, 0);
+//   }, [camera]);
+//   return null;
+// }
 
 // ─── Ground ──────────────────────────────────────────────────
 
@@ -2302,7 +2301,7 @@ const visibleBuildings = useSpatialCulling(buildings, viewport, 800);
           requestAnimationFrame(runner);
         } catch (e) {
           // Best-effort only — surface warnings to make issues diagnosable in dev
-          // eslint-disable-next-line no-console
+           
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}

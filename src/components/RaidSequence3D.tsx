@@ -796,7 +796,7 @@ function SmokeTrail({ vehicleRef, active }: {
   if (!active) {
     particles.current = [];
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [active]);
 
   useFrame((_, delta) => {
@@ -1779,7 +1779,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           let vehicleX = topX;
           let vehicleY = topY + ORBIT_HEIGHT;
           let vehicleZ = topZ;
-          let lookAtTarget = defenderTopPos.clone();
+          const lookAtTarget = defenderTopPos.clone();
           let extraRotateZ = 0;
           let extraRotateX = 0;
 
