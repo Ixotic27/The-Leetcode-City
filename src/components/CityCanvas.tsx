@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability, @typescript-eslint/no-unused-vars */
 import { useRef, useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -2225,6 +2225,7 @@ export default function CityCanvas({
   const { isRaining } = useWeather();
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
+  const [kbBuildingIndex, setKbBuildingIndex] = useState(0);
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
@@ -2286,9 +2287,34 @@ export default function CityCanvas({
 
     return () => clearTimeout(timer);
   }, [visibleBuildings.length, buildings]);
+  const handleCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!buildings.length) return;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      setKbBuildingIndex((prev) => {
+        const next = e.shiftKey
+          ? (prev - 1 + buildings.length) % buildings.length
+          : (prev + 1) % buildings.length;
+        const building = buildings[next];
+        if (building && onBuildingClick) onBuildingClick(building);
+        return next;
+      });
+    } else if (e.key === "Enter") {
+      const building = buildings[kbBuildingIndex];
+      if (building && onBuildingClick) onBuildingClick(building);
+    } else if (e.key === "Escape") {
+      if (onClearFocus) onClearFocus();
+    }
+  };
+
   return (
     <>
     <Canvas
+      role="application"
+      aria-label="3D LeetCode City — use Tab to cycle through buildings, Enter to open a profile, Escape to close"
+      tabIndex={0}
+      onKeyDown={handleCanvasKeyDown}
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
       dpr={[1, 2]}
       onCreated={({ gl, scene }) => {
@@ -2330,7 +2356,6 @@ export default function CityCanvas({
           requestAnimationFrame(runner);
         } catch (e) {
           // Best-effort only — surface warnings to make issues diagnosable in dev
-          // eslint-disable-next-line no-console
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
       }}
@@ -2519,6 +2544,15 @@ export default function CityCanvas({
       )}
 
     </Canvas>
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {focusedBuilding
+        ? `Viewing ${focusedBuilding}'s building`
+        : "No building selected"}
+    </div>
     {dungeonOpen && (
       <DungeonModal onClose={() => setDungeonOpen(false)} />
     )}
