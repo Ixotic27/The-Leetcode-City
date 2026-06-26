@@ -13,6 +13,8 @@ const ROUTE_LIMITS: [string, number, number][] = [
   ["/api/customizations", 10, WINDOW_1_MIN_MS],
   ["/api/sky-ads/track", 30, WINDOW_1_MIN_MS],
   ["/api/sky-ads", 30, WINDOW_1_MIN_MS],
+  ["/api/arena/submit", 10, WINDOW_1_MIN_MS],
+  ["/api/arena", 30, WINDOW_1_MIN_MS],
   ["/api/raid", 15, WINDOW_1_MIN_MS],
   ["/api/checkin", 10, WINDOW_1_MIN_MS],
   ["/api/heartbeats", 60, WINDOW_1_MIN_MS],
