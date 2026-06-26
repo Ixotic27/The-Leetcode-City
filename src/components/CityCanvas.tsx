@@ -2567,6 +2567,9 @@ export default function CityCanvas({
     {dungeonOpen && (
       <DungeonModal onClose={() => setDungeonOpen(false)} />
     )}
+
   </>
   );
 }
+
+
