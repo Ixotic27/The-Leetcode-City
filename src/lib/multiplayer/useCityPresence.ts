@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createBrowserSupabase } from "@/lib/supabase";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, Session } from "@supabase/supabase-js";
 import type {
   CityPlayer,
   ChatMessage,
@@ -183,7 +183,7 @@ export function useCityPresence(
 
     // 3. Persist to Supabase Database
     const supabase = createBrowserSupabase();
-    supabase.auth.getSession().then((res) => {
+    supabase.auth.getSession().then((res: { data: { session: Session | null } }) => {
       const session = res.data.session;
       if (session) {
         supabase
@@ -218,10 +218,10 @@ export function useCityPresence(
         .eq("room_id", ROOM_ID)
         .order("created_at", { ascending: true })
         .limit(30)
-        .then((res) => {
+        .then((res: { data: { username: string; text: string; created_at: string }[] | null }) => {
           const data = res.data;
           if (data) {
-            const history = data.map((msg: { username: string; text: string; created_at: string }, i: number) => ({
+            const history = data.map((msg, i: number) => ({
               id: `history-${i}-${msg.created_at}`,
               login: msg.username,
               text: msg.text,
