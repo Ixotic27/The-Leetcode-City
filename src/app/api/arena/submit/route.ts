@@ -166,6 +166,21 @@ export async function POST(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
 
+  // Validate problem_id exists in arena_problems before doing any reward work
+  const { data: problemRow, error: problemLookupError } = await sb
+    .from("arena_problems")
+    .select("id")
+    .eq("id", problem_id)
+    .maybeSingle();
+
+  if (problemLookupError) {
+    return NextResponse.json({ error: "Failed to validate problem" }, { status: 500 });
+  }
+
+  if (!problemRow) {
+    return NextResponse.json({ error: "Invalid problem_id" }, { status: 400 });
+  }
+
   // 1. Fetch challenge details (if linked) and developer timezone in parallel
   let challenge: any = null;
   let difficulty = "medium";
