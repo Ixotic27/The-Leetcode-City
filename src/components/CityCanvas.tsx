@@ -2127,6 +2127,7 @@ interface Props {
   onEArcadeClick?: () => void;
   onSkyTempleClick?: () => void;
   onCodeForgeClick?: () => void;
+  onSolanaClick?: () => void;
   multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
@@ -2193,6 +2194,7 @@ export default function CityCanvas({
   onEArcadeClick,
   onSkyTempleClick,
   onCodeForgeClick,
+  onSolanaClick,
   rabbitSighting,
   onRabbitCaught,
   rabbitCinematic,
@@ -2439,7 +2441,7 @@ export default function CityCanvas({
             />
             <SkyTemple onClick={onSkyTempleClick ?? (() => { })} position={landmarkPositions[9]} />
             <FirecrawlBuilding onClick={() => { }} position={landmarkPositions[10]} />
-            <SolanaBuilding onClick={() => { }} position={landmarkPositions[11]} />
+            <SolanaBuilding onClick={onSolanaClick ?? (() => {})} position={landmarkPositions[11]} />
             <CyberStation onClick={() => { }} position={landmarkPositions[12]} />
             <DeveloperPalace onClick={() => { }} position={landmarkPositions[13]} />
           </Suspense>

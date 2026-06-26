@@ -119,6 +119,7 @@ const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ss
 const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
 const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), { ssr: false });
 const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), { ssr: false });
+const SolanaModal = dynamic(() => import("@/components/SolanaModal"), { ssr: false });
 const RabbitCompletion = dynamic(() => import("@/components/RabbitCompletion"), { ssr: false });
 const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), { ssr: false });
 const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
@@ -782,6 +783,7 @@ function HomeContent() {
   const [eArcadeOpen, setEArcadeOpen] = useState(false);
   const [zenCodingOpen, setZenCodingOpen] = useState(false);
   const [codeForgeOpen, setCodeForgeOpen] = useState(false);
+  const [solanaOpen, setSolanaOpen] = useState(false);
   const [arcadeOnline, setArcadeOnline] = useState<number>(0);
   const [districtChooserOpen, setDistrictChooserOpen] = useState(false);
   const [rabbitCinematic, setRabbitCinematic] = useState(false);
@@ -3084,6 +3086,9 @@ function HomeContent() {
         onCodeForgeClick={() => {
           setCodeForgeOpen(true);
           setSelectedBuilding(null);
+        }}
+        onSolanaClick={() => {
+          setSolanaOpen(true);
         }}
         rabbitSighting={rabbitSighting}
         onRabbitCaught={onRabbitCaught}
@@ -6831,7 +6836,9 @@ function HomeContent() {
       {codeForgeOpen && (
         <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
       )}
-
+      {solanaOpen && (
+        <SolanaModal onClose={() => setSolanaOpen(false)} />
+      )}
       {/* Rabbit Quest Cinematic Overlay */}
       {rabbitCinematic && (
         <div className="fixed inset-0 z-50 pointer-events-none">
