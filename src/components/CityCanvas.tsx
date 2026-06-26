@@ -18,6 +18,7 @@ import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
 import LeaderboardHolograms from "./LeaderboardHolograms";
 import EArcadeLandmark from "./EArcadeLandmark";
+import DailyQuestionsLandmark from "./DailyQuestionsLandmark";
 import DungeonModal from "./DungeonModal";
 
 const Colosseum = lazy(() => import("./Colosseum"));
@@ -2434,6 +2435,14 @@ export default function CityCanvas({
             themeFace={t.building.face}
             position={landmarkPositions[7]}
           />
+          <DailyQuestionsLandmark
+             onClick={() => {}}
+             themeAccent={t.building.accent}
+             themeWindowLit={t.building.windowLit}
+             themeFace={t.building.face}
+             position={[373, 0, -75]}
+          />
+          
           <Suspense fallback={null}>
             <ChronoTower
               onClick={handleChronoTowerClick}
