@@ -44,6 +44,7 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import TrafficSystem from "./TrafficSystem";
+import style from "styled-jsx/style";
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -2229,6 +2230,7 @@ export default function CityCanvas({
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
   const timeRef = useRef(0.0);
+  const savedCameraPosition = useRef(new THREE.Vector3());
 
   const cityRadius = useMemo(() => {
     let max = 200;
@@ -2268,7 +2270,8 @@ export default function CityCanvas({
 
   const [visibleBuildings, setVisibleBuildings] = useState<CityBuilding[]>(initialBuildings);
   const [isRecovering, setIsRecovering] = useState(false);
-  const savedCameraPosition = useRef(new THREE.Vector3());
+  const [canvasKey, setCanvasKey] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     setVisibleBuildings(initialBuildings);
   }, [initialBuildings]);
@@ -2287,6 +2290,7 @@ export default function CityCanvas({
 
     return () => clearTimeout(timer);
   }, [visibleBuildings.length, buildings]);
+
   return (
     <>
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -2310,8 +2314,8 @@ export default function CityCanvas({
             camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
             dpr={[1, 2]}
             onCreated={({ gl, scene, camera }) => {
-             try {
-               const canvas = gl.domElement;
+              try {
+                const canvas = gl.domElement;
 
                 const handleContextLost = (event: Event) => {
                   event.preventDefault();
@@ -2320,67 +2324,31 @@ export default function CityCanvas({
                   setIsRecovering(true);
 
                   if (gl.setAnimationLoop) gl.setAnimationLoop(null);
-                  };
-                
-                  const handleContextRestored = (_event: Event) => {
-                    console.warn("✅ WebGL context restored");
-                      camera.position.copy(savedCameraPosition.current);
-                      camera.updateProjectionMatrix();
-                      if (scene) {
-                        gl.compile(scene, camera);
-                      }
+                };
 
-                      setIsRecovering(false);
-                  };
-
-              canvas.addEventListener("webglcontextlost", handleContextLost as any);
-              canvas.addEventListener("webglcontextrestored", handleContextRestored as any);
-          // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
-              if (gl.domElement?.style) {
-                  gl.domElement.style.imageRendering = "pixelated";
-              }
-            
-          // Best-effort: enforce nearest filtering on any textures already present.
-          // Also schedule a few post-mount traversal passes to catch textures created
-          // by React components after initial renderer creation.
-          const applyNearest = () => {
-            scene.traverse((obj: any) => {
-              if (obj.isMesh && obj.material) {
-                const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-                for (const m of mats) {
-                  const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
-                  for (const tx of maps) {
-                    if (tx && tx instanceof THREE.Texture) {
-                      tx.magFilter = THREE.NearestFilter;
-                      tx.minFilter = THREE.NearestFilter;
-                      tx.generateMipmaps = false;
-                      tx.needsUpdate = true;
-                    }
+                const handleContextRestored = (_event: Event) => {
+                  console.warn("✅ WebGL context restored");
+                  camera.position.copy(savedCameraPosition.current);
+                  camera.updateProjectionMatrix();
+                  if (scene) {
+                    gl.compile(scene, camera);
                   }
-                }
-              }
-            });
-          };
 
-          // Initial pass
-          applyNearest();
-          // Run a few frames afterwards to catch late-mounted textures
-          let runs = 0;
-          const runner = () => {
-            try { applyNearest(); } catch (err) { /* keep going */ }
-            runs += 1;
-            if (runs < 6) requestAnimationFrame(runner);
-          };
-          requestAnimationFrame(runner);
-        } catch (e) {
-          // Best-effort only — surface warnings to make issues diagnosable in dev
-          // eslint-disable-next-line no-console
-          console.warn("CityCanvas: failed to enforce nearest filtering", e);
-        }
-      }}
-      gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
-      style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
-    >
+                  setIsRecovering(false);
+                };
+
+                canvas.addEventListener("webglcontextlost", handleContextLost as any);
+                canvas.addEventListener("webglcontextrestored", handleContextRestored as any);
+                // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
+                if (gl.domElement?.style) {
+                  gl.domElement.style.imageRendering = "pixelated";
+                }
+              } catch (error) {
+                console.error("Error initializing WebGL canvas", error);
+              }
+            }}
+            style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
+          >
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
       <AtmosphereCycleManager
@@ -2567,9 +2535,9 @@ export default function CityCanvas({
     {dungeonOpen && (
       <DungeonModal onClose={() => setDungeonOpen(false)} />
     )}
-
   </>
   );
 }
+
 
 
