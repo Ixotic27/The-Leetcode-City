@@ -2262,7 +2262,8 @@ export default function CityCanvas({
   }, [buildings]);
 
   const [visibleBuildings, setVisibleBuildings] = useState<CityBuilding[]>(initialBuildings);
-
+  const [isRecovering, setIsRecovering] = useState(false);
+  const savedCameraPosition = useRef(new THREE.Vector3());
   useEffect(() => {
     setVisibleBuildings(initialBuildings);
   }, [initialBuildings]);
@@ -2282,14 +2283,58 @@ export default function CityCanvas({
     return () => clearTimeout(timer);
   }, [visibleBuildings.length, buildings]);
   return (
+  <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    {isRecovering && (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(0,0,0,0.5)",
+          color: "#fff",
+          zIndex: 1000,
+        }}
+      >
+        Recovering 3D View...
+      </div>
+    )}
+
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
       dpr={[1, 2]}
-      onCreated={({ gl, scene }) => {
-        try {
-          // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
-          if (gl.domElement && gl.domElement.style) gl.domElement.style.imageRendering = "pixelated";
+      onCreated={({ gl, scene, camera }) => {
+         try {
+           const canvas = gl.domElement;
 
+            const handleContextLost = (event: Event) => {
+              event.preventDefault();
+              console.warn("⚠️ WebGL context lost");
+              savedCameraPosition.current.copy(camera.position);
+              setIsRecovering(true);
+
+              if (gl.setAnimationLoop) gl.setAnimationLoop(null);
+              };
+             
+              const handleContextRestored = (_event: Event) => {
+                console.warn("✅ WebGL context restored");
+                  camera.position.copy(savedCameraPosition.current);
+                  camera.updateProjectionMatrix();
+                  if (scene) {
+                    gl.compile(scene, camera);
+                  }
+
+                  setIsRecovering(false);
+              };
+
+              canvas.addEventListener("webglcontextlost", handleContextLost as any);
+              canvas.addEventListener("webglcontextrestored", handleContextRestored as any);
+          // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
+              if (gl.domElement?.style) {
+                  gl.domElement.style.imageRendering = "pixelated";
+              }
+            
           // Best-effort: enforce nearest filtering on any textures already present.
           // Also schedule a few post-mount traversal passes to catch textures created
           // by React components after initial renderer creation.
@@ -2505,5 +2550,6 @@ export default function CityCanvas({
       )}
 
     </Canvas>
+      </div>
   );
 }
