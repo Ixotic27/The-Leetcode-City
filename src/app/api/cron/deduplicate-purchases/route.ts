@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
   }
 
-  const groups = new Map<string, any[]>();
+  const groups = new Map<string, Array<{ provider_tx_id: string; id: string; status: string; created_at: string }>>();
   for (const row of duplicates) {
     const key = row.provider_tx_id;
     if (!groups.has(key)) groups.set(key, []);
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   for (const [, rows] of groups) {
     if (rows.length < 2) continue;
 
-    const [keep, ...dups] = rows;
+    const [, ...dups] = rows;
 
     for (const dup of dups) {
       if (dup.status === "completed" || dup.status === "delivered") {
