@@ -43,8 +43,12 @@ export function useCityPresence(
   const pendingMove = useRef<{ cx: number; cy: number; cz: number; focusedBuilding: string | null } | null>(null);
   
   const loginRef = useRef(login);
-  loginRef.current = login;
   const avatarUrlRef = useRef(avatarUrl);
+  // Sync latest prop values into refs so async callbacks always read the current value
+  // without needing to be re-created on every render.
+  // eslint-disable-next-line react-hooks/refs
+  loginRef.current = login;
+  // eslint-disable-next-line react-hooks/refs
   avatarUrlRef.current = avatarUrl;
 
   const localUserIdRef = useRef<string>("");
@@ -58,17 +62,17 @@ export function useCityPresence(
     const newMap = new Map<string, CityPlayer>();
 
     for (const [key, presences] of Object.entries(presenceState)) {
-      const p = presences[0] as any;
+      const p = presences[0] as Record<string, unknown>;
       if (p && p.login) {
         newMap.set(key, {
           id: key,
-          login: p.login,
-          avatar_url: p.avatar_url,
-          cx: p.cx ?? 0,
-          cy: p.cy ?? 200,
-          cz: p.cz ?? 400,
-          focusedBuilding: p.focusedBuilding ?? null,
-          joinedAt: p.joinedAt ?? Date.now(),
+          login: p.login as string,
+          avatar_url: p.avatar_url as string,
+          cx: (p.cx as number) ?? 0,
+          cy: (p.cy as number) ?? 200,
+          cz: (p.cz as number) ?? 400,
+          focusedBuilding: (p.focusedBuilding as string | null) ?? null,
+          joinedAt: (p.joinedAt as number) ?? Date.now(),
         });
       }
     }
@@ -179,7 +183,7 @@ export function useCityPresence(
 
     // 3. Persist to Supabase Database
     const supabase = createBrowserSupabase();
-    supabase.auth.getSession().then((res: any) => {
+    supabase.auth.getSession().then((res) => {
       const session = res.data.session;
       if (session) {
         supabase
@@ -214,10 +218,10 @@ export function useCityPresence(
         .eq("room_id", ROOM_ID)
         .order("created_at", { ascending: true })
         .limit(30)
-        .then((res: any) => {
+        .then((res) => {
           const data = res.data;
           if (data) {
-            const history = data.map((msg: any, i: number) => ({
+            const history = data.map((msg: { username: string; text: string; created_at: string }, i: number) => ({
               id: `history-${i}-${msg.created_at}`,
               login: msg.username,
               text: msg.text,
@@ -241,34 +245,31 @@ export function useCityPresence(
         .on("presence", { event: "sync" }, () => {
           syncPlayers();
         })
-        .on("presence", { event: "join" }, ({ key }: { key: string }) => {
+        .on("presence", { event: "join" }, () => {
           syncPlayers();
         })
         .on("presence", { event: "leave" }, ({ key }: { key: string }) => {
           recentMovements.current.delete(key);
           syncPlayers();
         })
-        .on("broadcast", { event: "move" }, ({ payload }: { payload: any }) => {
+        .on("broadcast", { event: "move" }, ({ payload }: { payload: { id: string; cx: number; cy: number; cz: number; focusedBuilding: string | null } }) => {
           const { id, cx, cy, cz, focusedBuilding } = payload;
           if (id === localUserIdRef.current) return; // skip self
 
           recentMovements.current.set(id, { cx, cy, cz, focusedBuilding });
 
-          setPlayers((prev) => {
-            const existing = prev.get(id);
-            if (!existing) return prev;
-            const next = new Map(prev);
-            next.set(id, {
-              ...existing,
-              cx,
-              cy,
-              cz,
-              focusedBuilding,
-            });
-            return next;
-          });
+          const player = playersRef.current.get(id);
+          if (player) {
+            // Mutate the CityPlayer object in-place — avoids { ...existing } spread allocation
+            player.cx = cx;
+            player.cy = cy;
+            player.cz = cz;
+            player.focusedBuilding = focusedBuilding;
+            // Signal React with a new Map wrapper; entries are shared, no per-entry copy needed
+            setPlayers(new Map(playersRef.current));
+          }
         })
-        .on("broadcast", { event: "chat" }, ({ payload }: { payload: any }) => {
+        .on("broadcast", { event: "chat" }, ({ payload }: { payload: { id: string; login: string; text: string; ts: number } }) => {
           const { id, login: msgLogin, text, ts } = payload;
           if (id === localUserIdRef.current) return; // skip self
 
