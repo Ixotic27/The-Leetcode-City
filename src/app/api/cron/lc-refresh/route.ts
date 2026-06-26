@@ -1,6 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parseMaxStreak } from "@/lib/leetcode";
+import crypto from "crypto";
+
+interface SubmissionStat {
+  difficulty: string;
+  count: number;
+}
+
+interface LCTagCount {
+  tagName: string;
+  problemsSolved: number;
+}
+
+interface LCFullProfileData {
+  matchedUser?: {
+    username: string;
+    profile?: {
+      realName?: string; userAvatar?: string; ranking?: number; reputation?: number;
+      countryName?: string; school?: string; company?: string; websites?: string[];
+      linkedinUrl?: string; twitterUrl?: string; githubUrl?: string; aboutMe?: string;
+    };
+    badges?: Array<{ id: string; name: string; icon: string; displayName: string }>;
+    submitStats?: {
+      acSubmissionNum: SubmissionStat[];
+      totalSubmissionNum: SubmissionStat[];
+    };
+    tagProblemCounts?: {
+      advanced: LCTagCount[]; intermediate: LCTagCount[]; fundamental: LCTagCount[];
+    };
+    userCalendar?: { streak: number; totalActiveDays: number };
+    maxStreak?: number;
+    [key: string]: unknown;
+  };
+  userContestRanking?: {
+    rating?: number; globalRanking?: number; attendedContestsCount?: number;
+    topPercentage?: number; badge?: { name: string };
+  };
+}
+
+interface RankingNode {
+  user: { username: string };
+}
+
+interface DBRow {
+  github_login: string;
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * Cron: LC Profile Refresh
@@ -29,7 +79,7 @@ function calendarAliases(): string {
     .join("");
 }
 
-async function fetchLCFullProfile(username: string): Promise<any> {
+async function fetchLCFullProfile(username: string): Promise<LCFullProfileData | null> {
   const query = `
     query($username: String!) {
       matchedUser(username: $username) {
@@ -76,15 +126,15 @@ async function fetchLCFullProfile(username: string): Promise<any> {
 async function upsertFullProfile(
   sb: ReturnType<typeof getSupabaseAdmin>,
   username: string,
-  data: any,
+  data: LCFullProfileData,
 ): Promise<boolean> {
   const user = data?.matchedUser;
   if (!user) return false;
 
   const acNums = user.submitStats?.acSubmissionNum ?? [];
   const totNums = user.submitStats?.totalSubmissionNum ?? [];
-  const getAC = (d: string) => acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
-  const getTot = (d: string) => totNums.find((x: any) => x.difficulty === d)?.count ?? 1;
+  const getAC = (d: string) => acNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 0;
+  const getTot = (d: string) => totNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 1;
 
   const totalSolved = getAC("All");
   const totalSub = getTot("All");
@@ -106,7 +156,7 @@ async function upsertFullProfile(
   let weeklyContributions = 0;
 
   for (const year of yearsToCheck) {
-    const calendarStr = user[`y${year}`]?.submissionCalendar;
+    const calendarStr = (user[`y${year}`] as { submissionCalendar?: string } | undefined)?.submissionCalendar;
     if (calendarStr) {
       try {
         const calendar = JSON.parse(calendarStr);
@@ -129,16 +179,16 @@ async function upsertFullProfile(
   for (const ch of username) hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
 
   const contestStats = data?.userContestRanking;
-  const badges: any[] = user.badges ?? [];
+  const badges = user.badges ?? [];
   const tagCounts = user.tagProblemCounts;
   const lc_tag_stats = [
     ...(tagCounts?.advanced ?? []),
     ...(tagCounts?.intermediate ?? []),
     ...(tagCounts?.fundamental ?? []),
   ]
-    .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+    .sort((a: LCTagCount, b: LCTagCount) => b.problemsSolved - a.problemsSolved)
     .slice(0, 20)
-    .map((t: any) => ({ name: t.tagName, solved: t.problemsSolved }));
+    .map((t: LCTagCount) => ({ name: t.tagName, solved: t.problemsSolved }));
 
   const { error } = await sb.from("developers").upsert(
     {
@@ -206,7 +256,7 @@ async function discoverAndInsertNewUsers(
     });
     const json = await res.json();
     const usernames: string[] = (json?.data?.globalRanking?.rankingNodes ?? [])
-      .map((n: any) => n.user.username.toLowerCase());
+      .map((n: RankingNode) => n.user.username.toLowerCase());
 
     if (usernames.length === 0) return 0;
 
@@ -216,7 +266,7 @@ async function discoverAndInsertNewUsers(
       .select("github_login")
       .in("github_login", usernames);
 
-    const existingSet = new Set((existing ?? []).map((d: any) => d.github_login));
+    const existingSet = new Set((existing ?? []).map((d: DBRow) => d.github_login));
     const newUsers = usernames.filter((u) => !existingSet.has(u));
 
     if (newUsers.length === 0) return 0;
@@ -245,11 +295,13 @@ async function discoverAndInsertNewUsers(
  */
 export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -274,7 +326,7 @@ export async function GET(request: NextRequest) {
     .order("fetched_at", { ascending: true })
     .limit(USERS_PER_RUN);
 
-  const claimedLogins = (claimed ?? []).map((d: any) => d.github_login);
+  const claimedLogins = (claimed ?? []).map((d: DBRow) => d.github_login);
   const remaining = USERS_PER_RUN - claimedLogins.length;
 
   const unclaimedLogins: string[] = [];
@@ -286,7 +338,7 @@ export async function GET(request: NextRequest) {
       .lt("fetched_at", staleUnclaimedCutoff)
       .order("fetched_at", { ascending: true })
       .limit(remaining);
-    unclaimedLogins.push(...(unclaimed ?? []).map((d: any) => d.github_login));
+    unclaimedLogins.push(...(unclaimed ?? []).map((d: DBRow) => d.github_login));
   }
 
   const logins = [...claimedLogins, ...unclaimedLogins];
