@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/flush-batches",
       "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-active-players",
-      "schedule": "* * * * *"
     }
   ]
 }
