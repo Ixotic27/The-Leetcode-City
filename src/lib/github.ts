@@ -161,7 +161,7 @@ const STREET_W = 12;     // street between blocks (within a district)
 const BLOCK_FOOTPRINT_X = BLOCK_SIZE * LOT_W + (BLOCK_SIZE - 1) * ALLEY_W; // 4*38 + 3*3 = 161
 const BLOCK_FOOTPRINT_Z = BLOCK_SIZE * LOT_D + (BLOCK_SIZE - 1) * ALLEY_W; // 4*32 + 3*3 = 137
 
-const RIVER_MARGIN = 8;      // Margin on each side of the river
+
 
 const MAX_BUILDING_HEIGHT = 600;
 const MIN_BUILDING_HEIGHT = 35;
@@ -303,19 +303,6 @@ function calcLitPercentageV2(dev: DeveloperRecord): number {
   return 0.05 + score * 0.90;
 }
 
-export interface CityRiver {
-  x: number;
-  width: number;
-  length: number;
-  centerZ: number;
-}
-
-export interface CityBridge {
-  position: [number, number, number];
-  width: number;
-  rotation: number; // radians around Y axis
-}
-
 export interface DistrictZone {
   id: string;
   name: string;
@@ -325,178 +312,7 @@ export interface DistrictZone {
   color: string;
 }
 
-const RIVER_WIDTH = 40;
 
-const CIRCULAR_CENTER_CLEARANCE = 700;
-const CIRCULAR_RING_SPACING = 72;
-const CIRCULAR_MIN_ARC_SPACING = 54;
-const CIRCULAR_EDGE_PADDING = 180;
-const CIRCULAR_MAX_JITTER = 0.18;
-
-export interface CircularCityPosition {
-  x: number;
-  z: number;
-  radius: number;
-  angle: number;
-  ring: number;
-  scale: number;
-}
-
-function circularRingCapacity(ring: number): number {
-  const radius = CIRCULAR_CENTER_CLEARANCE + ring * CIRCULAR_RING_SPACING;
-  const circumference = Math.max(1, Math.PI * 2 * radius);
-  return Math.max(8, Math.floor(circumference / CIRCULAR_MIN_ARC_SPACING));
-}
-
-export function getCircularCityRadius(buildingCount: number): number {
-  if (buildingCount <= 0) return CIRCULAR_CENTER_CLEARANCE + CIRCULAR_EDGE_PADDING;
-
-  let remaining = buildingCount;
-  let ring = 0;
-  while (remaining > circularRingCapacity(ring)) {
-    remaining -= circularRingCapacity(ring);
-    ring++;
-  }
-
-  return CIRCULAR_CENTER_CLEARANCE +
-    ring * CIRCULAR_RING_SPACING +
-    CIRCULAR_EDGE_PADDING;
-}
-
-export function getCircularCityPosition(
-  index: number,
-  buildingCount: number,
-  seedKey = "",
-): CircularCityPosition {
-  let ring = 0;
-  let slot = Math.max(0, index);
-  let capacity = circularRingCapacity(ring);
-
-  while (slot >= capacity) {
-    slot -= capacity;
-    ring++;
-    capacity = circularRingCapacity(ring);
-  }
-
-  const seed = hashStr(`${seedKey}:${index}:${ring}`);
-  const step = (Math.PI * 2) / capacity;
-  const ringOffset = seededRandom(ring * 4099 + 17) * Math.PI * 2;
-  const angleJitter = (seededRandom(seed + 11) - 0.5) * step * CIRCULAR_MAX_JITTER;
-  const radiusJitter = (seededRandom(seed + 29) - 0.5) *
-    CIRCULAR_RING_SPACING *
-    CIRCULAR_MAX_JITTER;
-  const radius = CIRCULAR_CENTER_CLEARANCE +
-    ring * CIRCULAR_RING_SPACING +
-    radiusJitter;
-  const angle = slot * step + ringOffset + angleJitter;
-  const expansionScale = Math.min(1, buildingCount / Math.max(1, capacity));
-  const outerScale = Math.max(0.72, 1 - ring * 0.025);
-  const scale = outerScale * (0.96 + expansionScale * 0.04);
-
-  return {
-    x: Math.cos(angle) * radius,
-    z: Math.sin(angle) * radius,
-    radius,
-    angle,
-    ring,
-    scale,
-  };
-}
-
-function applyCircularCityLayout(buildings: CityBuilding[]): number {
-  const cityRadius = getCircularCityRadius(buildings.length);
-
-  for (let i = 0; i < buildings.length; i++) {
-    const building = buildings[i];
-    const slot = getCircularCityPosition(i, buildings.length, building.login);
-    building.position = [Math.round(slot.x), 0, Math.round(slot.z)];
-    building.width = Math.max(10, Math.round(building.width * slot.scale));
-    building.depth = Math.max(9, Math.round(building.depth * slot.scale));
-    building.height = Math.max(
-      MIN_BUILDING_HEIGHT,
-      Math.round(building.height * (0.94 + slot.scale * 0.06)),
-    );
-
-    const floorH = 6;
-    building.floors = Math.max(3, Math.floor(building.height / floorH));
-    building.windowsPerFloor = Math.max(3, Math.floor(building.width / 5));
-    building.sideWindowsPerFloor = Math.max(3, Math.floor(building.depth / 5));
-  }
-
-  return cityRadius;
-}
-
-function rebuildCircularCityDecorations(
-  plazas: CityPlaza[],
-  decorations: CityDecoration[],
-  cityRadius: number,
-) {
-  plazas.length = 0;
-  decorations.length = 0;
-
-  plazas.push({
-    position: [0, 0, 0],
-    size: CIRCULAR_CENTER_CLEARANCE * 0.9,
-    variant: 0.5,
-  });
-
-  const ringCount = Math.max(
-    2,
-    Math.ceil((cityRadius - CIRCULAR_EDGE_PADDING) / CIRCULAR_RING_SPACING),
-  );
-
-  // Maximum radius for decorations — must stay well inside the visual platform
-  // The platform extends to cityRadius + 120 visually, but keep decorations
-  // comfortably inside so nothing floats near or over the edge
-  const maxDecoRadius = cityRadius - 40;
-
-  for (let ring = 1; ring <= ringCount; ring++) {
-    const radius = CIRCULAR_CENTER_CLEARANCE + ring * CIRCULAR_RING_SPACING;
-    // Skip this ring entirely if it's beyond the platform edge
-    if (radius > maxDecoRadius) continue;
-
-    const plazaCount = ring === 1 ? 4 : 6;
-    for (let i = 0; i < plazaCount; i++) {
-      const angle = (i / plazaCount) * Math.PI * 2 + ring * 0.31;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      plazas.push({
-        position: [Math.round(x), 0, Math.round(z)],
-        size: Math.max(48, 78 - ring * 3),
-        variant: seededRandom(ring * 1009 + i),
-      });
-    }
-
-    const markerCount = Math.max(12, Math.floor((Math.PI * 2 * radius) / 120));
-    for (let i = 0; i < markerCount; i++) {
-      const angle = (i / markerCount) * Math.PI * 2 + ring * 0.19;
-      const baseX = Math.cos(angle) * radius;
-      const baseZ = Math.sin(angle) * radius;
-      const tangent = angle + Math.PI / 2;
-      const variant = Math.floor(seededRandom(ring * 7919 + i) * 3);
-
-      decorations.push({
-        type: i % 3 === 0 ? 'streetLamp' : 'tree',
-        position: [Math.round(baseX), 0, Math.round(baseZ)],
-        rotation: tangent,
-        variant,
-      });
-
-      if (i % 5 === 0) {
-        decorations.push({
-          type: 'bench',
-          position: [
-            Math.round(Math.cos(angle) * (radius - 18)),
-            0,
-            Math.round(Math.sin(angle) * (radius - 18)),
-          ],
-          rotation: tangent,
-          variant: 0,
-        });
-      }
-    }
-  }
-}
 
 function precomputeComposites(
   devs: DeveloperRecord[],
@@ -574,8 +390,6 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
   buildings: CityBuilding[];
   plazas: CityPlaza[];
   decorations: CityDecoration[];
-  river: CityRiver;
-  bridges: CityBridge[];
   districtZones: DistrictZone[];
 } {
   const buildings: CityBuilding[] = [];
@@ -650,9 +464,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
   // ── 2. Place blocks on a GLOBAL axis-aligned grid ──
   // Downtown spiral at center, each district spiral at an offset.
   // occupiedCells prevents any overlap.
-  const BLOCK_STEP_Z = BLOCK_FOOTPRINT_Z + STREET_W; // 149
-  const RIVER_Z_THRESHOLD = BLOCK_STEP_Z / 2;
-  const RIVER_PUSH = RIVER_WIDTH + 2 * RIVER_MARGIN - STREET_W;
+
 
   // Distance (in grid cells) from center to district spiral origins
   const DISTRICT_GRID_RADIUS = 4;
@@ -844,7 +656,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
       const key = `${ogx},${ogz}`;
       occupiedCells.add(key);
       const [pcx, plazaZ] = gridToWorld(ogx, ogz);
-      const pcz = plazaZ > RIVER_Z_THRESHOLD ? plazaZ + RIVER_PUSH : plazaZ;
+      const pcz = plazaZ;
       plazas.push({
         position: [pcx, 0, pcz],
         size: Math.min(BLOCK_FOOTPRINT_X, BLOCK_FOOTPRINT_Z) * 0.8,
@@ -867,7 +679,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
       occupiedCells.add(key);
 
       let [blockCX, blockCZ] = gridToWorld(gx, gz);
-      if (blockCZ > RIVER_Z_THRESHOLD) blockCZ += RIVER_PUSH;
+
 
       const jitterSeed = globalBlockSeed * 10000;
       blockCX += (seededRandom(jitterSeed) - 0.5) * 6;
@@ -954,8 +766,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
     }
   }
 
-  const cityPlatformRadius = applyCircularCityLayout(buildings);
-  rebuildCircularCityDecorations(plazas, decorations, cityPlatformRadius);
+
 
   // ── District zones (computed from actual building positions) ──
   const dzMap: Record<string, CityBuilding[]> = {};
@@ -981,33 +792,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
     });
   }
 
-  // ── River ──
-  const riverCenterZ = cityPlatformRadius + RIVER_WIDTH;
-  let bMinX = 0, bMaxX = 0;
-  for (const b of buildings) {
-    if (b.position[0] < bMinX) bMinX = b.position[0];
-    if (b.position[0] > bMaxX) bMaxX = b.position[0];
-  }
-  const riverPadding = 80;
-  const riverXExtent = (bMaxX - bMinX) + riverPadding * 2;
-  const riverCenterX = (bMinX + bMaxX) / 2;
-  const river: CityRiver = {
-    x: riverCenterX - riverXExtent / 2,
-    width: riverXExtent,
-    length: RIVER_WIDTH,
-    centerZ: riverCenterZ,
-  };
-
-  // ── Bridges ──
-  const bridgeWidth = RIVER_WIDTH + 20;
-  const bridgeSpacing = riverXExtent / 4;
-  const bridges: CityBridge[] = [
-    { position: [riverCenterX, 0, riverCenterZ], width: bridgeWidth, rotation: Math.PI / 2 },
-    { position: [riverCenterX + bridgeSpacing, 0, riverCenterZ], width: bridgeWidth, rotation: Math.PI / 2 },
-    { position: [riverCenterX - bridgeSpacing, 0, riverCenterZ], width: bridgeWidth, rotation: Math.PI / 2 },
-  ];
-
-  return { buildings, plazas, decorations, river, bridges, districtZones };
+  return { buildings, plazas, decorations, districtZones };
 }
 
 // ─── Building Dimensions (reusable for shop preview) ────────

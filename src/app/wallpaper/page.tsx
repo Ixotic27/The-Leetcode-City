@@ -8,8 +8,6 @@ import {
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
-  type CityRiver,
-  type CityBridge,
 } from "@/lib/github";
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), { ssr: false });
@@ -33,8 +31,6 @@ function WallpaperInner() {
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
-  const [river, setRiver] = useState<CityRiver | null>(null);
-  const [bridges, setBridges] = useState<CityBridge[]>([]);
   const [ready, setReady] = useState(false);
 
   const fetchCity = useCallback(async () => {
@@ -85,8 +81,6 @@ function WallpaperInner() {
     setBuildings(layout.buildings);
     setPlazas(layout.plazas);
     setDecorations(layout.decorations);
-    setRiver(layout.river);
-    setBridges(layout.bridges);
     setReady(true);
   }, []);
 
@@ -101,8 +95,6 @@ function WallpaperInner() {
       buildings={buildings}
       plazas={plazas}
       decorations={decorations}
-      river={river}
-      bridges={bridges}
       flyMode={false}
       onExitFly={() => {}}
       themeIndex={themeIndex}

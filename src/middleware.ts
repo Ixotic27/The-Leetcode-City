@@ -135,18 +135,34 @@ export async function middleware(request: NextRequest) {
     );
 
     try {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      // Timeout auth validation to prevent slow Supabase responses from
+      // blocking the entire request (seen up to 28s in prod logs).
+      const authTimeout = 5_000; // 5 seconds
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), authTimeout);
 
-      if (error) {
-        console.error(
-          "Supabase authentication validation failed:",
-          error.message || error,
-        );
-      } else {
-        void user; // session refreshed; user object not needed here
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        clearTimeout(timer);
+
+        if (error) {
+          console.warn(
+            "Supabase authentication validation failed:",
+            error.message || error,
+          );
+        } else {
+          void user; // session refreshed; user object not needed here
+        }
+      } catch (innerError) {
+        clearTimeout(timer);
+        if (innerError instanceof DOMException && innerError.name === "AbortError") {
+          console.warn("Supabase auth.getUser() timed out after 5s — continuing without session refresh");
+        } else {
+          throw innerError; // re-throw non-timeout errors to outer catch
+        }
       }
     } catch (error) {
-      console.error(
+      console.warn(
         "Supabase authentication validation threw an error:",
         error instanceof Error ? error.message : error,
       );
