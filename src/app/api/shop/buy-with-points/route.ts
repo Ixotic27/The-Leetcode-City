@@ -28,6 +28,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
     }
 
+    // The idempotency key MUST be supplied by the client so that a retry of the
+    // *same* purchase (e.g. after a network timeout) reuses the same key. A
+    // server-generated key would be regenerated on every retry, defeating
+    // duplicate detection entirely.
+    const clientKey = (request.headers.get("Idempotency-Key") || body.idempotency_key || "").trim();
+    if (!clientKey || clientKey.length > 200 || !/^[A-Za-z0-9_-]+$/.test(clientKey)) {
+        return NextResponse.json({ error: "Missing or invalid Idempotency-Key" }, { status: 400 });
+    }
+
     const admin = getSupabaseAdmin();
 
     // 1. Fetch developer and item
@@ -92,9 +101,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // Use a stable per-request UUID so retries on network timeout don't create
-    // duplicate purchase records (Date.now() produced a new key on every retry).
-    const idempotencyKey = `points_${dev.id}_${item_id}_${crypto.randomUUID()}`;
+    // Namespace the client key per developer + item so it stays unique across
+    // unrelated purchases while remaining stable across retries of this one.
+    const idempotencyKey = `points_${dev.id}_${item_id}_${clientKey}`;
 
     // 4. INSERT purchase record in pending state before any money or item moves
     const { data: purchase, error: purchaseError } = await admin
@@ -112,6 +121,14 @@ export async function POST(request: Request) {
         .single();
 
     if (purchaseError) {
+        // A unique-violation (23505) means this exact key was already used — i.e.
+        // a retry of the same operation. Treat it as idempotent instead of an error.
+        if (purchaseError.code === "23505") {
+            return NextResponse.json(
+                { ok: true, points_remaining: deductedPoints, idempotent: true },
+                { status: 200 },
+            );
+        }
         return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
     }
 

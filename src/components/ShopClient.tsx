@@ -1276,10 +1276,20 @@ export default function ShopClient({
       setBuyingItem(itemId);
       setBuyingProvider("points");
       setError(null);
+      // Generate the idempotency key on the client so any retry of this same
+      // purchase (network timeout, fetch retry) reuses the identical key and the
+      // server can detect the duplicate instead of creating a second record.
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${itemId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       try {
         const res = await fetch("/api/shop/buy-with-points", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
           body: JSON.stringify({ item_id: itemId, dev_mode: devModeEnabled }),
         });
         const data = await res.json();
