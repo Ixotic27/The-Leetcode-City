@@ -45,17 +45,17 @@ async function run() {
         {
             title: "💡 Feature: Link CyberStation Landmark Click to the Multiplayer Arcade Room",
             body: `### Description\nCurrently, clicking on the newly added CyberStation landmark building in the city does nothing (empty click handler). We should link this futuristic station to the multiplayer arcade room to encourage player gatherings.\n\n### Proposed Solution\n1. Update the \`onClick\` prop for the \`<CyberStation>\` component in \`src/components/CityCanvas.tsx\` to redirect users to the multiplayer path \`/arcade\`.\n2. Add a dynamic label/tooltip on hover indicating "Enter Multiplayer Lounge".`,
-            labels: ["gssoc 26", "gssoc:approved", "good first issues", "level:beginner", "type:feature"]
+            labels: ["gssoc 26", "gssoc:approved", "good first issue", "level:beginner", "type:feature"]
         },
         {
             title: "💡 Feature: Link ChronoTower Landmark Click to Coding History & Milestones",
             body: `### Description\nThe ChronoTower landmark represents coding history and progress. Currently, it has an empty click handler. We should link this building to the player's milestone and achievements roadmap.\n\n### Proposed Solution\n1. Update the \`onClick\` prop for \`<ChronoTower>\` in \`CityCanvas.tsx\` to open the Codex achievements modal or redirect to \`/roadmap\`.\n2. Add a subtle rotating clock-hands animation on the tower apex using \`useFrame\` to visually represent time.`,
-            labels: ["gssoc 26", "gssoc:approved", "good first issues", "level:beginner", "type:feature", "needs-visual-proof"]
+            labels: ["gssoc 26", "gssoc:approved", "good first issue", "level:beginner", "type:feature", "needs-visual-proof"]
         },
         {
             title: "💡 Feature: Link SolanaBuilding click to Solana Wallet & Contract Showcase",
             body: `### Description\nThe SolanaBuilding landmark has no click functionality. It should connect Web3 developers with wallet integrations and transaction/contract showcases.\n\n### Proposed Solution\n1. Implement a modal popup triggered by clicking on the \`<SolanaBuilding>\` in the city.\n2. The modal should show a mock Phantom wallet connection and display list of deployed Solana program addresses or Web3 achievements linked to the developer's profile.`,
-            labels: ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:feature", "needs-visual-proof"]
+            labels: ["gssoc 26", "gssoc:approved", "good first issue", "level:intermediate", "type:feature", "needs-visual-proof"]
         }
     ];
 
