@@ -2295,6 +2295,19 @@ export default function CityCanvas({
         try {
           // Keep the canvas pixelated via CSS; don't override the Canvas `dpr` prop here
           if (gl.domElement && gl.domElement.style) gl.domElement.style.imageRendering = "pixelated";
+                // Pre-warm WebGL compilation pipelines to prevent frame drop latency spikes
+      if (gl && gl.compile) {
+               gl.compile(scene, scene);
+      }
+      
+      // Defer loader screen dismissal until the browser thread fully paints the first 3D city scene layout
+      requestAnimationFrame(() => {
+        // Checks for global loading store variables or parent ready dispatch triggers securely
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('webgl-first-frame-rendered'));
+        }
+      });
+
 
           // Best-effort: enforce nearest filtering on any textures already present.
           // Also schedule a few post-mount traversal passes to catch textures created
