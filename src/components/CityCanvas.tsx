@@ -8,7 +8,7 @@ import * as THREE from "three";
 import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
 import type { LiveSession } from "@/lib/useCodingPresence";
-import type { CityBuilding, CityPlaza, CityDecoration, CityRiver, CityBridge } from "@/lib/github";
+import type { CityBuilding, CityPlaza, CityDecoration } from "@/lib/github";
 import SkyAds from "./SkyAds";
 import BuildingAds from "./BuildingAds";
 import type { SkyAd } from "@/lib/skyAds";
@@ -38,12 +38,12 @@ import type { CityPlayer } from "@/lib/multiplayer/types";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
-import InfiniteWater from "./InfiniteWater";
+
 import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
-import TrafficSystem from "./TrafficSystem";
+
 
 // ─── Theme Definitions ───────────────────────────────────────
 
@@ -574,9 +574,6 @@ function AirplaneFlight({
   posRef,
   equippedRelicId,
   cityRadius,
-  onPromptNewWorldTravel,
-  hasTraveledToNewWorld,
-  onReturnToCity,
   initialPosition,
   initialYaw,
 }: {
@@ -590,9 +587,6 @@ function AirplaneFlight({
   posRef?: React.MutableRefObject<THREE.Vector3>;
   equippedRelicId?: string | null;
   cityRadius: number;
-  onPromptNewWorldTravel?: (x: number, y: number, z: number, yaw: number) => void;
-  hasTraveledToNewWorld?: boolean;
-  onReturnToCity?: () => void;
   initialPosition?: THREE.Vector3;
   initialYaw?: number;
 }) {
@@ -613,7 +607,6 @@ function AirplaneFlight({
   const bank = useRef(0);
   const pitch = useRef(0);
   const hasVisitedDocksThisSession = useRef(false);
-  const hasPromptedNewWorld = useRef(false);
 
   // Camera smoothing
   const camPos = useRef(new THREE.Vector3(0, 140, 450));
@@ -865,22 +858,7 @@ function AirplaneFlight({
       }
     }
 
-    if (equippedRelicId === "relic_new_world") {
-      const distXZ = Math.sqrt(pos.current.x * pos.current.x + pos.current.z * pos.current.z);
-      if (distXZ > cityRadius * 1.5) {
-        if (!hasTraveledToNewWorld && !hasPromptedNewWorld.current) {
-          hasPromptedNewWorld.current = true;
-          if (onPromptNewWorldTravel) {
-            onPromptNewWorldTravel(pos.current.x, pos.current.y, pos.current.z, yaw.current);
-          }
-        }
-      } else if (distXZ < cityRadius) {
-        hasPromptedNewWorld.current = false;
-        if (hasTraveledToNewWorld && onReturnToCity) {
-          onReturnToCity();
-        }
-      }
-    }
+
 
     const targetBank = -turnInput * MAX_BANK;
     bank.current += (targetBank - bank.current) * 5 * dt;
@@ -1771,228 +1749,6 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
   );
 }
 
-// ─── River ───────────────────────────────────────────────────
-
-function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterColor: string; waterEmissive: string }) {
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.opacity = 0.82 + Math.sin(clock.elapsedTime * 0.5) * 0.05;
-    }
-  });
-
-  return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[river.x + river.width / 2, 0.5, river.centerZ]}
-      renderOrder={1}
-    >
-      <planeGeometry args={[river.width, river.length]} />
-      <meshBasicMaterial
-        ref={matRef}
-        color={waterEmissive}
-        transparent
-        opacity={0.82}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
-// ─── River Text (watermark) ──────────────────────────────────
-
-function RiverText({ river }: { river: CityRiver }) {
-  const [fontReady, setFontReady] = useState(false);
-  const texRef = useRef<THREE.CanvasTexture | null>(null);
-
-  useEffect(() => {
-    document.fonts.load('bold 100px "Silkscreen"').then(() => setFontReady(true));
-  }, []);
-
-  const texture = useMemo(() => {
-    if (!fontReady) return null;
-
-    // Canvas: narrow (river width) x tall (river length)
-    // UV maps: canvas X → plane X (river width), canvas Y → plane Z (river length)
-    const cW = 256;
-    const cH = 4096;
-    const c = document.createElement("canvas");
-    c.width = cW;
-    c.height = cH;
-    const ctx = c.getContext("2d")!;
-    ctx.clearRect(0, 0, cW, cH);
-
-    // Rotate context so horizontal text runs along canvas Y (= river Z)
-    ctx.save();
-    ctx.translate(cW / 2, cH / 2);
-    ctx.rotate(-Math.PI / 2);
-
-    // After rotation: text "width" spans canvas height (river length)
-    // text "height" spans canvas width (river width)
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.font = 'bold 100px "Silkscreen", monospace';
-    ctx.fillText("git.city", 0, 0);
-
-    ctx.restore();
-
-    const tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
-    tex.needsUpdate = true;
-    texRef.current = tex;
-    return tex;
-  }, [fontReady]);
-
-  useEffect(() => {
-    return () => { texRef.current?.dispose(); };
-  }, []);
-
-  if (!texture) return null;
-
-  return (
-    <mesh
-      position={[river.x + river.width / 2, 0.6, river.centerZ]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      renderOrder={2}
-    >
-      <planeGeometry args={[river.width, river.length]} />
-      <meshBasicMaterial
-        map={texture}
-        transparent
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
-// ─── Bridge ──────────────────────────────────────────────────
-
-function Bridge({ bridge }: { bridge: CityBridge }) {
-  const [bx, , bz] = bridge.position;
-  const deckLength = bridge.width;
-  const deckWidth = 18;
-  const deckHeight = 1;
-  const deckY = 6;
-
-  const pillarCount = 3;
-  const pillarSpacing = deckLength / (pillarCount + 1);
-
-  return (
-    <group position={[bx, 0, bz]} rotation={[0, bridge.rotation ?? 0, 0]}>
-      {/* Deck */}
-      <mesh position={[0, deckY, 0]} geometry={_dBox} scale={[deckLength, deckHeight, deckWidth]}>
-        <meshStandardMaterial color="#505860" emissive="#404850" emissiveIntensity={0.4} />
-      </mesh>
-      {/* Guardrails */}
-      <mesh position={[0, deckY + 1, deckWidth / 2 - 0.2]} geometry={_dBox} scale={[deckLength, 1.5, 0.4]}>
-        <meshStandardMaterial color="#606870" emissive="#505860" emissiveIntensity={0.3} />
-      </mesh>
-      <mesh position={[0, deckY + 1, -(deckWidth / 2 - 0.2)]} geometry={_dBox} scale={[deckLength, 1.5, 0.4]}>
-        <meshStandardMaterial color="#606870" emissive="#505860" emissiveIntensity={0.3} />
-      </mesh>
-      {/* Pillars */}
-      {Array.from({ length: pillarCount }, (_, i) => {
-        const px = -deckLength / 2 + pillarSpacing * (i + 1);
-        return (
-          <group key={i}>
-            <mesh position={[px, deckY / 2, 0]} geometry={_dBox} scale={[2.5, deckY, 2.5]}>
-              <meshStandardMaterial color="#404848" emissive="#303838" emissiveIntensity={0.3} />
-            </mesh>
-            {/* Suspension cables (simple lines from pillar tops to deck edges) */}
-            <mesh position={[px, deckY + 8, 0]} geometry={_dBox} scale={[2, 16, 2]}>
-              <meshStandardMaterial color="#404848" emissive="#303838" emissiveIntensity={0.3} />
-            </mesh>
-            {/* Cable left */}
-            <mesh position={[px - deckLength * 0.12, deckY + 6, 0]} rotation={[0, 0, 0.35]} geometry={_dBox} scale={[deckLength * 0.25, 0.3, 0.3]}>
-              <meshStandardMaterial color="#606060" emissive="#505050" emissiveIntensity={0.3} />
-            </mesh>
-            {/* Cable right */}
-            <mesh position={[px + deckLength * 0.12, deckY + 6, 0]} rotation={[0, 0, -0.35]} geometry={_dBox} scale={[deckLength * 0.25, 0.3, 0.3]}>
-              <meshStandardMaterial color="#606060" emissive="#505050" emissiveIntensity={0.3} />
-            </mesh>
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
-// ─── Waterfront (Docks + Bollards) ──────────────────────────
-
-function Waterfront({ river, dockColor }: { river: CityRiver; dockColor: string }) {
-  const dockPlankRef = useRef<THREE.InstancedMesh>(null);
-  const bollardRef = useRef<THREE.InstancedMesh>(null);
-
-  const dockSpacing = 35;
-  const dockCount = 60; // 30 per side
-  const bollardsPerDock = 2;
-  const totalBollards = dockCount * bollardsPerDock;
-
-  const geos = useMemo(() => ({
-    plank: new THREE.BoxGeometry(8, 0.3, 4),
-    bollard: new THREE.CylinderGeometry(0.5, 0.5, 2, 8),
-  }), []);
-
-  const mats = useMemo(() => ({
-    plank: new THREE.MeshStandardMaterial({ color: dockColor, emissive: dockColor, emissiveIntensity: 0.35 }),
-    bollard: new THREE.MeshStandardMaterial({ color: "#808080", emissive: "#606060", emissiveIntensity: 0.3 }),
-  }), [dockColor]);
-
-  useEffect(() => {
-    if (!dockPlankRef.current || !bollardRef.current) return;
-    const leftX = river.x - 6; // left bank
-    const rightX = river.x + river.width + 6; // right bank
-    const halfRange = (dockCount / 2) * dockSpacing / 2;
-    let di = 0;
-    let bi = 0;
-    const q = new THREE.Quaternion();
-    const s = new THREE.Vector3(1, 1, 1);
-    const p = new THREE.Vector3();
-    const m = new THREE.Matrix4();
-
-    for (let side = 0; side < 2; side++) {
-      const x = side === 0 ? leftX : rightX;
-      for (let i = 0; i < dockCount / 2; i++) {
-        const z = -halfRange + i * dockSpacing;
-        p.set(x, 0.2, z);
-        m.compose(p, q, s);
-        dockPlankRef.current.setMatrixAt(di++, m);
-
-        // Bollards at corners of dock
-        p.set(x - 3.5, 1.1, z - 1.5);
-        m.compose(p, q, s);
-        bollardRef.current.setMatrixAt(bi++, m);
-        p.set(x + 3.5, 1.1, z + 1.5);
-        m.compose(p, q, s);
-        bollardRef.current.setMatrixAt(bi++, m);
-      }
-    }
-
-    dockPlankRef.current.instanceMatrix.needsUpdate = true;
-    bollardRef.current.instanceMatrix.needsUpdate = true;
-  }, [river, dockCount, dockSpacing]);
-
-  useEffect(() => {
-    return () => {
-      Object.values(geos).forEach(g => g.dispose());
-      Object.values(mats).forEach(m => m.dispose());
-    };
-  }, [geos, mats]);
-
-  return (
-    <>
-      <instancedMesh ref={dockPlankRef} args={[geos.plank, mats.plank, dockCount]} />
-      <instancedMesh ref={bollardRef} args={[geos.bollard, mats.bollard, totalBollards]} />
-    </>
-  );
-}
-
 // ─── Orbit Scene (controls + focus) ──────────────────────────
 
 function OrbitScene({
@@ -2071,8 +1827,6 @@ interface Props {
   buildings: CityBuilding[];
   plazas: CityPlaza[];
   decorations: CityDecoration[];
-  river?: CityRiver | null;
-  bridges?: CityBridge[];
   flyMode: boolean;
   flyVehicle?: string;
   onExitFly: (aborted?: boolean) => void;
@@ -2116,13 +1870,6 @@ interface Props {
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   relicFocus?: { x: number; y: number; z: number } | null;
   equippedRelicId?: string | null;
-  newWorldCinematic?: boolean;
-  onNewWorldCinematicEnd?: () => void;
-  onPromptNewWorldTravel?: (x: number, y: number, z: number, yaw: number) => void;
-  newWorldTakeoffPos?: { x: number; y: number; z: number } | null;
-  newWorldTakeoffYaw?: number | null;
-  hasTraveledToNewWorld?: boolean;
-  onReturnToCity?: () => void;
   initialFlightPos?: THREE.Vector3 | null;
   initialFlightYaw?: number | null;
   onEArcadeClick?: () => void;
@@ -2162,8 +1909,6 @@ export default function CityCanvas({
   buildings,
   plazas,
   decorations,
-  river,
-  bridges,
   flyMode,
   flyVehicle,
   onExitFly,
@@ -2211,13 +1956,6 @@ export default function CityCanvas({
   weatherMode = "sunny",
   relicFocus,
   equippedRelicId,
-  newWorldCinematic,
-  onNewWorldCinematicEnd,
-  onPromptNewWorldTravel,
-  newWorldTakeoffPos,
-  newWorldTakeoffYaw,
-  hasTraveledToNewWorld,
-  onReturnToCity,
   initialFlightPos,
   initialFlightYaw,
   multiplayerPlayers,
@@ -2256,36 +1994,7 @@ export default function CityCanvas({
     return posList;
   }, []);
 
-  const initialBuildings = useMemo(() => {
-    if (buildings.length <= 150) return buildings;
-    const sorted = [...buildings].sort((a, b) => {
-      const distA = a.position[0] ** 2 + a.position[2] ** 2;
-      const distB = b.position[0] ** 2 + b.position[2] ** 2;
-      return distA - distB;
-    });
-    return sorted.slice(0, 150);
-  }, [buildings]);
 
-  const [visibleBuildings, setVisibleBuildings] = useState<CityBuilding[]>(initialBuildings);
-
-  useEffect(() => {
-    setVisibleBuildings(initialBuildings);
-  }, [initialBuildings]);
-
-  useEffect(() => {
-    if (visibleBuildings.length >= buildings.length) return;
-
-    const timer = setTimeout(() => {
-      setVisibleBuildings((prev) => {
-        const prevLogins = new Set(prev.map(b => b.login.toLowerCase()));
-        const remaining = buildings.filter(b => !prevLogins.has(b.login.toLowerCase()));
-        const nextBatch = remaining.slice(0, 250);
-        return [...prev, ...nextBatch];
-      });
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [visibleBuildings.length, buildings]);
   return (
     <>
     <Canvas
@@ -2376,7 +2085,7 @@ export default function CityCanvas({
             />
           )}
 
-          {!introMode && flyMode && !newWorldCinematic && (
+          {!introMode && flyMode && (
             <>
               <AirplaneFlight
                 onExit={onExitFly}
@@ -2389,32 +2098,20 @@ export default function CityCanvas({
                 posRef={flyPosRef}
                 equippedRelicId={equippedRelicId}
                 cityRadius={cityRadius}
-                onPromptNewWorldTravel={onPromptNewWorldTravel}
-                hasTraveledToNewWorld={hasTraveledToNewWorld}
-                onReturnToCity={onReturnToCity}
                 initialPosition={initialFlightPos ?? undefined}
                 initialYaw={initialFlightYaw ?? undefined}
               />
-              {!hasTraveledToNewWorld && (
-                <SkyCollectibles playerPosRef={flyPosRef} accentColor={accentColor ?? "#6090e0"} onCollect={onCollect ?? (() => { })} cityRadius={cityRadius} />
-              )}
+              <SkyCollectibles playerPosRef={flyPosRef} accentColor={accentColor ?? "#6090e0"} onCollect={onCollect ?? (() => { })} cityRadius={cityRadius} />
             </>
           )}
         </>
       )}
 
-      <InfiniteWater waterColor={t.waterColor} waterEmissive={t.waterEmissive} />
-      {!hasTraveledToNewWorld && (
-        <>
-          <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
-          <CircularCityPlatform radius={cityRadius} color={t.groundColor} weatherMode={weatherMode} />
-        </>
-      )}
+      <Ground key={`ground-${themeIndex}`} color={t.groundColor} grid1={t.grid1} grid2={t.grid2} />
+      <CircularCityPlatform radius={cityRadius} color={t.groundColor} weatherMode={weatherMode} />
 
-      {!hasTraveledToNewWorld && (
-        <>
-          <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
-          <Suspense fallback={null}>
+      <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
+      <Suspense fallback={null}>
             <Colosseum
               position={landmarkPositions[0]}
               themeAccent={t.building.accent}
@@ -2473,7 +2170,7 @@ export default function CityCanvas({
           })()}
 
           <CityScene
-            buildings={visibleBuildings}
+            buildings={buildings}
             colors={t.building}
             focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
             focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
@@ -2493,7 +2190,6 @@ export default function CityCanvas({
           />
 
           <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
-          <TrafficSystem />
           {!wallpaperMode && skyAds && skyAds.length > 0 && (
             <>
               <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
@@ -2507,8 +2203,6 @@ export default function CityCanvas({
               />
             </>
           )}
-        </>
-      )}
       {isRaining && (
         <>
           <RainParticles />

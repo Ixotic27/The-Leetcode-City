@@ -29,8 +29,6 @@ import {
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
-  type CityRiver,
-  type CityBridge,
   type DistrictZone,
 } from "@/lib/github";
 import Image from "next/image";
@@ -569,8 +567,7 @@ function HomeContent() {
   const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
-  const [river, setRiver] = useState<CityRiver | null>(null);
-  const [bridges, setBridges] = useState<CityBridge[]>([]);
+
   const [districtZones, setDistrictZones] = useState<DistrictZone[]>([]);
   const [loading, setLoading] = useState(false);
   // Loading state machine — skip on return visits that still have cached data
@@ -603,12 +600,7 @@ function HomeContent() {
   const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
   const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
 
-  // New World travel cinematic states
-  const [showNewWorldPrompt, setShowNewWorldPrompt] = useState(false);
-  const [newWorldCinematicActive, setNewWorldCinematicActive] = useState(false);
-  const [hasTraveledToNewWorld, setHasTraveledToNewWorld] = useState(false);
-  const [newWorldTakeoffPos, setNewWorldTakeoffPos] = useState<{ x: number; y: number; z: number } | null>(null);
-  const [newWorldTakeoffYaw, setNewWorldTakeoffYaw] = useState<number | null>(null);
+
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
@@ -1063,8 +1055,11 @@ function HomeContent() {
   // ── LeetCode Pulse: report activity every 5 min while logged in ──
   useEffect(() => {
     if (!session || !linkedLeetCodeUsername) return;
-    const ping = () =>
+    const ping = () => {
+      // Skip when tab is hidden — no point reporting activity when user isn't looking
+      if (typeof document !== "undefined" && document.hidden) return;
       fetch("/api/lc-pulse", { method: "POST" }).catch(() => { });
+    };
     ping(); // fire immediately on account link / page load
     const id = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
     return () => clearInterval(id);
@@ -1278,6 +1273,7 @@ function HomeContent() {
   useEffect(() => {
     let cancelled = false;
     const fetchFeed = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const res = await fetch("/api/feed?limit=50&today=1");
         if (!res.ok) return;
@@ -1734,8 +1730,7 @@ function HomeContent() {
     setBuildings(layout.buildings);
     setPlazas(layout.plazas);
     setDecorations(layout.decorations);
-    setRiver(layout.river);
-    setBridges(layout.bridges);
+
     setDistrictZones(layout.districtZones);
     setCityCache({ ...layout, stats: cityStats });
     return layout.buildings;
@@ -1772,11 +1767,27 @@ function HomeContent() {
       setBuildings(cached.buildings);
       setPlazas(cached.plazas);
       setDecorations(cached.decorations);
-      setRiver(cached.river);
-      setBridges(cached.bridges);
+
       setDistrictZones(cached.districtZones);
       setStats(cached.stats);
-      setLoadStage("done");
+      
+      // Prevent black screen on return visits by transitioning through rendering stage.
+      // We run this asynchronously without returning a cleanup function, so that when the component re-renders
+      // and triggers the useEffect cleanup (due to loadStage dependency), the timer is NOT cancelled.
+      const loadCached = async () => {
+        setLoadStage("rendering");
+        setLoadProgress(40);
+        
+        const steps = 10;
+        for (let step = 1; step <= steps; step++) {
+          await new Promise((r) => setTimeout(r, 200));
+          setLoadProgress(40 + Math.round((55 * step) / steps));
+        }
+        setLoadProgress(100);
+        setLoadStage("ready");
+      };
+      
+      loadCached();
       return;
     }
 
@@ -1881,39 +1892,31 @@ function HomeContent() {
         setBuildings(finalLayout.buildings);
         setPlazas(finalLayout.plazas);
         setDecorations(finalLayout.decorations);
-        setRiver(finalLayout.river);
-        setBridges(finalLayout.bridges);
+
         setDistrictZones(finalLayout.districtZones);
 
         setLoadProgress(55);
 
-        // Rendering: wait for Canvas to process data (2 rAF + fallback)
+        // Rendering: wait for Canvas to process data and compile shaders behind the loading screen.
+        // We stay in rendering stage for 4.5 seconds to ensure the building rise animations and shader compiles complete.
         setLoadStage("rendering");
         setLoadProgress(65);
 
-        await new Promise<void>((resolve) => {
-          let resolved = false;
-          const done = () => {
-            if (resolved) return;
-            resolved = true;
-            resolve();
-          };
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => done());
-          });
-          setTimeout(done, 500);
-        });
-
-        setLoadProgress(80);
+        const renderDuration = 4500; // 4.5s rendering phase
+        const renderSteps = 15;
+        for (let i = 1; i <= renderSteps; i++) {
+          await new Promise((r) => setTimeout(r, renderDuration / renderSteps));
+          setLoadProgress(65 + Math.round((25 * i) / renderSteps));
+        }
 
         // Save to cache for return visits
         setCityCache({ ...finalLayout, stats: cityStats });
         setLoadProgress(95);
 
-        // Enforce minimum 800ms display time to avoid flash
+        // Enforce minimum 8000ms total display time to prevent fast fade-out stutters
         const elapsed = performance.now() - loadStartTime;
-        if (elapsed < 800) {
-          await new Promise((r) => setTimeout(r, 800 - elapsed));
+        if (elapsed < 8000) {
+          await new Promise((r) => setTimeout(r, 8000 - elapsed));
         }
 
         setLoadProgress(100);
@@ -2060,9 +2063,7 @@ function HomeContent() {
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
       setFlyPaused(false);
-      setHasTraveledToNewWorld(false);
-      setNewWorldCinematicActive(false);
-      setShowNewWorldPrompt(false);
+
       lastDistrictRef.current = null;
       setDistrictAnnouncement(null);
       clearTimeout(announceTimerRef.current);
@@ -2117,36 +2118,7 @@ function HomeContent() {
     [session],
   );
 
-  const handlePromptNewWorldTravel = useCallback((x: number, y: number, z: number, yaw: number) => {
-    setNewWorldTakeoffPos({ x, y, z });
-    setNewWorldTakeoffYaw(yaw);
-    setShowNewWorldPrompt(true);
-    setFlyPaused(true);
-  }, []);
 
-  const handleConfirmNewWorldTravel = useCallback(() => {
-    setShowNewWorldPrompt(false);
-    const takeoffX = newWorldTakeoffPos?.x ?? 0;
-    const takeoffY = newWorldTakeoffPos?.y ?? 120;
-    const takeoffZ = newWorldTakeoffPos?.z ?? 400;
-    const takeoffYaw = newWorldTakeoffYaw ?? 0;
-    window.location.href = `/new-world?x=${takeoffX}&y=${takeoffY}&z=${takeoffZ}&yaw=${takeoffYaw}`;
-  }, [newWorldTakeoffPos, newWorldTakeoffYaw]);
-
-  const handleCancelNewWorldTravel = useCallback(() => {
-    setShowNewWorldPrompt(false);
-    setFlyPaused(false);
-    setFlyPauseSignal((prev) => prev + 1); // Resume
-  }, []);
-
-  const handleNewWorldCinematicEnd = useCallback(() => {
-    setNewWorldCinematicActive(false);
-    setHasTraveledToNewWorld(true);
-  }, []);
-
-  const handleReturnToCity = useCallback(() => {
-    setHasTraveledToNewWorld(false);
-  }, []);
 
   const endIntro = useCallback(() => {
     setIntroMode(false);
@@ -2469,8 +2441,7 @@ function HomeContent() {
         setBuildings(layout.buildings);
         setPlazas(layout.plazas);
         setDecorations(layout.decorations);
-        setRiver(layout.river);
-        setBridges(layout.bridges);
+
         setDistrictZones(layout.districtZones);
         setCityCache({
           ...layout,
@@ -2922,8 +2893,6 @@ function HomeContent() {
         buildings={buildings}
         plazas={plazas}
         decorations={decorations}
-        river={river}
-        bridges={bridges}
         flyMode={flyMode}
         relicFocus={relicFocus}
         flyVehicle={flyVehicle}
@@ -2989,17 +2958,10 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen || codeForgeOpen}
+        flyHasOverlay={!!selectedBuilding || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
-        newWorldCinematic={newWorldCinematicActive}
-        onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
-        onPromptNewWorldTravel={handlePromptNewWorldTravel}
-        newWorldTakeoffPos={newWorldTakeoffPos}
-        newWorldTakeoffYaw={newWorldTakeoffYaw}
-        hasTraveledToNewWorld={hasTraveledToNewWorld}
-        onReturnToCity={handleReturnToCity}
         celebrationActive={celebrationActive}
         skyAds={skyAds}
         onAdClick={(ad) => {
@@ -7079,43 +7041,7 @@ function HomeContent() {
         </div>
       )}
 
-      {/* ─── New World Travel Prompt Modal ─── */}
-      {showNewWorldPrompt && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
-          <div
-            className="w-full max-w-md border-[3px] bg-bg-raised p-6 text-cream shadow-2xl relative text-center"
-            style={{
-              borderColor: theme.accent,
-              boxShadow: `6px 6px 0 0 ${theme.shadow}`,
-            }}
-          >
-            <h2 className="text-lg font-bold tracking-widest mb-2 font-pixel" style={{ color: theme.accent }}>
-              NEW WORLD DETECTED
-            </h2>
-            <p className="text-[11px] text-muted normal-case mb-6 leading-relaxed font-pixel">
-              Your equipped New World Relic is vibrating intensely. Do you want to navigate across the fog of war to the Outer Wildlands?
-            </p>
-            <div className="flex gap-4 justify-center font-pixel items-center">
-              <span
-                className="px-6 py-2.5 text-[11px] font-bold select-none cursor-not-allowed"
-                style={{
-                  color: theme.accent,
-                  border: `2px dashed ${theme.accent}`,
-                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                }}
-              >
-                COMING SOON
-              </span>
-              <button
-                onClick={handleCancelNewWorldTravel}
-                className="px-6 py-2.5 text-[11px] font-bold border-2 border-muted hover:border-cream text-muted hover:text-cream active:scale-95 transition-all"
-              >
-                STAY IN CITY
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </main>
   );
 }

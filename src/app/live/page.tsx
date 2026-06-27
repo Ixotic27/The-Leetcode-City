@@ -19,6 +19,7 @@ export default function LivePage() {
 
   useEffect(() => {
     const fetchPresence = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       fetch("/api/presence")
         .then((r) => r.json())
         .then((data) => {

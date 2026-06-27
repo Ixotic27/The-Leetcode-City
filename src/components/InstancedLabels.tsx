@@ -17,6 +17,8 @@ const MAX_LABELS = ATLAS_COLS * ATLAS_ROWS; // 1632
 const LABEL_VISIBLE_RADIUS = 400;
 const LABEL_VISIBLE_RADIUS_SQ = LABEL_VISIBLE_RADIUS * LABEL_VISIBLE_RADIUS;
 
+import { tierFromLevel } from "@/lib/xp";
+
 // ─── Text Atlas Builder ────────────────────────────────────────
 
 function createTextAtlas(buildings: CityBuilding[]): THREE.CanvasTexture {
@@ -27,8 +29,6 @@ function createTextAtlas(buildings: CityBuilding[]): THREE.CanvasTexture {
 
   // Transparent background
   ctx.clearRect(0, 0, ATLAS_SIZE, ATLAS_SIZE);
-
-  ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
   const count = Math.min(buildings.length, MAX_LABELS);
@@ -44,34 +44,65 @@ function createTextAtlas(buildings: CityBuilding[]): THREE.CanvasTexture {
       b.login.length > 16
         ? b.login.slice(0, 16).toUpperCase() + "..."
         : b.login.toUpperCase();
-    const text = `@${login}`;
 
-    // Background pill
-    ctx.font = 'bold 22px "Silkscreen", monospace';
-    const textWidth = ctx.measureText(text).width;
-    const padX = 12;
-    const padY = 5;
-    const bgW = textWidth + padX * 2;
-    const bgH = 26 + padY * 2;
-    const bgX = cx - bgW / 2;
-    const bgY = cy - bgH / 2;
-    ctx.fillStyle = "rgba(10, 10, 14, 0.65)";
-    ctx.beginPath();
-    ctx.roundRect(bgX, bgY, bgW, bgH, 4);
-    ctx.fill();
+    // Use optimized bold monospace to match the E-Arcade building text style
+    ctx.font = "bold 22px monospace";
 
-    // Text
     if (b.claimed) {
-      ctx.fillStyle = "#e8dcc8";
-      ctx.shadowColor = "rgba(255, 161, 22, 0.5)";
+      const tier = tierFromLevel(b.xp_level ?? 1);
+      const accentColor = tier.id === "localhost" ? "#ffa116" : tier.color;
+
+      const atWidth = ctx.measureText("@").width;
+      const nameWidth = ctx.measureText(login).width;
+      const totalWidth = atWidth + nameWidth;
+
+      const padX = 12;
+      const padY = 5;
+      const bgW = totalWidth + padX * 2;
+      const bgH = 26 + padY * 2;
+      const bgX = cx - bgW / 2;
+      const bgY = cy - bgH / 2;
+
+      // Draw background pill
+      ctx.fillStyle = "rgba(10, 10, 14, 0.65)";
+      ctx.beginPath();
+      ctx.roundRect(bgX, bgY, bgW, bgH, 4);
+      ctx.fill();
+
+      // Shadow/glow matching E-Arcade text sign glow
+      ctx.shadowColor = accentColor;
       ctx.shadowBlur = 6;
+
+      // Draw accented "@" prefix and beige username segment
+      const startX = cx - totalWidth / 2;
+      ctx.fillStyle = accentColor;
+      ctx.textAlign = "left";
+      ctx.fillText("@", startX, cy);
+
+      ctx.fillStyle = "#e8dcc8";
+      ctx.fillText(login, startX + atWidth, cy);
     } else {
-      ctx.fillStyle = "rgba(200, 200, 215, 0.85)";
+      const text = `@${login}`;
+      const textWidth = ctx.measureText(text).width;
+      const padX = 12;
+      const padY = 5;
+      const bgW = textWidth + padX * 2;
+      const bgH = 26 + padY * 2;
+      const bgX = cx - bgW / 2;
+      const bgY = cy - bgH / 2;
+
+      // Draw background pill
+      ctx.fillStyle = "rgba(10, 10, 14, 0.65)";
+      ctx.beginPath();
+      ctx.roundRect(bgX, bgY, bgW, bgH, 4);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(150, 150, 160, 0.7)";
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
+      ctx.textAlign = "center";
+      ctx.fillText(text, cx, cy);
     }
-
-    ctx.fillText(text, cx, cy);
 
     // Reset shadow
     ctx.shadowColor = "transparent";

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
+import { getAuthenticatedDeveloper } from "@/lib/arena";
 
 // POST - Record rabbit sighting encounter
 /**
@@ -147,26 +148,34 @@ export async function GET(request: Request) {
 
   // Check personal progress
   if (searchParams.has("check")) {
-    const supabase = await createServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    let dev: any = null;
 
-    if (!user) {
-      return NextResponse.json({ progress: 0, completed: false });
+    // Try extension/custom token first
+    const authedDev = await getAuthenticatedDeveloper(request);
+    if (authedDev) {
+      const { data: qDev } = await admin
+        .from("developers")
+        .select("rabbit_progress, rabbit_completed, rabbit_completed_at")
+        .eq("id", authedDev.id)
+        .maybeSingle();
+      dev = qDev;
+    } else {
+      // Fallback to cookie user
+      try {
+        const supabase = await createServerSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: qDev } = await admin
+            .from("developers")
+            .select("rabbit_progress, rabbit_completed, rabbit_completed_at")
+            .eq("claimed_by", user.id)
+            .maybeSingle();
+          dev = qDev;
+        }
+      } catch (err) {
+        // ignore
+      }
     }
-
-    const githubLogin = (
-      user.user_metadata.user_name ??
-      user.user_metadata.preferred_username ??
-      ""
-    ).toLowerCase();
-
-    const { data: dev } = await admin
-      .from("developers")
-      .select("rabbit_progress, rabbit_completed, rabbit_completed_at")
-      .eq("claimed_by", user.id)
-      .single();
 
     return NextResponse.json({
       progress: dev?.rabbit_progress ?? 0,

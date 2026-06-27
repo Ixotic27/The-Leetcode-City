@@ -1437,7 +1437,6 @@ interface AtmosphereCycleManagerProps {
   timeRef: React.MutableRefObject<number>;
   cityRadius?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
-  hasTraveledToNewWorld?: boolean;
 }
 
 export default function AtmosphereCycleManager({
@@ -1447,7 +1446,6 @@ export default function AtmosphereCycleManager({
   timeRef,
   cityRadius,
   weatherMode = "sunny",
-  hasTraveledToNewWorld = false,
 }: AtmosphereCycleManagerProps) {
   const { scene } = useThree();
 
@@ -1801,12 +1799,8 @@ export default function AtmosphereCycleManager({
 
       <SkyDome timeRef={timeRef} theme={theme} active={active} />
       <VoxelClouds active={active} timeRef={timeRef} />
-      {!hasTraveledToNewWorld && (
-        <>
-          <AmbientOceanShips cityRadius={cityRadius ?? 800} />
-          <FlyingCityShips cityRadius={cityRadius ?? 800} />
-        </>
-      )}
+      <AmbientOceanShips cityRadius={cityRadius ?? 800} />
+      <FlyingCityShips cityRadius={cityRadius ?? 800} />
 
       {/* Visual Jagged Lightning Bolt (Voxel Aesthetic, themed accent color) */}
       <group ref={boltGroupRef} visible={false}>

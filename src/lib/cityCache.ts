@@ -2,8 +2,6 @@ import type {
   CityBuilding,
   CityPlaza,
   CityDecoration,
-  CityRiver,
-  CityBridge,
   DistrictZone,
 } from "@/lib/github";
 
@@ -11,8 +9,6 @@ interface CityCache {
   buildings: CityBuilding[];
   plazas: CityPlaza[];
   decorations: CityDecoration[];
-  river: CityRiver | null;
-  bridges: CityBridge[];
   districtZones: DistrictZone[];
   stats: { total_developers: number; total_contributions: number };
   timestamp: number;
