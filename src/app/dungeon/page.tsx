@@ -16,9 +16,9 @@ interface BattleLogEntry {
 }
 
 const BOSS_MAP: Record<string, { name: string; type: "goblin" | "orc" | "dragon"; color: string; maxHp: number; baseDmg: number }> = {
-  Easy:   { name: "Scourge Goblin", type: "goblin", color: "#39ff14", maxHp: 80, baseDmg: 8 },
+  Easy:   { name: "Scourge Goblin", type: "goblin", color: "#00b8a3", maxHp: 80, baseDmg: 8 },
   Medium: { name: "Ravage Orc", type: "orc", color: "#ffa116", maxHp: 120, baseDmg: 14 },
-  Hard:   { name: "Void Dragon", type: "dragon", color: "#ff0055", maxHp: 180, baseDmg: 22 },
+  Hard:   { name: "Void Dragon", type: "dragon", color: "#ff2d55", maxHp: 180, baseDmg: 22 },
 };
 
 const MOCK_PROBLEMS: DailyProblem[] = [
@@ -119,45 +119,35 @@ function playRetroSound(type: "hit" | "heal" | "defend" | "victory" | "defeat" |
 
 // Custom Vector Game Graphics (SVGs) for Bosses
 function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "dragon"; color: string; flashing: boolean }) {
-  const flashClass = flashing ? "brightness-150 saturate-150 contrast-125 scale-105" : "";
+  const flashClass = flashing ? "brightness-125 saturate-125 contrast-110 scale-105" : "";
   
   if (type === "goblin") {
     return (
       <svg viewBox="0 0 100 100" className={`w-28 h-28 transition-all duration-150 ${flashClass}`}>
         <defs>
           <linearGradient id="goblinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#15803d" />
-            <stop offset="50%" stopColor="#22c55e" />
-            <stop offset="100%" stopColor="#86efac" />
+            <stop offset="0%" stopColor="#00665c" />
+            <stop offset="50%" stopColor="#00b8a3" />
+            <stop offset="100%" stopColor="#80dfd3" />
           </linearGradient>
-          <filter id="neonGlowGreen" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#22c55e" floodOpacity="0.6"/>
-          </filter>
         </defs>
-        {/* Cyber Grid Background */}
-        <rect x="5" y="5" width="90" height="90" fill="#0d0d0f" stroke="#16a34a" strokeWidth="1" strokeDasharray="4 4" rx="4" />
-        {/* Neck & Collars */}
-        <path d="M40 70 L60 70 L55 80 L45 80 Z" fill="#14532d" />
-        <path d="M30 75 L70 75 L65 72 L35 72 Z" fill="#27272a" stroke="#22c55e" strokeWidth="1" />
-        {/* Main Head */}
-        <path d="M25 40 L35 30 L65 30 L75 40 L70 70 L30 70 Z" fill="url(#goblinGrad)" stroke="#16a34a" strokeWidth="2" />
-        {/* Pointy Cyber Ears */}
-        <path d="M25 42 L5 25 L28 48 Z" fill="#16a34a" stroke="#14532d" strokeWidth="1.5" />
-        <path d="M75 42 L95 25 L72 48 Z" fill="#16a34a" stroke="#14532d" strokeWidth="1.5" />
-        {/* Ear cyber plugs */}
-        <circle cx="8" cy="27" r="2.5" fill="#ffa116" />
-        <circle cx="92" cy="27" r="2.5" fill="#ffa116" />
-        {/* Cybernetic glowing red/orange Visor */}
-        <path d="M28 45 L72 45 L68 53 L32 53 Z" fill="#18181b" stroke="#ffa116" strokeWidth="1.5" />
-        <rect x="35" y="47" width="30" height="4" fill="#ffa116" filter="url(#neonGlowGreen)" className="animate-pulse" />
-        <circle cx="60" cy="49" r="2" fill="#ff0055" />
-        {/* Metal Jaw plates */}
-        <path d="M35 60 L45 62 L55 62 L65 60 L60 67 L40 67 Z" fill="#3f3f46" stroke="#52525b" strokeWidth="1" />
-        {/* Vent grid on jaw */}
-        <line x1="46" y1="62" x2="46" y2="66" stroke="#27272a" strokeWidth="1.5" />
-        <line x1="50" y1="62" x2="50" y2="66" stroke="#27272a" strokeWidth="1.5" />
-        <line x1="54" y1="62" x2="54" y2="66" stroke="#27272a" strokeWidth="1.5" />
-        {/* Horn-like antennas */}
+        {/* Clean Tech Grid Background */}
+        <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
+        {/* Neck */}
+        <path d="M40 70 L60 70 L55 80 L45 80 Z" fill="#004d45" />
+        <path d="M30 75 L70 75 L65 72 L35 72 Z" fill="#2d2d2d" stroke="#00b8a3" strokeWidth="1" />
+        {/* Head */}
+        <path d="M25 40 L35 30 L65 30 L75 40 L70 70 L30 70 Z" fill="url(#goblinGrad)" stroke="#00b8a3" strokeWidth="2" />
+        {/* Ears */}
+        <path d="M25 42 L5 25 L28 48 Z" fill="#008c7c" stroke="#004d45" strokeWidth="1.5" />
+        <path d="M75 42 L95 25 L72 48 Z" fill="#008c7c" stroke="#004d45" strokeWidth="1.5" />
+        {/* Visor */}
+        <path d="M28 45 L72 45 L68 53 L32 53 Z" fill="#1e1e1e" stroke="#ffa116" strokeWidth="1.5" />
+        <rect x="35" y="47" width="30" height="4" fill="#ffa116" opacity="0.9" />
+        <circle cx="60" cy="49" r="2" fill="#ff2d55" />
+        {/* Jaw */}
+        <path d="M35 60 L45 62 L55 62 L65 60 L60 67 L40 67 Z" fill="#3e3e3e" stroke="#4a4a4a" strokeWidth="1" />
+        {/* Antenna */}
         <line x1="40" y1="30" x2="35" y2="20" stroke="#ffa116" strokeWidth="2" />
         <circle cx="35" cy="20" r="2" fill="#ffa116" />
         <line x1="60" y1="30" x2="65" y2="20" stroke="#ffa116" strokeWidth="2" />
@@ -171,40 +161,28 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
       <svg viewBox="0 0 100 100" className={`w-28 h-28 transition-all duration-150 ${flashClass}`}>
         <defs>
           <linearGradient id="orcGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#7c2d12" />
-            <stop offset="50%" stopColor="#ea580c" />
-            <stop offset="100%" stopColor="#f97316" />
-          </linearGradient>
-          <linearGradient id="metalPlate" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#52525b" />
-            <stop offset="100%" stopColor="#27272a" />
+            <stop offset="0%" stopColor="#cc7100" />
+            <stop offset="50%" stopColor="#ffa116" />
+            <stop offset="100%" stopColor="#ffe0b2" />
           </linearGradient>
         </defs>
-        {/* Background circuit grid */}
-        <rect x="5" y="5" width="90" height="90" fill="#0d0d0f" stroke="#ea580c" strokeWidth="1" strokeDasharray="2 4" rx="4" />
-        {/* Heavy shoulders */}
-        <path d="M10 75 L30 65 L70 65 L90 75 L85 85 L15 85 Z" fill="url(#metalPlate)" stroke="#71717a" strokeWidth="2" />
-        {/* Spike bolts */}
-        <circle cx="20" cy="72" r="2.5" fill="#a1a1aa" />
-        <circle cx="80" cy="72" r="2.5" fill="#a1a1aa" />
-        {/* Neck collar */}
-        <rect x="38" y="58" width="24" height="10" fill="#18181b" stroke="#ea580c" strokeWidth="1" />
-        {/* Head Armor Block */}
-        <path d="M22 30 L78 30 L74 60 L26 60 Z" fill="url(#orcGrad)" stroke="#c2410c" strokeWidth="2.5" />
-        {/* Iron visor mask */}
-        <path d="M20 38 L80 38 L72 50 L50 56 L28 50 Z" fill="#27272a" stroke="#a1a1aa" strokeWidth="2" />
-        {/* Visor glowing slit */}
-        <path d="M32 43 L68 43 L65 47 L35 47 Z" fill="#ef4444" className="animate-pulse" />
+        {/* Clean Tech Grid Background */}
+        <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
+        {/* Shoulders */}
+        <path d="M10 75 L30 65 L70 65 L90 75 L85 85 L15 85 Z" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="2" />
+        <circle cx="20" cy="72" r="2" fill="#888888" />
+        <circle cx="80" cy="72" r="2" fill="#888888" />
+        {/* Neck */}
+        <rect x="38" y="58" width="24" height="10" fill="#1e1e1e" stroke="#ffa116" strokeWidth="1" />
+        {/* Head */}
+        <path d="M22 30 L78 30 L74 60 L26 60 Z" fill="url(#orcGrad)" stroke="#cc7100" strokeWidth="2" />
+        {/* Visor */}
+        <path d="M20 38 L80 38 L72 50 L50 56 L28 50 Z" fill="#2d2d2d" stroke="#4a4a4a" strokeWidth="1.5" />
+        <path d="M32 43 L68 43 L65 47 L35 47 Z" fill="#ff2d55" />
         <circle cx="50" cy="45" r="1.5" fill="#fff" />
-        {/* Massive tusks */}
-        <path d="M26 60 L18 52 L26 50 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
-        <path d="M74 60 L82 52 L74 50 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
-        {/* Cybernetic wires */}
-        <path d="M35 50 C30 55, 30 65, 40 68" fill="none" stroke="#ef4444" strokeWidth="1.5" />
-        <path d="M65 50 C70 55, 70 65, 60 68" fill="none" stroke="#ef4444" strokeWidth="1.5" />
-        {/* Crest horns */}
-        <path d="M32 30 L25 15 L35 25 Z" fill="#3f3f46" stroke="#18181b" strokeWidth="1" />
-        <path d="M68 30 L75 15 L65 25 Z" fill="#3f3f46" stroke="#18181b" strokeWidth="1" />
+        {/* Tusks */}
+        <path d="M26 60 L18 52 L26 50 Z" fill="#eaeaea" stroke="#cccccc" strokeWidth="1" />
+        <path d="M74 60 L82 52 L74 50 Z" fill="#eaeaea" stroke="#cccccc" strokeWidth="1" />
       </svg>
     );
   }
@@ -213,80 +191,65 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
     <svg viewBox="0 0 100 100" className={`w-28 h-28 transition-all duration-150 ${flashClass}`}>
       <defs>
         <linearGradient id="dragonBody" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#4c0519" />
-          <stop offset="50%" stopColor="#9f1239" />
-          <stop offset="100%" stopColor="#e11d48" />
+          <stop offset="0%" stopColor="#99001f" />
+          <stop offset="50%" stopColor="#ff2d55" />
+          <stop offset="100%" stopColor="#ffccd5" />
         </linearGradient>
-        <filter id="glowRed" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#f43f5e" floodOpacity="0.8"/>
-        </filter>
       </defs>
-      {/* Background matrix style grid */}
-      <rect x="5" y="5" width="90" height="90" fill="#0d0d0f" stroke="#be123c" strokeWidth="1" strokeDasharray="3 6" rx="4" />
-      {/* Wings outlined in glowing red */}
-      <path d="M12 40 L5 20 L25 25 L12 40 L28 42 Z" fill="#4c0519" stroke="#f43f5e" strokeWidth="1.5" filter="url(#glowRed)" />
-      <path d="M88 40 L95 20 L75 25 L88 40 L72 42 Z" fill="#4c0519" stroke="#f43f5e" strokeWidth="1.5" filter="url(#glowRed)" />
-      {/* Neck scales */}
-      <path d="M42 62 L58 62 L54 85 L46 85 Z" fill="#881337" stroke="#e11d48" strokeWidth="1.5" />
-      <line x1="50" y1="65" x2="50" y2="82" stroke="#f43f5e" strokeWidth="1.5" strokeDasharray="3 3" />
-      {/* Main Head */}
-      <path d="M22 35 L50 15 L78 35 L72 65 L50 80 L28 65 Z" fill="url(#dragonBody)" stroke="#be123c" strokeWidth="2.5" />
-      {/* Robotic horns */}
-      <path d="M30 20 L15 2 L25 15" fill="none" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M70 20 L85 2 L75 15" fill="none" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" />
-      {/* Cybernetic glowing gold eyes */}
-      <polygon points="34,42 44,38 46,46" fill="#facc15" filter="url(#glowRed)" />
-      <polygon points="66,42 56,38 54,46" fill="#facc15" filter="url(#glowRed)" />
+      {/* Clean Tech Grid Background */}
+      <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
+      {/* Wings */}
+      <path d="M12 40 L5 20 L25 25 L12 40 L28 42 Z" fill="#660014" stroke="#ff2d55" strokeWidth="1.5" />
+      <path d="M88 40 L95 20 L75 25 L88 40 L72 42 Z" fill="#660014" stroke="#ff2d55" strokeWidth="1.5" />
+      {/* Neck */}
+      <path d="M42 62 L58 62 L54 85 L46 85 Z" fill="#cc0029" stroke="#ff2d55" strokeWidth="1.5" />
+      {/* Head */}
+      <path d="M22 35 L50 15 L78 35 L72 65 L50 80 L28 65 Z" fill="url(#dragonBody)" stroke="#be123c" strokeWidth="2" />
+      {/* Horns */}
+      <path d="M30 20 L15 2 L25 15" fill="none" stroke="#ff2d55" strokeWidth="2" strokeLinecap="round" />
+      <path d="M70 20 L85 2 L75 15" fill="none" stroke="#ff2d55" strokeWidth="2" strokeLinecap="round" />
+      {/* Eyes */}
+      <polygon points="34,42 44,38 46,46" fill="#ffa116" />
+      <polygon points="66,42 56,38 54,46" fill="#ffa116" />
       <circle cx="40" cy="42" r="1" fill="#fff" />
       <circle cx="60" cy="42" r="1" fill="#fff" />
-      {/* Plasma vent mouth */}
-      <path d="M38 58 L50 68 L62 58 Z" fill="#18181b" stroke="#be123c" strokeWidth="1.5" />
-      {/* Fangs */}
+      {/* Mouth */}
+      <path d="M38 58 L50 68 L62 58 Z" fill="#1a1a1a" stroke="#be123c" strokeWidth="1.5" />
       <polygon points="40,58 42,62 44,58" fill="#ffffff" />
       <polygon points="60,58 58,62 56,58" fill="#ffffff" />
-      {/* Glowing core inside mouth */}
-      <circle cx="50" cy="62" r="3" fill="#facc15" className="animate-pulse" filter="url(#glowRed)" />
+      <circle cx="50" cy="62" r="2.5" fill="#ffa116" />
     </svg>
   );
 }
 
 // Custom Vector Graphic for Player (Coding Terminal Desk)
 function PlayerGraphic({ flashing }: { flashing: boolean }) {
-  const flashClass = flashing ? "brightness-150 saturate-150 contrast-125" : "";
+  const flashClass = flashing ? "brightness-125 saturate-125 contrast-110" : "";
   return (
     <svg viewBox="0 0 100 100" className={`w-28 h-28 transition-all duration-150 ${flashClass}`}>
       <defs>
         <linearGradient id="screenBg" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#0d1b0d" />
-          <stop offset="100%" stopColor="#070a07" />
+          <stop offset="0%" stopColor="#1e1e1e" />
+          <stop offset="100%" stopColor="#121212" />
         </linearGradient>
       </defs>
-      {/* Background Grid */}
-      <rect x="5" y="5" width="90" height="90" fill="#0d0d0f" stroke="#2a2a30" strokeWidth="1" strokeDasharray="3 3" rx="4" />
+      {/* Clean Background Grid */}
+      <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
       {/* Desk pedestal */}
-      <path d="M20 82 L80 82 L85 92 L15 92 Z" fill="#18181b" stroke="#2a2a30" strokeWidth="1.5" />
-      {/* Keyboard glow */}
-      <rect x="25" y="80" width="50" height="4" fill="#39ff14" opacity="0.3" className="animate-pulse" />
-      {/* CRT Monitor stand */}
-      <rect x="44" y="68" width="12" height="14" fill="#27272a" stroke="#3f3f46" strokeWidth="1.5" />
-      <path d="M38 78 L62 78 L58 68 L42 68 Z" fill="#18181b" />
-      {/* Main Monitor Bezel */}
-      <rect x="15" y="15" width="70" height="54" fill="#27272a" stroke="#3f3f46" strokeWidth="2.5" rx="4" />
-      {/* Screen border line */}
-      <rect x="18" y="18" width="64" height="48" fill="url(#screenBg)" stroke="#1f2937" strokeWidth="1.5" />
-      {/* Matrix Code Waterfall lines */}
-      <line x1="24" y1="22" x2="24" y2="34" stroke="#39ff14" strokeWidth="1.5" strokeDasharray="2 3" opacity="0.8" />
-      <line x1="32" y1="22" x2="32" y2="46" stroke="#39ff14" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.6" />
-      <line x1="42" y1="22" x2="42" y2="30" stroke="#39ff14" strokeWidth="1.5" strokeDasharray="1 2" opacity="0.9" />
-      <line x1="58" y1="22" x2="58" y2="52" stroke="#39ff14" strokeWidth="1.5" strokeDasharray="5 3" opacity="0.4" />
-      <line x1="68" y1="22" x2="68" y2="38" stroke="#39ff14" strokeWidth="1.5" strokeDasharray="2 2" opacity="0.7" />
-      {/* Code Flow boxes on screen */}
-      <rect x="22" y="56" width="16" height="6" fill="#39ff14" fillOpacity="0.8" />
-      <rect x="42" y="56" width="22" height="6" fill="#ffa116" fillOpacity="0.8" />
-      <rect x="68" y="56" width="10" height="6" fill="#00d2ff" fillOpacity="0.8" />
-      {/* Warning beacon flashing */}
-      <circle cx="80" cy="10" r="3" fill="#ffa116" className="animate-ping" />
-      <circle cx="80" cy="10" r="2" fill="#ffa116" />
+      <path d="M20 82 L80 82 L85 92 L15 92 Z" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="1.5" />
+      {/* Stand */}
+      <rect x="44" y="68" width="12" height="14" fill="#3e3e3e" stroke="#4a4a4a" strokeWidth="1.5" />
+      {/* Bezel */}
+      <rect x="15" y="15" width="70" height="54" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="2.5" rx="6" />
+      {/* Screen */}
+      <rect x="18" y="18" width="64" height="48" fill="url(#screenBg)" stroke="#1a1a1a" strokeWidth="1.5" />
+      {/* Status segments */}
+      <rect x="22" y="24" width="15" height="4" fill="#00b8a3" opacity="0.8" />
+      <rect x="22" y="32" width="30" height="4" fill="#ffa116" opacity="0.8" />
+      <rect x="22" y="40" width="22" height="4" fill="#3e3e3e" opacity="0.8" />
+      <rect x="22" y="48" width="45" height="4" fill="#00b8a3" opacity="0.3" />
+      {/* Small status dot */}
+      <circle cx="75" cy="26" r="3" fill="#ffa116" />
     </svg>
   );
 }
@@ -296,119 +259,104 @@ function DungeonIcon({ name, className = "w-4 h-4" }: { name: string; className?
   switch (name) {
     case "sword":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
-          <path d="M7 17 L17 7" />
-          <path d="M8 16 L16 8" />
-          <path d="M9 15 L15 9" />
-          <path d="M17 7 L19 5 L19 4 L18 4 L17 5 Z" className="fill-current" />
-          <path d="M6 14 L10 18" strokeWidth="3" />
-          <path d="M7 17 L4 20" strokeWidth="2.5" />
-          <rect x="3" y="20" width="2" height="2" className="fill-current" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14.5 17.5L3 6V3h3l11.5 11.5M13 19l6-6M19 19L5 5" />
         </svg>
       );
     case "shield":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M4 4 h16 v6 c0 5 -4 9 -8 11 c-4 -2 -8 -6 -8 -11 Z" />
-          <path d="M8 7 h8 v3 c0 3 -2.5 5.5 -4 6.5 c-1.5 -1 -4 -3.5 -4 -6.5 Z" opacity="0.6" />
-          <path d="M12 7 v9" opacity="0.4" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
         </svg>
       );
     case "sparkles":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2">
-          <path d="M12 2 v6 M9 5 h6" />
-          <path d="M12 5 L12 5" strokeWidth="4" />
-          <path d="M5 14 v4 M3 16 h4" />
-          <path d="M18 12 v4 M16 14 h4" strokeWidth="1.5" />
-          <path d="M14 19 v3 M12 20 h4" strokeWidth="1" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.3-6.3l-.7.7M6.7 17.3l-.7.7m12.6 0l-.7-.7M6.7 6.7l-.7-.7" />
         </svg>
       );
     case "fire":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M12 3 L9 6 L9 9 L6 12 L6 18 L18 18 L18 12 L15 9 L15 6 Z" />
-          <path d="M12 7 L10 9 v2 L8 13 v3 h8 v-3 L14 11 V9 Z" opacity="0.6" className="fill-current" />
-          <path d="M12 11 h-1 v3 h2 Z" opacity="0.8" className="fill-current" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z" />
         </svg>
       );
     case "skull":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M7 6 C7 3, 17 3, 17 6 C17 8, 17 12, 16 13 L16 17 L14 17 L14 19 L10 19 L10 17 L8 17 L8 13 C7 12, 7 8, 7 6 Z" />
-          <rect x="9" y="8" width="2.5" height="2.5" className="fill-current" />
-          <rect x="12.5" y="8" width="2.5" height="2.5" className="fill-current" />
-          <path d="M12 12 L12 13" />
-          <path d="M10 16 v2 M12 16 v2 M14 16 v2" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 10a1 1 0 102 0 1 1 0 00-2 0m4 0a1 1 0 102 0 1 1 0 00-2 0" />
+          <path d="M12 2a8 8 0 00-8 8c0 3 2.5 5.6 5 6.5v2.5h6v-2.5c2.5-.9 5-3.5 5-6.5a8 8 0 00-8-8z" />
         </svg>
       );
     case "gift":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <rect x="4" y="9" width="16" height="11" />
-          <rect x="3" y="6" width="18" height="3" fill="currentColor" fillOpacity="0.2" />
-          <path d="M12 6 v14" strokeWidth="2.5" />
-          <path d="M4 14 h16" opacity="0.4" />
-          <path d="M12 6 C10 3, 10 3, 12 6 C14 3, 14 3, 12 6" />
-          <path d="M9 4 C9 2, 11 4, 12 6" />
-          <path d="M15 4 C15 2, 13 4, 12 6" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 12 20 22 4 22 4 12" />
+          <rect x="2" y="7" width="20" height="5" />
+          <line x1="12" y1="22" x2="12" y2="7" />
+          <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+          <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
         </svg>
       );
     case "warning":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <polygon points="12,3 22,20 2,20" />
-          <rect x="11.25" y="9" width="1.5" height="5" className="fill-current" />
-          <rect x="11.25" y="16" width="1.5" height="1.5" className="fill-current" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       );
     case "heart":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M12 7 C10 4, 3 4, 3 9 C3 14, 10 19, 12 21 C14 19, 21 14, 21 9 C21 4, 14 4, 12 7 Z" className="fill-current fill-opacity-25" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
       );
     case "tip":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M9 18 h6 M10 21 h4" />
-          <path d="M12 3 C7.5 3, 7.5 8, 7.5 10 C7.5 12, 9 14, 9 16 h6 C16 14, 16.5 12, 16.5 10 C16.5 8, 16.5 3, 12 3 Z" />
-          <path d="M12 8 v4 M10 10 h4" opacity="0.5" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5.5 5.5 0 0 0 7.5 8c0 1.3.5 2.6 1.5 3.5.7.8 1.3 1.5 1.5 2.5" />
+          <path d="M9 18h6M10 22h4" />
         </svg>
       );
     case "arrow-left":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M20 12 H4 M10 6 L4 12 L10 18" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
         </svg>
       );
     case "trophy":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M6 4 h12 v8 c0 3 -2.5 5.5 -6 6 v3 M8 21 h8" />
-          <path d="M6 6 H3 v4 c0 2 2 3 3 3" />
-          <path d="M18 6 H21 v4 c0 2 -2 3 -3 3" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+          <path d="M12 2a5 5 0 0 0-5 5v3c0 2.2 1.8 4 4 4h2c2.2 0 4-1.8 4-4V7a5 5 0 0 0-5-5z" />
         </svg>
       );
     case "sound-on":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M3 9 h4 l5 -5 v16 l-5 -5 h-4 Z" />
-          <path d="M15 9 c1.5 1, 1.5 3, 0 4 M17 6 c3 2, 3 8, 0 10" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
         </svg>
       );
     case "sound-off":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <path d="M3 9 h4 l5 -5 v16 l-5 -5 h-4 Z" />
-          <path d="M16 9 L20 13 M20 9 L16 13" strokeWidth="2" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <line x1="23" y1="9" x2="17" y2="15" />
+          <line x1="17" y1="9" x2="23" y2="15" />
         </svg>
       );
     case "system":
       return (
-        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="square">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M7 8 h10 M7 12 h10 M7 16 h6" opacity="0.6" />
+        <svg viewBox="0 0 24 24" className={`${className} fill-none stroke-current`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
         </svg>
       );
     default:
@@ -538,10 +486,10 @@ export default function DungeonPage() {
     });
     setGameState("battle");
     setBattleLogs([
-      { timestamp: new Date().toLocaleTimeString(), type: "system", message: "YOU DESCEND INTO THE DARKNESS OF THE CODING DUNGEON..." },
-      { timestamp: new Date().toLocaleTimeString(), type: "warning", message: `A WILD ${stats.name.toUpperCase()} (${problem.difficulty.toUpperCase()}) BLOCKS YOUR WAY!` },
-      { timestamp: new Date().toLocaleTimeString(), type: "boss", message: '💬 BOSS: "So you think you can solve today\'s challenge?"' },
-      { timestamp: new Date().toLocaleTimeString(), type: "system", message: "THE BATTLE BEGINS! CHOOSE YOUR ACTION." }
+      { timestamp: new Date().toLocaleTimeString(), type: "system", message: "You descend into the coding dungeon..." },
+      { timestamp: new Date().toLocaleTimeString(), type: "warning", message: `A wild ${stats.name} (${problem.difficulty} challenge) appears!` },
+      { timestamp: new Date().toLocaleTimeString(), type: "boss", message: 'Boss: "Let\'s see if you can solve this today."' },
+      { timestamp: new Date().toLocaleTimeString(), type: "system", message: "The battle begins! Choose your command sequence." }
     ]);
     playRetroSound("hit", soundEnabled);
   };
@@ -570,7 +518,7 @@ export default function DungeonPage() {
       setBossFlashing(true);
       setTimeout(() => setBossFlashing(false), 200);
       spawnFloatingText(`-${playerDamage} HP`, "boss", "damage");
-      addLog(`YOU CAST [SOLVE SOLUTION] ON ${bossStats.name.toUpperCase()} FOR ${playerDamage} DAMAGE!`, "attack");
+      addLog(`You compile code solutions, dealing ${playerDamage} damage to ${bossStats.name}.`, "attack");
       setBattleStats(prev => ({ ...prev, damageDealt: prev.damageDealt + playerDamage, turnsPlayed: prev.turnsPlayed + 1 }));
       playRetroSound("hit", soundEnabled);
 
@@ -587,7 +535,7 @@ export default function DungeonPage() {
       setTimeout(() => setBossFlashing(false), 200);
       spawnFloatingText(`-${playerDamage} HP`, "boss", "special");
       setSpecialCooldown(3); // 3 turns cooldown
-      addLog(`SPECIAL ATTACK! YOU DEPLOYED A [GITHUB COMMIT] DEALING ${playerDamage} CRITICAL DAMAGE!`, "special");
+      addLog(`Critical attack! You deployed a git commit, dealing ${playerDamage} damage to ${bossStats.name}!`, "special");
       setBattleStats(prev => ({ ...prev, damageDealt: prev.damageDealt + playerDamage, turnsPlayed: prev.turnsPlayed + 1 }));
       playRetroSound("special", soundEnabled);
 
@@ -599,13 +547,13 @@ export default function DungeonPage() {
       const healAmount = Math.floor(Math.random() * 10) + 20; // 20 - 29
       setPlayerHp((prev) => Math.min(playerMaxHp, prev + healAmount));
       spawnFloatingText(`+${healAmount} HP`, "player", "heal");
-      addLog(`YOU RAN [RUN TESTS] AND PATCHED YOUR SOURCE FILE, RECOVERING ${healAmount} HP!`, "heal");
+      addLog(`You refactored files and patched your workspace, recovering ${healAmount} health.`, "heal");
       setBattleStats(prev => ({ ...prev, healsUsed: prev.healsUsed + 1, turnsPlayed: prev.turnsPlayed + 1 }));
       playRetroSound("heal", soundEnabled);
     } else if (action === "defend") {
       setDefending(true);
       spawnFloatingText("DEFENSE UP", "player", "defense");
-      addLog(`YOU USED [CODE REFACTOR]. YOUR ALGORITHMIC DEFENSES ARE RAISED!`, "defend");
+      addLog(`You implemented code comments, shielding yourself from incoming attacks.`, "defend");
       setBattleStats(prev => ({ ...prev, turnsPlayed: prev.turnsPlayed + 1 }));
       playRetroSound("defend", soundEnabled);
     }
@@ -632,10 +580,10 @@ export default function DungeonPage() {
       spawnFloatingText(`-${finalBossDamage} HP`, "player", "damage");
       
       const bossAbility = bossDamage > bossStats.baseDmg + 2 
-        ? "CRITICAL ATTACK [STACK OVERFLOW]" 
-        : "BASIC STRIKE [COMPILATION ERROR]";
+        ? "Critical Error: Stack Overflow" 
+        : "Compilation Warning: Syntax Error";
       
-      addLog(`${bossStats.name.toUpperCase()} CASTS [${bossAbility}], DEALING ${finalBossDamage} DAMAGE TO YOUR HEALTH.`, "boss");
+      addLog(`${bossStats.name} executes [${bossAbility}], dealing ${finalBossDamage} damage.`, "boss");
       setBattleStats(prev => ({ ...prev, damageTaken: prev.damageTaken + finalBossDamage }));
       playRetroSound("hit", soundEnabled);
 
@@ -647,15 +595,15 @@ export default function DungeonPage() {
 
   const triggerVictory = () => {
     setGameState("victory");
-    addLog(`VICTORY! THE ${BOSS_MAP[problem?.difficulty ?? "Medium"].name.toUpperCase()} WAS DEFEATED!`, "victory");
-    addLog("YOU ACQUIRED: XP POINTS, ARENA RATINGS, AND THE RESPECT OF THE LEETCODE CITY.", "gift");
+    addLog(`Victory! The ${BOSS_MAP[problem?.difficulty ?? "Medium"].name} has been defeated!`, "victory");
+    addLog("You have resolved today's challenge. Rewards sync complete.", "gift");
     playRetroSound("victory", soundEnabled);
   };
 
   const triggerDefeat = () => {
     setGameState("defeat");
-    addLog("DEFEATED! THE CODING DUNGEON CONSUMED YOUR PROFILE.", "defeat");
-    addLog("TIP: REFACTOR YOUR CODE AND TRY ATTACKING AGAIN!", "tip");
+    addLog("Defeated! The compiler rejected your updates.", "defeat");
+    addLog("Tip: Refactor your solution logic and retry the challenge.", "tip");
     playRetroSound("defeat", soundEnabled);
   };
 
@@ -663,12 +611,12 @@ export default function DungeonPage() {
   const leetcodeUrl = problem ? `https://leetcode.com/problems/${problem.titleSlug}/` : "#";
 
   return (
-    <main className="min-h-screen bg-bg font-pixel uppercase text-warm [image-rendering:pixelated] pb-16 relative overflow-hidden">
+    <main className="min-h-screen bg-[#1a1a1a] font-sans text-zinc-300 pb-16 relative">
       
-      {/* Background scanline simulation effect */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-lime/10 via-transparent to-transparent pointer-events-none z-0" />
+      {/* Subtle LeetCode-style background gradient */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-800/10 via-transparent to-transparent pointer-events-none z-0" />
 
-      {/* Embedded Styles for Retro Effects */}
+      {/* Spacing Styles */}
       <style jsx global>{`
         @keyframes shake {
           0%, 100% { transform: translate(0, 0); }
@@ -695,121 +643,73 @@ export default function DungeonPage() {
           animation: float-up 1.2s cubic-bezier(0.25, 1, 0.50, 1) forwards;
           text-shadow: 0 0 6px rgba(0,0,0,0.8);
         }
-
-        /* CRT monitor style */
-        .crt-monitor {
-          position: relative;
-          overflow: hidden;
-        }
-        .crt-monitor::after {
-          content: " ";
-          display: block;
-          position: absolute;
-          top: 0; left: 0; bottom: 0; right: 0;
-          background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
-          z-index: 10;
-          background-size: 100% 4px;
-          pointer-events: none;
-          opacity: 0.4;
-        }
-        .crt-monitor::before {
-          content: " ";
-          display: block;
-          position: absolute;
-          top: 0; left: 0; bottom: 0; right: 0;
-          background: radial-gradient(circle, transparent 65%, rgba(0,0,0,0.5) 100%);
-          z-index: 11;
-          pointer-events: none;
-        }
-        
-        @keyframes crt-flicker {
-          0% { opacity: 0.98; }
-          50% { opacity: 1; }
-          100% { opacity: 0.985; }
-        }
-        .crt-flicker {
-          animation: crt-flicker 0.15s infinite;
-        }
       `}</style>
 
-      <div className={`mx-auto max-w-5xl px-4 py-8 relative z-10 ${screenShaking ? "screen-shake" : ""}`}>
+      {/* Page Content Wrapper (Distributed full width max-w-7xl) */}
+      <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10 ${screenShaking ? "screen-shake" : ""}`}>
         
         {/* Navigation & Header */}
-        <div className="flex flex-col border-b border-border pb-6 mb-8 md:flex-row items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-xs text-muted hover:text-cream transition-colors duration-150 group"
-          >
-            <DungeonIcon name="arrow-left" className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-            RETREAT TO CITY
-          </Link>
-          
-          <div className="text-center">
-            <h1 
-              className="text-2xl md:text-3xl tracking-[0.2em] text-cream font-bold relative inline-block select-none"
-              style={{ textShadow: "0 0 12px var(--color-lime)" }}
+        <div className="flex flex-col border-b border-zinc-800 pb-5 mb-8 md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors duration-150 group"
             >
-              ⚔ THE CODING DUNGEON ⚔
-            </h1>
-            <div className="flex items-center justify-center gap-3 mt-1.5 text-[8px] text-muted tracking-widest">
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                SIMULATOR PORT: ONLINE
-              </span>
-              <span>•</span>
-              <span>CORE v2.5.0</span>
-              <span>•</span>
-              <button 
-                onClick={toggleSound}
-                className="flex items-center gap-1 hover:text-cream text-muted transition-colors cursor-pointer"
-                title={soundEnabled ? "Mute sound" : "Unmute sound"}
-              >
-                <DungeonIcon name={soundEnabled ? "sound-on" : "sound-off"} className="w-3.5 h-3.5" />
-                {soundEnabled ? "SOUND_ON" : "SOUND_OFF"}
-              </button>
-            </div>
+              <DungeonIcon name="arrow-left" className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+              Retreat to City
+            </Link>
+            <span className="text-zinc-700">|</span>
+            <span className="text-zinc-500 text-xs font-mono">SIMULATION PORTAL v2.5.0</span>
           </div>
           
-          {/* Status Indicators */}
-          <div className="flex gap-2">
-            <div className="border border-border bg-bg-raised px-3 py-1.5 text-center min-w-[100px]">
-              <span className="text-[7px] text-muted block">GRID GATEWAY</span>
-              <span className="text-[9px] text-[#ffa116] font-bold">CONNECTED</span>
+          <div className="text-center">
+            <h1 className="text-xl md:text-2xl font-bold tracking-wide text-zinc-100 flex items-center justify-center gap-2 select-none">
+              <span className="text-[#ffa116]"><DungeonIcon name="sword" className="w-5 h-5" /></span>
+              THE CODING DUNGEON
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleSound}
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer bg-zinc-800/60 border border-zinc-700 px-3 py-1.5 rounded-md"
+              title={soundEnabled ? "Mute sound" : "Unmute sound"}
+            >
+              <DungeonIcon name={soundEnabled ? "sound-on" : "sound-off"} className="w-3.5 h-3.5" />
+              <span>{soundEnabled ? "Sound On" : "Sound Muted"}</span>
+            </button>
+            
+            <div className="flex items-center gap-2 text-xs">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-zinc-400">Gateway Connected</span>
             </div>
-            {isOffline && (
-              <div className="border border-red-500/30 bg-red-950/20 px-3 py-1.5 text-center min-w-[100px]">
-                <span className="text-[7px] text-red-400 block">SIM_MODE</span>
-                <span className="text-[9px] text-red-500 font-bold">LOCAL_OFFLINE</span>
-              </div>
-            )}
           </div>
         </div>
 
         {/* LOADING STATE */}
         {loading && (
-          <div className="flex h-96 flex-col items-center justify-center border-[3px] border-border bg-bg-raised p-8 text-center shadow-lg relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,161,22,0.05)_0%,transparent_70%)] pointer-events-none" />
+          <div className="flex h-96 flex-col items-center justify-center border border-zinc-800 bg-[#282828] rounded-xl p-8 text-center shadow-lg relative overflow-hidden">
             <div className="relative mb-6">
-              <svg viewBox="0 0 100 100" className="w-20 h-20 animate-spin text-[#ffa116]" style={{ animationDuration: "3s" }}>
-                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" strokeDasharray="15 8" fill="none" opacity="0.3" />
+              <svg viewBox="0 0 100 100" className="w-16 h-16 animate-spin text-[#ffa116]" style={{ animationDuration: "2.5s" }}>
+                <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" strokeDasharray="15 8" fill="none" opacity="0.2" />
                 <circle cx="50" cy="50" r="30" stroke="currentColor" strokeWidth="3" strokeDasharray="30 10" fill="none" />
-                <polygon points="50,25 55,45 75,50 55,55 50,75 45,55 25,50 45,45" fill="currentColor" opacity="0.8" className="animate-pulse" />
+                <polygon points="50,25 55,45 75,50 55,55 50,75 45,55 25,50 45,45" fill="currentColor" opacity="0.7" />
               </svg>
             </div>
-            <p className="text-[11px] tracking-widest text-lime blink-dot font-bold">INITIATING CONSOLE CONNECTION...</p>
-            <p className="text-[8px] text-muted mt-2 normal-case font-mono">SYNCHRONIZING WITH LEETCODE ORBITAL NETWORKS</p>
+            <p className="text-sm font-bold text-zinc-200 tracking-wider">Synchronizing Challenge Matrix...</p>
+            <p className="text-xs text-zinc-500 mt-2 font-mono">Fetching latest challenge data from LeetCode mainframe</p>
           </div>
         )}
 
-        {/* ERROR STATE / FALLBACK INTERACTIVE RUN */}
+        {/* ERROR STATE */}
         {error && !problem && (
-          <div className="flex h-96 flex-col items-center justify-center border-[3px] border-red-500 bg-red-950/10 p-8 text-center shadow-lg relative">
-            <div className="mb-4 text-red-500">
-              <DungeonIcon name="warning" className="w-16 h-16" />
+          <div className="flex h-96 flex-col items-center justify-center border border-rose-950 bg-rose-950/10 rounded-xl p-8 text-center shadow-lg relative">
+            <div className="mb-4 text-rose-500">
+              <DungeonIcon name="warning" className="w-12 h-12" />
             </div>
-            <h2 className="text-sm text-red-500 mb-2 font-bold tracking-wider">DUNGEON CRITICAL ERROR</h2>
-            <p className="text-[10px] text-muted normal-case max-w-sm mb-6 leading-relaxed">
-              The Daily Dungeon portal collapsed! The LeetCode Daily API might be experiencing a temporary outage. Running simulator in offline mode.
+            <h2 className="text-base text-rose-400 mb-2 font-bold tracking-wider">PORTAL ERROR</h2>
+            <p className="text-xs text-zinc-400 max-w-sm mb-6 leading-relaxed">
+              Unable to reach the remote daily API gateway. Check your connection or launch local simulation.
             </p>
             <button
               onClick={() => {
@@ -819,52 +719,47 @@ export default function DungeonPage() {
                 setProblem(randomMock);
                 setLoading(false);
               }}
-              className="btn-press border-2 border-red-500 bg-red-950/20 text-red-400 px-6 py-2.5 text-[9px] font-bold tracking-wider cursor-pointer"
+              className="btn-press border border-rose-500/30 bg-rose-950/20 text-rose-300 hover:bg-rose-950/30 px-6 py-2.5 text-xs font-semibold rounded-lg tracking-wider cursor-pointer transition-colors"
             >
-              [ LAUNCH OFFLINE SIMULATION ]
+              Start Local Simulation
             </button>
           </div>
         )}
 
         {/* CORE INTERFACE */}
         {problem && bossInfo && !loading && (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             
             {/* Left Side: Game Battle Console (RPG Engine) */}
-            <div className="md:col-span-8 flex flex-col gap-6">
+            <div className="lg:col-span-8 flex flex-col gap-6">
               
               {/* Game Screen Container */}
-              <div className="border-[3px] border-border-light bg-bg-raised p-6 shadow-2xl relative crt-monitor crt-flicker">
-                
-                {/* Decorative retro bezels */}
-                <div className="absolute top-2 left-2 w-2.5 h-2.5 bg-border-light" />
-                <div className="absolute top-2 right-2 w-2.5 h-2.5 bg-border-light" />
-                <div className="absolute bottom-2 left-2 w-2.5 h-2.5 bg-border-light" />
-                <div className="absolute bottom-2 right-2 w-2.5 h-2.5 bg-border-light" />
+              <div className="border border-zinc-800 bg-[#282828] rounded-xl p-6 shadow-xl relative flex flex-col gap-6">
 
                 {/* Intro Screen */}
                 {gameState === "intro" && (
-                  <div className="flex flex-col items-center justify-center py-10 text-center relative z-20">
-                    <div className="mb-6 select-none bg-bg-card p-4 border-[3px] border-border-light relative shadow-md">
+                  <div className="flex flex-col items-center justify-center py-12 text-center relative z-20">
+                    <div className="mb-6 select-none bg-[#1e1e1e] p-4 border border-zinc-800 rounded-lg shadow-inner">
                       <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={false} />
                     </div>
-                    <span className="text-[10px] text-muted block mb-1">DATABASE GUARDIAN CHALLENGE</span>
+                    <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-widest">DUNGEON GUARDIAN SYSTEM</span>
                     <h2 
-                      className="text-lg font-bold mb-4 font-mono tracking-widest"
+                      className="text-lg font-bold mb-3 font-mono tracking-wide"
                       style={{ color: bossInfo.color }}
                     >
-                      {bossInfo.name.toUpperCase()}
+                      {bossInfo.name}
                     </h2>
                     
-                    <div className="max-w-md bg-bg-card border border-border p-4 mb-8 text-[10px] text-muted normal-case leading-relaxed">
-                      This daily challenge daemon represents today&apos;s coding challenge. Play the tactical logic simulation to test your skills, or fight directly on LeetCode to secure full XP rewards.
-                    </div>
+                    <p className="max-w-md text-xs text-zinc-400 mb-8 leading-relaxed">
+                      Deploy algorithmic optimizations to tackle the challenge. Run tests to recover your health, refactor files to block attacks, and commit code to deliver critical payloads.
+                    </p>
 
                     <button
                       onClick={startBattle}
-                      className="btn-press border-[3px] border-lime bg-lime/10 hover:bg-lime/20 px-8 py-3 text-xs text-lime transition-all duration-150 font-bold tracking-widest cursor-pointer shadow-[4px_4px_0_0_#000000]"
+                      className="btn-press bg-[#ffa116] hover:bg-[#ffb800] text-zinc-950 px-8 py-3 text-xs font-bold rounded-lg tracking-wider transition-colors cursor-pointer shadow-sm flex items-center gap-2"
                     >
-                      ⚔ CHALLENGE DAEMON
+                      <DungeonIcon name="sword" className="w-4 h-4" />
+                      Engage Boss Simulation
                     </button>
                   </div>
                 )}
@@ -874,79 +769,83 @@ export default function DungeonPage() {
                   <div className="flex flex-col relative z-20">
                     
                     {/* Health Status Bar Header */}
-                    <div className="grid grid-cols-2 gap-4 pb-4 border-b border-border">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-zinc-800/80">
                       
                       {/* Boss HP */}
-                      <div className="border border-border bg-bg p-3 relative">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-bold" style={{ color: bossInfo.color }}>
-                            DAEMON: {bossInfo.name.toUpperCase()}
+                      <div className="border border-zinc-800 bg-[#1e1e1e] rounded-lg p-4 relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold" style={{ color: bossInfo.color }}>
+                            DAEMON: {bossInfo.name}
                           </span>
-                          <span className="text-[8px] text-muted normal-case font-mono">LOCKED</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">TARGET</span>
                         </div>
-                        <div className="w-full bg-bg-raised h-4 p-0.5 border border-border-light relative">
+                        <div className="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 relative">
                           <div 
-                            className="h-full transition-all duration-300 relative"
+                            className="h-full transition-all duration-300 rounded-full"
                             style={{ 
                               width: `${(bossHp / bossMaxHp) * 100}%`,
-                              backgroundColor: bossInfo.color,
-                              boxShadow: `0 0 10px ${bossInfo.color}88`
+                              backgroundColor: bossInfo.color
                             }}
-                          >
-                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_90%,rgba(0,0,0,0.4)_90%)] bg-[size:10%_100%]" />
-                          </div>
+                          />
                         </div>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[8px] text-dim">INTEGRITY MATRIX</span>
-                          <span className="text-[9px] font-bold" style={{ color: bossInfo.color }}>
-                            {bossHp} / {bossMaxHp} HP [{(bossHp / bossMaxHp * 100).toFixed(0)}%]
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-zinc-400 font-mono">
+                          <span>SYSTEM INTEGRITY</span>
+                          <span className="font-bold" style={{ color: bossInfo.color }}>
+                            {bossHp} / {bossMaxHp} HP ({(bossHp / bossMaxHp * 100).toFixed(0)}%)
                           </span>
                         </div>
                       </div>
 
                       {/* Player HP */}
-                      <div className="border border-border bg-bg p-3 relative">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] text-[#39ff14] font-bold">
-                            PLAYER: ACTIVE DEVELOPER
+                      <div className="border border-zinc-800 bg-[#1e1e1e] rounded-lg p-4 relative">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-[#00b8a3]">
+                            DEVELOPER: LOCAL INSTANCE
                           </span>
-                          <span className="text-[8px] text-muted normal-case font-mono">LOCAL</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">LOCAL</span>
                         </div>
-                        <div className="w-full bg-bg-raised h-4 p-0.5 border border-border-light relative">
+                        <div className="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 relative">
                           <div 
-                            className="h-full bg-[#39ff14] transition-all duration-300 relative"
-                            style={{ 
-                              width: `${(playerHp / playerMaxHp) * 100}%`,
-                              boxShadow: "0 0 10px rgba(57,255,20,0.6)"
-                            }}
-                          >
-                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_90%,rgba(0,0,0,0.4)_90%)] bg-[size:10%_100%]" />
-                          </div>
+                            className="h-full bg-[#00b8a3] transition-all duration-300 rounded-full"
+                            style={{ width: `${(playerHp / playerMaxHp) * 100}%` }}
+                          />
                         </div>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[8px] text-dim">PROFILE HEALTH</span>
-                          <span className="text-[9px] text-[#39ff14] font-bold">
-                            {playerHp} / {playerMaxHp} HP [{(playerHp / playerMaxHp * 100).toFixed(0)}%]
+                        <div className="flex items-center justify-between mt-2 text-[10px] text-zinc-400 font-mono">
+                          <span>WORK SPACE HEALTH</span>
+                          <span className="font-bold text-[#00b8a3]">
+                            {playerHp} / {playerMaxHp} HP ({(playerHp / playerMaxHp * 100).toFixed(0)}%)
                           </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Battle Arena Visuals */}
-                    <div className="flex items-center justify-around py-8 bg-bg-card border border-border my-5 relative min-h-[170px] shadow-inner">
+                    <div className="flex items-center justify-around py-10 bg-[#1e1e1e] border border-zinc-800 rounded-lg my-6 relative min-h-[200px] overflow-hidden shadow-inner">
                       
+                      {/* Grid overlay */}
+                      <div className="absolute inset-0 opacity-5 pointer-events-none select-none">
+                        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <pattern id="battleGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="1"/>
+                            </pattern>
+                          </defs>
+                          <rect width="100%" height="100%" fill="url(#battleGrid)" />
+                        </svg>
+                      </div>
+
                       {/* Floating Text Overlays */}
                       {floatingTexts.map((txt) => (
                         <div
                           key={txt.id}
-                          className={`absolute float-text text-[11px] font-bold z-20 ${
+                          className={`absolute float-text text-sm font-bold z-20 ${
                             txt.side === "player" ? "left-[25%]" : "right-[25%]"
                           } ${
-                            txt.type === "damage" ? "text-red-500 font-extrabold" :
-                            txt.type === "special" ? "text-amber-400 font-extrabold text-xs" :
-                            txt.type === "heal" ? "text-emerald-400 font-bold" : "text-sky-400 font-bold"
+                            txt.type === "damage" ? "text-rose-500 font-extrabold" :
+                            txt.type === "special" ? "text-amber-500 font-extrabold text-base" :
+                            txt.type === "heal" ? "text-emerald-500" : "text-sky-500"
                           }`}
-                          style={{ top: "30%" }}
+                          style={{ top: "35%" }}
                         >
                           {txt.text}
                         </div>
@@ -955,88 +854,87 @@ export default function DungeonPage() {
                       {/* Player Screen */}
                       <div className="text-center relative">
                         <PlayerGraphic flashing={playerFlashing} />
-                        <div className="text-[8px] text-cream border border-border-light px-2 py-0.5 bg-bg mt-3 font-bold inline-block shadow-sm">
-                          DEVELOPER.EXE
+                        <div className="text-xs text-zinc-300 font-medium px-3 py-1 bg-[#282828] border border-zinc-700 rounded mt-3 inline-block shadow-sm">
+                          Developer Terminal
                         </div>
                       </div>
 
                       {/* VS Badge */}
                       <div className="flex flex-col items-center">
-                        <div className="text-[9px] font-extrabold text-dim bg-bg border-2 border-border px-3 py-1.5 select-none tracking-widest rounded-sm">
+                        <div className="text-xs font-bold text-zinc-500 bg-[#282828] border border-zinc-700 px-3 py-1.5 select-none tracking-widest rounded shadow-sm font-mono">
                           VS
                         </div>
-                        <div className="w-0.5 h-6 bg-border mt-2" />
                       </div>
 
                       {/* Boss Screen */}
                       <div className="text-center relative">
                         {gameState === "victory" ? (
                           <div className="w-28 h-28 flex flex-col items-center justify-center select-none animate-pulse">
-                            <DungeonIcon name="skull" className="w-16 h-16 text-red-600" />
-                            <span className="text-[8px] text-red-500 mt-2 tracking-widest font-bold">DAEMON_CRASHED</span>
+                            <DungeonIcon name="skull" className="w-12 h-12 text-rose-500" />
+                            <span className="text-[10px] text-rose-500 mt-2 tracking-widest font-mono font-bold">DAEMON_CRASHED</span>
                           </div>
                         ) : (
                           <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={bossFlashing} />
                         )}
                         <div 
-                          className="text-[8px] border px-2 py-0.5 bg-bg mt-3 font-bold inline-block shadow-sm"
-                          style={{ borderColor: bossInfo.color, color: bossInfo.color }}
+                          className="text-xs font-medium px-3 py-1 bg-[#282828] border rounded mt-3 inline-block shadow-sm"
+                          style={{ borderColor: `${bossInfo.color}40`, color: bossInfo.color }}
                         >
-                          {bossInfo.name.toUpperCase()}
+                          {bossInfo.name}
                         </div>
                       </div>
                     </div>
 
                     {/* RPG Controller Action Pad */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9px] text-muted font-bold tracking-wider">SELECT COMMAND SEQUENCE:</span>
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs text-zinc-400 font-semibold tracking-wider">Select Command:</span>
                         {defending && (
-                          <span className="text-[8px] text-sky-400 font-bold animate-pulse">
-                            [REFACTOR ACTIVE: DAMAGE MINIMIZED]
+                          <span className="text-xs text-sky-400 font-mono animate-pulse">
+                            [Refactor Active: Next Attack Shielded]
                           </span>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("attack")}
-                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0_0_#000000]"
+                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                         >
-                          <DungeonIcon name="sword" className="w-3.5 h-3.5" />
-                          CODE ATTACK
+                          <DungeonIcon name="sword" className="w-4 h-4 text-amber-500" />
+                          Code Attack
                         </button>
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("defend")}
-                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0_0_#000000]"
+                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                         >
-                          <DungeonIcon name="shield" className="w-3.5 h-3.5" />
-                          REFACTOR DEF
+                          <DungeonIcon name="shield" className="w-4 h-4 text-sky-400" />
+                          Refactor Def
                         </button>
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("heal")}
-                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0_0_#000000]"
+                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                         >
-                          <DungeonIcon name="sparkles" className="w-3.5 h-3.5" />
-                          TEST HEAL
+                          <DungeonIcon name="sparkles" className="w-4 h-4 text-emerald-400" />
+                          Test Heal
                         </button>
                         <button
                           disabled={gameState !== "battle" || specialCooldown > 0}
                           onClick={() => handleAction("special")}
-                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-[4px_4px_0_0_#000000]"
+                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                         >
-                          <DungeonIcon name="fire" className="w-3.5 h-3.5" />
-                          COMMIT {specialCooldown > 0 ? `(${specialCooldown})` : ""}
+                          <DungeonIcon name="fire" className="w-4 h-4 text-rose-500" />
+                          Commit {specialCooldown > 0 ? `(${specialCooldown})` : ""}
                         </button>
                       </div>
                     </div>
 
                     {/* Battle Simulator Console Logs */}
-                    <div className="border-[3px] border-border bg-bg p-4 h-48 overflow-y-auto font-mono text-[9px] leading-relaxed scrollbar-thin">
+                    <div className="border border-zinc-800 bg-[#1e1e1e] p-5 h-56 rounded-lg overflow-y-auto font-mono text-[11px] leading-relaxed scrollbar-thin">
                       {battleLogs.map((log, index) => {
-                        let textColor = "text-cream-dark";
+                        let textColor = "text-zinc-300";
                         let iconName = "system";
                         
                         switch (log.type) {
@@ -1045,7 +943,7 @@ export default function DungeonPage() {
                             iconName = "sword";
                             break;
                           case "special":
-                            textColor = "text-red-400 font-bold";
+                            textColor = "text-rose-400 font-semibold";
                             iconName = "fire";
                             break;
                           case "heal":
@@ -1061,11 +959,11 @@ export default function DungeonPage() {
                             iconName = "skull";
                             break;
                           case "warning":
-                            textColor = "text-amber-500 font-bold";
+                            textColor = "text-amber-500 font-semibold";
                             iconName = "warning";
                             break;
                           case "victory":
-                            textColor = "text-emerald-400 font-bold";
+                            textColor = "text-emerald-400 font-semibold";
                             iconName = "trophy";
                             break;
                           case "gift":
@@ -1073,7 +971,7 @@ export default function DungeonPage() {
                             iconName = "gift";
                             break;
                           case "defeat":
-                            textColor = "text-red-600 font-bold";
+                            textColor = "text-rose-600 font-semibold";
                             iconName = "skull";
                             break;
                           case "tip":
@@ -1081,17 +979,17 @@ export default function DungeonPage() {
                             iconName = "tip";
                             break;
                           default:
-                            textColor = "text-muted";
+                            textColor = "text-zinc-500";
                             iconName = "system";
                         }
 
                         return (
-                          <div key={index} className={`mb-1.5 flex items-start gap-2 ${textColor}`}>
-                            <span className="text-[8px] opacity-40 shrink-0 select-none font-mono">[{log.timestamp}]</span>
+                          <div key={index} className={`mb-2 flex items-start gap-2.5 ${textColor}`}>
+                            <span className="text-[10px] text-zinc-600 shrink-0 select-none">[{log.timestamp}]</span>
                             <span className="mt-0.5 shrink-0">
-                              <DungeonIcon name={iconName} className="w-3 h-3" />
+                              <DungeonIcon name={iconName} className="w-3.5 h-3.5" />
                             </span>
-                            <span className="normal-case">{log.message}</span>
+                            <span className="normal-case font-mono">{log.message}</span>
                           </div>
                         );
                       })}
@@ -1100,18 +998,18 @@ export default function DungeonPage() {
 
                     {/* Reset/Back Control on Game Over */}
                     {gameState !== "battle" && (
-                      <div className="mt-4 flex gap-4">
+                      <div className="mt-6 flex gap-4">
                         <button
                           onClick={startBattle}
-                          className="btn-press flex-1 border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-[10px] py-3.5 font-bold tracking-widest text-lime cursor-pointer shadow-[4px_4px_0_0_#000000]"
+                          className="btn-press flex-1 bg-[#00b8a3] hover:bg-[#009c8a] text-zinc-950 text-xs py-3.5 font-semibold rounded-lg tracking-wide cursor-pointer transition-colors shadow-sm"
                         >
-                          ⚔ ENTER DUNGEON AGAIN
+                          Restart Battle Simulation
                         </button>
                         <button
                           onClick={() => setGameState("intro")}
-                          className="border border-border bg-bg-card hover:bg-bg text-muted hover:text-cream text-[10px] px-6 py-3.5 transition-colors duration-150 cursor-pointer"
+                          className="border border-zinc-700 bg-zinc-800/60 hover:bg-zinc-800 text-zinc-300 text-xs px-6 py-3.5 rounded-lg transition-colors cursor-pointer"
                         >
-                          [ RETREAT ]
+                          Retreat to Deck
                         </button>
                       </div>
                     )}
@@ -1124,55 +1022,54 @@ export default function DungeonPage() {
             </div>
 
             {/* Right Side: Boss/Challenge Details Card */}
-            <div className="md:col-span-4 flex flex-col gap-6">
+            <div className="lg:col-span-4 flex flex-col gap-6">
               
               {/* Leetcode Boss Details */}
-              <div className="border-[3px] border-border bg-bg-raised p-5 shadow-lg relative">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-[radial-gradient(circle_at_top_right,rgba(250,204,21,0.05)_0%,transparent_70%)]" />
-                <span className="text-[8px] text-lime block mb-1">DUNGEON INTELLIGENCE</span>
-                <h3 className="text-xs text-cream mb-4 font-bold">TODAY&apos;S MISSION OBJECTIVE</h3>
+              <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg relative">
+                <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-wider">MISSION BRIEFING</span>
+                <h3 className="text-sm text-zinc-200 mb-4 font-bold">Daily Challenge Parameters</h3>
                 
                 <div className="mb-4">
-                  <span className="text-[9px] text-muted block mb-1.5 font-bold">TARGET BOSS DAEMON:</span>
-                  <div className="flex items-center gap-3 bg-bg border border-border p-2.5">
+                  <span className="text-xs text-zinc-500 block mb-2">Target Hostile Daemon:</span>
+                  <div className="flex items-center gap-3 bg-[#1e1e1e] border border-zinc-800 rounded-lg p-3">
                     <div className="scale-75 origin-center shrink-0">
                       <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={false} />
                     </div>
                     <div>
-                      <span className="text-[10px] text-cream font-bold block leading-tight">{bossInfo.name}</span>
-                      <span className="text-[8px] text-muted normal-case block mt-0.5">Integrity Unit: {bossInfo.maxHp} HP</span>
+                      <span className="text-xs text-zinc-200 font-bold block">{bossInfo.name}</span>
+                      <span className="text-[10px] text-zinc-500 block mt-0.5">Matrix Base: {bossInfo.maxHp} HP</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <span className="text-[9px] text-muted block mb-1.5 font-bold">LEETCODE DAILY CHALLENGE:</span>
-                  <div className="bg-bg border border-border p-3">
-                    <p className="text-[10px] text-cream normal-case font-bold leading-normal">{problem.title}</p>
-                    <span className="text-[8px] text-muted block mt-1 normal-case font-mono">SLUG: {problem.titleSlug}</span>
+                  <span className="text-xs text-zinc-500 block mb-2">LeetCode Daily challenge:</span>
+                  <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg p-4">
+                    <p className="text-xs text-zinc-200 font-semibold leading-relaxed">{problem.title}</p>
+                    <span className="text-[10px] text-zinc-500 block mt-1 font-mono">Slug: {problem.titleSlug}</span>
                   </div>
                 </div>
 
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-between bg-[#1e1e1e] border border-zinc-800 rounded-lg p-3">
                   <div>
-                    <span className="text-[9px] text-muted block mb-1.5 font-bold">DIFFICULTY:</span>
+                    <span className="text-[10px] text-zinc-500 block mb-1">Difficulty:</span>
                     <span 
-                      className="border px-2.5 py-0.5 text-[8px] font-bold inline-block"
-                      style={{ borderColor: bossInfo.color, color: bossInfo.color, backgroundColor: `${bossInfo.color}10` }}
+                      className="border rounded px-2.5 py-0.5 text-[10px] font-semibold inline-block"
+                      style={{ borderColor: `${bossInfo.color}40`, color: bossInfo.color, backgroundColor: `${bossInfo.color}0d` }}
                     >
-                      {problem.difficulty.toUpperCase()}
+                      {problem.difficulty}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] text-muted block mb-1.5 font-bold text-right">SYNC_REWARD:</span>
-                    <span className="text-[9px] text-emerald-400 font-bold text-right block font-mono">
+                    <span className="text-[10px] text-zinc-500 block mb-1 text-right">XP Sync:</span>
+                    <span className="text-xs text-emerald-400 font-bold text-right block font-mono">
                       +{problem.difficulty === "Easy" ? "50" : problem.difficulty === "Medium" ? "100" : "200"} XP
                     </span>
                   </div>
                 </div>
 
-                <div className="border-t border-border pt-4 mt-6">
-                  <p className="text-[9px] text-muted normal-case mb-4 leading-relaxed">
+                <div className="border-t border-zinc-800/80 pt-4 mt-6">
+                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
                     Connecting to the remote mainframe resolves this objective. Access the direct coding console on LeetCode to submit your solution.
                   </p>
                   
@@ -1180,9 +1077,10 @@ export default function DungeonPage() {
                     href={leetcodeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-press w-full text-center block border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime font-bold text-xs py-3.5 tracking-widest transition-all duration-150 no-underline shadow-[4px_4px_0_0_#000000]"
+                    className="btn-press w-full text-center block bg-[#ffa116] hover:bg-[#ffb800] text-zinc-950 font-bold text-xs py-3.5 rounded-lg transition-colors no-underline shadow-sm flex items-center justify-center gap-2"
                   >
-                    ⚔ FIGHT ON LEETCODE
+                    <DungeonIcon name="sword" className="w-4 h-4" />
+                    Solve on LeetCode
                   </a>
                 </div>
 
@@ -1190,43 +1088,42 @@ export default function DungeonPage() {
 
               {/* Simulator Run Statistics */}
               {gameState !== "intro" && (
-                <div className="border-[3px] border-border bg-bg-raised p-5 shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-[radial-gradient(circle_at_top_right,rgba(0,210,255,0.05)_0%,transparent_70%)]" />
-                  <span className="text-[8px] text-sky-400 block mb-1">DASHBOARD INTEGRITY</span>
-                  <h3 className="text-xs text-cream mb-4 font-bold">SESSION DIAGNOSTICS</h3>
+                <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg relative overflow-hidden">
+                  <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-wider">DIAGNOSTICS</span>
+                  <h3 className="text-sm text-zinc-200 mb-4 font-bold">Session Record</h3>
                   
-                  <div className="space-y-3 text-[10px]">
-                    <div className="flex justify-between border-b border-border pb-1.5">
-                      <span className="text-muted">TURNS COMMITTED:</span>
-                      <span className="text-cream font-bold font-mono">{battleStats.turnsPlayed}</span>
+                  <div className="space-y-3.5 text-xs">
+                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
+                      <span className="text-zinc-500">Commands Run:</span>
+                      <span className="text-zinc-200 font-semibold font-mono">{battleStats.turnsPlayed}</span>
                     </div>
-                    <div className="flex justify-between border-b border-border pb-1.5">
-                      <span className="text-muted">DAMAGE DELIVERED:</span>
-                      <span className="text-emerald-400 font-bold font-mono">{battleStats.damageDealt} PT</span>
+                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
+                      <span className="text-zinc-500">Damage Delivered:</span>
+                      <span className="text-amber-500 font-semibold font-mono">{battleStats.damageDealt} HP</span>
                     </div>
-                    <div className="flex justify-between border-b border-border pb-1.5">
-                      <span className="text-muted">DAMAGE TAKEN:</span>
-                      <span className="text-rose-400 font-bold font-mono">{battleStats.damageTaken} PT</span>
+                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
+                      <span className="text-zinc-500">Damage Taken:</span>
+                      <span className="text-rose-500 font-semibold font-mono">{battleStats.damageTaken} HP</span>
                     </div>
-                    <div className="flex justify-between border-b border-border pb-1.5">
-                      <span className="text-muted">LOCAL TEST RUNS:</span>
-                      <span className="text-sky-400 font-bold font-mono">{battleStats.healsUsed} HEALS</span>
+                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
+                      <span className="text-zinc-500">Local Recoveries:</span>
+                      <span className="text-emerald-500 font-semibold font-mono">{battleStats.healsUsed}</span>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Dungeon Instructions */}
-              <div className="border-[3px] border-border bg-bg-raised p-5 shadow-lg">
+              <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <DungeonIcon name="tip" className="w-4 h-4 text-[#ffa116]" />
-                  <h4 className="text-xs text-cream font-bold">RULES OF THE CRYPT</h4>
+                  <h4 className="text-xs text-zinc-200 font-bold">Dungeon Rules</h4>
                 </div>
-                <ul className="text-[9px] text-muted normal-case space-y-2.5 list-disc pl-4 leading-relaxed">
+                <ul className="text-xs text-zinc-400 space-y-2.5 list-disc pl-4 leading-relaxed">
                   <li>The Daily Challenge rotates automatically every midnight UTC.</li>
-                  <li>Solving the boss problem on LeetCode awards custom **XP** and **Arena score**.</li>
-                  <li>Defeating harder bosses (Medium/Hard) drops higher tier materials to equip.</li>
-                  <li>Use the `/api/cron/rotate-daily-challenge` endpoint or GitHub actions to update.</li>
+                  <li>Solving the boss problem on LeetCode awards custom XP and Arena rating updates.</li>
+                  <li>Defeating higher tier daemons (Medium/Hard) drops higher level credentials and badges.</li>
+                  <li>Solving solutions syncs with the city database within minutes of submission.</li>
                 </ul>
               </div>
 
