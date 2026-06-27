@@ -2086,6 +2086,7 @@ interface Props {
   accentColor?: string;
   onClearFocus?: () => void;
   onBuildingClick?: (building: CityBuilding) => void;
+  onBuildingFocus?: (building: CityBuilding) => void;
   onFocusInfo?: (info: FocusInfo) => void;
   flyPauseSignal?: number;
   flyHasOverlay?: boolean;
@@ -2177,6 +2178,7 @@ export default function CityCanvas({
   accentColor,
   onClearFocus,
   onBuildingClick,
+  onBuildingFocus,
   onFocusInfo,
   flyPauseSignal,
   flyHasOverlay,
@@ -2290,17 +2292,32 @@ export default function CityCanvas({
   const handleCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (!buildings.length) return;
 
-    if (e.key === "Tab") {
+    const isForward = e.key === "ArrowRight" || e.key === "ArrowDown";
+    const isBackward = e.key === "ArrowLeft" || e.key === "ArrowUp";
+
+    // Arrow keys move the highlight between buildings. They only focus/highlight
+    // a building — actual navigation is deferred to Enter so cycling focus never
+    // triggers an instant redirect. Tab / Shift+Tab are intentionally left to the
+    // browser's default focus handling so keyboard and screen-reader users can
+    // move focus out of the canvas (no keyboard trap).
+    if (isForward || isBackward) {
       e.preventDefault();
       setKbBuildingIndex((prev) => {
-        const next = e.shiftKey
-          ? (prev - 1 + buildings.length) % buildings.length
-          : (prev + 1) % buildings.length;
+        const currentIdx = focusedBuilding
+          ? buildings.findIndex(
+              (b) => b.login.toLowerCase() === focusedBuilding.toLowerCase()
+            )
+          : -1;
+        const base = currentIdx >= 0 ? currentIdx : prev;
+        const next = isForward
+          ? (base + 1) % buildings.length
+          : (base - 1 + buildings.length) % buildings.length;
         const building = buildings[next];
-        if (building && onBuildingClick) onBuildingClick(building);
+        if (building && onBuildingFocus) onBuildingFocus(building);
         return next;
       });
     } else if (e.key === "Enter") {
+      e.preventDefault();
       const building = buildings[kbBuildingIndex];
       if (building && onBuildingClick) onBuildingClick(building);
     } else if (e.key === "Escape") {
@@ -2312,7 +2329,7 @@ export default function CityCanvas({
     <>
     <Canvas
       role="application"
-      aria-label="3D LeetCode City — use Tab to cycle through buildings, Enter to open a profile, Escape to close"
+      aria-label="3D LeetCode City — use arrow keys to move between buildings, Enter to open a profile, Escape to close. Press Tab to leave the city."
       tabIndex={0}
       onKeyDown={handleCanvasKeyDown}
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}

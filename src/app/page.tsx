@@ -2988,6 +2988,7 @@ function HomeContent() {
         focusedBuildingB={focusedBuildingB}
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
+        onBuildingFocus={(b) => setFocusedBuilding(b.login)}
         flyPauseSignal={flyPauseSignal}
         flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
