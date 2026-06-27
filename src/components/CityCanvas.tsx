@@ -2295,6 +2295,20 @@ export default function CityCanvas({
     const isForward = e.key === "ArrowRight" || e.key === "ArrowDown";
     const isBackward = e.key === "ArrowLeft" || e.key === "ArrowUp";
 
+    // Resolve the building the user is currently on from the visible highlight
+    // (focusedBuilding) so keyboard actions stay in sync with focus set by any
+    // means — mouse click, URL param, raid, compare mode — falling back to the
+    // last keyboard index when nothing is highlighted.
+    const currentIndex = () => {
+      if (focusedBuilding) {
+        const idx = buildings.findIndex(
+          (b) => b.login.toLowerCase() === focusedBuilding.toLowerCase()
+        );
+        if (idx >= 0) return idx;
+      }
+      return kbBuildingIndex;
+    };
+
     // Arrow keys move the highlight between buildings. They only focus/highlight
     // a building — actual navigation is deferred to Enter so cycling focus never
     // triggers an instant redirect. Tab / Shift+Tab are intentionally left to the
@@ -2302,23 +2316,16 @@ export default function CityCanvas({
     // move focus out of the canvas (no keyboard trap).
     if (isForward || isBackward) {
       e.preventDefault();
-      setKbBuildingIndex((prev) => {
-        const currentIdx = focusedBuilding
-          ? buildings.findIndex(
-              (b) => b.login.toLowerCase() === focusedBuilding.toLowerCase()
-            )
-          : -1;
-        const base = currentIdx >= 0 ? currentIdx : prev;
-        const next = isForward
-          ? (base + 1) % buildings.length
-          : (base - 1 + buildings.length) % buildings.length;
-        const building = buildings[next];
-        if (building && onBuildingFocus) onBuildingFocus(building);
-        return next;
-      });
+      const base = currentIndex();
+      const next = isForward
+        ? (base + 1) % buildings.length
+        : (base - 1 + buildings.length) % buildings.length;
+      const building = buildings[next];
+      setKbBuildingIndex(next);
+      if (building && onBuildingFocus) onBuildingFocus(building);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const building = buildings[kbBuildingIndex];
+      const building = buildings[currentIndex()];
       if (building && onBuildingClick) onBuildingClick(building);
     } else if (e.key === "Escape") {
       if (onClearFocus) onClearFocus();
