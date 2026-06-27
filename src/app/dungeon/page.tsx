@@ -745,13 +745,14 @@ export default function DungeonPage() {
 
         {/* CORE INTERFACE */}
         {problem && bossInfo && !loading && (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <>
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-stretch">
             
             {/* Left Side: Game Battle Console (RPG Engine) */}
             <div className="lg:col-span-8 flex flex-col gap-6">
               
               {/* Game Screen Container */}
-              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative flex flex-col gap-6">
+              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative flex flex-col gap-6 flex-1">
 
                 {/* Intro Screen */}
                 {gameState === "intro" && (
@@ -1046,7 +1047,7 @@ export default function DungeonPage() {
             <div className="lg:col-span-4 flex flex-col gap-6">
               
               {/* Leetcode Boss Details */}
-              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative">
+              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative flex-1 flex flex-col">
                 <span className="text-[10px] text-muted block mb-1 font-mono tracking-wider">MISSION BRIEFING</span>
                 <h3 className="text-xs text-cream mb-4 font-bold">DAILY CHALLENGE MATRICES</h3>
                 
@@ -1171,23 +1172,36 @@ export default function DungeonPage() {
                 </div>
               )}
 
-              {/* Dungeon Instructions */}
-              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow">
-                <div className="flex items-center gap-2 mb-3">
-                  <DungeonIcon name="tip" className="w-4 h-4 text-[#ffa116]" />
-                  <h4 className="text-xs text-cream font-bold">RULES OF THE CRYPT</h4>
-                </div>
-                <ul className="text-[10px] text-muted normal-case space-y-2.5 list-disc pl-4 leading-relaxed">
-                  <li>The Daily Challenge rotates automatically every midnight UTC.</li>
-                  <li>Solving the boss problem on LeetCode awards custom XP and Arena rating updates.</li>
-                  <li>Defeating higher tier daemons (Medium/Hard) drops higher level credentials and badges.</li>
-                  <li>Solving solutions syncs with the city database within minutes of submission.</li>
-                </ul>
-              </div>
-
             </div>
 
           </div>
+
+          {/* Rules of the Crypt — full-width horizontal row below the two columns */}
+          <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow mt-8">
+            <div className="flex items-center gap-2 mb-3">
+              <DungeonIcon name="tip" className="w-4 h-4 text-[#ffa116]" />
+              <h4 className="text-xs text-cream font-bold">RULES OF THE CRYPT</h4>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="text-[10px] text-muted normal-case leading-relaxed flex gap-2">
+                <span className="text-[#ffa116] font-bold shrink-0">01.</span>
+                <span>The Daily Challenge rotates automatically every midnight UTC.</span>
+              </div>
+              <div className="text-[10px] text-muted normal-case leading-relaxed flex gap-2">
+                <span className="text-[#ffa116] font-bold shrink-0">02.</span>
+                <span>Solving the boss problem awards custom XP and Arena rating updates.</span>
+              </div>
+              <div className="text-[10px] text-muted normal-case leading-relaxed flex gap-2">
+                <span className="text-[#ffa116] font-bold shrink-0">03.</span>
+                <span>Defeating higher tier daemons (Medium/Hard) drops higher level credentials and badges.</span>
+              </div>
+              <div className="text-[10px] text-muted normal-case leading-relaxed flex gap-2">
+                <span className="text-[#ffa116] font-bold shrink-0">04.</span>
+                <span>Solving solutions syncs with the city database within minutes of submission.</span>
+              </div>
+            </div>
+          </div>
+          </>
         )}
 
       </div>
