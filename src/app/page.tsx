@@ -1,10 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
-import CodexModal from "@/components/CodexModal";
-import RelicModal from "@/components/RelicModal";
 import { STATIC_RELICS, type Relic } from "@/lib/relics";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { WeatherProvider } from '@/context/WeatherContext';
@@ -37,20 +36,15 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import ActivityTicker, { type FeedEvent } from "@/components/ActivityTicker";
-import ActivityPanel from "@/components/ActivityPanel";
 import { ITEM_NAMES, ITEM_EMOJIS } from "@/lib/zones";
 import { useStreakCheckin } from "@/lib/useStreakCheckin";
 import { useLiveUsers } from "@/lib/useLiveUsers";
 import { useCodingPresence } from "@/lib/useCodingPresence";
+import { useCityPresence } from "@/lib/multiplayer/useCityPresence";
 import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
-import RaidPreviewModal from "@/components/RaidPreviewModal";
 import RaidOverlay from "@/components/RaidOverlay";
-import PillModal from "@/components/PillModal";
-import FounderMessage from "@/components/FounderMessage";
-import RabbitCompletion from "@/components/RabbitCompletion";
-import DistrictChooser from "@/components/DistrictChooser";
 import XpBar from "@/components/XpBar";
 import LevelUpToast from "@/components/LevelUpToast";
 import {
@@ -60,8 +54,6 @@ import {
   xpForLevel,
 } from "@/lib/xp";
 import LoadingScreen, { type LoadingStage } from "@/components/LoadingScreen";
-import MiniMap from "@/components/MiniMap";
-import CityAnalyticsDashboard from "@/components/CityAnalyticsDashboard";
 import { getCityCache, setCityCache, clearCityCache } from "@/lib/cityCache";
 import {
   DEFAULT_SKY_ADS,
@@ -116,6 +108,22 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
     </div>
   ),
 });
+
+const CodexModal = dynamic(() => import("@/components/CodexModal"), { ssr: false });
+const RelicModal = dynamic(() => import("@/components/RelicModal"), { ssr: false });
+const ActivityPanel = dynamic(() => import("@/components/ActivityPanel"), { ssr: false });
+const CityChat = dynamic(() => import("@/components/CityChat"), { ssr: false });
+const RaidPreviewModal = dynamic(() => import("@/components/RaidPreviewModal"), { ssr: false });
+const PillModal = dynamic(() => import("@/components/PillModal"), { ssr: false });
+const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ssr: false });
+const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
+const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), { ssr: false });
+const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), { ssr: false });
+const SolanaModal = dynamic(() => import("@/components/SolanaModal"), { ssr: false });
+const RabbitCompletion = dynamic(() => import("@/components/RabbitCompletion"), { ssr: false });
+const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), { ssr: false });
+const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
+const CityAnalyticsDashboard = dynamic(() => import("@/components/CityAnalyticsDashboard"), { ssr: false });
 
 // Feature flags — flip to switch milestone banner
 const MILESTONE_MODE: "stars" | "devs" | "donation" = "donation"; // "donation" = website renewal donation bar, "stars" = LeetCode stars road to 1K, "devs" = total developers
@@ -532,7 +540,7 @@ function MiniLeaderboard({
               </span>
             </span>
             <span className="ml-2 flex-shrink-0 text-[10px] text-muted">
-              {(b[cat.key] as number).toLocaleString()}
+              {((b[cat.key] as number) ?? 0).toLocaleString()}
             </span>
           </a>
         ))}
@@ -594,7 +602,7 @@ function HomeContent() {
   const [relics, setRelics] = useState<Relic[]>(STATIC_RELICS);
   const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
   const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
-  
+
   // New World travel cinematic states
   const [showNewWorldPrompt, setShowNewWorldPrompt] = useState(false);
   const [newWorldCinematicActive, setNewWorldCinematicActive] = useState(false);
@@ -772,6 +780,11 @@ function HomeContent() {
   const [discordMembers, setDiscordMembers] = useState<number | null>(null);
   const [pillModalOpen, setPillModalOpen] = useState(false);
   const [founderMessageOpen, setFounderMessageOpen] = useState(false);
+  const [eArcadeOpen, setEArcadeOpen] = useState(false);
+  const [zenCodingOpen, setZenCodingOpen] = useState(false);
+  const [codeForgeOpen, setCodeForgeOpen] = useState(false);
+  const [solanaOpen, setSolanaOpen] = useState(false);
+  const [arcadeOnline, setArcadeOnline] = useState<number>(0);
   const [districtChooserOpen, setDistrictChooserOpen] = useState(false);
   const [rabbitCinematic, setRabbitCinematic] = useState(false);
   const [rabbitCinematicPhase, setRabbitCinematicPhase] = useState(-1);
@@ -855,9 +868,27 @@ function HomeContent() {
         })
         .catch(() => { });
     };
+    const fetchArcadeOnline = () => {
+      const supabase = createBrowserSupabase();
+      const cutoff = new Date(Date.now() - 40000).toISOString();
+      supabase
+        .from("arcade_active_players")
+        .select("user_id", { count: "exact", head: true })
+        .gt("last_heartbeat", cutoff)
+        .then((res: any) => {
+          if (res.count != null) {
+            setArcadeOnline(res.count);
+          }
+        })
+        .catch(() => { });
+    };
     fetchStars();
     fetchDiscord();
-    const interval = setInterval(fetchStars, 5 * 60 * 1000); // re-fetch every 5 minutes
+    fetchArcadeOnline();
+    const interval = setInterval(() => {
+      fetchStars();
+      fetchArcadeOnline();
+    }, 45 * 1000); // re-fetch every 45 seconds for fresher counts
     return () => clearInterval(interval);
   }, []);
 
@@ -1397,7 +1428,7 @@ function HomeContent() {
   // During fly mode: only close overlays (profile card) — AirplaneFlight handles pause/exit
   // Outside fly mode: compare → share modal → profile card → focus → explore mode
   useEffect(() => {
-    if (flyMode && !selectedBuilding) return;
+    if (flyMode && !selectedBuilding && !eArcadeOpen && !zenCodingOpen && !codeForgeOpen) return;
     if (
       !flyMode &&
       !exploreMode &&
@@ -1410,6 +1441,9 @@ function HomeContent() {
       !compareBuilding &&
       !founderMessageOpen &&
       !pillModalOpen &&
+      !eArcadeOpen &&
+      !zenCodingOpen &&
+      !codeForgeOpen &&
       !rabbitCinematic &&
       raidState.phase === "idle"
     )
@@ -1423,6 +1457,18 @@ function HomeContent() {
         }
         if (pillModalOpen) {
           setPillModalOpen(false);
+          return;
+        }
+        if (eArcadeOpen) {
+          setEArcadeOpen(false);
+          return;
+        }
+        if (zenCodingOpen) {
+          setZenCodingOpen(false);
+          return;
+        }
+        if (codeForgeOpen) {
+          setCodeForgeOpen(false);
           return;
         }
         // Rabbit cinematic
@@ -1496,6 +1542,9 @@ function HomeContent() {
     compareBuilding,
     founderMessageOpen,
     pillModalOpen,
+    eArcadeOpen,
+    zenCodingOpen,
+    codeForgeOpen,
     rabbitCinematic,
     endRabbitCinematic,
     raidState.phase,
@@ -1628,17 +1677,17 @@ function HomeContent() {
       total_contributions: 0,
     };
 
-    // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
-    // try {
-    //   const v = Math.floor(Date.now() / 300_000);
-    //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
-    //   const snapshotRes = await fetch(snapshotUrl);
-    //   if (snapshotRes.ok) {
-    //     const snapshot = await snapshotRes.json();
-    //     allDevs = snapshot.developers;
-    //     cityStats = snapshot.stats;
-    //   }
-    // } catch { /* fall through to chunked */ }
+    // Try pre-computed snapshot first
+    try {
+      const v = Math.floor(Date.now() / 300_000);
+      const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
+      const snapshotRes = await fetch(snapshotUrl);
+      if (snapshotRes.ok) {
+        const snapshot = await snapshotRes.json();
+        allDevs = snapshot.developers;
+        cityStats = snapshot.stats;
+      }
+    } catch { /* fall through to chunked */ }
 
     // Fallback to chunked API
     if (allDevs.length === 0) {
@@ -1760,17 +1809,17 @@ function HomeContent() {
           total_contributions: 0,
         };
 
-        // Try pre-computed snapshot first (disabled — snapshot bucket doesn't exist yet for LC city)
-        // try {
-        //   const v = Math.floor(Date.now() / 300_000); // changes every 5 min, aligned with cron
-        //   const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
-        //   const snapshotRes = await fetch(snapshotUrl);
-        //   if (snapshotRes.ok) {
-        //     const snapshot = await snapshotRes.json();
-        //     allDevs = snapshot.developers;
-        //     cityStats = snapshot.stats;
-        //   }
-        // } catch { /* fall through to chunked */ }
+        // Try pre-computed snapshot first
+        try {
+          const v = Math.floor(Date.now() / 300_000); // changes every 5 min, aligned with cron
+          const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
+          const snapshotRes = await fetch(snapshotUrl);
+          if (snapshotRes.ok) {
+            const snapshot = await snapshotRes.json();
+            allDevs = snapshot.developers;
+            cityStats = snapshot.stats;
+          }
+        } catch { /* fall through to chunked */ }
 
         // Fallback to chunked API
         if (allDevs.length === 0) {
@@ -2573,7 +2622,7 @@ function HomeContent() {
     if (!selectedBuilding) return;
     setRefreshingStats(true);
     try {
-       const res = await fetch(
+      const res = await fetch(
         `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true&t=${Date.now()}`,
         { cache: "no-store" },
       );
@@ -2707,6 +2756,27 @@ function HomeContent() {
   // Live users presence
   const { count: liveUsers, status: liveStatus } = useLiveUsers();
   const { liveCount: codingCount, liveByLogin } = useCodingPresence();
+
+  // Multiplayer presence (Supabase Realtime)
+  const mpLogin = selfLogin || null;
+  const mpAvatarUrl = myBuilding?.avatar_url ?? session?.user?.user_metadata?.avatar_url ?? null;
+  const {
+    players: multiplayerPlayers,
+    playerCount: mpPlayerCount,
+    chatMessages: mpChatMessages,
+    status: mpStatus,
+    sendChat: mpSendChat,
+    sendMove: mpSendMove,
+    isJoined: mpIsJoined,
+  } = useCityPresence(mpLogin, mpAvatarUrl);
+
+  // Use Realtime player count when connected, fall back to Supabase active players count
+  const effectiveLiveCount = mpStatus === "connected" && mpPlayerCount > 0
+    ? mpPlayerCount
+    : liveUsers;
+  const effectiveLiveStatus = mpStatus === "connected"
+    ? "connected"
+    : liveStatus;
 
   // City energy: devs coding -> city lights up
   // 0 devs = ~10% (city sleeping, very dim)
@@ -2919,9 +2989,9 @@ function HomeContent() {
         accentColor={theme.accent}
         onClearFocus={() => setFocusedBuilding(null)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt}
+        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
-        holdRise={loadStage !== "done"}
+        holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
         newWorldCinematic={newWorldCinematicActive}
         onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
@@ -2995,6 +3065,7 @@ function HomeContent() {
         ghostPreviewLogin={ghostPreviewLogin}
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
+        multiplayerPlayers={multiplayerPlayers}
         raidPhase={raidState.phase}
         raidData={raidState.raidData}
         raidAttacker={raidState.attackerBuilding}
@@ -3003,6 +3074,21 @@ function HomeContent() {
         onLandmarkClick={() => {
           setPillModalOpen(true);
           setSelectedBuilding(null);
+        }}
+        onEArcadeClick={() => {
+          setEArcadeOpen(true);
+          setSelectedBuilding(null);
+        }}
+        onSkyTempleClick={() => {
+          setZenCodingOpen(true);
+          setSelectedBuilding(null);
+        }}
+        onCodeForgeClick={() => {
+          setCodeForgeOpen(true);
+          setSelectedBuilding(null);
+        }}
+        onSolanaClick={() => {
+          setSolanaOpen(true);
         }}
         rabbitSighting={rabbitSighting}
         onRabbitCaught={onRabbitCaught}
@@ -3057,6 +3143,18 @@ function HomeContent() {
           }
         }}
       />
+
+      {/* Multiplayer Chat Overlay */}
+      {!introMode && !flyMode && (
+        <CityChat
+          messages={mpChatMessages}
+          onSend={mpSendChat}
+          status={mpStatus}
+          isJoined={mpIsJoined}
+          playerCount={mpPlayerCount}
+          accentColor={theme.accent}
+        />
+      )}
 
       {/* Loading screen overlay */}
       {loadStage !== "done" && (
@@ -3669,13 +3767,13 @@ function HomeContent() {
               </span>
             )}
           </a>
-          {liveStatus !== "error" && (
+          {effectiveLiveStatus !== "error" && (
             <div
               className="flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm"
-              aria-label={`${liveUsers.toLocaleString()} live users`}
+              aria-label={`${effectiveLiveCount.toLocaleString()} live users`}
             >
               <span className="live-dot h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#4ade80]" aria-hidden="true" />
-              <span className="text-cream">{liveUsers.toLocaleString()}</span>
+              <span className="text-cream">{effectiveLiveCount.toLocaleString()}</span>
               <span className="hidden sm:inline text-muted">live</span>
             </div>
           )}
@@ -4061,15 +4159,6 @@ function HomeContent() {
               <p className="pointer-events-auto mt-1 text-[9px] text-cream/50 normal-case hidden sm:block">
                 built by{" "}
                 <a
-                  href="https://github.com/ishant-27"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-colors hover:text-cream"
-                >
-                  Original Creator
-                </a>
-                {" & "}
-                <a
                   href="https://github.com/Ixotic27"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -4355,6 +4444,28 @@ function HomeContent() {
                   }}
                 >
                   Explore City
+                  <span className="block text-[8px] opacity-60 normal-case">Browse Buildings</span>
+                </button>
+                <button
+                  onClick={() => setEArcadeOpen(true)}
+                  className="btn-press px-7 py-3 text-xs sm:py-3.5 sm:text-sm text-bg"
+                  style={{
+                    backgroundColor: theme.accent,
+                    boxShadow: `4px 4px 0 0 ${theme.shadow}`,
+                  }}
+                >
+                  <span className="relative">
+                    🕹️ E.Arcade
+                    <span
+                      className="absolute -top-3 -right-8 animate-pulse rounded-sm px-1 py-px text-[7px] font-bold leading-none text-bg"
+                      style={{ backgroundColor: theme.accent }}
+                    >
+                      NEW
+                    </span>
+                  </span>
+                  <span className="block text-[8px] opacity-60 normal-case">
+                    {arcadeOnline > 0 ? `${arcadeOnline} online` : "Meet other devs"}
+                  </span>
                 </button>
                 {!isMobile && (
                   <div className="relative">
@@ -4402,15 +4513,7 @@ function HomeContent() {
                         boxShadow: `4px 4px 0 0 ${theme.shadow}`,
                       }}
                     >
-                      <span className="relative">
-                        &#9992; Fly
-                        <span
-                          className="absolute -top-3 -right-8 animate-pulse rounded-sm px-1 py-px text-[7px] font-bold leading-none text-bg"
-                          style={{ backgroundColor: theme.accent }}
-                        >
-                          NEW
-                        </span>
-                      </span>
+                      &#9992; Fly
                       <span className="block text-[8px] opacity-60 normal-case">
                         Collect PX
                       </span>
@@ -6202,11 +6305,38 @@ function HomeContent() {
                 borderColor: t.done ? theme.accent : undefined,
               }}
             >
-              <span style={{ color: theme.accent }}>
-                {t.done ? "\u2713" : "\u2606"}
-              </span>{" "}
-              {t.title}
-              {t.done ? " \u2014 Complete!" : ""}
+              {t.reward ? (
+                <>
+                  <div
+                    className="font-semibold"
+                    style={{ color: theme.accent }}
+                  >
+                    🎉 Daily Rewards Claimed!
+                  </div>
+
+                  <div className="mt-1 text-[10px] text-cream">
+                    +{t.reward.xp} XP
+                  </div>
+
+                  <div className="text-[10px] text-cream">
+                    +{t.reward.points} Shop Points
+                  </div>
+
+                  {t.reward.freeze && (
+                    <div className="text-[10px] text-cream">
+                      🧊 Streak Freeze Earned!
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span style={{ color: theme.accent }}>
+                    {t.done ? "✓" : "☆"}
+                  </span>{" "}
+                  {t.title}
+                  {t.done ? " — Complete!" : ""}
+                </>
+              )}
             </div>
           ))}
           <style jsx>{`
@@ -6690,7 +6820,25 @@ function HomeContent() {
       {founderMessageOpen && (
         <FounderMessage onClose={() => setFounderMessageOpen(false)} />
       )}
-
+      {eArcadeOpen && (
+        <EArcadeCard
+          onClose={() => setEArcadeOpen(false)}
+          onEnter={() => {
+            window.location.href = "/arcade";
+          }}
+          session={session}
+          onSignIn={handleSignInWithRef}
+        />
+      )}
+      {zenCodingOpen && (
+        <ZenCodingModal onClose={() => setZenCodingOpen(false)} />
+      )}
+      {codeForgeOpen && (
+        <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
+      )}
+      {solanaOpen && (
+        <SolanaModal onClose={() => setSolanaOpen(false)} />
+      )}
       {/* Rabbit Quest Cinematic Overlay */}
       {rabbitCinematic && (
         <div className="fixed inset-0 z-50 pointer-events-none">
@@ -6977,7 +7125,7 @@ export default function Home() {
       <div className="h-screen w-screen bg-black flex items-center justify-center">
         <div className="text-red-500 font-pixel text-center px-4">
           Something went wrong loading the city.
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
           >

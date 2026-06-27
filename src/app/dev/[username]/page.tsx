@@ -65,6 +65,14 @@ interface AchievementRow {
   tier: string;
 }
 
+interface DeveloperExtended {
+  easy_solved?: number;
+  medium_solved?: number;
+  hard_solved?: number;
+  lc_streak?: number;
+  contest_rating?: number;
+}
+
 export default async function DevPage({ params }: Props) {
   const { username } = await params;
   const dev = await getDeveloper(username);
@@ -73,44 +81,62 @@ export default async function DevPage({ params }: Props) {
 
   const accent = "#ffa116";
   const shadow = "#5a7a00";
-  const ownedItems = await getOwnedItems(dev.id);
-
-  // Fetch achievements with name+tier from DB (no hardcoded maps)
   const sb = getSupabaseAdmin();
-  const { data: devAchievements } = await sb
-    .from("developer_achievements")
-    .select("achievement_id, achievements(name, tier)")
-    .eq("developer_id", dev.id);
+
+  // Fetch all independent developer profile details in parallel
+  const [
+    ownedItems,
+    devAchievementsRes,
+    arenaInventoryRes,
+    customizationDataRes,
+    referredDevsRes,
+    authRes
+  ] = await Promise.all([
+    getOwnedItems(dev.id),
+    sb
+      .from("developer_achievements")
+      .select("achievement_id, achievements(name, tier)")
+      .eq("developer_id", dev.id),
+    sb
+      .from("arena_inventory")
+      .select("arena_items(slug)")
+      .eq("user_id", dev.id),
+    sb
+      .from("developer_customizations")
+      .select("config")
+      .eq("developer_id", dev.id)
+      .eq("item_id", "selected_title")
+      .maybeSingle(),
+    sb
+      .from("developers")
+      .select("github_login, avatar_url")
+      .eq("referred_by", dev.github_login)
+      .order("claimed_at", { ascending: false })
+      .limit(20),
+    createServerSupabase().then(client => client.auth.getUser())
+  ]);
+
+  const devAchievements = devAchievementsRes.data;
   const achievements: AchievementRow[] = (devAchievements ?? []).map((a: Record<string, unknown>) => ({
     achievement_id: a.achievement_id as string,
     name: (a.achievements as Record<string, unknown>)?.name as string ?? (a.achievement_id as string),
     tier: (a.achievements as Record<string, unknown>)?.tier as string ?? "bronze",
   }));
 
-  // Fetch arena titles
-  const { data: arenaInventory } = await sb
-    .from("arena_inventory")
-    .select("arena_items(slug)")
-    .eq("user_id", dev.id);
+  const arenaInventory = arenaInventoryRes.data;
 
   const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
 
-  const ownedTitlesSlugs = (arenaInventory ?? [])
-    .map((inv: any) => inv.arena_items?.slug)
+  const ownedTitlesSlugs = (arenaInventory as unknown as { arena_items: { slug: string } | null }[] ?? [])
+    .map((inv) => inv.arena_items?.slug)
     .filter((slug): slug is string => typeof slug === "string");
 
   if (isDeveloper) {
     ownedTitlesSlugs.push("title_creator", "title_lead_dev", "title_sys_op");
   }
 
-  // Fetch selected title customization
-  const { data: customizationData } = await sb
-    .from("developer_customizations")
-    .select("config")
-    .eq("developer_id", dev.id)
-    .eq("item_id", "selected_title")
-    .maybeSingle();
-  const selectedTitleSlug = (customizationData?.config as any)?.slug ?? null;
+  const customizationData = customizationDataRes.data;
+  const selectedTitleSlug = (customizationData?.config as { slug?: string } | null)?.slug ?? null;
 
   const TITLE_PRESETS = [
     { slug: "title_creator", name: "City Creator", titleText: "The Architect", color: "#ec4899", icon: "/assets/items/crown_of_code.png", priority: 10 },
@@ -136,17 +162,8 @@ export default async function DevPage({ params }: Props) {
     }
   }
 
-  // Fetch referred developers (who this dev brought to the city)
-  const { data: referredDevs } = await sb
-    .from("developers")
-    .select("github_login, avatar_url")
-    .eq("referred_by", dev.github_login)
-    .order("claimed_at", { ascending: false })
-    .limit(20);
-
-  // Check if the logged-in user owns this building
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const referredDevs = referredDevsRes.data;
+  const { data: { user } } = authRes;
   const authLogin = (
     user?.user_metadata?.user_name ??
     user?.user_metadata?.preferred_username ??
@@ -341,9 +358,9 @@ export default async function DevPage({ params }: Props) {
                   <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: accent, color: accent }}>
                     🌍 LC Rank #{dev.rank.toLocaleString()}
                   </div>
-                  {(dev as any).contest_rating > 0 && (
+                  {((dev as unknown as DeveloperExtended).contest_rating ?? 0) > 0 && (
                     <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: "#a855f7", color: "#a855f7" }}>
-                      ⚔️ Contest {(dev as any).contest_rating.toLocaleString()}
+                      ⚔️ Contest {((dev as unknown as DeveloperExtended).contest_rating ?? 0).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -461,29 +478,28 @@ export default async function DevPage({ params }: Props) {
         )}
 
         {/* Share + Compare */}
-        {!isOwner && (
-          <div className="mt-5 space-y-3">
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <ShareButtons
-                login={dev.github_login}
-                contributions={dev.contributions ?? 0}
-                rank={dev.rank}
-                accent={accent}
-                shadow={shadow}
-              />
-            </div>
-            <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />
+        <div className="mt-5 space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <ShareButtons
+              login={dev.github_login}
+              contributions={dev.contributions ?? 0}
+              rank={dev.rank}
+              accent={accent}
+              shadow={shadow}
+            />
           </div>
-        )}
+          {!isOwner && <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />}
+        </div>
 
         {/* Stats Grid — LeetCode Metrics */}
         {(() => {
           const totalSolved = dev.contributions ?? 0;
-          const easySolved = (dev as any).easy_solved as number ?? 0;
-          const medSolved = (dev as any).medium_solved as number ?? 0;
-          const hardSolved = (dev as any).hard_solved as number ?? 0;
-          const streak = (dev as any).lc_streak as number ?? 0;
-          const contestRating = (dev as any).contest_rating as number ?? 0;
+          const devExt = dev as unknown as DeveloperExtended;
+          const easySolved = devExt.easy_solved ?? 0;
+          const medSolved = devExt.medium_solved ?? 0;
+          const hardSolved = devExt.hard_solved ?? 0;
+          const streak = devExt.lc_streak ?? 0;
+          const contestRating = devExt.contest_rating ?? 0;
           const reputation = dev.total_stars ?? 0;
           const hasLCData = easySolved > 0 || medSolved > 0 || hardSolved > 0;
 

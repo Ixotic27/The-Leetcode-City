@@ -40,12 +40,16 @@ jobs:
             // 1. Parse a linked issue number from the PR body.
             //    Matches: closes/fixes/resolves #123, #124, and #125 (case-insensitive)
             // ----------------------------------------------------------------
+            // Strip HTML comments first so template placeholders like
+            // <!-- Link to issue: Fixes #123 --> are not matched.
+            const cleanBody = prBody.replace(/<!--[\s\S]*?-->/g, '');
+
             // Find all blocks that start with a closing keyword and are followed by issue numbers
             const BLOCK_REGEX = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?:\s*(?:and|,)?\s*#\d+)+/gi;
             
             const issueNumbers = [];
             let blockMatch;
-            while ((blockMatch = BLOCK_REGEX.exec(prBody)) !== null) {
+            while ((blockMatch = BLOCK_REGEX.exec(cleanBody)) !== null) {
               const numRegex = /#(\d+)/g;
               let numMatch;
               while ((numMatch = numRegex.exec(blockMatch[0])) !== null) {

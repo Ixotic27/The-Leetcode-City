@@ -4,20 +4,21 @@
  * correct mission pool.
  */
 
-import { getDailyMissions, trackDailyMission } from "../dailies";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { getDailyMissions, trackDailyMission, getTodayStr } from "../dailies";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const mockRpc = jest.fn().mockResolvedValue({ data: null, error: null });
+const mockRpc = vi.fn().mockResolvedValue({ data: null, error: null });
 
-jest.mock("../supabase", () => ({
+vi.mock("../supabase", () => ({
   getSupabaseAdmin: () => ({ rpc: mockRpc }),
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const DEV_ID = 99;
-const DATE = "2025-06-07";
+const DATE = getTodayStr();
 
 // ── getDailyMissions ──────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ describe("getDailyMissions", () => {
 // ── trackDailyMission ─────────────────────────────────────────────────────────
 
 describe("trackDailyMission", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it("records progress when mission is in the mobile set", async () => {
     // Find a developer ID where give_kudos is in the mobile mission set
@@ -112,6 +113,30 @@ describe("trackDailyMission", () => {
     // fly_score_50 is desktopOnly — it will never be in the mobile pool
     await trackDailyMission(DEV_ID, "fly_score_50", { isMobile: true });
     expect(mockRpc).not.toHaveBeenCalled();
+  });
+
+  it("credits a mobile-only assigned mission even when it is absent from the desktop set", async () => {
+    // Find a seed where a non-desktopOnly mission appears in the mobile set
+    // but NOT in the desktop set (happens when desktopOnly missions occupy the
+    // desktop secondary slots). Such a mission must still be credited.
+    let targetId: number | null = null;
+    let missionId: string | null = null;
+    for (let id = 1; id <= 1000; id++) {
+      const mobile = getDailyMissions(id, DATE, true).slice(1);
+      const desktopIds = new Set(getDailyMissions(id, DATE, false).map((m) => m.id));
+      const mobileOnly = mobile.find((m) => !desktopIds.has(m.id));
+      if (mobileOnly) {
+        targetId = id;
+        missionId = mobileOnly.id;
+        break;
+      }
+    }
+    if (!targetId || !missionId) return; // skip if not found in range
+
+    await trackDailyMission(targetId, missionId);
+    expect(mockRpc).toHaveBeenCalledWith("record_mission_progress", expect.objectContaining({
+      p_mission_id: missionId,
+    }));
   });
 
   it("may record fly_score_50 when isMobile=false and mission is assigned", async () => {

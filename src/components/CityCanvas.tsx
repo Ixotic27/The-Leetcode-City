@@ -1,6 +1,7 @@
 "use client";
-
-import { useRef, useEffect, useState, useMemo } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability */
+import { useRef, useEffect, useState, useMemo, lazy, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
 import * as THREE from "three";
@@ -16,7 +17,24 @@ import type { RaidPhase } from "@/lib/useRaidSequence";
 import type { RaidExecuteResponse } from "@/lib/raid";
 import FounderSpire from "./FounderSpire";
 import LeaderboardHolograms from "./LeaderboardHolograms";
-import Colosseum from "./Colosseum";
+import EArcadeLandmark from "./EArcadeLandmark";
+import DailyQuestionsLandmark from "./DailyQuestionsLandmark";
+import DungeonModal from "./DungeonModal";
+
+const Colosseum = lazy(() => import("./Colosseum"));
+const VoidObelisk = lazy(() => import("./VoidObelisk"));
+const DungeonPortal = lazy(() => import("./DungeonPortal"));
+const AstralObservatory = lazy(() => import("./AstralObservatory"));
+const CryptOfEchoes = lazy(() => import("./CryptOfEchoes"));
+const SunkenSanctum = lazy(() => import("./SunkenSanctum"));
+const CodeForge = lazy(() => import("./CodeForge"));
+const ChronoTower = lazy(() => import("./ChronoTower"));
+const SkyTemple = lazy(() => import("./SkyTemple"));
+const FirecrawlBuilding = lazy(() => import("./FirecrawlBuilding"));
+const SolanaBuilding = lazy(() => import("./SolanaBuilding"));
+const CyberStation = lazy(() => import("./CyberStation"));
+const DeveloperPalace = lazy(() => import("./DeveloperPalace"));
+import type { CityPlayer } from "@/lib/multiplayer/types";
 import WhiteRabbit from "./WhiteRabbit";
 import CelebrationEffect from "./CelebrationEffect";
 import WallpaperParallax from "./WallpaperParallax";
@@ -25,7 +43,6 @@ import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
-import OuterWildlands from "./OuterWildlands";
 import TrafficSystem from "./TrafficSystem";
 
 // ─── Theme Definitions ───────────────────────────────────────
@@ -79,15 +96,15 @@ const THEMES: CityTheme[] = [
       [0, "#000206"], [0.25, "#020814"], [0.5, "#0a1428"], [0.75, "#0a1428"], [1, "#0a1428"],
     ],
     fogColor: "#0a1428", fogNear: 400, fogFar: 2500,
-    ambientColor: "#4060b0", ambientIntensity: 0.55,
-    sunColor: "#7090d0", sunIntensity: 0.75, sunPos: [300, 120, -200],
-    fillColor: "#304080", fillIntensity: 0.3, fillPos: [-200, 60, 200],
-    hemiSky: "#5080a0", hemiGround: "#202830", hemiIntensity: 0.5,
+    ambientColor: "#4060b0", ambientIntensity: 0.65,
+    sunColor: "#7090d0", sunIntensity: 0.85, sunPos: [300, 120, -200],
+    fillColor: "#304080", fillIntensity: 0.35, fillPos: [-200, 60, 200],
+    hemiSky: "#5080a0", hemiGround: "#202830", hemiIntensity: 0.55,
     groundColor: "#242c38", grid1: "#344050", grid2: "#2c3848",
     roadMarkingColor: "#8090a0",
     sidewalkColor: "#484c58",
     building: {
-      windowLit: ["#ffffff", "#fff8e1", "#fdfcf0", "#ffffff", "#fffbeb"],
+      windowLit: ["#ffe9b0", "#fff8e1", "#ffd866", "#ffcc44", "#fffbeb"],
       windowOff: "#0c0e18", face: "#101828", roof: "#2a3858",
       accent: "#ffa116",
     },
@@ -2108,6 +2125,11 @@ interface Props {
   onReturnToCity?: () => void;
   initialFlightPos?: THREE.Vector3 | null;
   initialFlightYaw?: number | null;
+  onEArcadeClick?: () => void;
+  onSkyTempleClick?: () => void;
+  onCodeForgeClick?: () => void;
+  onSolanaClick?: () => void;
+  multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -2170,6 +2192,10 @@ export default function CityCanvas({
   raidDefender,
   onRaidPhaseComplete,
   onLandmarkClick,
+  onEArcadeClick,
+  onSkyTempleClick,
+  onCodeForgeClick,
+  onSolanaClick,
   rabbitSighting,
   onRabbitCaught,
   rabbitCinematic,
@@ -2194,8 +2220,11 @@ export default function CityCanvas({
   onReturnToCity,
   initialFlightPos,
   initialFlightYaw,
+  multiplayerPlayers,
 }: Props) {
   const { isRaining } = useWeather();
+  const router = useRouter();
+  const [dungeonOpen, setDungeonOpen] = useState(false);
   const t = THEMES[themeIndex] ?? THEMES[0];
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
@@ -2209,8 +2238,56 @@ export default function CityCanvas({
     }
     return max;
   }, [buildings]);
+  const handleChronoTowerClick = () => {
+    router.push("/roadmap");
+  };
+  const landmarkPositions = useMemo(() => {
+    const radius = 380;
+    const count = 14;
+    const posList: [number, number, number][] = [];
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + 0.25;
+      posList.push([
+        Math.round(Math.cos(angle) * radius),
+        0,
+        Math.round(Math.sin(angle) * radius),
+      ]);
+    }
+    return posList;
+  }, []);
 
+  const initialBuildings = useMemo(() => {
+    if (buildings.length <= 150) return buildings;
+    const sorted = [...buildings].sort((a, b) => {
+      const distA = a.position[0] ** 2 + a.position[2] ** 2;
+      const distB = b.position[0] ** 2 + b.position[2] ** 2;
+      return distA - distB;
+    });
+    return sorted.slice(0, 150);
+  }, [buildings]);
+
+  const [visibleBuildings, setVisibleBuildings] = useState<CityBuilding[]>(initialBuildings);
+
+  useEffect(() => {
+    setVisibleBuildings(initialBuildings);
+  }, [initialBuildings]);
+
+  useEffect(() => {
+    if (visibleBuildings.length >= buildings.length) return;
+
+    const timer = setTimeout(() => {
+      setVisibleBuildings((prev) => {
+        const prevLogins = new Set(prev.map(b => b.login.toLowerCase()));
+        const remaining = buildings.filter(b => !prevLogins.has(b.login.toLowerCase()));
+        const nextBatch = remaining.slice(0, 250);
+        return [...prev, ...nextBatch];
+      });
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [visibleBuildings.length, buildings]);
   return (
+    <>
     <Canvas
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
       dpr={[1, 2]}
@@ -2334,16 +2411,49 @@ export default function CityCanvas({
         </>
       )}
 
-      {/* Outer Wildlands — rendered when player has traveled to the new world */}
-      {hasTraveledToNewWorld && (
-  <OuterWildlands cityRadius={cityRadius} themeIndex={themeIndex} />
-)}
-
-
       {!hasTraveledToNewWorld && (
         <>
           <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
-          <Colosseum />
+          <Suspense fallback={null}>
+            <Colosseum
+              position={landmarkPositions[0]}
+              themeAccent={t.building.accent}
+              themeWindowLit={t.building.windowLit}
+              themeFace={t.building.face}
+            />
+            <VoidObelisk onClick={() => { }} position={landmarkPositions[1]} />
+            <DungeonPortal onClick={() => setDungeonOpen(true)} position={landmarkPositions[2]} />
+            <AstralObservatory onClick={() => { }} position={landmarkPositions[3]} />
+            <CryptOfEchoes onClick={() => { }} position={landmarkPositions[4]} />
+            <SunkenSanctum onClick={() => { }} position={landmarkPositions[5]} />
+            <CodeForge onClick={onCodeForgeClick ?? (() => { })} position={landmarkPositions[6]} />
+          </Suspense>
+          <EArcadeLandmark
+            onClick={onEArcadeClick ?? (() => { })}
+            themeAccent={t.building.accent}
+            themeWindowLit={t.building.windowLit}
+            themeFace={t.building.face}
+            position={landmarkPositions[7]}
+          />
+          <DailyQuestionsLandmark
+             onClick={() => {}}
+             themeAccent={t.building.accent}
+             themeWindowLit={t.building.windowLit}
+             themeFace={t.building.face}
+             position={[373, 0, -75]}
+          />
+          
+          <Suspense fallback={null}>
+            <ChronoTower
+              onClick={handleChronoTowerClick}
+              position={landmarkPositions[8]}
+            />
+            <SkyTemple onClick={onSkyTempleClick ?? (() => { })} position={landmarkPositions[9]} />
+            <FirecrawlBuilding onClick={() => { }} position={landmarkPositions[10]} />
+            <SolanaBuilding onClick={onSolanaClick ?? (() => {})} position={landmarkPositions[11]} />
+            <CyberStation onClick={() => { }} position={landmarkPositions[12]} />
+            <DeveloperPalace onClick={() => { }} position={landmarkPositions[13]} />
+          </Suspense>
           <LeaderboardHolograms buildings={buildings} onBuildingClick={onBuildingClick} />
 
           {!wallpaperMode && celebrationActive && <CelebrationEffect cityRadius={cityRadius} />}
@@ -2363,7 +2473,7 @@ export default function CityCanvas({
           })()}
 
           <CityScene
-            buildings={buildings}
+            buildings={visibleBuildings}
             colors={t.building}
             focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
             focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
@@ -2379,6 +2489,7 @@ export default function CityCanvas({
             cityEnergy={cityEnergy}
             timeRef={timeRef}
             weatherMode={weatherMode}
+            multiplayerPlayers={multiplayerPlayers}
           />
 
           <InstancedDecorations items={decorations} roadMarkingColor={t.roadMarkingColor} sidewalkColor={t.sidewalkColor} />
@@ -2408,5 +2519,9 @@ export default function CityCanvas({
       )}
 
     </Canvas>
+    {dungeonOpen && (
+      <DungeonModal onClose={() => setDungeonOpen(false)} />
+    )}
+  </>
   );
 }

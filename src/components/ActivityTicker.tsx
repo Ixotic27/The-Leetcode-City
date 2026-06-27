@@ -56,16 +56,12 @@ function formatEvent(e: FeedEvent): string {
       switch (meta.highlight) {
         case "contributions":
           return `#  ${login}'s building has ${Number(meta.value).toLocaleString()} contributions`;
-        case "stars":
-          return `*  ${login} has ${Number(meta.value).toLocaleString()} stars across their repos`;
         case "rank":
           return `>>  ${login} is ranked #${meta.value} in the city`;
-        case "streak":
-          return `~  ${login} is on a ${meta.value}-day commit streak`;
-        case "language":
-          return `<>  ${login} builds with ${meta.value}`;
-        case "repos":
-          return `{}  ${login} has ${meta.value} public repos`;
+        case "reputation":
+          return `⭐ ${login} has ${Number(meta.value).toLocaleString()} reputation points on LeetCode`;
+        case "lc_streak":
+          return `🔥 ${login} is on a ${meta.value}-day LeetCode active streak`;
         default:
           return `${login} is in the city`;
       }
@@ -98,15 +94,22 @@ export default function ActivityTicker({
 
   return (
     <div
-      className={`fixed ${hasBottomBar ? "bottom-[46px]" : "bottom-0"} sm:bottom-0 left-0 right-0 z-30 flex h-7 items-center border-t border-border/30 bg-bg/90 backdrop-blur-sm`}
+      className={`fixed ${hasBottomBar ? "bottom-11.5" : "bottom-0"} sm:bottom-0 left-0 right-0 z-30 flex h-7 items-center border-t border-border/30 bg-bg/90 backdrop-blur-sm`}
     >
       <div
         className="min-w-0 flex-1 overflow-hidden cursor-pointer"
+        role="button"
+        tabIndex={0}
         onClick={onOpenPanel}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          onOpenPanel?.();
+        }}
       >
         <div
-          className="ticker-scroll flex whitespace-nowrap"
-          style={{ "--ticker-duration": `${Math.max(20, tickerText.length)}s` } as React.CSSProperties}
+          className="ticker-scroll inline-flex whitespace-nowrap"
+          style={{ "--ticker-duration": `${Math.max(20, tickerText.length * 8)}s` } as React.CSSProperties}
         >
           {[...tickerText, ...tickerText].map((item, i) => (
             <span

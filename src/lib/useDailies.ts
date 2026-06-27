@@ -44,8 +44,16 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
     if (fetchedRef.current) return;
 
     fetchedRef.current = true;
-    setLoading(true);
-    fetchDailies().finally(() => setLoading(false));
+
+    // Defer all state mutations into an async function so that
+    // setLoading is never called synchronously inside the effect body
+    // (avoids react-hooks/set-state-in-effect lint violation).
+    const load = async () => {
+      setLoading(true);
+      await fetchDailies();
+      setLoading(false);
+    };
+    load();
   }, [session, hasClaimed, fetchDailies]);
 
   const refresh = useCallback(async () => {
@@ -53,7 +61,7 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
   }, [fetchDailies]);
 
   // Toast queue for mission progress notifications
-  const [toasts, setToasts] = useState<{ id: number; title: string; done: boolean }[]>([]);
+  const [toasts, setToasts] = useState<{id: number; title: string;done: boolean;reward?: {xp: number;points: number;freeze: boolean;};}[]>([]);
   const toastIdRef = useRef(0);
 
   const addToast = useCallback((title: string, done: boolean) => {
@@ -61,6 +69,30 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
     setToasts((prev) => [...prev, { id, title, done }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 2500);
   }, []);
+  const addRewardToast = useCallback(
+  (xp: number, points: number, freeze: boolean) => {
+    const id = ++toastIdRef.current;
+
+    setToasts((prev) => [
+      ...prev,
+      {
+        id,
+        title: "Daily Rewards Claimed!",
+        done: true,
+        reward: {
+          xp,
+          points,
+          freeze,
+        },
+      },
+    ]);
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 2500);
+  },
+  [],
+);
 
   const trackClientMission = useCallback(
     async (missionId: string, points: number = 1) => {
@@ -125,11 +157,18 @@ export function useDailies(session: Session | null, hasClaimed: boolean) {
           points: (prev.points ?? 0) + (result.points_granted ?? 0),
         };
       });
+      addRewardToast(
+    result.xp_granted,
+    result.points_granted,
+    result.freeze_granted
+   );
 
-      return result as { ok: boolean; streak: number; total: number; freeze_granted: boolean; points_granted: number };
+      return result as { ok: boolean; streak: number; total: number; freeze_granted: boolean; points_granted: number; xp_granted: number;};
     } catch (err) { console.warn("[lib/useDailies.ts] error:", err); return null;
      }
-  }, []);
+
+
+  }, [addRewardToast]);
 
   return { data, loading, refresh, trackClientMission, claim, toasts };
 }

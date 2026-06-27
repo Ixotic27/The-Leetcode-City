@@ -128,6 +128,61 @@ export function createWindowAtlas(colors: BuildingColors): THREE.CanvasTexture {
   return tex;
 }
 
+export function createEmissiveWindowAtlas(colors: BuildingColors): THREE.CanvasTexture {
+  const WS = 6;
+  const canvas = document.createElement("canvas");
+  canvas.width = ATLAS_SIZE;
+  canvas.height = ATLAS_SIZE;
+  const ctx = canvas.getContext("2d")!;
+
+  const imageData = ctx.createImageData(ATLAS_SIZE, ATLAS_SIZE);
+  const buf32 = new Uint32Array(imageData.data.buffer);
+
+  // Fill background with opaque BLACK (ABGR: 0xFF000000)
+  buf32.fill(0xFF000000);
+
+  const litABGRs = colors.windowLit.map(colorToABGR);
+
+  let s = 42;
+  const rand = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+
+  for (let band = 0; band < ATLAS_LIT_PCTS.length; band++) {
+    const litPct = ATLAS_LIT_PCTS[band];
+    const bandStart = band * ATLAS_BAND_ROWS;
+    for (let r = 0; r < ATLAS_BAND_ROWS; r++) {
+      const rowY = (bandStart + r) * ATLAS_CELL;
+      for (let c = 0; c < ATLAS_COLS; c++) {
+        const px = c * ATLAS_CELL;
+        const isLit = rand() < litPct;
+        if (isLit) {
+          const abgr = litABGRs[Math.floor(rand() * litABGRs.length)];
+          // Write WS×WS pixel block directly
+          for (let dy = 0; dy < WS; dy++) {
+            const rowOffset = (rowY + dy) * ATLAS_SIZE + px;
+            for (let dx = 0; dx < WS; dx++) {
+              buf32[rowOffset + dx] = abgr;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.flipY = false;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function createWindowTexture(
   rows: number,
   cols: number,
@@ -169,6 +224,53 @@ function createWindowTexture(
         ctx.fillStyle = offColor;
       }
       ctx.fillRect(x, y, WS, WS);
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function createEmissiveWindowTexture(
+  rows: number,
+  cols: number,
+  litPct: number,
+  seed: number,
+  litColors: string[]
+): THREE.CanvasTexture {
+  const WS = 6;
+  const GAP = 2;
+  const PAD = 3;
+
+  const w = PAD * 2 + cols * WS + Math.max(0, cols - 1) * GAP;
+  const h = PAD * 2 + rows * WS + Math.max(0, rows - 1) * GAP;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d")!;
+
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, w, h);
+
+  let s = seed;
+  const rand = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = PAD + c * (WS + GAP);
+      const y = PAD + r * (WS + GAP);
+
+      if (rand() < litPct) {
+        ctx.fillStyle = litColors[Math.floor(rand() * litColors.length)];
+        ctx.fillRect(x, y, WS, WS);
+      }
     }
   }
 
@@ -565,6 +667,7 @@ interface Props {
   building: CityBuilding;
   colors: BuildingColors;
   atlasTexture: THREE.CanvasTexture;
+  emissiveAtlasTexture: THREE.CanvasTexture;
   introMode?: boolean;
   focused?: boolean;
   dimmed?: boolean;
@@ -572,7 +675,7 @@ interface Props {
   onClick?: (building: CityBuilding) => void;
 }
 
-export default function Building3D({ building, colors, atlasTexture, introMode, focused, dimmed, accentColor, onClick }: Props) {
+export default function Building3D({ building, colors, atlasTexture, emissiveAtlasTexture, introMode, focused, dimmed, accentColor, onClick }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
   const spriteRef = useRef<THREE.Sprite>(null);
@@ -604,7 +707,15 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
         building.floors, building.sideWindowsPerFloor,
         safeLitPct, seed + 7919, colors.windowLit, colors.windowOff, blendedHex
       );
-      return { front, side };
+      const frontEmissive = createEmissiveWindowTexture(
+        building.floors, building.windowsPerFloor,
+        safeLitPct, seed, colors.windowLit
+      );
+      const sideEmissive = createEmissiveWindowTexture(
+        building.floors, building.sideWindowsPerFloor,
+        safeLitPct, seed + 7919, colors.windowLit
+      );
+      return { front, side, frontEmissive, sideEmissive };
     }
 
     // Atlas-based textures — litPercentage drives how many windows are lit.
@@ -628,8 +739,16 @@ export default function Building3D({ building, colors, atlasTexture, introMode, 
     side.offset.set(sideColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
     side.repeat.set(effWindowsD / ATLAS_COLS, effFloors / ATLAS_COLS);
 
-return { front, side };
-  }, [building, colors, atlasTexture, isBungalow, W, H, D]);
+    const frontEmissive = emissiveAtlasTexture.clone();
+    frontEmissive.offset.set(frontColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
+    frontEmissive.repeat.set(effWindowsW / ATLAS_COLS, effFloors / ATLAS_COLS);
+
+    const sideEmissive = emissiveAtlasTexture.clone();
+    sideEmissive.offset.set(sideColStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
+    sideEmissive.repeat.set(effWindowsD / ATLAS_COLS, effFloors / ATLAS_COLS);
+
+    return { front, side, frontEmissive, sideEmissive };
+  }, [building, colors, atlasTexture, emissiveAtlasTexture, isBungalow, W, H, D]);
 
   // 1. Move useFrame out here so it sits at the root level of the component!
 useFrame((state, delta) => {
@@ -663,29 +782,29 @@ useFrame((state, delta) => {
     return () => {
       textures.front.dispose();
       textures.side.dispose();
+      textures.frontEmissive?.dispose();
+      textures.sideEmissive?.dispose();
     };
   }, [textures]);
 
   const materials = useMemo(() => {
     const roof = new THREE.MeshStandardMaterial({
       color: colors.roof,
-      emissive: new THREE.Color(colors.roof),
-      emissiveIntensity: 2.2,
       roughness: 0.6,
     });
     const emIntensity = building.custom_color ? 2.0 : 2.8;
-    const make = (tex: THREE.CanvasTexture) =>
+    const make = (tex: THREE.CanvasTexture, emissiveTex: THREE.CanvasTexture) =>
       new THREE.MeshStandardMaterial({
         map: tex,
         emissive: WHITE,
-        emissiveMap: tex,
+        emissiveMap: emissiveTex,
         emissiveIntensity: emIntensity,
         roughness: 0.85,
         metalness: 0,
       });
     // Reuse material instances for opposite faces (5 allocs -> 3)
-    const side = make(textures.side);
-    const front = make(textures.front);
+    const side = make(textures.side, textures.sideEmissive);
+    const front = make(textures.front, textures.frontEmissive);
     return [side, side, roof, roof, front, front];
   }, [textures, colors.roof]);
 

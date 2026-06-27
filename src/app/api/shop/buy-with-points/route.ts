@@ -86,32 +86,18 @@ export async function POST(request: Request) {
     const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase()) && dev_mode === true;
 
     let deductedPoints = dev.points ?? 0;
-    if (!isDev) {
-        // 3. Check points balance
-        if ((dev.points ?? 0) < item.price_points) {
-            return NextResponse.json({ error: "Not enough points" }, { status: 403 });
-        }
 
-        // 4. Atomic conditional deduction — only succeeds if balance is still sufficient
-        const { data: deducted, error: deductError } = await admin
-            .rpc("deduct_points_atomic", {
-                p_developer_id: dev.id,
-                p_price_points: item.price_points,
-            })
-            .select("success, remaining_points")
-            .maybeSingle();
-
-        if (deductError || !deducted?.success) {
-            return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
-        }
-        deductedPoints = deducted.remaining_points;
+    // 3. Check points balance (early check, race condition handled by atomic RPC later)
+    if (!isDev && (dev.points ?? 0) < item.price_points) {
+        return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // Fulfill/grant consumable items to developers (updates tables and determines correct status string)
+    // 4. Fulfill/grant consumable items to developers (updates tables and determines correct status string)
     const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
 
     const idempotencyKey = `points_${dev.id}_${item_id}_${Date.now()}`;
 
+    // 5. INSERT purchase record FIRST (before deduction)
     const { data: purchase, error: purchaseError } = await admin
         .from("purchases")
         .insert({
@@ -127,14 +113,25 @@ export async function POST(request: Request) {
         .single();
 
     if (purchaseError) {
-        if (!isDev) {
-            // Atomic rollback — add points back to the current DB value
-            await admin.rpc("add_points_atomic", {
+        return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
+    }
+
+    // 6. Deduct points AFTER successful INSERT — no rollback needed
+    if (!isDev) {
+        const { data: deducted, error: deductError } = await admin
+            .rpc("deduct_points_atomic", {
                 p_developer_id: dev.id,
                 p_price_points: item.price_points,
-            });
+            })
+            .select("success, remaining_points")
+            .maybeSingle();
+
+        if (deductError || !deducted?.success) {
+            // Deduction failed — clean up the purchase record
+            await admin.from("purchases").delete().eq("id", purchase.id);
+            return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
         }
-        return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
+        deductedPoints = deducted.remaining_points;
     }
 
     // Insert activity feed

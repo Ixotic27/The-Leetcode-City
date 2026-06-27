@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { InfrastructureError } from "./errors";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -79,28 +80,36 @@ export async function grantFreeClaimItem(
 ): Promise<boolean> {
   const sb = getSupabaseAdmin();
 
-  // Check if already owned
-  const { data: existing } = await sb
+  // Atomically insert the purchase record.
+  // We use `upsert` with `ignoreDuplicates: true` and `onConflict: "provider_tx_id"`
+  // to prevent concurrent requests from inserting duplicate free claims.
+  const { data, error } = await sb
     .from("purchases")
-    .select("id")
-    .eq("developer_id", developerId)
-    .eq("item_id", FREE_CLAIM_ITEM)
-    .eq("status", "completed")
-    .maybeSingle();
+    .upsert(
+      {
+        developer_id: developerId,
+        item_id: FREE_CLAIM_ITEM,
+        provider: "free",
+        provider_tx_id: `free_claim_${developerId}_${FREE_CLAIM_ITEM}`,
+        amount_cents: 0,
+        currency: "usd",
+        status: "completed",
+      },
+      {
+        onConflict: "provider_tx_id",
+        ignoreDuplicates: true,
+      }
+    )
+    .select("id");
 
-  if (existing) return false;
+  if (error) {
+    console.error("[items.ts] grantFreeClaimItem: Failed to insert free purchase:", error);
+    return false;
+  }
 
-  await sb.from("purchases").insert({
-    developer_id: developerId,
-    item_id: FREE_CLAIM_ITEM,
-    provider: "free",
-    provider_tx_id: `free_claim_${developerId}`,
-    amount_cents: 0,
-    currency: "usd",
-    status: "completed",
-  });
-
-  return true;
+  // If a row was returned, it means it was inserted (newly granted).
+  // If no rows were returned, a conflict occurred (already owned).
+  return data && data.length > 0;
 }
 
 /**
@@ -219,7 +228,7 @@ export async function getOwnedItemsForDevelopers(
 export async function fulfillItemPurchase(
    developerId: number,
    itemId: string,
-   supabaseAdminClient?: any
+   supabaseAdminClient?: SupabaseClient
  ): Promise<{ status: "completed" | "delivered" }> {
    const sb = supabaseAdminClient || getSupabaseAdmin();
 

@@ -63,6 +63,10 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   const targetLoginRef = useRef<string>("");
   const raidDataRef = useRef<RaidExecuteResponse | null>(null);
   const lastCompletedPhaseRef = useRef<RaidPhase | null>(null);
+  // Ref that always holds the latest setPhase — used by auto-advance timers
+  // to avoid a recursive self-reference inside setPhase's own useCallback
+  // (fixes react-hooks/immutability lint violation, line 136).
+  const setPhaseRef = useRef<(phase: RaidPhase) => void>(() => {});
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -129,21 +133,31 @@ export function useRaidSequence(): [RaidState, RaidActions] {
         break;
     }
 
-    // Auto-advance for timed phases
+    // Auto-advance for timed phases.
+    // Use setPhaseRef.current() instead of calling setPhase() directly to
+    // avoid a recursive self-reference inside this useCallback, which would
+    // be flagged by the react-hooks/immutability rule (stale closure).
     const duration = PHASE_DURATIONS[phase];
     if (duration) {
       timerRef.current = setTimeout(() => {
-        if (phase === "intro") setPhase("flight");
-        else if (phase === "flight") setPhase("attack");
+        if (phase === "intro") setPhaseRef.current("flight");
+        else if (phase === "flight") setPhaseRef.current("attack");
         else if (phase === "attack") {
           const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
-          setPhase(nextPhase);
+          setPhaseRef.current(nextPhase);
         }
-        else if (phase === "outro_win") setPhase("share");
-        else if (phase === "outro_lose") setPhase("share");
+        else if (phase === "outro_win") setPhaseRef.current("share");
+        else if (phase === "outro_lose") setPhaseRef.current("share");
       }, duration);
     }
   }, []);
+
+  // Keep setPhaseRef in sync with the stable setPhase callback.
+  // Because setPhase's deps array is [], this is effectively a one-time
+  // assignment, but writing it as an effect keeps the pattern explicit.
+  useEffect(() => {
+    setPhaseRef.current = setPhase;
+  }, [setPhase]);
 
   const startPreview = useCallback(
     async (targetLogin: string, buildings: CityBuilding[], myLogin: string) => {
