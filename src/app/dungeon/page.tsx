@@ -131,23 +131,23 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
             <stop offset="100%" stopColor="#80dfd3" />
           </linearGradient>
         </defs>
-        {/* Clean Tech Grid Background */}
-        <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
-        {/* Neck */}
+        {/* Tech Grid Background */}
+        <rect x="5" y="5" width="90" height="90" fill="#161618" stroke="#2a2a30" strokeWidth="2" rx="4" />
+        {/* Neck & Collars */}
         <path d="M40 70 L60 70 L55 80 L45 80 Z" fill="#004d45" />
-        <path d="M30 75 L70 75 L65 72 L35 72 Z" fill="#2d2d2d" stroke="#00b8a3" strokeWidth="1" />
-        {/* Head */}
+        <path d="M30 75 L70 75 L65 72 L35 72 Z" fill="#2a2a30" stroke="#00b8a3" strokeWidth="1.5" />
+        {/* Main Head */}
         <path d="M25 40 L35 30 L65 30 L75 40 L70 70 L30 70 Z" fill="url(#goblinGrad)" stroke="#00b8a3" strokeWidth="2" />
-        {/* Ears */}
+        {/* Pointy Ears */}
         <path d="M25 42 L5 25 L28 48 Z" fill="#008c7c" stroke="#004d45" strokeWidth="1.5" />
         <path d="M75 42 L95 25 L72 48 Z" fill="#008c7c" stroke="#004d45" strokeWidth="1.5" />
         {/* Visor */}
-        <path d="M28 45 L72 45 L68 53 L32 53 Z" fill="#1e1e1e" stroke="#ffa116" strokeWidth="1.5" />
+        <path d="M28 45 L72 45 L68 53 L32 53 Z" fill="#0d0d0f" stroke="#ffa116" strokeWidth="1.5" />
         <rect x="35" y="47" width="30" height="4" fill="#ffa116" opacity="0.9" />
         <circle cx="60" cy="49" r="2" fill="#ff2d55" />
-        {/* Jaw */}
-        <path d="M35 60 L45 62 L55 62 L65 60 L60 67 L40 67 Z" fill="#3e3e3e" stroke="#4a4a4a" strokeWidth="1" />
-        {/* Antenna */}
+        {/* Metal Jaw plates */}
+        <path d="M35 60 L45 62 L55 62 L65 60 L60 67 L40 67 Z" fill="#2a2a30" stroke="#3a3a44" strokeWidth="1.5" />
+        {/* Horn-like antennas */}
         <line x1="40" y1="30" x2="35" y2="20" stroke="#ffa116" strokeWidth="2" />
         <circle cx="35" cy="20" r="2" fill="#ffa116" />
         <line x1="60" y1="30" x2="65" y2="20" stroke="#ffa116" strokeWidth="2" />
@@ -166,23 +166,23 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
             <stop offset="100%" stopColor="#ffe0b2" />
           </linearGradient>
         </defs>
-        {/* Clean Tech Grid Background */}
-        <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
-        {/* Shoulders */}
-        <path d="M10 75 L30 65 L70 65 L90 75 L85 85 L15 85 Z" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="2" />
-        <circle cx="20" cy="72" r="2" fill="#888888" />
-        <circle cx="80" cy="72" r="2" fill="#888888" />
-        {/* Neck */}
-        <rect x="38" y="58" width="24" height="10" fill="#1e1e1e" stroke="#ffa116" strokeWidth="1" />
-        {/* Head */}
-        <path d="M22 30 L78 30 L74 60 L26 60 Z" fill="url(#orcGrad)" stroke="#cc7100" strokeWidth="2" />
-        {/* Visor */}
-        <path d="M20 38 L80 38 L72 50 L50 56 L28 50 Z" fill="#2d2d2d" stroke="#4a4a4a" strokeWidth="1.5" />
+        {/* Tech Grid Background */}
+        <rect x="5" y="5" width="90" height="90" fill="#161618" stroke="#2a2a30" strokeWidth="2" rx="4" />
+        {/* Heavy shoulders */}
+        <path d="M10 75 L30 65 L70 65 L90 75 L85 85 L15 85 Z" fill="#2a2a30" stroke="#3a3a44" strokeWidth="2" />
+        <circle cx="20" cy="72" r="2.5" fill="#8c8c9c" />
+        <circle cx="80" cy="72" r="2.5" fill="#8c8c9c" />
+        {/* Neck collar */}
+        <rect x="38" y="58" width="24" height="10" fill="#0d0d0f" stroke="#ffa116" strokeWidth="1.5" />
+        {/* Head Armor Block */}
+        <path d="M22 30 L78 30 L74 60 L26 60 Z" fill="url(#orcGrad)" stroke="#cc7100" strokeWidth="2.5" />
+        {/* Iron visor mask */}
+        <path d="M20 38 L80 38 L72 50 L50 56 L28 50 Z" fill="#1c1c20" stroke="#8c8c9c" strokeWidth="2" />
         <path d="M32 43 L68 43 L65 47 L35 47 Z" fill="#ff2d55" />
         <circle cx="50" cy="45" r="1.5" fill="#fff" />
-        {/* Tusks */}
-        <path d="M26 60 L18 52 L26 50 Z" fill="#eaeaea" stroke="#cccccc" strokeWidth="1" />
-        <path d="M74 60 L82 52 L74 50 Z" fill="#eaeaea" stroke="#cccccc" strokeWidth="1" />
+        {/* Massive tusks */}
+        <path d="M26 60 L18 52 L26 50 Z" fill="#d4cfc4" stroke="#8c8c9c" strokeWidth="1" />
+        <path d="M74 60 L82 52 L74 50 Z" fill="#d4cfc4" stroke="#8c8c9c" strokeWidth="1" />
       </svg>
     );
   }
@@ -196,16 +196,16 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
           <stop offset="100%" stopColor="#ffccd5" />
         </linearGradient>
       </defs>
-      {/* Clean Tech Grid Background */}
-      <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
+      {/* Tech Grid Background */}
+      <rect x="5" y="5" width="90" height="90" fill="#161618" stroke="#2a2a30" strokeWidth="2" rx="4" />
       {/* Wings */}
       <path d="M12 40 L5 20 L25 25 L12 40 L28 42 Z" fill="#660014" stroke="#ff2d55" strokeWidth="1.5" />
       <path d="M88 40 L95 20 L75 25 L88 40 L72 42 Z" fill="#660014" stroke="#ff2d55" strokeWidth="1.5" />
-      {/* Neck */}
+      {/* Neck scales */}
       <path d="M42 62 L58 62 L54 85 L46 85 Z" fill="#cc0029" stroke="#ff2d55" strokeWidth="1.5" />
-      {/* Head */}
-      <path d="M22 35 L50 15 L78 35 L72 65 L50 80 L28 65 Z" fill="url(#dragonBody)" stroke="#be123c" strokeWidth="2" />
-      {/* Horns */}
+      {/* Main Head */}
+      <path d="M22 35 L50 15 L78 35 L72 65 L50 80 L28 65 Z" fill="url(#dragonBody)" stroke="#ff2d55" strokeWidth="2" />
+      {/* Robotic horns */}
       <path d="M30 20 L15 2 L25 15" fill="none" stroke="#ff2d55" strokeWidth="2" strokeLinecap="round" />
       <path d="M70 20 L85 2 L75 15" fill="none" stroke="#ff2d55" strokeWidth="2" strokeLinecap="round" />
       {/* Eyes */}
@@ -214,7 +214,7 @@ function BossGraphic({ type, color, flashing }: { type: "goblin" | "orc" | "drag
       <circle cx="40" cy="42" r="1" fill="#fff" />
       <circle cx="60" cy="42" r="1" fill="#fff" />
       {/* Mouth */}
-      <path d="M38 58 L50 68 L62 58 Z" fill="#1a1a1a" stroke="#be123c" strokeWidth="1.5" />
+      <path d="M38 58 L50 68 L62 58 Z" fill="#0d0d0f" stroke="#ff2d55" strokeWidth="1.5" />
       <polygon points="40,58 42,62 44,58" fill="#ffffff" />
       <polygon points="60,58 58,62 56,58" fill="#ffffff" />
       <circle cx="50" cy="62" r="2.5" fill="#ffa116" />
@@ -229,26 +229,26 @@ function PlayerGraphic({ flashing }: { flashing: boolean }) {
     <svg viewBox="0 0 100 100" className={`w-28 h-28 transition-all duration-150 ${flashClass}`}>
       <defs>
         <linearGradient id="screenBg" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#1e1e1e" />
-          <stop offset="100%" stopColor="#121212" />
+          <stop offset="0%" stopColor="#1c1c20" />
+          <stop offset="100%" stopColor="#0d0d0f" />
         </linearGradient>
       </defs>
-      {/* Clean Background Grid */}
-      <rect x="5" y="5" width="90" height="90" fill="#202020" stroke="#333333" strokeWidth="1" rx="8" />
+      {/* Background Grid */}
+      <rect x="5" y="5" width="90" height="90" fill="#161618" stroke="#2a2a30" strokeWidth="2" rx="4" />
       {/* Desk pedestal */}
-      <path d="M20 82 L80 82 L85 92 L15 92 Z" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="1.5" />
-      {/* Stand */}
-      <rect x="44" y="68" width="12" height="14" fill="#3e3e3e" stroke="#4a4a4a" strokeWidth="1.5" />
-      {/* Bezel */}
-      <rect x="15" y="15" width="70" height="54" fill="#2d2d2d" stroke="#3e3e3e" strokeWidth="2.5" rx="6" />
+      <path d="M20 82 L80 82 L85 92 L15 92 Z" fill="#2a2a30" stroke="#3a3a44" strokeWidth="1.5" />
+      {/* CRT Monitor stand */}
+      <rect x="44" y="68" width="12" height="14" fill="#2a2a30" stroke="#3a3a44" strokeWidth="1.5" />
+      {/* Main Monitor Bezel */}
+      <rect x="15" y="15" width="70" height="54" fill="#2a2a30" stroke="#3a3a44" strokeWidth="2.5" rx="4" />
       {/* Screen */}
-      <rect x="18" y="18" width="64" height="48" fill="url(#screenBg)" stroke="#1a1a1a" strokeWidth="1.5" />
-      {/* Status segments */}
+      <rect x="18" y="18" width="64" height="48" fill="url(#screenBg)" stroke="#0d0d0f" strokeWidth="1.5" />
+      {/* Status bars */}
       <rect x="22" y="24" width="15" height="4" fill="#00b8a3" opacity="0.8" />
       <rect x="22" y="32" width="30" height="4" fill="#ffa116" opacity="0.8" />
-      <rect x="22" y="40" width="22" height="4" fill="#3e3e3e" opacity="0.8" />
+      <rect x="22" y="40" width="22" height="4" fill="#3a3a44" opacity="0.8" />
       <rect x="22" y="48" width="45" height="4" fill="#00b8a3" opacity="0.3" />
-      {/* Small status dot */}
+      {/* Amber alert dot */}
       <circle cx="75" cy="26" r="3" fill="#ffa116" />
     </svg>
   );
@@ -487,7 +487,7 @@ export default function DungeonPage() {
     setGameState("battle");
     setBattleLogs([
       { timestamp: new Date().toLocaleTimeString(), type: "system", message: "You descend into the coding dungeon..." },
-      { timestamp: new Date().toLocaleTimeString(), type: "warning", message: `A wild ${stats.name} (${problem.difficulty} challenge) appears!` },
+      { timestamp: new Date().toLocaleTimeString(), type: "warning", message: `A wild ${stats.name} (${problem.difficulty} challenge) blocks your path!` },
       { timestamp: new Date().toLocaleTimeString(), type: "boss", message: 'Boss: "Let\'s see if you can solve this today."' },
       { timestamp: new Date().toLocaleTimeString(), type: "system", message: "The battle begins! Choose your command sequence." }
     ]);
@@ -611,7 +611,7 @@ export default function DungeonPage() {
   const leetcodeUrl = problem ? `https://leetcode.com/problems/${problem.titleSlug}/` : "#";
 
   return (
-    <main className="min-h-screen bg-[#1a1a1a] font-sans text-zinc-300 pb-16 relative">
+    <main className="min-h-screen bg-bg font-pixel text-warm pb-16 relative overflow-hidden">
       
       {/* Subtle LeetCode-style background gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-800/10 via-transparent to-transparent pointer-events-none z-0" />
@@ -641,7 +641,7 @@ export default function DungeonPage() {
         }
         .float-text {
           animation: float-up 1.2s cubic-bezier(0.25, 1, 0.50, 1) forwards;
-          text-shadow: 0 0 6px rgba(0,0,0,0.8);
+          text-shadow: 2px 2px 0px rgba(0,0,0,0.9);
         }
       `}</style>
 
@@ -649,46 +649,45 @@ export default function DungeonPage() {
       <div className={`mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 relative z-10 ${screenShaking ? "screen-shake" : ""}`}>
         
         {/* Navigation & Header */}
-        <div className="flex flex-col border-b border-zinc-800 pb-5 mb-8 md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col border-b-[3px] border-border pb-6 mb-8 md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors duration-150 group"
+              className="flex items-center gap-2 text-xs text-muted hover:text-cream transition-colors duration-150 group"
             >
-              <DungeonIcon name="arrow-left" className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-              Retreat to City
+              <DungeonIcon name="arrow-left" className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
+              RETREAT TO CITY
             </Link>
-            <span className="text-zinc-700">|</span>
-            <span className="text-zinc-500 text-xs font-mono">SIMULATION PORTAL v2.5.0</span>
+            <span className="text-border-light">|</span>
+            <span className="text-dim text-[10px] uppercase">SIMULATOR PORTAL v2.5.0</span>
           </div>
           
           <div className="text-center">
-            <h1 className="text-xl md:text-2xl font-bold tracking-wide text-zinc-100 flex items-center justify-center gap-2 select-none">
-              <span className="text-[#ffa116]"><DungeonIcon name="sword" className="w-5 h-5" /></span>
-              THE CODING DUNGEON
+            <h1 className="text-2xl md:text-3xl tracking-[0.15em] text-cream font-bold select-none">
+              ⚔ THE CODING DUNGEON ⚔
             </h1>
           </div>
           
           <div className="flex items-center gap-4">
             <button 
               onClick={toggleSound}
-              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer bg-zinc-800/60 border border-zinc-700 px-3 py-1.5 rounded-md"
+              className="flex items-center gap-1.5 text-[9px] text-muted hover:text-cream transition-colors cursor-pointer border-2 border-border bg-bg-raised px-3 py-1.5 btn-press"
               title={soundEnabled ? "Mute sound" : "Unmute sound"}
             >
-              <DungeonIcon name={soundEnabled ? "sound-on" : "sound-off"} className="w-3.5 h-3.5" />
-              <span>{soundEnabled ? "Sound On" : "Sound Muted"}</span>
+              <DungeonIcon name={soundEnabled ? "sound-on" : "sound-off"} className="w-3.5 h-3.5 text-lime" />
+              <span>{soundEnabled ? "SOUND_ON" : "SOUND_MUTED"}</span>
             </button>
             
-            <div className="flex items-center gap-2 text-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-zinc-400">Gateway Connected</span>
+            <div className="flex items-center gap-2 text-[10px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-muted">PORTAL_ONLINE</span>
             </div>
           </div>
         </div>
 
         {/* LOADING STATE */}
         {loading && (
-          <div className="flex h-96 flex-col items-center justify-center border border-zinc-800 bg-[#282828] rounded-xl p-8 text-center shadow-lg relative overflow-hidden">
+          <div className="flex h-96 flex-col items-center justify-center border-[3px] border-border bg-bg-raised p-8 text-center shadow-lg relative overflow-hidden">
             <div className="relative mb-6">
               <svg viewBox="0 0 100 100" className="w-16 h-16 animate-spin text-[#ffa116]" style={{ animationDuration: "2.5s" }}>
                 <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="2" strokeDasharray="15 8" fill="none" opacity="0.2" />
@@ -696,19 +695,19 @@ export default function DungeonPage() {
                 <polygon points="50,25 55,45 75,50 55,55 50,75 45,55 25,50 45,45" fill="currentColor" opacity="0.7" />
               </svg>
             </div>
-            <p className="text-sm font-bold text-zinc-200 tracking-wider">Synchronizing Challenge Matrix...</p>
-            <p className="text-xs text-zinc-500 mt-2 font-mono">Fetching latest challenge data from LeetCode mainframe</p>
+            <p className="text-sm font-bold text-cream tracking-widest blink-dot">SYNCHRONIZING MATRIX...</p>
+            <p className="text-[10px] text-muted mt-2 normal-case font-mono">Fetching latest challenge data from LeetCode mainframe</p>
           </div>
         )}
 
         {/* ERROR STATE */}
         {error && !problem && (
-          <div className="flex h-96 flex-col items-center justify-center border border-rose-950 bg-rose-950/10 rounded-xl p-8 text-center shadow-lg relative">
+          <div className="flex h-96 flex-col items-center justify-center border-[3px] border-rose-950 bg-rose-950/10 p-8 text-center shadow-lg relative">
             <div className="mb-4 text-rose-500">
               <DungeonIcon name="warning" className="w-12 h-12" />
             </div>
-            <h2 className="text-base text-rose-400 mb-2 font-bold tracking-wider">PORTAL ERROR</h2>
-            <p className="text-xs text-zinc-400 max-w-sm mb-6 leading-relaxed">
+            <h2 className="text-sm text-rose-400 mb-2 font-bold tracking-wider">PORTAL ERROR</h2>
+            <p className="text-[10px] text-muted max-w-sm mb-6 leading-relaxed">
               Unable to reach the remote daily API gateway. Check your connection or launch local simulation.
             </p>
             <button
@@ -719,7 +718,7 @@ export default function DungeonPage() {
                 setProblem(randomMock);
                 setLoading(false);
               }}
-              className="btn-press border border-rose-500/30 bg-rose-950/20 text-rose-300 hover:bg-rose-950/30 px-6 py-2.5 text-xs font-semibold rounded-lg tracking-wider cursor-pointer transition-colors"
+              className="btn-press border-[3px] border-rose-500 bg-rose-950/20 text-rose-300 hover:bg-rose-950/30 px-6 py-2.5 text-[9px] font-bold tracking-wider cursor-pointer transition-colors"
             >
               Start Local Simulation
             </button>
@@ -734,15 +733,15 @@ export default function DungeonPage() {
             <div className="lg:col-span-8 flex flex-col gap-6">
               
               {/* Game Screen Container */}
-              <div className="border border-zinc-800 bg-[#282828] rounded-xl p-6 shadow-xl relative flex flex-col gap-6">
+              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative flex flex-col gap-6">
 
                 {/* Intro Screen */}
                 {gameState === "intro" && (
                   <div className="flex flex-col items-center justify-center py-12 text-center relative z-20">
-                    <div className="mb-6 select-none bg-[#1e1e1e] p-4 border border-zinc-800 rounded-lg shadow-inner">
+                    <div className="mb-6 select-none bg-bg-card p-4 border-[3px] border-border rounded-lg shadow-inner">
                       <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={false} />
                     </div>
-                    <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-widest">DUNGEON GUARDIAN SYSTEM</span>
+                    <span className="text-[10px] text-muted block mb-1 font-mono tracking-widest uppercase">DUNGEON GUARDIAN SYSTEM</span>
                     <h2 
                       className="text-lg font-bold mb-3 font-mono tracking-wide"
                       style={{ color: bossInfo.color }}
@@ -750,16 +749,16 @@ export default function DungeonPage() {
                       {bossInfo.name}
                     </h2>
                     
-                    <p className="max-w-md text-xs text-zinc-400 mb-8 leading-relaxed">
+                    <p className="max-w-md text-xs text-muted mb-8 leading-relaxed normal-case">
                       Deploy algorithmic optimizations to tackle the challenge. Run tests to recover your health, refactor files to block attacks, and commit code to deliver critical payloads.
                     </p>
 
                     <button
                       onClick={startBattle}
-                      className="btn-press bg-[#ffa116] hover:bg-[#ffb800] text-zinc-950 px-8 py-3 text-xs font-bold rounded-lg tracking-wider transition-colors cursor-pointer shadow-sm flex items-center gap-2"
+                      className="btn-press border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime px-8 py-3 text-xs font-bold tracking-widest transition-colors cursor-pointer pixel-shadow flex items-center gap-2"
                     >
                       <DungeonIcon name="sword" className="w-4 h-4" />
-                      Engage Boss Simulation
+                      ENGAGE BOSS SIMULATION
                     </button>
                   </div>
                 )}
@@ -769,58 +768,62 @@ export default function DungeonPage() {
                   <div className="flex flex-col relative z-20">
                     
                     {/* Health Status Bar Header */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-zinc-800/80">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b-[3px] border-border">
                       
                       {/* Boss HP */}
-                      <div className="border border-zinc-800 bg-[#1e1e1e] rounded-lg p-4 relative">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold" style={{ color: bossInfo.color }}>
-                            DAEMON: {bossInfo.name}
+                      <div className="border-[3px] border-border bg-bg p-4 relative">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold" style={{ color: bossInfo.color }}>
+                            SYS_ENT: {bossInfo.name.toUpperCase()}
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-mono">TARGET</span>
+                          <span className="text-[9px] text-muted font-mono">TARGET</span>
                         </div>
-                        <div className="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 relative">
+                        <div className="w-full bg-bg-raised h-4 p-0.5 border-2 border-border-light relative">
                           <div 
-                            className="h-full transition-all duration-300 rounded-full"
+                            className="h-full transition-all duration-300 relative"
                             style={{ 
                               width: `${(bossHp / bossMaxHp) * 100}%`,
                               backgroundColor: bossInfo.color
                             }}
-                          />
+                          >
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_90%,rgba(0,0,0,0.3)_90%)] bg-[size:10%_100%]" />
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between mt-2 text-[10px] text-zinc-400 font-mono">
+                        <div className="flex items-center justify-between mt-2 text-[9px] text-dim">
                           <span>SYSTEM INTEGRITY</span>
                           <span className="font-bold" style={{ color: bossInfo.color }}>
-                            {bossHp} / {bossMaxHp} HP ({(bossHp / bossMaxHp * 100).toFixed(0)}%)
+                            {bossHp} / {bossMaxHp} HP [{(bossHp / bossMaxHp * 100).toFixed(0)}%]
                           </span>
                         </div>
                       </div>
 
                       {/* Player HP */}
-                      <div className="border border-zinc-800 bg-[#1e1e1e] rounded-lg p-4 relative">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold text-[#00b8a3]">
-                            DEVELOPER: LOCAL INSTANCE
+                      <div className="border-[3px] border-border bg-bg p-4 relative">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] text-[#00b8a3] font-bold">
+                            SYS_DEV: DEV_INSTANCE
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-mono">LOCAL</span>
+                          <span className="text-[9px] text-muted font-mono">LOCAL</span>
                         </div>
-                        <div className="w-full bg-zinc-900 h-3 rounded-full overflow-hidden border border-zinc-800 relative">
+                        <div className="w-full bg-bg-raised h-4 p-0.5 border-2 border-border-light relative">
                           <div 
-                            className="h-full bg-[#00b8a3] transition-all duration-300 rounded-full"
+                            className="h-full bg-[#00b8a3] transition-all duration-300 relative"
                             style={{ width: `${(playerHp / playerMaxHp) * 100}%` }}
-                          />
+                          >
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_90%,rgba(0,0,0,0.3)_90%)] bg-[size:10%_100%]" />
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between mt-2 text-[10px] text-zinc-400 font-mono">
-                          <span>WORK SPACE HEALTH</span>
+                        <div className="flex items-center justify-between mt-2 text-[9px] text-dim">
+                          <span>WORKSPACE HEALTH</span>
                           <span className="font-bold text-[#00b8a3]">
-                            {playerHp} / {playerMaxHp} HP ({(playerHp / playerMaxHp * 100).toFixed(0)}%)
+                            {playerHp} / {playerMaxHp} HP [{(playerHp / playerMaxHp * 100).toFixed(0)}%]
                           </span>
                         </div>
                       </div>
                     </div>
 
                     {/* Battle Arena Visuals */}
-                    <div className="flex items-center justify-around py-10 bg-[#1e1e1e] border border-zinc-800 rounded-lg my-6 relative min-h-[200px] overflow-hidden shadow-inner">
+                    <div className="flex items-center justify-around py-10 bg-bg-card border-[3px] border-border rounded-lg my-6 relative min-h-[220px] overflow-hidden shadow-inner">
                       
                       {/* Grid overlay */}
                       <div className="absolute inset-0 opacity-5 pointer-events-none select-none">
@@ -854,14 +857,14 @@ export default function DungeonPage() {
                       {/* Player Screen */}
                       <div className="text-center relative">
                         <PlayerGraphic flashing={playerFlashing} />
-                        <div className="text-xs text-zinc-300 font-medium px-3 py-1 bg-[#282828] border border-zinc-700 rounded mt-3 inline-block shadow-sm">
-                          Developer Terminal
+                        <div className="text-[10px] text-cream border-[2px] border-border-light px-3 py-1 bg-bg mt-3 font-bold inline-block shadow-sm">
+                          DEV_TERM.EXE
                         </div>
                       </div>
 
                       {/* VS Badge */}
                       <div className="flex flex-col items-center">
-                        <div className="text-xs font-bold text-zinc-500 bg-[#282828] border border-zinc-700 px-3 py-1.5 select-none tracking-widest rounded shadow-sm font-mono">
+                        <div className="text-xs font-bold text-zinc-500 bg-bg border-2 border-border px-3 py-1.5 select-none tracking-widest rounded shadow-sm font-mono">
                           VS
                         </div>
                       </div>
@@ -871,16 +874,16 @@ export default function DungeonPage() {
                         {gameState === "victory" ? (
                           <div className="w-28 h-28 flex flex-col items-center justify-center select-none animate-pulse">
                             <DungeonIcon name="skull" className="w-12 h-12 text-rose-500" />
-                            <span className="text-[10px] text-rose-500 mt-2 tracking-widest font-mono font-bold">DAEMON_CRASHED</span>
+                            <span className="text-[9px] text-rose-500 mt-2 tracking-widest font-mono font-bold">DAEMON_CRASHED</span>
                           </div>
                         ) : (
                           <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={bossFlashing} />
                         )}
                         <div 
-                          className="text-xs font-medium px-3 py-1 bg-[#282828] border rounded mt-3 inline-block shadow-sm"
+                          className="text-[10px] border-[2px] px-3 py-1 bg-bg mt-3 font-bold inline-block shadow-sm"
                           style={{ borderColor: `${bossInfo.color}40`, color: bossInfo.color }}
                         >
-                          {bossInfo.name}
+                          {bossInfo.name.toUpperCase()}
                         </div>
                       </div>
                     </div>
@@ -888,10 +891,10 @@ export default function DungeonPage() {
                     {/* RPG Controller Action Pad */}
                     <div className="mb-6">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs text-zinc-400 font-semibold tracking-wider">Select Command:</span>
+                        <span className="text-[10px] text-muted font-bold tracking-wider">SELECT COMMAND ROUTINE:</span>
                         {defending && (
-                          <span className="text-xs text-sky-400 font-mono animate-pulse">
-                            [Refactor Active: Next Attack Shielded]
+                          <span className="text-[9px] text-sky-400 font-mono animate-pulse">
+                            [REFACTOR ACTIVE: INCOMING DAMAGE MINIMIZED]
                           </span>
                         )}
                       </div>
@@ -899,42 +902,42 @@ export default function DungeonPage() {
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("attack")}
-                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider cursor-pointer flex items-center justify-center gap-1.5 pixel-shadow"
                         >
-                          <DungeonIcon name="sword" className="w-4 h-4 text-amber-500" />
-                          Code Attack
+                          <DungeonIcon name="sword" className="w-3.5 h-3.5 text-amber-500" />
+                          CODE ATTACK
                         </button>
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("defend")}
-                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider cursor-pointer flex items-center justify-center gap-1.5 pixel-shadow"
                         >
-                          <DungeonIcon name="shield" className="w-4 h-4 text-sky-400" />
-                          Refactor Def
+                          <DungeonIcon name="shield" className="w-3.5 h-3.5 text-sky-400" />
+                          REFACTOR DEF
                         </button>
                         <button
                           disabled={gameState !== "battle"}
                           onClick={() => handleAction("heal")}
-                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider cursor-pointer flex items-center justify-center gap-1.5 pixel-shadow"
                         >
-                          <DungeonIcon name="sparkles" className="w-4 h-4 text-emerald-400" />
-                          Test Heal
+                          <DungeonIcon name="sparkles" className="w-3.5 h-3.5 text-emerald-400" />
+                          TEST HEAL
                         </button>
                         <button
                           disabled={gameState !== "battle" || specialCooldown > 0}
                           onClick={() => handleAction("special")}
-                          className="btn-press border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-30 disabled:hover:bg-zinc-800/80 px-4 py-3 text-xs font-semibold text-zinc-200 tracking-wide rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                          className="btn-press border-[3px] border-border-light bg-bg hover:border-lime disabled:opacity-30 disabled:hover:border-border-light px-3 py-2.5 text-[9px] font-bold text-cream tracking-wider cursor-pointer flex items-center justify-center gap-1.5 pixel-shadow"
                         >
-                          <DungeonIcon name="fire" className="w-4 h-4 text-rose-500" />
-                          Commit {specialCooldown > 0 ? `(${specialCooldown})` : ""}
+                          <DungeonIcon name="fire" className="w-3.5 h-3.5 text-rose-500" />
+                          COMMIT {specialCooldown > 0 ? `(${specialCooldown})` : ""}
                         </button>
                       </div>
                     </div>
 
                     {/* Battle Simulator Console Logs */}
-                    <div className="border border-zinc-800 bg-[#1e1e1e] p-5 h-56 rounded-lg overflow-y-auto font-mono text-[11px] leading-relaxed scrollbar-thin">
+                    <div className="border-[3px] border-border bg-bg p-5 h-56 rounded-lg overflow-y-auto font-mono text-[11px] leading-relaxed scrollbar-thin">
                       {battleLogs.map((log, index) => {
-                        let textColor = "text-zinc-300";
+                        let textColor = "text-cream-dark";
                         let iconName = "system";
                         
                         switch (log.type) {
@@ -979,7 +982,7 @@ export default function DungeonPage() {
                             iconName = "tip";
                             break;
                           default:
-                            textColor = "text-zinc-500";
+                            textColor = "text-muted";
                             iconName = "system";
                         }
 
@@ -1001,15 +1004,15 @@ export default function DungeonPage() {
                       <div className="mt-6 flex gap-4">
                         <button
                           onClick={startBattle}
-                          className="btn-press flex-1 bg-[#00b8a3] hover:bg-[#009c8a] text-zinc-950 text-xs py-3.5 font-semibold rounded-lg tracking-wide cursor-pointer transition-colors shadow-sm"
+                          className="btn-press flex-1 border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime text-xs py-3.5 font-bold tracking-widest cursor-pointer transition-colors pixel-shadow"
                         >
-                          Restart Battle Simulation
+                          RESTART BATTLE SIMULATION
                         </button>
                         <button
                           onClick={() => setGameState("intro")}
-                          className="border border-zinc-700 bg-zinc-800/60 hover:bg-zinc-800 text-zinc-300 text-xs px-6 py-3.5 rounded-lg transition-colors cursor-pointer"
+                          className="border border-border bg-bg-card hover:bg-bg text-muted hover:text-cream text-xs px-6 py-3.5 transition-colors cursor-pointer"
                         >
-                          Retreat to Deck
+                          RETREAT TO DECK
                         </button>
                       </div>
                     )}
@@ -1025,51 +1028,51 @@ export default function DungeonPage() {
             <div className="lg:col-span-4 flex flex-col gap-6">
               
               {/* Leetcode Boss Details */}
-              <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg relative">
-                <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-wider">MISSION BRIEFING</span>
-                <h3 className="text-sm text-zinc-200 mb-4 font-bold">Daily Challenge Parameters</h3>
+              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative">
+                <span className="text-[10px] text-muted block mb-1 font-mono tracking-wider">MISSION BRIEFING</span>
+                <h3 className="text-xs text-cream mb-4 font-bold">DAILY CHALLENGE MATRICES</h3>
                 
                 <div className="mb-4">
-                  <span className="text-xs text-zinc-500 block mb-2">Target Hostile Daemon:</span>
-                  <div className="flex items-center gap-3 bg-[#1e1e1e] border border-zinc-800 rounded-lg p-3">
+                  <span className="text-[10px] text-muted block mb-2 font-mono">TARGET HOSTILE DAEMON:</span>
+                  <div className="flex items-center gap-3 bg-bg border-2 border-border p-3">
                     <div className="scale-75 origin-center shrink-0">
                       <BossGraphic type={bossInfo.type} color={bossInfo.color} flashing={false} />
                     </div>
                     <div>
-                      <span className="text-xs text-zinc-200 font-bold block">{bossInfo.name}</span>
-                      <span className="text-[10px] text-zinc-500 block mt-0.5">Matrix Base: {bossInfo.maxHp} HP</span>
+                      <span className="text-[11px] text-cream font-bold block">{bossInfo.name}</span>
+                      <span className="text-[9px] text-muted block mt-0.5">MATRIX UNIT: {bossInfo.maxHp} HP</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-4">
-                  <span className="text-xs text-zinc-500 block mb-2">LeetCode Daily challenge:</span>
-                  <div className="bg-[#1e1e1e] border border-zinc-800 rounded-lg p-4">
-                    <p className="text-xs text-zinc-200 font-semibold leading-relaxed">{problem.title}</p>
-                    <span className="text-[10px] text-zinc-500 block mt-1 font-mono">Slug: {problem.titleSlug}</span>
+                  <span className="text-[10px] text-muted block mb-2 font-mono">LEETCODE DAILY CHALLENGE:</span>
+                  <div className="bg-bg border-2 border-border p-4">
+                    <p className="text-[11px] text-cream leading-relaxed normal-case font-bold">{problem.title}</p>
+                    <span className="text-[9px] text-muted block mt-1 normal-case font-mono">slug: {problem.titleSlug}</span>
                   </div>
                 </div>
 
-                <div className="mb-4 flex items-center justify-between bg-[#1e1e1e] border border-zinc-800 rounded-lg p-3">
+                <div className="mb-4 flex items-center justify-between bg-bg border-2 border-border p-3">
                   <div>
-                    <span className="text-[10px] text-zinc-500 block mb-1">Difficulty:</span>
+                    <span className="text-[10px] text-muted block mb-1 font-mono">DIFFICULTY:</span>
                     <span 
-                      className="border rounded px-2.5 py-0.5 text-[10px] font-semibold inline-block"
+                      className="border rounded px-2.5 py-0.5 text-[9px] font-bold inline-block"
                       style={{ borderColor: `${bossInfo.color}40`, color: bossInfo.color, backgroundColor: `${bossInfo.color}0d` }}
                     >
                       {problem.difficulty}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-zinc-500 block mb-1 text-right">XP Sync:</span>
+                    <span className="text-[10px] text-muted block mb-1 text-right font-mono">XP_SYNC:</span>
                     <span className="text-xs text-emerald-400 font-bold text-right block font-mono">
                       +{problem.difficulty === "Easy" ? "50" : problem.difficulty === "Medium" ? "100" : "200"} XP
                     </span>
                   </div>
                 </div>
 
-                <div className="border-t border-zinc-800/80 pt-4 mt-6">
-                  <p className="text-xs text-zinc-400 mb-4 leading-relaxed">
+                <div className="border-t border-border pt-4 mt-6">
+                  <p className="text-[10px] text-muted normal-case mb-4 leading-relaxed">
                     Connecting to the remote mainframe resolves this objective. Access the direct coding console on LeetCode to submit your solution.
                   </p>
                   
@@ -1077,10 +1080,10 @@ export default function DungeonPage() {
                     href={leetcodeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn-press w-full text-center block bg-[#ffa116] hover:bg-[#ffb800] text-zinc-950 font-bold text-xs py-3.5 rounded-lg transition-colors no-underline shadow-sm flex items-center justify-center gap-2"
+                    className="btn-press w-full text-center block border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime font-bold text-xs py-3.5 tracking-widest transition-all duration-75 no-underline pixel-shadow flex items-center justify-center gap-2"
                   >
                     <DungeonIcon name="sword" className="w-4 h-4" />
-                    Solve on LeetCode
+                    SOLVE ON LEETCODE
                   </a>
                 </div>
 
@@ -1088,38 +1091,38 @@ export default function DungeonPage() {
 
               {/* Simulator Run Statistics */}
               {gameState !== "intro" && (
-                <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg relative overflow-hidden">
-                  <span className="text-[10px] text-zinc-500 block mb-1 font-mono tracking-wider">DIAGNOSTICS</span>
-                  <h3 className="text-sm text-zinc-200 mb-4 font-bold">Session Record</h3>
+                <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow relative overflow-hidden">
+                  <span className="text-[10px] text-muted block mb-1 font-mono tracking-wider">DIAGNOSTICS</span>
+                  <h3 className="text-xs text-cream mb-4 font-bold font-mono">SESSION_RECORD</h3>
                   
-                  <div className="space-y-3.5 text-xs">
-                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
-                      <span className="text-zinc-500">Commands Run:</span>
-                      <span className="text-zinc-200 font-semibold font-mono">{battleStats.turnsPlayed}</span>
+                  <div className="space-y-3.5 text-[11px] font-mono">
+                    <div className="flex justify-between border-b border-border pb-1.5">
+                      <span className="text-muted">COMMANDS_RUN:</span>
+                      <span className="text-cream font-bold">{battleStats.turnsPlayed}</span>
                     </div>
-                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
-                      <span className="text-zinc-500">Damage Delivered:</span>
-                      <span className="text-amber-500 font-semibold font-mono">{battleStats.damageDealt} HP</span>
+                    <div className="flex justify-between border-b border-border pb-1.5">
+                      <span className="text-muted">DAMAGE_DELIVERED:</span>
+                      <span className="text-amber-500 font-bold">{battleStats.damageDealt} HP</span>
                     </div>
-                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
-                      <span className="text-zinc-500">Damage Taken:</span>
-                      <span className="text-rose-500 font-semibold font-mono">{battleStats.damageTaken} HP</span>
+                    <div className="flex justify-between border-b border-border pb-1.5">
+                      <span className="text-muted">DAMAGE_TAKEN:</span>
+                      <span className="text-rose-500 font-bold">{battleStats.damageTaken} HP</span>
                     </div>
-                    <div className="flex justify-between border-b border-zinc-800 pb-1.5">
-                      <span className="text-zinc-500">Local Recoveries:</span>
-                      <span className="text-emerald-500 font-semibold font-mono">{battleStats.healsUsed}</span>
+                    <div className="flex justify-between border-b border-border pb-1.5">
+                      <span className="text-muted">LOCAL_RECOVERIES:</span>
+                      <span className="text-emerald-500 font-bold">{battleStats.healsUsed}</span>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Dungeon Instructions */}
-              <div className="border border-zinc-800 bg-[#282828] p-6 rounded-xl shadow-lg">
+              <div className="border-[3px] border-border bg-bg-raised p-6 pixel-shadow">
                 <div className="flex items-center gap-2 mb-3">
                   <DungeonIcon name="tip" className="w-4 h-4 text-[#ffa116]" />
-                  <h4 className="text-xs text-zinc-200 font-bold">Dungeon Rules</h4>
+                  <h4 className="text-xs text-cream font-bold">RULES OF THE CRYPT</h4>
                 </div>
-                <ul className="text-xs text-zinc-400 space-y-2.5 list-disc pl-4 leading-relaxed">
+                <ul className="text-[10px] text-muted normal-case space-y-2.5 list-disc pl-4 leading-relaxed">
                   <li>The Daily Challenge rotates automatically every midnight UTC.</li>
                   <li>Solving the boss problem on LeetCode awards custom XP and Arena rating updates.</li>
                   <li>Defeating higher tier daemons (Medium/Hard) drops higher level credentials and badges.</li>
