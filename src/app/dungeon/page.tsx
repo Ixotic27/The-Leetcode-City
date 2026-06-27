@@ -381,6 +381,7 @@ export default function DungeonPage() {
   const [error, setError] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
 
   // RPG Battle Simulation States
   const [gameState, setGameState] = useState<"intro" | "battle" | "victory" | "defeat">("intro");
@@ -433,11 +434,28 @@ export default function DungeonPage() {
         if (!res.ok) throw new Error("API network failure");
         const data = await res.json();
         if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug) throw new Error("Invalid API format");
-        setProblem({
+        const resolvedProblem = {
           title: data.questionTitle,
           difficulty: data.difficulty,
           titleSlug: data.titleSlug,
-        });
+        };
+        setProblem(resolvedProblem);
+
+        // Fetch today's challenges in database to match ID
+        try {
+          const arenaRes = await fetch("/api/arena/challenge/today");
+          if (arenaRes.ok) {
+            const arenaData = await arenaRes.json();
+            const matchingCh = arenaData.challenges?.find(
+              (c: any) => c.difficulty.toLowerCase() === resolvedProblem.difficulty.toLowerCase()
+            );
+            if (matchingCh) {
+              setChallengeId(matchingCh.id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch matching challenge ID:", e);
+        }
       } catch (err: any) {
         if (err.name === "AbortError") return;
         console.warn("LeetCode daily API offline, falling back to local simulation database.");
@@ -1072,19 +1090,56 @@ export default function DungeonPage() {
                 </div>
 
                 <div className="border-t border-border pt-4 mt-6">
-                  <p className="text-[10px] text-muted normal-case mb-4 leading-relaxed">
-                    Connecting to the remote mainframe resolves this objective. Access the direct coding console on LeetCode to submit your solution.
-                  </p>
-                  
-                  <a
-                    href={leetcodeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-press w-full text-center block border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime font-bold text-xs py-3.5 tracking-widest transition-all duration-75 no-underline pixel-shadow flex items-center justify-center gap-2"
-                  >
-                    <DungeonIcon name="sword" className="w-4 h-4" />
-                    SOLVE ON LEETCODE
-                  </a>
+                  {challengeId ? (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-[10px] text-muted normal-case mb-2 leading-relaxed">
+                        Objective active in extension database. Deploy to VS Code or Antigravity IDE to solve this challenge:
+                      </p>
+                      
+                      <a
+                        href={`vscode://leetcode-city.leetcode-city-pulse/arena?challenge=${challengeId}&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
+                        className="btn-press w-full text-center block border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime font-bold text-[10px] py-3.5 tracking-widest transition-all duration-75 no-underline pixel-shadow flex items-center justify-center gap-2"
+                      >
+                        <DungeonIcon name="sword" className="w-4 h-4" />
+                        SOLVE IN VS CODE
+                      </a>
+
+                      <a
+                        href={`antigravity-ide://leetcode-city.leetcode-city-pulse/arena?challenge=${challengeId}&origin=${typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : ""}`}
+                        className="btn-press w-full text-center block border-[3px] border-[#00b8a3] bg-[#00b8a3]/10 hover:bg-[#00b8a3]/20 text-[#00b8a3] font-bold text-[10px] py-3.5 tracking-widest transition-all duration-75 no-underline pixel-shadow flex items-center justify-center gap-2"
+                      >
+                        <DungeonIcon name="trophy" className="w-4 h-4" />
+                        SOLVE IN ANTIGRAVITY
+                      </a>
+
+                      <div className="text-center mt-2.5">
+                        <a
+                          href={leetcodeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[9px] text-muted hover:text-cream underline transition-colors"
+                        >
+                          OR SOLVE ON LEETCODE WEB
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[10px] text-muted normal-case mb-4 leading-relaxed">
+                        Connecting to the remote mainframe resolves this objective. Access the direct coding console on LeetCode to submit your solution.
+                      </p>
+                      
+                      <a
+                        href={leetcodeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-press w-full text-center block border-[3px] border-lime bg-lime/10 hover:bg-lime/20 text-lime font-bold text-xs py-3.5 tracking-widest transition-all duration-75 no-underline pixel-shadow flex items-center justify-center gap-2"
+                      >
+                        <DungeonIcon name="sword" className="w-4 h-4" />
+                        SOLVE ON LEETCODE
+                      </a>
+                    </div>
+                  )}
                 </div>
 
               </div>
