@@ -73,10 +73,12 @@ export async function GET() {
       owned: owned.has(item.id),
     }));
     balance = walletRes.data?.balance ?? 0;
-  } catch (err: any) {
-    console.debug("[shop] DB table not found, using fallback items:", err.message);
-    items = FALLBACK_ITEMS.map(item => ({ ...item, owned: true }));
-    balance = 100;
+  } catch (err: unknown) {
+    console.error("[shop] Failed to load shop data:", err instanceof Error ? err.message : err);
+    return NextResponse.json(
+      { error: "Failed to load shop data" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({
@@ -151,11 +153,10 @@ export async function POST(request: Request) {
       price: result?.price ?? 0,
     });
   } catch (e) {
-    console.warn("Could not purchase item via DB, mocking success:", e);
-    return NextResponse.json({
-      purchased: itemId,
-      balance: 100,
-      price: 0,
-    });
+    console.error("[shop] Purchase failed:", e);
+    return NextResponse.json(
+      { error: "Purchase failed" },
+      { status: 500 },
+    );
   }
 }

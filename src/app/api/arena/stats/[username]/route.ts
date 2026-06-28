@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+import { getAuthenticatedDeveloper } from "@/lib/arena";
+
 function getRankTitle(rating: number, rank: number): { title: string; badge: string; rarity: string } {
   if (rank > 0 && rank <= 10) return { title: "The Sentinel", badge: "badge_legendary", rarity: "legendary" };
   if (rating >= 2200) return { title: "The Grandmaster", badge: "badge_diamond", rarity: "epic" };
@@ -26,19 +28,38 @@ export async function GET(
   const authHeader = request.headers.get("Authorization");
   if (authHeader) {
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user } } = await sb.auth.getUser(token);
-    if (user) {
-      const { data: authedDev, error: authedError } = await sb
+    try {
+      const { data: { user } } = await sb.auth.getUser(token);
+      if (user) {
+        const { data: authedDev, error: authedError } = await sb
+          .from("developers")
+          .select("id, name, github_login, avatar_url, xp_level")
+          .eq("claimed_by", user.id)
+          .maybeSingle();
+        
+        if (authedDev) {
+          const metaUser = (user.user_metadata?.user_name ?? user.user_metadata?.preferred_username ?? "").toLowerCase();
+          if (username === "me" || username === authedDev.github_login.toLowerCase() || username === metaUser) {
+            dev = authedDev;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore auth getUser error (e.g. invalid token format when extension calls it)
+    }
+  }
+
+  // Support VS Code extension apiKey or cookie session via getAuthenticatedDeveloper if username === "me"
+  if (!dev && username === "me") {
+    const authedDev = await getAuthenticatedDeveloper(request);
+    if (authedDev) {
+      const { data: fullDev } = await sb
         .from("developers")
         .select("id, name, github_login, avatar_url, xp_level")
-        .eq("claimed_by", user.id)
+        .eq("id", authedDev.id)
         .maybeSingle();
-      
-      if (authedDev) {
-        const metaUser = (user.user_metadata?.user_name ?? user.user_metadata?.preferred_username ?? "").toLowerCase();
-        if (username === "me" || username === authedDev.github_login.toLowerCase() || username === metaUser) {
-          dev = authedDev;
-        }
+      if (fullDev) {
+        dev = fullDev;
       }
     }
   }
