@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability, @typescript-eslint/no-unused-vars */
 import { useRef, useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -1840,6 +1840,7 @@ interface Props {
   accentColor?: string;
   onClearFocus?: () => void;
   onBuildingClick?: (building: CityBuilding) => void;
+  onBuildingFocus?: (building: CityBuilding) => void;
   onFocusInfo?: (info: FocusInfo) => void;
   flyPauseSignal?: number;
   flyHasOverlay?: boolean;
@@ -1922,6 +1923,7 @@ export default function CityCanvas({
   accentColor,
   onClearFocus,
   onBuildingClick,
+  onBuildingFocus,
   onFocusInfo,
   flyPauseSignal,
   flyHasOverlay,
@@ -1964,9 +1966,44 @@ export default function CityCanvas({
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
   const t = THEMES[themeIndex] ?? THEMES[0];
+  const [kbBuildingIndex, setKbBuildingIndex] = useState(0);
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
   const flyPosRef = useRef(new THREE.Vector3());
   const timeRef = useRef(0.0);
+
+  const handleCanvasKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!buildings.length) return;
+
+    const isForward = e.key === "ArrowRight" || e.key === "ArrowDown";
+    const isBackward = e.key === "ArrowLeft" || e.key === "ArrowUp";
+
+    const currentIndex = () => {
+      if (focusedBuilding) {
+        const idx = buildings.findIndex(
+          (b) => b.login.toLowerCase() === focusedBuilding.toLowerCase()
+        );
+        if (idx >= 0) return idx;
+      }
+      return kbBuildingIndex;
+    };
+
+    if (isForward || isBackward) {
+      e.preventDefault();
+      const base = currentIndex();
+      const next = isForward
+        ? (base + 1) % buildings.length
+        : (base - 1 + buildings.length) % buildings.length;
+      const building = buildings[next];
+      setKbBuildingIndex(next);
+      if (building && onBuildingFocus) onBuildingFocus(building);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const building = buildings[currentIndex()];
+      if (building && onBuildingClick) onBuildingClick(building);
+    } else if (e.key === "Escape") {
+      if (onClearFocus) onClearFocus();
+    }
+  };
 
   const cityRadius = useMemo(() => {
     let max = 200;
@@ -1998,6 +2035,10 @@ export default function CityCanvas({
   return (
     <>
     <Canvas
+      role="application"
+      aria-label="3D LeetCode City — use arrow keys to move between buildings, Enter to open a profile, Escape to close. Press Tab to leave the city."
+      tabIndex={0}
+      onKeyDown={handleCanvasKeyDown}
       camera={{ position: [400, 450, 600], fov: 55, near: 1.0, far: 4000 }}
       dpr={[1, 2]}
       onCreated={({ gl, scene }) => {
@@ -2226,6 +2267,15 @@ export default function CityCanvas({
       )}
 
     </Canvas>
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {focusedBuilding
+        ? `Viewing ${focusedBuilding}'s building`
+        : "No building selected"}
+    </div>
     {dungeonOpen && (
       <DungeonModal onClose={() => setDungeonOpen(false)} />
     )}
