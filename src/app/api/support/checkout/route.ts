@@ -6,10 +6,12 @@ import { rateLimit } from "@/lib/rate-limit";
 const MIN_AMOUNT = 10; // minimum ₹10 INR for checkouts
 
 export async function POST(request: Request) {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
+  const forwarded = request.headers.get("x-forwarded-for");
+  let ip = request.headers.get("x-real-ip") ?? "unknown";
+  if (forwarded) {
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ips.length > 0) ip = ips[ips.length - 1];
+  }
 
   const { ok } = await rateLimit(`checkout:${ip}`, 1, 5_000);
   if (!ok) {

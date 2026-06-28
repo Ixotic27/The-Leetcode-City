@@ -399,11 +399,10 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
     const { data: problems, error } = await sb
       .from("arena_problems")
       .select("id")
-      .eq("difficulty", difficulty)
-      .eq("is_active", true);
+      .eq("difficulty", difficulty);
 
     if (error || !problems || problems.length === 0) {
-      throw new Error(`No active problems found in database for difficulty: ${difficulty}`);
+      throw new Error(`No problems found in database for difficulty: ${difficulty}`);
     }
 
     // Filter out problems that have already been used as daily challenges

@@ -19,8 +19,8 @@ const LIT_COLORS = ["#ef4444", "#dc2626", "#ff6b6b", "#fca5a5", "#f87171"];
 // Twin tower fortress dimensions
 const TW_W = 50, TW_D = 50, TW_H_BASE = 200, TW_H_UPPER = 160;
 const TOWER_OFFSET = 55;
-const GATE_W = 90, GATE_H = 120;
-const TOTAL_H = TW_H_BASE + TW_H_UPPER + 8; // ~368
+const TOTAL_H = TW_H_BASE + TW_H_UPPER + 8;
+const GATE_H = 120;
 
 // Skull pixel art (7×7)
 const SKULL_BM: number[][] = [
@@ -76,7 +76,7 @@ interface DungeonPortalProps {
 
 export default function DungeonPortal({
   onClick,
-  position = [-735, 0, -235], // Ring 1, plaza 2 (opposite to VoidObelisk)
+  position = [-735, 0, -235],
 }: DungeonPortalProps) {
   const groupRef = useRef<THREE.Group>(null);
   const chainRef1 = useRef<THREE.Group>(null);
@@ -108,7 +108,10 @@ export default function DungeonPortal({
 
     let tap: { time: number; x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
-      if (hits(e)) tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      if (hits(e)) {
+        e.stopPropagation();
+        tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      }
     };
     const onUp = (e: PointerEvent) => {
       if (!tap) return;
@@ -163,16 +166,16 @@ export default function DungeonPortal({
 
   const B_Y = TW_H_BASE / 2 + 4;
   const U_Y = TW_H_BASE + 4 + TW_H_UPPER / 2;
+  const topY = TOTAL_H;
 
   const leftSkull = useMemo(() => createVoxelSkull(ACCENT), []);
   const rightSkull = useMemo(() => createVoxelSkull(ACCENT), []);
 
-  // Animation
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (chainRef1.current) chainRef1.current.rotation.z = Math.sin(t * 1.2) * 0.08;
     if (chainRef2.current) chainRef2.current.rotation.z = Math.sin(t * 1.2 + 1) * 0.08;
-    
+
     if (portalGlowRef.current) {
       (portalGlowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
         2 + Math.sin(t * 2) * 1;
@@ -192,8 +195,6 @@ export default function DungeonPortal({
     if (fireRef1.current) fireRef1.current.intensity = flicker;
     if (fireRef2.current) fireRef2.current.intensity = flicker;
   });
-
-  const topY = TOTAL_H;
 
   return (
     <group ref={groupRef} position={position} userData={{ isLandmark: true }}>
@@ -217,14 +218,12 @@ export default function DungeonPortal({
           shellColor={shellColor} glassFront={tFrontL} glassSide={tSide}
           emColor={LIT_COLORS[0]} accent={ACCENT}
         />
-        {/* Battlements */}
         {[-1, 0, 1].map(i => (
           <mesh key={`l-bat-${i}`} position={[i * 14, topY + 8, 0]}>
             <boxGeometry args={[8, 16, TW_D - 10]} />
             <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
           </mesh>
         ))}
-        {/* Voxel Skull mascot */}
         <group ref={leftSkullRef} position={[0, topY + 22, 0]} scale={1.2}>
           <primitive object={leftSkull} />
         </group>
@@ -242,14 +241,12 @@ export default function DungeonPortal({
           shellColor={shellColor} glassFront={tFrontR} glassSide={tSide}
           emColor={LIT_COLORS[0]} accent={ACCENT}
         />
-        {/* Battlements */}
         {[-1, 0, 1].map(i => (
           <mesh key={`r-bat-${i}`} position={[i * 14, topY + 8, 0]}>
             <boxGeometry args={[8, 16, TW_D - 10]} />
             <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
           </mesh>
         ))}
-        {/* Voxel Skull mascot */}
         <group ref={rightSkullRef} position={[0, topY + 22, 0]} scale={1.2}>
           <primitive object={rightSkull} />
         </group>
@@ -279,7 +276,7 @@ export default function DungeonPortal({
         </group>
       ))}
 
-      {/* Portal glow (between towers at ground level) */}
+      {/* Portal glow */}
       <mesh ref={portalGlowRef} position={[0, 40, TW_D / 2 + 2]}>
         <planeGeometry args={[TOWER_OFFSET * 2 - TW_W - 10, 70]} />
         <meshStandardMaterial color="#200000" emissive={ACCENT} emissiveIntensity={2} toneMapped={false} transparent opacity={0.5} side={THREE.DoubleSide} />

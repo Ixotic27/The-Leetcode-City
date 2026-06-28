@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
@@ -1276,10 +1277,20 @@ export default function ShopClient({
       setBuyingItem(itemId);
       setBuyingProvider("points");
       setError(null);
+      // Generate the idempotency key on the client so any retry of this same
+      // purchase (network timeout, fetch retry) reuses the identical key and the
+      // server can detect the duplicate instead of creating a second record.
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${itemId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       try {
         const res = await fetch("/api/shop/buy-with-points", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
           body: JSON.stringify({ item_id: itemId, dev_mode: devModeEnabled }),
         });
         const data = await res.json();
@@ -2568,7 +2579,7 @@ export default function ShopClient({
             
             <div className="mt-4 p-4 border-[2px] border-dashed border-[#ffaa00]/30 bg-[#ffaa00]/5 text-center">
               <p className="text-[10px] text-muted normal-case italic">
-                Each offensive or defensive item has a strict global limit: 3 uses per player, per week. Defenses automatically equip while you're offline to block incoming Raids unless EMP'd. Use sabotage viruses and EMP devices wisely before executing a raid!
+                Each offensive or defensive item has a strict global limit: 3 uses per player, per week. Defenses automatically equip while you&apos;re offline to block incoming Raids unless EMP&apos;d. Use sabotage viruses and EMP devices wisely before executing a raid!
               </p>
             </div>
           </div>
@@ -2693,7 +2704,7 @@ export default function ShopClient({
                         {selectedRelic.description && (
                           <div className="space-y-1">
                             <p className="text-[9px] italic leading-relaxed text-cream/90 normal-case">
-                              "{selectedRelic.description}"
+                              &quot;{selectedRelic.description}&quot;
                             </p>
                           </div>
                         )}

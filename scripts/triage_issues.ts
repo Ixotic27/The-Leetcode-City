@@ -24,17 +24,17 @@ const issuesToTriage = [
     {
         number: 671,
         author: "ZainabTravadi",
-        labels: ["Gssoc 26", "gssoc:approved", "good first issues", "level:beginner", "type:bug"]
+        labels: ["Gssoc 26", "gssoc:approved", "good first issue", "level:beginner", "type:bug"]
     },
     {
         number: 672,
         author: "ZainabTravadi",
-        labels: ["Gssoc 26", "gssoc:approved", "good first issues", "level:beginner", "type:bug"]
+        labels: ["Gssoc 26", "gssoc:approved", "good first issue", "level:beginner", "type:bug"]
     },
     {
         number: 673,
         author: "ZainabTravadi",
-        labels: ["Gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:bug"]
+        labels: ["Gssoc 26", "gssoc:approved", "good first issue", "level:intermediate", "type:bug"]
     }
 ];
 

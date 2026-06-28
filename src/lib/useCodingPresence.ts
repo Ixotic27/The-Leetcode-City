@@ -24,6 +24,10 @@ export function useCodingPresence() {
 
   useEffect(() => {
     const fetchPresence = () => {
+      // Skip poll when the tab is hidden — saves bandwidth and server load.
+      // Realtime broadcast still handles instant updates for active tabs.
+      if (typeof document !== "undefined" && document.hidden) return;
+
       const requestTime = Date.now();
       fetch("/api/presence")
         .then((r) => r.json())
@@ -98,7 +102,8 @@ export function useCodingPresence() {
       .subscribe();
 
     // Periodically re-fetch to stay in sync with server state
-    const pruneInterval = setInterval(fetchPresence, 30_000);
+    // 60s is sufficient since realtime broadcast handles instant updates
+    const pruneInterval = setInterval(fetchPresence, 60_000);
 
     return () => {
       channel.unsubscribe();
