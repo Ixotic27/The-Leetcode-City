@@ -28,6 +28,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
     }
 
+    // The idempotency key MUST be supplied by the client so that a retry of the
+    // *same* purchase (e.g. after a network timeout) reuses the same key. A
+    // server-generated key would be regenerated on every retry, defeating
+    // duplicate detection entirely.
+    const clientKey = (request.headers.get("Idempotency-Key") || body.idempotency_key || "").trim();
+    if (!clientKey || clientKey.length > 200 || !/^[A-Za-z0-9_-]+$/.test(clientKey)) {
+        return NextResponse.json({ error: "Missing or invalid Idempotency-Key" }, { status: 400 });
+    }
+
     const admin = getSupabaseAdmin();
 
     // 1. Fetch developer and item
@@ -92,12 +101,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Not enough points" }, { status: 403 });
     }
 
-    // 4. Fulfill/grant consumable items to developers (updates tables and determines correct status string)
-    const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
+    // Namespace the client key per developer + item so it stays unique across
+    // unrelated purchases while remaining stable across retries of this one.
+    const idempotencyKey = `points_${dev.id}_${item_id}_${clientKey}`;
 
-    const idempotencyKey = `points_${dev.id}_${item_id}_${Date.now()}`;
-
-    // 5. INSERT purchase record FIRST (before deduction)
+    // 4. INSERT purchase record in pending state before any money or item moves
     const { data: purchase, error: purchaseError } = await admin
         .from("purchases")
         .insert({
@@ -107,16 +115,24 @@ export async function POST(request: Request) {
             idempotency_key: idempotencyKey,
             amount_cents: 0,
             currency: "usd",
-            status: purchaseStatus,
+            status: "pending",
         })
         .select("id")
         .single();
 
     if (purchaseError) {
+        // A unique-violation (23505) means this exact key was already used — i.e.
+        // a retry of the same operation. Treat it as idempotent instead of an error.
+        if (purchaseError.code === "23505") {
+            return NextResponse.json(
+                { ok: true, points_remaining: deductedPoints, idempotent: true },
+                { status: 200 },
+            );
+        }
         return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
     }
 
-    // 6. Deduct points AFTER successful INSERT — no rollback needed
+    // 5. Deduct points atomically — rollback by deleting the pending record on failure
     if (!isDev) {
         const { data: deducted, error: deductError } = await admin
             .rpc("deduct_points_atomic", {
@@ -127,12 +143,35 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (deductError || !deducted?.success) {
-            // Deduction failed — clean up the purchase record
             await admin.from("purchases").delete().eq("id", purchase.id);
             return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
         }
         deductedPoints = deducted.remaining_points;
     }
+
+    // 6. Fulfill/grant item only after points are secured
+    let finalStatus: string;
+    try {
+        const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
+        finalStatus = purchaseStatus;
+    } catch (fulfillErr) {
+        // Points were deducted — restore them before returning the error
+        if (!isDev) {
+            await admin.rpc("add_points_atomic", {
+                p_developer_id: dev.id,
+                p_price_points: item.price_points,
+            });
+        }
+        await admin.from("purchases").delete().eq("id", purchase.id);
+        console.error("[buy-with-points] fulfillItemPurchase failed:", fulfillErr);
+        return NextResponse.json({ error: "Failed to grant item" }, { status: 500 });
+    }
+
+    // 7. Mark purchase completed now that item is in hand
+    await admin
+        .from("purchases")
+        .update({ status: finalStatus })
+        .eq("id", purchase.id);
 
     // Insert activity feed
     await admin.from("activity_feed").insert({
