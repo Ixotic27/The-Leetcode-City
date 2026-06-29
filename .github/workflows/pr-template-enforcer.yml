@@ -40,11 +40,11 @@ jobs:
 
             const body_template = pr => pr.body ?? '';
 
-            // Required section headings from PULL_REQUEST_TEMPLATE.md
+            // Required section headings from PULL_REQUEST_TEMPLATE.md matched with flexible regex
             const requiredSections = [
-              '## What does this PR do?',
-              '## Related issue',
-              '## Checklist',
+              { name: '## What does this PR do?', pattern: /#+\s*What\s+does\s+this\s+PR\s+do/i },
+              { name: '## Related issue', pattern: /#+\s*Related\s+issue/i },
+              { name: '## Checklist', pattern: /#+\s*Checklist/i },
             ];
 
             // Minimum character threshold — catches "fixed issue" type bodies
@@ -71,12 +71,18 @@ jobs:
               const body = body_template(pr);
 
               const missingSection = requiredSections.find(
-                section => !body.toLowerCase().includes(section.toLowerCase())
+                section => !section.pattern.test(body)
               );
               const isTooShort = body.trim().length < MIN_LENGTH;
               const needsAction = missingSection || isTooShort;
 
-              const currentLabels = pr.labels.map(l => l.name);
+              // Fetch latest labels dynamically to avoid out-of-date or missing payload data
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+              });
+              const currentLabels = (issue.labels || []).map(l => l.name);
               const alreadyLabeled = currentLabels.includes(label);
 
               if (needsAction) {
@@ -105,7 +111,7 @@ jobs:
 
                 if (!alreadyCommented) {
                   const reason = missingSection
-                    ? `The section **\`${missingSection}\`** is missing from your PR description.`
+                    ? `The section **\`${missingSection.name}\`** is missing from your PR description.`
                     : `Your PR description is too short (${body.trim().length} characters — minimum is ${MIN_LENGTH}).`;
 
                   await github.rest.issues.createComment({
