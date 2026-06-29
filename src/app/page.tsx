@@ -1767,27 +1767,9 @@ function HomeContent() {
       setBuildings(cached.buildings);
       setPlazas(cached.plazas);
       setDecorations(cached.decorations);
-
       setDistrictZones(cached.districtZones);
       setStats(cached.stats);
-      
-      // Prevent black screen on return visits by transitioning through rendering stage.
-      // We run this asynchronously without returning a cleanup function, so that when the component re-renders
-      // and triggers the useEffect cleanup (due to loadStage dependency), the timer is NOT cancelled.
-      const loadCached = async () => {
-        setLoadStage("rendering");
-        setLoadProgress(40);
-        
-        const steps = 10;
-        for (let step = 1; step <= steps; step++) {
-          await new Promise((r) => setTimeout(r, 200));
-          setLoadProgress(40 + Math.round((55 * step) / steps));
-        }
-        setLoadProgress(100);
-        setLoadStage("ready");
-      };
-      
-      loadCached();
+      setLoadStage("done");
       return;
     }
 
@@ -1812,7 +1794,6 @@ function HomeContent() {
         // Fetch city data
         setLoadStage("fetching");
         setLoadProgress(10);
-
 
         let allDevs: CityDeveloperRecord[] = [];
         let cityStats: CityStats = {
@@ -1892,31 +1873,37 @@ function HomeContent() {
         setBuildings(finalLayout.buildings);
         setPlazas(finalLayout.plazas);
         setDecorations(finalLayout.decorations);
-
         setDistrictZones(finalLayout.districtZones);
 
         setLoadProgress(55);
 
-        // Rendering: wait for Canvas to process data and compile shaders behind the loading screen.
-        // We stay in rendering stage for 4.5 seconds to ensure the building rise animations and shader compiles complete.
+        // Rendering: wait for Canvas to process data (2 rAF + fallback)
         setLoadStage("rendering");
         setLoadProgress(65);
 
-        const renderDuration = 4500; // 4.5s rendering phase
-        const renderSteps = 15;
-        for (let i = 1; i <= renderSteps; i++) {
-          await new Promise((r) => setTimeout(r, renderDuration / renderSteps));
-          setLoadProgress(65 + Math.round((25 * i) / renderSteps));
-        }
+        await new Promise<void>((resolve) => {
+          let resolved = false;
+          const done = () => {
+            if (resolved) return;
+            resolved = true;
+            resolve();
+          };
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => done());
+          });
+          setTimeout(done, 500);
+        });
+
+        setLoadProgress(80);
 
         // Save to cache for return visits
         setCityCache({ ...finalLayout, stats: cityStats });
         setLoadProgress(95);
 
-        // Enforce minimum 8000ms total display time to prevent fast fade-out stutters
+        // Enforce minimum 800ms total display time to avoid flash
         const elapsed = performance.now() - loadStartTime;
-        if (elapsed < 8000) {
-          await new Promise((r) => setTimeout(r, 8000 - elapsed));
+        if (elapsed < 800) {
+          await new Promise((r) => setTimeout(r, 800 - elapsed));
         }
 
         setLoadProgress(100);
@@ -1930,7 +1917,7 @@ function HomeContent() {
     }
 
     loadCity();
-    // esliloadCitynt-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadStage]);
 
   // City reload on tab return removed — navigating back from shop already

@@ -1799,8 +1799,6 @@ export default function AtmosphereCycleManager({
 
       <SkyDome timeRef={timeRef} theme={theme} active={active} />
       <VoxelClouds active={active} timeRef={timeRef} />
-      <AmbientOceanShips cityRadius={cityRadius ?? 800} />
-      <FlyingCityShips cityRadius={cityRadius ?? 800} />
 
       {/* Visual Jagged Lightning Bolt (Voxel Aesthetic, themed accent color) */}
       <group ref={boltGroupRef} visible={false}>
