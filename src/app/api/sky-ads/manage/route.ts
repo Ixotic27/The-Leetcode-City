@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { containsBlockedContent, isSuspiciousLink } from "@/lib/ad-moderation";
+import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 
 const OWNER_LOGIN = "Ixotic27";
+const ALLOWED_LINK = /^(https:\/\/|mailto:)/;
 
 function generateToken(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -21,7 +24,7 @@ async function checkAdmin() {
     user.user_metadata.preferred_username ??
     ""
   ).toLowerCase();
-  return login === OWNER_LOGIN ? user : null;
+  return login === OWNER_LOGIN.toLowerCase() ? user : null;
 }
 
 // Create a new ad
@@ -40,6 +43,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields: id, brand, text" }, { status: 400 });
   }
 
+  const safeText = String(text).slice(0, MAX_TEXT_LENGTH).trim();
+  if (!safeText) {
+    return NextResponse.json({ error: "Text is required" }, { status: 400 });
+  }
+
+  const modText = containsBlockedContent(safeText);
+  if (modText.blocked) {
+    return NextResponse.json({ error: modText.reason ?? "Text not allowed" }, { status: 400 });
+  }
+
+  const safeBrand = String(brand).slice(0, 60).trim();
+  if (safeBrand) {
+    const modBrand = containsBlockedContent(safeBrand);
+    if (modBrand.blocked) {
+      return NextResponse.json({ error: modBrand.reason ?? "Brand not allowed" }, { status: 400 });
+    }
+  }
+
+  const safeDescription = typeof description === "string" ? description.slice(0, 200).trim() : "";
+  if (safeDescription) {
+    const modDescription = containsBlockedContent(safeDescription);
+    if (modDescription.blocked) {
+      return NextResponse.json({ error: modDescription.reason ?? "Description not allowed" }, { status: 400 });
+    }
+  }
+
+  const safeLink = typeof link === "string" ? link.trim() : "";
+  if (safeLink && !ALLOWED_LINK.test(safeLink)) {
+    return NextResponse.json({ error: "Link must start with https:// or mailto:" }, { status: 400 });
+  }
+  if (safeLink && isSuspiciousLink(safeLink)) {
+    return NextResponse.json({ error: "This link is not allowed" }, { status: 400 });
+  }
+
   const validVehicles = ["plane", "blimp", "billboard", "rooftop_sign", "led_wrap"];
   const safeVehicle = validVehicles.includes(vehicle) ? vehicle : "plane";
 
@@ -48,12 +85,12 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin();
   const { data, error } = await admin.from("sky_ads").insert({
     id,
-    brand,
-    text,
-    description: description ?? null,
+    brand: safeBrand,
+    text: safeText,
+    description: safeDescription || null,
     color: color ?? "#f8d880",
     bg_color: bg_color ?? "#1a1018",
-    link: link ?? null,
+    link: safeLink || null,
     vehicle: safeVehicle,
     priority: priority ?? 50,
     starts_at: starts_at ?? null,
@@ -100,6 +137,51 @@ export async function PUT(request: Request) {
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
+  if ("text" in updates) {
+    const safeText = String(updates.text ?? "").slice(0, MAX_TEXT_LENGTH).trim();
+    if (!safeText) {
+      return NextResponse.json({ error: "Text is required" }, { status: 400 });
+    }
+    const modText = containsBlockedContent(safeText);
+    if (modText.blocked) {
+      return NextResponse.json({ error: modText.reason ?? "Text not allowed" }, { status: 400 });
+    }
+    updates.text = safeText;
+  }
+
+  if ("brand" in updates) {
+    const safeBrand = String(updates.brand ?? "").slice(0, 60).trim();
+    if (safeBrand) {
+      const modBrand = containsBlockedContent(safeBrand);
+      if (modBrand.blocked) {
+        return NextResponse.json({ error: modBrand.reason ?? "Brand not allowed" }, { status: 400 });
+      }
+    }
+    updates.brand = safeBrand || null;
+  }
+
+  if ("description" in updates) {
+    const safeDescription = typeof updates.description === "string" ? updates.description.slice(0, 200).trim() : "";
+    if (safeDescription) {
+      const modDescription = containsBlockedContent(safeDescription);
+      if (modDescription.blocked) {
+        return NextResponse.json({ error: modDescription.reason ?? "Description not allowed" }, { status: 400 });
+      }
+    }
+    updates.description = safeDescription || null;
+  }
+
+  if ("link" in updates) {
+    const safeLink = typeof updates.link === "string" ? updates.link.trim() : "";
+    if (safeLink && !ALLOWED_LINK.test(safeLink)) {
+      return NextResponse.json({ error: "Link must start with https:// or mailto:" }, { status: 400 });
+    }
+    if (safeLink && isSuspiciousLink(safeLink)) {
+      return NextResponse.json({ error: "This link is not allowed" }, { status: 400 });
+    }
+    updates.link = safeLink || null;
   }
 
   const admin = getSupabaseAdmin();
