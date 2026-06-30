@@ -175,6 +175,47 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   supabaseResponse.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
+  // CSP notes:
+  // - Three.js/WebGL requires 'unsafe-eval' for shader compilation.
+  // - 'unsafe-inline' in script-src is required for Next.js hydration/inline
+  //   bootstrap scripts (e.g. __NEXT_DATA__) since we don't use a nonce scheme.
+  // - 'unsafe-inline' in style-src is required for React inline styles, CSS-in-JS,
+  //   and Next.js injected styles; falling back to default-src would break layout.
+  // - External origins: Cashfree SDK, Vercel telemetry, Himetrica analytics
+  //   (script + beacons), Google Fonts (stylesheet + font files), and the
+  //   alfa-leetcode API used by the dungeon daily challenge.
+  // - connect-src also covers client-side fetches: GitHub/Discord stats on the
+  //   home page, the alfa-leetcode API, and the gstatic font that troika-three-text
+  //   pulls in via fetch (not @font-face). Supabase Storage images are loaded as
+  //   Three.js billboard/customization textures, so img-src must allow *.supabase.co.
+  // - frame-src allows the Stripe and Cashfree checkout/3DS challenge iframes so
+  //   payments don't break.
+  // - In development the CSP is skipped entirely: 'self' for connect-src blocks the
+  //   ws://localhost webpack-HMR socket, breaking Fast Refresh. We still ship it in
+  //   production where HMR isn't running.
+  const isDev = process.env.NODE_ENV === "development";
+
+  if (!isDev) {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://sdk.cashfree.com https://va.vercel-scripts.com https://cdn.himetrica.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "connect-src 'self' wss://*.supabase.co https://*.supabase.co https://*.upstash.io https://leetcode.com https://codeforces.com https://alfa-leetcode-api.onrender.com https://*.himetrica.com https://api.github.com https://discord.com https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://assets.leetcode.com https://avatars.githubusercontent.com https://*.supabase.co",
+      "media-src 'self'",
+      "font-src 'self' https://fonts.gstatic.com",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://sdk.cashfree.com https://*.cashfree.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+    supabaseResponse.headers.set("Content-Security-Policy", csp);
+    supabaseResponse.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload",
+    );
+  }
+
   // ── 4. Attach rate-limit headers so clients can self-throttle ────────
   supabaseResponse.headers.set("X-RateLimit-Limit", String(limit));
   supabaseResponse.headers.set("X-RateLimit-Remaining", String(remaining));
