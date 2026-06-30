@@ -40,11 +40,20 @@ jobs:
 
             const body_template = pr => pr.body ?? '';
 
-            // Required section headings from PULL_REQUEST_TEMPLATE.md matched with flexible regex
+            // Required section headings from PULL_REQUEST_TEMPLATE.md matched with flexible regex.
+            // Each section accepts the formal heading OR common alternatives contributors use.
             const requiredSections = [
               { name: '## What does this PR do?', pattern: /#+\s*What\s+does\s+this\s+PR\s+do/i },
-              { name: '## Related issue', pattern: /#+\s*Related\s+issue/i },
-              { name: '## Checklist', pattern: /#+\s*Checklist/i },
+              {
+                name: '## Related issue',
+                // Accept: "## Related issue" heading  OR  "Closes #N" / "Fixes #N" / "Resolves #N" anywhere
+                pattern: /(?:#+\s*Related\s+issue|(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#\d+)/i
+              },
+              {
+                name: '## Checklist',
+                // Accept: "## Checklist" heading  OR  checkbox items (- [x] / - [ ])  OR  "Acceptance Criteria" heading
+                pattern: /(?:#+\s*Checklist|#+\s*Acceptance\s+Criteria|- \[[ xX]\])/i
+              },
             ];
 
             // Minimum character threshold — catches "fixed issue" type bodies
