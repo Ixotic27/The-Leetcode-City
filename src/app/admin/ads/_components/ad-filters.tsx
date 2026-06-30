@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import type { AdsFilters, Period, StatusFilter, VehicleFilter, SourceFilter } from "../_lib/types";
 import { VEHICLE_LABELS } from "../_lib/constants";
 
@@ -46,13 +45,7 @@ export function AdFilters({
   onRefresh,
   filteredCount,
   totalCount,
-}: AdFiltersProps) {
-  // Local search state for debounce (visual responsiveness)
-  const [searchLocal, setSearchLocal] = useState(filters.q);
-
-  useEffect(() => {
-    setSearchLocal(filters.q);
-  }, [filters.q]);
+}: AdFiltersProps){
 
   return (
     <div className="mb-4 space-y-3">
@@ -84,11 +77,8 @@ export function AdFilters({
         <input
           type="text"
           placeholder="Search brand, id, email..."
-          value={searchLocal}
-          onChange={(e) => {
-            setSearchLocal(e.target.value);
-            setFilter("q", e.target.value);
-          }}
+          value={filters.q}
+onChange={(e) => setFilter("q", e.target.value)}
           className="ml-auto min-w-[200px] border border-border bg-bg px-3 py-1.5 text-[11px] text-cream outline-none placeholder:text-dim focus:border-lime"
         />
 
