@@ -26,6 +26,20 @@ interface FlyScoreDev {
   developer_id: number;
 }
 
+interface FlyScoreQueryRow {
+  score: number;
+  collected: number;
+  max_combo: number;
+  flight_ms: number;
+  created_at: string;
+  developer_id: number;
+  developers: {
+    id: number;
+    github_login: string;
+    avatar_url: string;
+  }[];
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -182,7 +196,7 @@ export async function GET(request: Request) {
   const [{ data, error }, { data: devIds }] = await Promise.all([
     admin
       .from("fly_scores")
-      .select("score, collected, max_combo, flight_ms, created_at, developer_id, developers!inner(github_login, avatar_url)")
+      .select("score, collected, max_combo, flight_ms, created_at, developer_id, developers!inner(id, github_login, avatar_url)")
       .eq("seed", seed)
       .order("score", { ascending: false })
       .order("flight_ms", { ascending: true })
@@ -197,10 +211,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 
-  // `developers` is a to-one embed (single object); buildFlyLeaderboard
-  // dedupes per developer, takes the top 20, and resolves login/avatar.
+  // Transform the data to flatten developer fields. Supabase types this
+  // to-one embed as a single-element array, so we index into it.
+  // Map each fly_score row to include developer github_login and avatar_url at top level
+  const transformedData = (data ?? []).map((row: FlyScoreQueryRow) => ({
+    score: row.score,
+    collected: row.collected,
+    max_combo: row.max_combo,
+    flight_ms: row.flight_ms,
+    created_at: row.created_at,
+    developer_id: row.developer_id,
+    // Flatten developer object fields to top level
+    github_login: row.developers?.[0]?.github_login,
+    avatar_url: row.developers?.[0]?.avatar_url,
+  }));
+
+  // buildFlyLeaderboard dedupes per developer, takes the top 20, and resolves login/avatar.
   const leaderboard = buildFlyLeaderboard(
-    (data ?? []) as unknown as FlyScoreRow[],
+    transformedData as unknown as FlyScoreRow[],
   );
 
   const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
