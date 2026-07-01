@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { AdStats, ConfirmState, ModalState } from "../_lib/types";
 import { useAdsUrlState } from "../_lib/use-ads-url-state";
 import { useAdsData } from "../_lib/use-ads-data";
@@ -12,6 +12,7 @@ import { SummaryCards } from "./summary-cards";
 import { AdFilters } from "./ad-filters";
 import { BatchToolbar } from "./batch-toolbar";
 import { AdTable } from "./ad-table";
+import { getPaginatedItems } from "../_lib/pagination";
 import Link from "next/link";
 
 export function AdsDashboard() {
@@ -63,13 +64,18 @@ export function AdsDashboard() {
     });
   }, []);
 
+  const paginatedAds = useMemo(
+    () => getPaginatedItems(filteredAndSorted, filters.page, filters.pageSize),
+    [filteredAndSorted, filters.page, filters.pageSize],
+  );
+
   const selectAll = useCallback(() => {
     setSelectedIds((prev) => {
-      const allIds = filteredAndSorted.map((ad) => ad.id);
+      const allIds = paginatedAds.items.map((ad) => ad.id);
       const allSelected = allIds.every((id) => prev.has(id));
       return allSelected ? new Set() : new Set(allIds);
     });
-  }, [filteredAndSorted]);
+  }, [paginatedAds.items]);
 
   // Modal handlers
   const openCreateModal = useCallback(() => {
@@ -204,7 +210,7 @@ export function AdsDashboard() {
 
         {/* Table */}
         <AdTable
-          ads={filteredAndSorted}
+          ads={paginatedAds.items}
           loading={loading}
           isFirstLoad={isFirstLoad}
           sortKey={filters.sort}
@@ -221,6 +227,31 @@ export function AdsDashboard() {
           onToggleActive={handleToggle}
           onDelete={requestDelete}
         />
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-border bg-bg-raised px-3 py-3">
+          <p className="text-[11px] text-dim">
+            Showing {paginatedAds.totalItems === 0 ? 0 : (paginatedAds.page - 1) * paginatedAds.pageSize + 1}-{Math.min(paginatedAds.page * paginatedAds.pageSize, paginatedAds.totalItems)} of {paginatedAds.totalItems} ads
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilter("page", Math.max(1, paginatedAds.page - 1))}
+              disabled={paginatedAds.page === 1}
+              className="cursor-pointer border border-border px-3 py-1.5 text-[11px] text-muted transition-colors hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              PREVIOUS
+            </button>
+            <span className="text-[11px] text-muted">
+              PAGE {paginatedAds.page} / {paginatedAds.totalPages}
+            </span>
+            <button
+              onClick={() => setFilter("page", Math.min(paginatedAds.totalPages, paginatedAds.page + 1))}
+              disabled={paginatedAds.page === paginatedAds.totalPages}
+              className="cursor-pointer border border-border px-3 py-1.5 text-[11px] text-muted transition-colors hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              NEXT
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
