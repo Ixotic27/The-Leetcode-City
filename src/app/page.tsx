@@ -1838,16 +1838,6 @@ function HomeContent() {
     const needsRefresh =
       sessionStorage.getItem("leetcodecity:refresh_city") === "true";
 
-    if (cached && !needsRefresh) {
-      setBuildings(cached.buildings);
-      setPlazas(cached.plazas);
-      setDecorations(cached.decorations);
-      setDistrictZones(cached.districtZones);
-      setStats(cached.stats);
-      setLoadStage("done");
-      return;
-    }
-
     const loadStartTime = performance.now();
 
     async function loadCity() {
@@ -1863,6 +1853,39 @@ function HomeContent() {
             "Your browser does not support WebGL. Try Chrome, Firefox, or Edge.",
           );
           setLoadStage("error");
+          return;
+        }
+
+        if (cached && !needsRefresh) {
+          setBuildings(cached.buildings);
+          setPlazas(cached.plazas);
+          setDecorations(cached.decorations);
+          setDistrictZones(cached.districtZones);
+          setStats(cached.stats);
+
+          setLoadStage("rendering");
+          setLoadProgress(70);
+
+          await new Promise<void>((resolve) => {
+            let resolved = false;
+            const done = () => {
+              if (resolved) return;
+              resolved = true;
+              resolve();
+            };
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => done());
+            });
+            setTimeout(done, 500);
+          });
+
+          const elapsed = performance.now() - loadStartTime;
+          if (elapsed < 800) {
+            await new Promise((r) => setTimeout(r, 800 - elapsed));
+          }
+
+          setLoadProgress(100);
+          setLoadStage("ready");
           return;
         }
 
@@ -1952,10 +1975,15 @@ function HomeContent() {
 
         setLoadProgress(55);
 
-        // Rendering: wait for Canvas to process data (2 rAF + fallback)
+        // Rendering: wait for Canvas + WebGL to fully warm up.
+        // Fresh loads compile all shaders, upload textures, and render
+        // instanced buildings + 13 landmark components from scratch.
+        // We need significantly more warm-up than a cached load.
         setLoadStage("rendering");
         setLoadProgress(65);
 
+        // Phase 1: Wait for React to commit the building data into the Canvas
+        // and for WebGL to begin shader compilation (4 rAF frames).
         await new Promise<void>((resolve) => {
           let resolved = false;
           const done = () => {
@@ -1963,22 +1991,38 @@ function HomeContent() {
             resolved = true;
             resolve();
           };
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => done());
-          });
-          setTimeout(done, 500);
+          let frameCount = 0;
+          const waitFrames = () => {
+            frameCount++;
+            if (frameCount >= 4) {
+              done();
+            } else {
+              requestAnimationFrame(waitFrames);
+            }
+          };
+          requestAnimationFrame(waitFrames);
+          // Safety fallback in case rAF is blocked
+          setTimeout(done, 2000);
         });
 
-        setLoadProgress(80);
+        setLoadProgress(75);
+
+        // Phase 2: Give the GPU time to finish compiling shaders and
+        // uploading geometry/textures. Shader compilation is async within
+        // the GPU driver and doesn't block rAF callbacks.
+        await new Promise((r) => setTimeout(r, 1200));
+
+        setLoadProgress(85);
 
         // Save to cache for return visits
         setCityCache({ ...finalLayout, stats: cityStats });
         setLoadProgress(95);
 
-        // Enforce minimum 800ms total display time to avoid flash
+        // Enforce minimum 1.5s total display time for fresh loads
+        // (longer than cached loads since there's more to render)
         const elapsed = performance.now() - loadStartTime;
-        if (elapsed < 800) {
-          await new Promise((r) => setTimeout(r, 800 - elapsed));
+        if (elapsed < 1500) {
+          await new Promise((r) => setTimeout(r, 1500 - elapsed));
         }
 
         setLoadProgress(100);
@@ -2844,18 +2888,7 @@ function HomeContent() {
   // ─── Milestone celebration system ──────────────────────────
   const forceCelebrate = searchParams.has("celebrate");
 
-  const celebrationActive = useMemo(() => {
-    if (forceCelebrate) return true;
-    if (stats.total_developers < CELEBRATION_MILESTONES[0]) return false;
-    const current = [...CELEBRATION_MILESTONES]
-      .reverse()
-      .find((m) => stats.total_developers >= m);
-    if (!current) return false;
-    const record = milestoneCelebrations.find((c) => c.milestone === current);
-    if (!record) return true;
-    const elapsed = Date.now() - new Date(record.reached_at).getTime();
-    return elapsed < 24 * 60 * 60 * 1000;
-  }, [stats.total_developers, milestoneCelebrations, forceCelebrate]);
+  const celebrationActive = false;
 
   // Fetch milestone celebrations on mount
   useEffect(() => {

@@ -1,15 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { POST } from "./route";
 
 const mockFrom = vi.fn();
-const mockRateLimit = vi.fn(async () => ({ ok: true }));
+const mockRateLimit = vi.fn(async (..._args: any[]) => ({ ok: true }));
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: vi.fn(() => ({
     from: mockFrom,
   })),
 }));
 vi.mock("@/lib/rate-limit", () => ({
-  rateLimit: (...args: unknown[]) => mockRateLimit(...args),
+  rateLimit: (...args: any[]) => mockRateLimit(...args),
 }));
 
 type SkyAdsResponse = {
@@ -41,7 +42,7 @@ describe("/api/sky-ads/setup route", () => {
   });
 
   it("returns 400 when token is invalid", async () => {
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({ token: "short" }),
     });
@@ -53,7 +54,7 @@ describe("/api/sky-ads/setup route", () => {
 
   it("returns 404 when ad is not found", async () => {
     mockAdResponse = { data: null };
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({ token: "validtoken123" }),
     });
@@ -64,7 +65,7 @@ describe("/api/sky-ads/setup route", () => {
   });
 
   it("returns ok when no update fields are provided", async () => {
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({ token: "validtoken123" }),
     });
@@ -75,7 +76,7 @@ describe("/api/sky-ads/setup route", () => {
   });
 
   it("returns 400 when brand contains blocked content", async () => {
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({
         token: "validtoken123",
@@ -89,7 +90,7 @@ describe("/api/sky-ads/setup route", () => {
   });
 
   it("returns 400 when link is invalid", async () => {
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({
         token: "validtoken123",
@@ -103,7 +104,7 @@ describe("/api/sky-ads/setup route", () => {
   });
 
   it("updates ad text successfully", async () => {
-    const request = new Request("http://localhost/api/sky-ads/setup", {
+    const request = new NextRequest("http://localhost/api/sky-ads/setup", {
       method: "POST",
       body: JSON.stringify({
         token: "validtoken123",

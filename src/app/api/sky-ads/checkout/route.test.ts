@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { NextRequest } from "next/server";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 
 const mockGetUser = vi.fn();
@@ -56,7 +57,7 @@ describe("/api/sky-ads/checkout route", () => {
   });
 
   it("returns 400 for an invalid plan", async () => {
-    const request = new Request("http://localhost/api/sky-ads/checkout", {
+    const request = new NextRequest("http://localhost/api/sky-ads/checkout", {
       method: "POST",
       body: JSON.stringify({
         plan_id: "invalid_plan",
@@ -72,7 +73,7 @@ describe("/api/sky-ads/checkout route", () => {
   });
 
   it("returns 400 for blocked ad text", async () => {
-    const request = new Request("http://localhost/api/sky-ads/checkout", {
+    const request = new NextRequest("http://localhost/api/sky-ads/checkout", {
       method: "POST",
       body: JSON.stringify({
         plan_id: "plane_weekly",
@@ -88,7 +89,7 @@ describe("/api/sky-ads/checkout route", () => {
   });
 
   it("returns 400 for invalid JSON payload", async () => {
-    const request = new Request("http://localhost/api/sky-ads/checkout", {
+    const request = new NextRequest("http://localhost/api/sky-ads/checkout", {
       method: "POST",
       body: "not-json",
     });
@@ -99,7 +100,7 @@ describe("/api/sky-ads/checkout route", () => {
   });
 
   it("creates a Stripe checkout session on success", async () => {
-    const request = new Request("http://localhost/api/sky-ads/checkout", {
+    const request = new NextRequest("http://localhost/api/sky-ads/checkout", {
       method: "POST",
       body: JSON.stringify({
         plan_id: "plane_weekly",
@@ -116,7 +117,7 @@ describe("/api/sky-ads/checkout route", () => {
   });
 
   it("returns 400 when text exceeds the maximum length", async () => {
-    const request = new Request("http://localhost/api/sky-ads/checkout", {
+    const request = new NextRequest("http://localhost/api/sky-ads/checkout", {
       method: "POST",
       body: JSON.stringify({
         plan_id: "plane_weekly",
