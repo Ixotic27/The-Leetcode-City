@@ -93,6 +93,7 @@ type CityDeveloperRecord = DeveloperRecord & {
   owned_items?: string[];
   billboard_images?: string[];
   building_style?: string | null;
+  selected_title?: string | null;
 };
 interface CityStats {
   total_developers: number;
