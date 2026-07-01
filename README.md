@@ -489,15 +489,15 @@ The `.env.example` file comes **pre-filled with public read-only keys** so you c
 
 ### 🏙️ 3D Pixel-Art City
 
-![3D City](public/screenshots/city-view.png)
+![3D City](public/screenshots/city-view.png).
 
 ### 👤 Developer Profile
 
-![Developer Profile](public/screenshots/developer-profile.png)
+![Developer Profile](public/screenshots/developer-profile.png).
 
 ### ⚖️ Comparison Dashboard
 
-![Comparison Dashboard](public/screenshots/compare-dashboard.png)
+![Comparison Dashboard](public/screenshots/compare-dashboard.png).
 
 ## 🎮 E.Arcade Multiplayer (Supabase Realtime)
 
