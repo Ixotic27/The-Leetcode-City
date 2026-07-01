@@ -43,6 +43,7 @@ import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
 import RaidOverlay from "@/components/RaidOverlay";
+import { getRaidConsumableToastMessage } from "@/lib/raid";
 import XpBar from "@/components/XpBar";
 import LevelUpToast from "@/components/LevelUpToast";
 import {
@@ -87,6 +88,7 @@ type CityDeveloperRecord = DeveloperRecord & {
   owned_items?: string[];
   billboard_images?: string[];
   building_style?: string | null;
+  selected_title?: string | null;
 };
 interface CityStats {
   total_developers: number;
@@ -834,6 +836,8 @@ function HomeContent() {
 
   // Raid system
   const [raidState, raidActions] = useRaidSequence();
+  const [raidToast, setRaidToast] = useState<string | null>(null);
+  const lastRaidToastIdRef = useRef<string | null>(null);
   const prevRaidPhaseRef = useRef<string>("idle");
   const lastSuccessfulRaidRef = useRef<{
     defenderLogin: string;
@@ -1009,6 +1013,77 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
+
+          if (data.leetcode_username && data.customizations) {
+            const devId = data.developer_id;
+            const username = data.leetcode_username.toLowerCase();
+            const custs = data.customizations;
+
+            // 1. Refresh local storage overrides
+            try {
+              if (custs.custom_color?.color) {
+                localStorage.setItem(
+                  "leetcodecity:color_override",
+                  JSON.stringify({ developerId: devId, value: custs.custom_color.color, ts: Date.now() })
+                );
+              }
+              if (custs.billboard) {
+                const images = Array.isArray(custs.billboard.images)
+                  ? custs.billboard.images
+                  : (custs.billboard.image_url ? [custs.billboard.image_url] : []);
+                localStorage.setItem(
+                  "leetcodecity:billboard_override",
+                  JSON.stringify({ developerId: devId, value: images, ts: Date.now() })
+                );
+              }
+              if (custs.loadout) {
+                localStorage.setItem(
+                  "leetcodecity:loadout_override",
+                  JSON.stringify({ developerId: devId, loadout: custs.loadout, ts: Date.now() })
+                );
+              }
+              if (custs.building_style?.style) {
+                localStorage.setItem(
+                  "leetcodecity:style_override",
+                  JSON.stringify({ developerId: devId, value: custs.building_style.style, ts: Date.now() })
+                );
+              }
+              if (custs.led_banner?.text) {
+                localStorage.setItem(
+                  "leetcodecity:led_banner_override",
+                  JSON.stringify({ developerId: devId, value: custs.led_banner.text, ts: Date.now() })
+                );
+              }
+              if (custs.selected_title?.slug) {
+                localStorage.setItem(
+                  "leetcodecity:selected_title_override",
+                  JSON.stringify({ developerId: devId, value: custs.selected_title.slug, ts: Date.now() })
+                );
+              }
+            } catch (err) {
+              console.warn("Failed to set local storage overrides in session update:", err);
+            }
+
+            // 2. Update buildings state directly
+            setBuildings((prev) =>
+              prev.map((b) => {
+                if (b.login.toLowerCase() === username) {
+                  return {
+                    ...b,
+                    custom_color: custs.custom_color?.color ?? b.custom_color,
+                    billboard_images: Array.isArray(custs.billboard?.images)
+                      ? custs.billboard.images
+                      : (custs.billboard?.image_url ? [custs.billboard.image_url] : b.billboard_images),
+                    loadout: custs.loadout ?? b.loadout,
+                    building_style: custs.building_style?.style ?? b.building_style,
+                    led_banner_text: custs.led_banner?.text ?? b.led_banner_text,
+                    selected_title: custs.selected_title?.slug ?? b.selected_title,
+                  };
+                }
+                return b;
+              })
+            );
+          }
         } catch {
           setLinkedLeetCodeUsername(null);
         } finally {
@@ -2675,6 +2750,22 @@ function HomeContent() {
   const quotaMissionCompleted = dailiesData?.missions.some(
     (mission) => mission.id === "fly_score_50" && mission.completed,
   );
+
+  useEffect(() => {
+    const raidData = raidState.raidData;
+    if (!raidData) return;
+
+    if (lastRaidToastIdRef.current === raidData.raid_id) return;
+
+    const toastMessage = getRaidConsumableToastMessage(raidData);
+    if (!toastMessage) return;
+
+    lastRaidToastIdRef.current = raidData.raid_id;
+    setRaidToast(toastMessage);
+
+    const timer = setTimeout(() => setRaidToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [raidState.raidData]);
 
   // Monitor fly score for mission quota
   useEffect(() => {
@@ -6310,6 +6401,23 @@ function HomeContent() {
               }
             }
           `}</style>
+        </div>
+      )}
+
+      {raidToast && (
+        <div
+          className="pointer-events-none fixed left-1/2 top-16 z-[61] -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div
+            className="flex items-center gap-2 border-[2px] border-border bg-bg-raised/95 px-4 py-2 text-[11px] backdrop-blur-sm"
+            style={{ borderColor: theme.accent }}
+          >
+            <span style={{ color: theme.accent }}>✓</span>
+            <span className="text-cream">{raidToast}</span>
+          </div>
         </div>
       )}
 

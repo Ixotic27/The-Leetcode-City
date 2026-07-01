@@ -103,6 +103,7 @@ export interface CityBuilding {
   contest_rating?: number;   // → building depth modifier
   lc_streak?: number;        // → pulsing glow if > 30 days
   building_style?: string;
+  selected_title?: string | null;
 }
 
 export interface CityPlaza {

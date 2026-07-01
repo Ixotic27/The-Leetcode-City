@@ -61,7 +61,7 @@ export async function GET(request: Request) {
   const devs = (devsResult.data ?? []) as DeveloperRow[];
   const devIds = devs.map((d) => d.id);
 
-  const supportMeta = (supportProgressResult?.data?.metadata as Record<string, any>) || {};
+  const supportMeta = (supportProgressResult?.data?.metadata as Record<string, unknown>) || {};
   const renewalRaisedInr = supportMeta.raised_inr ?? 0;
   const renewalTargetInr = supportMeta.target_inr ?? 2900;
 
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
       .from("developer_customizations")
       .select("developer_id, item_id, config")
       .in("developer_id", devIds)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
+      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner", "selected_title"]),
     sb
       .from("developer_achievements")
       .select("developer_id, achievement_id")
@@ -131,6 +131,7 @@ export async function GET(request: Request) {
   const billboardImagesMap: Record<number, string[]> = {};
   const ledBannerTextMap: Record<number, string> = {};
   const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
+  const selectedTitleMap: Record<number, string> = {};
   for (const row of customizationsResult.data ?? []) {
     const config = row.config as Record<string, unknown>;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -156,6 +157,9 @@ export async function GET(request: Request) {
     }
     if (row.item_id === "led_banner" && typeof config?.text === "string") {
       ledBannerTextMap[row.developer_id] = config.text;
+    }
+    if (row.item_id === "selected_title" && typeof config?.slug === "string") {
+      selectedTitleMap[row.developer_id] = config.slug;
     }
   }
 
@@ -206,6 +210,7 @@ export async function GET(request: Request) {
     rabbit_completed: dev.rabbit_completed ?? false,
     xp_total: dev.xp_total ?? 0,
     xp_level: dev.xp_level ?? 1,
+    selected_title: selectedTitleMap[dev.id] ?? null,
   }));
 
   return NextResponse.json(
