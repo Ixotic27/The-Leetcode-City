@@ -12,6 +12,7 @@ async function fetchAll<T>(
   sb: ReturnType<typeof getSupabaseAdmin>,
   table: string,
   select: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   apply?: (q: any) => any,
   orderBy?: string,
 ): Promise<T[]> {
@@ -19,6 +20,7 @@ async function fetchAll<T>(
   let from = 0;
 
   while (true) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let q: any = sb.from(table).select(select).range(from, from + PAGE_SIZE - 1);
     if (orderBy) q = q.order(orderBy, { ascending: true });
     if (apply) q = apply(q);
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
   // Fetch everything in parallel
   const [devs, purchases, giftPurchases, customizations, achievements, raidTags, statsResult] =
     await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fetchAll<Record<string, any>>(
         sb,
         "developers",
@@ -77,7 +80,7 @@ export async function GET(request: NextRequest) {
         sb,
         "developer_customizations",
         "developer_id, item_id, config",
-        (q) => q.in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
+        (q) => q.in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner", "selected_title"]),
       ),
       fetchAll<{ developer_id: number; achievement_id: string }>(
         sb,
@@ -114,6 +117,7 @@ export async function GET(request: NextRequest) {
   const ledBannerTextMap: Record<number, string> = {};
   const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
   const styleMap: Record<number, string> = {};
+  const selectedTitleMap: Record<number, string> = {};
   for (const row of customizations) {
     const config = row.config;
     if (row.item_id === "custom_color" && typeof config?.color === "string") {
@@ -139,6 +143,9 @@ export async function GET(request: NextRequest) {
     }
     if (row.item_id === "led_banner" && typeof config?.text === "string") {
       ledBannerTextMap[row.developer_id] = config.text as string;
+    }
+    if (row.item_id === "selected_title" && typeof config?.slug === "string") {
+      selectedTitleMap[row.developer_id] = config.slug as string;
     }
   }
 
@@ -179,6 +186,7 @@ export async function GET(request: NextRequest) {
     rabbit_completed: dev.rabbit_completed ?? false,
     xp_total: dev.xp_total ?? 0,
     xp_level: dev.xp_level ?? 1,
+    selected_title: selectedTitleMap[dev.id] ?? null,
   }));
 
   const snapshot = JSON.stringify({

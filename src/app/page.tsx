@@ -740,6 +740,77 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
+
+          if (data.leetcode_username && data.customizations) {
+            const devId = data.developer_id;
+            const username = data.leetcode_username.toLowerCase();
+            const custs = data.customizations;
+
+            // 1. Refresh local storage overrides
+            try {
+              if (custs.custom_color?.color) {
+                localStorage.setItem(
+                  "leetcodecity:color_override",
+                  JSON.stringify({ developerId: devId, value: custs.custom_color.color, ts: Date.now() })
+                );
+              }
+              if (custs.billboard) {
+                const images = Array.isArray(custs.billboard.images)
+                  ? custs.billboard.images
+                  : (custs.billboard.image_url ? [custs.billboard.image_url] : []);
+                localStorage.setItem(
+                  "leetcodecity:billboard_override",
+                  JSON.stringify({ developerId: devId, value: images, ts: Date.now() })
+                );
+              }
+              if (custs.loadout) {
+                localStorage.setItem(
+                  "leetcodecity:loadout_override",
+                  JSON.stringify({ developerId: devId, loadout: custs.loadout, ts: Date.now() })
+                );
+              }
+              if (custs.building_style?.style) {
+                localStorage.setItem(
+                  "leetcodecity:style_override",
+                  JSON.stringify({ developerId: devId, value: custs.building_style.style, ts: Date.now() })
+                );
+              }
+              if (custs.led_banner?.text) {
+                localStorage.setItem(
+                  "leetcodecity:led_banner_override",
+                  JSON.stringify({ developerId: devId, value: custs.led_banner.text, ts: Date.now() })
+                );
+              }
+              if (custs.selected_title?.slug) {
+                localStorage.setItem(
+                  "leetcodecity:selected_title_override",
+                  JSON.stringify({ developerId: devId, value: custs.selected_title.slug, ts: Date.now() })
+                );
+              }
+            } catch (err) {
+              console.warn("Failed to set local storage overrides in session update:", err);
+            }
+
+            // 2. Update buildings state directly
+            setBuildings((prev) =>
+              prev.map((b) => {
+                if (b.login.toLowerCase() === username) {
+                  return {
+                    ...b,
+                    custom_color: custs.custom_color?.color ?? b.custom_color,
+                    billboard_images: Array.isArray(custs.billboard?.images)
+                      ? custs.billboard.images
+                      : (custs.billboard?.image_url ? [custs.billboard.image_url] : b.billboard_images),
+                    loadout: custs.loadout ?? b.loadout,
+                    building_style: custs.building_style?.style ?? b.building_style,
+                    led_banner_text: custs.led_banner?.text ?? b.led_banner_text,
+                    selected_title: custs.selected_title?.slug ?? b.selected_title,
+                  };
+                }
+                return b;
+              })
+            );
+          }
         } catch {
           setLinkedLeetCodeUsername(null);
         } finally {
