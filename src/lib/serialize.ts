@@ -1,5 +1,5 @@
-export function serializeDeveloper(dev: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+export function serializeDeveloper(dev: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
 
   // Keep these vital fields as-is
   const alwaysKeep = ["id", "github_login", "contributions", "total_stars", "public_repos"];
@@ -26,16 +26,51 @@ export function serializeDeveloper(dev: Record<string, unknown>): Record<string,
     }
 
     // Omit empty/default objects
-    if (typeof val === "object") {
-      const obj = val as Record<string, unknown>;
+    if (typeof val === "object" && val !== null) {
       if (key === "loadout") {
-        const isDefault = !obj.crown && !obj.roof && !obj.aura && !obj.faces;
+        const isDefault = !val.crown && !val.roof && !val.aura && !val.faces;
         if (isDefault) continue;
       }
       if (key === "active_raid_tag") {
-        if (!obj.attacker_login) continue;
+        if (!val.attacker_login) continue;
       }
     }
+
+    // Omit defaults for boolean, string, number
+    if (key === "claimed" && val === false) continue;
+    if (key === "kudos_count" && val === 0) continue;
+    if (key === "visit_count" && val === 0) continue;
+    if (key === "app_streak" && val === 0) continue;
+    if (key === "raid_xp" && val === 0) continue;
+    if (key === "current_week_contributions" && val === 0) continue;
+    if (key === "current_week_kudos_given" && val === 0) continue;
+    if (key === "current_week_kudos_received" && val === 0) continue;
+    if (key === "rabbit_completed" && val === false) continue;
+    if (key === "xp_total" && val === 0) continue;
+    if (key === "xp_level" && val === 1) continue;
+    if (key === "district_chosen" && val === false) continue;
+    if (key === "building_style" && val === "tower") continue;
+
+    // LeetCode metrics
+    if (key === "easy_solved" && val === 0) continue;
+    if (key === "medium_solved" && val === 0) continue;
+    if (key === "hard_solved" && val === 0) continue;
+    if (key === "acceptance_rate" && val === 0) continue;
+    if (key === "contest_rating" && val === 0) continue;
+    if (key === "lc_streak" && val === 0) continue;
+
+    // V2 metrics
+    if (key === "followers" && val === 0) continue;
+    if (key === "following" && val === 0) continue;
+    if (key === "organizations_count" && val === 0) continue;
+    if (key === "current_streak" && val === 0) continue;
+    if (key === "longest_streak" && val === 0) continue;
+    if (key === "active_days_last_year" && val === 0) continue;
+    if (key === "language_diversity" && val === 0) continue;
+    if (key === "total_prs" && val === 0) continue;
+    if (key === "total_reviews" && val === 0) continue;
+    if (key === "total_issues" && val === 0) continue;
+    if (key === "repos_contributed_to" && val === 0) continue;
 
     result[key] = val;
   }

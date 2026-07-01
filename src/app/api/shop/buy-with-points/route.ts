@@ -94,57 +94,91 @@ export async function POST(request: Request) {
 
     const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase()) && dev_mode === true;
 
+    let deductedPoints = dev.points ?? 0;
+
+    // 3. Check points balance (early check, race condition handled by atomic RPC later)
+    if (!isDev && (dev.points ?? 0) < item.price_points) {
+        return NextResponse.json({ error: "Not enough points" }, { status: 403 });
+    }
+
     // Namespace the client key per developer + item so it stays unique across
     // unrelated purchases while remaining stable across retries of this one.
     const idempotencyKey = `points_${dev.id}_${item_id}_${clientKey}`;
 
-    // 3. Call atomic RPC function to deduct points + record purchase atomically
-    // This prevents race conditions where concurrent requests both pass balance check
-    if (!isDev) {
-        const { data: result, error: rpcError } = await admin
-            .rpc("buy_item_with_points", {
-                p_user_id: dev.id,
-                p_item_id: item_id,
-                p_cost: item.price_points,
-            });
+    // 4. INSERT purchase record in pending state before any money or item moves
+    const { data: purchase, error: purchaseError } = await admin
+        .from("purchases")
+        .insert({
+            developer_id: dev.id,
+            item_id: item_id,
+            provider: "points",
+            idempotency_key: idempotencyKey,
+            amount_cents: 0,
+            currency: "usd",
+            status: "pending",
+        })
+        .select("id")
+        .single();
 
-        if (rpcError || !result?.success) {
-            const errorMsg = result?.error || rpcError?.message || "Transaction failed";
-            const statusCode = result?.code === "INSUFFICIENT_POINTS" ? 402 : 500;
-            return NextResponse.json({ error: errorMsg }, { status: statusCode });
+    if (purchaseError) {
+        // A unique-violation (23505) means this exact key was already used — i.e.
+        // a retry of the same operation. Treat it as idempotent instead of an error.
+        if (purchaseError.code === "23505") {
+            return NextResponse.json(
+                { ok: true, points_remaining: deductedPoints, idempotent: true },
+                { status: 200 },
+            );
         }
-
-        // 4. Fulfill/grant item only after points are secured atomically
-        try {
-            const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
-
-            // Log activity
-            await admin.from("activity_feed").insert({
-                event_type: "item_purchased",
-                actor_id: dev.id,
-                metadata: { login: dev.github_login, item_id, provider: "points" },
-            });
-
-            return NextResponse.json({ ok: true, purchase_id: result.purchase_id, points_remaining: (dev.points ?? 0) - item.price_points });
-        } catch (fulfillErr) {
-            // Points already deducted atomically — cannot rollback at this point
-            // Log the error and notify admins for manual review
-            console.error("[buy-with-points] fulfillItemPurchase failed after atomic deduction:", fulfillErr);
-            return NextResponse.json({ error: "Item granted pending (manual review required)", code: "PARTIAL_FULFILLMENT" }, { status: 500 });
-        }
-    } else {
-        // Dev mode - bypass points check
-        try {
-            const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
-            await admin.from("activity_feed").insert({
-                event_type: "item_purchased",
-                actor_id: dev.id,
-                metadata: { login: dev.github_login, item_id, provider: "points", dev_mode: true },
-            });
-            return NextResponse.json({ ok: true, dev_mode: true, points_remaining: dev.points ?? 0 });
-        } catch (fulfillErr) {
-            console.error("[buy-with-points] Dev mode fulfillItemPurchase failed:", fulfillErr);
-            return NextResponse.json({ error: "Failed to grant item in dev mode" }, { status: 500 });
-        }
+        return NextResponse.json({ error: "Failed to record purchase" }, { status: 500 });
     }
+
+    // 5. Deduct points atomically — rollback by deleting the pending record on failure
+    if (!isDev) {
+        const { data: deducted, error: deductError } = await admin
+            .rpc("deduct_points_atomic", {
+                p_developer_id: dev.id,
+                p_price_points: item.price_points,
+            })
+            .select("success, remaining_points")
+            .maybeSingle();
+
+        if (deductError || !deducted?.success) {
+            await admin.from("purchases").delete().eq("id", purchase.id);
+            return NextResponse.json({ error: "Not enough points or a concurrent purchase already deducted your balance. Please try again." }, { status: 409 });
+        }
+        deductedPoints = deducted.remaining_points;
+    }
+
+    // 6. Fulfill/grant item only after points are secured
+    let finalStatus: string;
+    try {
+        const { status: purchaseStatus } = await fulfillItemPurchase(dev.id, item_id, admin);
+        finalStatus = purchaseStatus;
+    } catch (fulfillErr) {
+        // Points were deducted — restore them before returning the error
+        if (!isDev) {
+            await admin.rpc("add_points_atomic", {
+                p_developer_id: dev.id,
+                p_price_points: item.price_points,
+            });
+        }
+        await admin.from("purchases").delete().eq("id", purchase.id);
+        console.error("[buy-with-points] fulfillItemPurchase failed:", fulfillErr);
+        return NextResponse.json({ error: "Failed to grant item" }, { status: 500 });
+    }
+
+    // 7. Mark purchase completed now that item is in hand
+    await admin
+        .from("purchases")
+        .update({ status: finalStatus })
+        .eq("id", purchase.id);
+
+    // Insert activity feed
+    await admin.from("activity_feed").insert({
+        event_type: "item_purchased",
+        actor_id: dev.id,
+        metadata: { login: dev.github_login, item_id, provider: "points" },
+    });
+
+    return NextResponse.json({ ok: true, points_remaining: deductedPoints });
 }
