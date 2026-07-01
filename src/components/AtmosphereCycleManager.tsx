@@ -1589,40 +1589,21 @@ export default function AtmosphereCycleManager({
     }
 
     if (active) {
-      if (typeof window === "undefined") return;
-
-      const now = new Date();
-
-      const hours =
-        now.getHours() +
-        now.getMinutes() / 60 +
-        now.getSeconds() / 3600;
-
-      const rawProgress = hours / 24;
-
-      const p_day = 270 / 420; // ~0.642857 (Day takes 270s out of 420s)
-      const dayStart = 0.5 - p_day / 2;
-      const dayEnd = 0.5 + p_day / 2;
-
-      if (rawProgress >= dayStart && rawProgress <= dayEnd) {
-        // Map linearly from [dayStart, dayEnd] to [0.25, 0.75]
-        const u = (rawProgress - dayStart) / p_day;
-        t = 0.25 + u * 0.5;
-
-        // Apply skew to warp time near noon (t = 0.5) to stretch the bright daylight even longer
-        const x = (t - 0.5) / 0.25; // range [-1, 1]
-        const x_skewed = Math.sign(x) * Math.pow(Math.abs(x), 1.65);
-        t = 0.5 + x_skewed * 0.25;
-      } else if (rawProgress < dayStart) {
-        // Midnight (rawProgress = 0.0) -> Dawn (rawProgress = dayStart)
-        // Map to t ∈ [0.0, 0.25]
-        t = 0.25 * (rawProgress / dayStart);
-      } else {
-        // Sunset (rawProgress = dayEnd) -> Midnight (rawProgress = 1.0)
-        // Map to t ∈ [0.75, 1.0]
-        const u = (rawProgress - dayEnd) / (1.0 - dayEnd);
-        t = 0.75 + u * 0.25;
-      }
+      // Global Day/Night Cycle based on India Standard Time (IST: UTC+5:30)
+      const now = Date.now();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const istTime = new Date(now + istOffset);
+      
+      const hours = istTime.getUTCHours();
+      const minutes = istTime.getUTCMinutes();
+      const seconds = istTime.getUTCSeconds();
+      const ms = istTime.getUTCMilliseconds();
+      
+      const totalMs = 24 * 60 * 60 * 1000;
+      const elapsed = (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + ms;
+      
+      // t goes linearly from 0.0 (midnight) -> 0.25 (6 AM) -> 0.5 (noon) -> 0.75 (6 PM) -> 1.0 (midnight)
+      t = elapsed / totalMs;
 
       timeRef.current = t;
 

@@ -1,24 +1,18 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+import Skeleton from "@/components/Skeleton";
+import SearchBar from "@/components/SearchBar";
+import UserProfile from "@/components/UserProfile";
 import ActionToolbar from "@/components/ActionToolbar";
-import ComparePickPrompt from "./_components/ComparePickPrompt";
-import FirstFlightControlsOverlay from "./_components/FirstFlightControlsOverlay";
-import FlyModeHud from "./_components/FlyModeHud";
-import FreeGiftCelebrationModal from "./_components/FreeGiftCelebrationModal";
-import IntroOverlay from "./_components/IntroOverlay";
-import LinkLeetCodeModal from "./_components/LinkLeetCodeModal";
-import MiniLeaderboard from "./_components/MiniLeaderboard";
-import PostFlightResultsModal from "./_components/PostFlightResultsModal";
-import RabbitQuestOverlay from "./_components/RabbitQuestOverlay";
-import SearchFeedback from "./_components/SearchFeedback";
-import ShareModal from "./_components/ShareModal";
-import SkyAdCard from "./_components/SkyAdCard";
 import { STATIC_RELICS, type Relic } from "@/lib/relics";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { WeatherProvider } from "@/context/WeatherContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { WeatherProvider } from '@/context/WeatherContext';
+
 import {
   useState,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useMemo,
   Suspense,
@@ -273,8 +267,285 @@ const CELEBRATION_MILESTONES = [
   10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000,
 ];
 
+// ─── Loading phases for search feedback ─────────────────────
+const LOADING_PHASES = [
+  { delay: 0, text: "Fetching LeetCode profile..." },
+  { delay: 2000, text: "Analyzing submissions..." },
+  { delay: 5000, text: "Building the city block..." },
+  { delay: 9000, text: "Almost there..." },
+  { delay: 13000, text: "This one's a big profile. Hang tight..." },
+];
+
 // Errors that won't change if you retry the same username
 const PERMANENT_ERROR_CODES = new Set(["not-found", "org", "no-activity"]);
+
+const ERROR_MESSAGES: Record<
+  string,
+  {
+    primary: (u: string) => string;
+    secondary: string;
+    hasRetry?: boolean;
+    hasLink?: boolean;
+  }
+> = {
+  "not-found": {
+    primary: (u) => `"@${u}" doesn't exist on LeetCode`,
+    secondary:
+      "Check the spelling — could be a typo. LeetCode usernames are case-insensitive.",
+  },
+  org: {
+    primary: (u) => `"@${u}" is an organization, not a person`,
+    secondary:
+      "LeetCode City is for individual profiles. Try searching for one of its contributors by their personal username.",
+  },
+  "no-activity": {
+    primary: (u) => `"@${u}" has no public activity yet`,
+    secondary:
+      "Is this you? Open your profile settings, scroll to 'Contributions & activity', and enable 'Include private contributions'. Then search again.",
+    hasLink: true,
+  },
+  "rate-limit": {
+    primary: () => "Search limit reached",
+    secondary:
+      "You can look up 10 new profiles per hour. Developers already in the city are unlimited.",
+  },
+  "github-rate-limit": {
+    primary: () => "LeetCode's API is temporarily unavailable",
+    secondary: "Too many requests to LeetCode. Try again in a few minutes.",
+  },
+  network: {
+    primary: () => "Couldn't reach the server",
+    secondary: "Check your internet connection and try again.",
+    hasRetry: true,
+  },
+  generic: {
+    primary: () => "Something went wrong",
+    secondary: "An unexpected error occurred. Try again.",
+    hasRetry: true,
+  },
+};
+
+function SearchFeedback({
+  feedback,
+  accentColor,
+  onDismiss,
+  onRetry,
+}: {
+  feedback: {
+    type: "loading" | "error";
+    code?: string;
+    username?: string;
+    raw?: string;
+  } | null;
+  accentColor: string;
+  onDismiss: () => void;
+  onRetry: () => void;
+}) {
+  const [phaseIndex, setPhaseIndex] = useState(0);
+
+  // Phased loading messages
+  useEffect(() => {
+    if (feedback?.type !== "loading") {
+      setPhaseIndex(0);
+      return;
+    }
+    const timers = LOADING_PHASES.map((phase, i) =>
+      setTimeout(() => setPhaseIndex(i), phase.delay),
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [feedback?.type]);
+
+  // Auto-dismiss errors after 8s (except persistent ones)
+  useEffect(() => {
+    if (feedback?.type !== "error") return;
+    const code = feedback.code ?? "generic";
+    if (code === "no-activity" || code === "network" || code === "generic")
+      return;
+    const timer = setTimeout(onDismiss, 8000);
+    return () => clearTimeout(timer);
+  }, [feedback, onDismiss]);
+
+  if (!feedback) return null;
+
+  // Loading state
+  if (feedback.type === "loading") {
+    return (
+      <div
+        className="relative w-full max-w-md border-[3px] bg-bg-raised/90 px-5 py-5 backdrop-blur-sm animate-[fade-in_0.15s_ease-out]"
+        style={{ borderColor: accentColor + "66" }}
+      >
+        {/* Skeleton layout (Avatar, Name, Stats) */}
+        <div className="flex items-center gap-4 mb-5">
+          <Skeleton
+            variant="circle"
+            width={52}
+            height={52}
+            className="border-[2px] border-border/50"
+          />
+          <div className="flex-1 space-y-2.5">
+            <Skeleton variant="text" width="60%" height={16} />
+            <Skeleton variant="text" width="40%" height={12} />
+          </div>
+        </div>
+
+        {/* Skeleton Stats Grid */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <Skeleton variant="rectangular" className="w-full" height={45} />
+          <Skeleton variant="rectangular" className="w-full" height={45} />
+          <Skeleton variant="rectangular" className="w-full" height={45} />
+        </div>
+
+        {/* Phased loading text */}
+        <div className="flex items-center gap-2 pt-3 border-t border-border/30">
+          <span
+            className="blink-dot h-2 w-2 flex-shrink-0"
+            style={{ backgroundColor: accentColor }}
+          />
+          <span className="text-[11px] text-muted normal-case">
+            {LOADING_PHASES[phaseIndex].text}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  const code = feedback.code ?? "generic";
+  const msg = ERROR_MESSAGES[code] ?? ERROR_MESSAGES.generic;
+  const u = feedback.username ?? "";
+
+  return (
+    <div
+      className="relative w-full max-w-md border-[3px] bg-bg-raised/90 px-4 py-3 backdrop-blur-sm animate-[fade-in_0.15s_ease-out]"
+      style={{
+        borderColor:
+          code === "rate-limit" ? accentColor + "66" : "rgba(248, 81, 73, 0.4)",
+      }}
+    >
+      <button
+        onClick={onDismiss}
+        className="absolute top-2 right-2 text-[10px] text-muted transition-colors hover:text-cream"
+      >
+        &#10005;
+      </button>
+      <p className="text-[11px] text-cream normal-case pr-4">
+        {msg.primary(u)}
+      </p>
+      <p className="mt-1 text-[10px] text-muted normal-case">{msg.secondary}</p>
+      {msg.hasLink && (
+        <a
+          href="https://leetcode.com/profile"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-block text-[10px] normal-case transition-colors hover:text-cream"
+          style={{ color: accentColor }}
+        >
+          Open Profile Settings &rarr;
+        </a>
+      )}
+      {msg.hasRetry && (
+        <button
+          onClick={onRetry}
+          className="btn-press mt-2 border-[2px] border-border px-3 py-1 text-[10px] text-cream transition-colors hover:border-border-light"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}
+
+const LEADERBOARD_CATEGORIES = [
+  { label: "Solved", key: "contributions" as const, tab: "solved" },
+  { label: "LC Rank", key: "rank" as const, tab: "lc_rank" },
+  { label: "Streak", key: "lc_streak" as const, tab: "streak" },
+] as const;
+
+function MiniLeaderboard({
+  buildings,
+  accent,
+}: {
+  buildings: CityBuilding[];
+  accent: string;
+}) {
+  const [catIndex, setCatIndex] = useState(0);
+
+  // Auto-rotate every 10s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCatIndex((i) => (i + 1) % LEADERBOARD_CATEGORIES.length);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const cat = LEADERBOARD_CATEGORIES[catIndex];
+  const sorted = buildings
+    .slice()
+    .sort((a, b) => {
+      if (cat.key === "rank") {
+        const rankA = a.rank && a.rank < 999999 ? a.rank : 999999;
+        const rankB = b.rank && b.rank < 999999 ? b.rank : 999999;
+        return rankA - rankB;
+      }
+      return ((b[cat.key] as number) || 0) - ((a[cat.key] as number) || 0);
+    })
+    .slice(0, 5);
+
+  return (
+    <div className="hidden w-[200px] sm:block">
+      <div className="mb-2 flex items-center justify-between">
+        <button
+          onClick={() =>
+            setCatIndex((i) => (i + 1) % LEADERBOARD_CATEGORIES.length)
+          }
+          className="text-[10px] text-muted transition-colors hover:text-cream normal-case"
+          style={{ color: accent }}
+        >
+          {cat.label}
+        </button>
+        <a
+          href={`/leaderboard?tab=${cat.tab}`}
+          className="text-[9px] text-muted transition-colors hover:text-cream normal-case"
+        >
+          View all &rarr;
+        </a>
+      </div>
+      <div className="border-[2px] border-border bg-bg-raised/80 backdrop-blur-sm">
+        {sorted.map((b, i) => (
+          <a
+            key={b.login}
+            href={`/dev/${b.login}`}
+            className="flex items-center justify-between px-3 py-1.5 transition-colors hover:bg-bg-card"
+          >
+            <span className="flex items-center gap-2 overflow-hidden">
+              <span
+                className="text-[10px]"
+                style={{
+                  color:
+                    i === 0
+                      ? "#ffd700"
+                      : i === 1
+                        ? "#c0c0c0"
+                        : i === 2
+                          ? "#cd7f32"
+                          : accent,
+                }}
+              >
+                #{i + 1}
+              </span>
+              <span className="truncate text-[10px] text-cream normal-case">
+                {b.login}
+              </span>
+            </span>
+            <span className="ml-2 flex-shrink-0 text-[10px] text-muted">
+              {((b[cat.key] as number) ?? 0).toLocaleString()}
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Streak Pill (HUD element, inline next to @username) ────
 function getStreakTierColor(streak: number) {
@@ -359,10 +630,8 @@ function HomeContent() {
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
-        setWeatherMode(savedWeather as
-          "sunny" | "rainy" | "windy" | "stormy" | "snowy");
+        setWeatherMode(savedWeather as any);
       }
-
     } catch { }
   }, []);
 
@@ -598,7 +867,7 @@ function HomeContent() {
         .from("arcade_active_players")
         .select("user_id", { count: "exact", head: true })
         .gt("last_heartbeat", cutoff)
-        .then((res: { count: number | null }) => {
+        .then((res: any) => {
           if (res.count != null) {
             setArcadeOnline(res.count);
           }
@@ -762,7 +1031,7 @@ function HomeContent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (event: string, s: Session | null) => {
+      async (event: any, s: Session | null) => {
         if (event !== "TOKEN_REFRESHED") {
           await updateSession(s);
           // Auto-open the Link LeetCode modal when user first signs in
@@ -1648,7 +1917,7 @@ function HomeContent() {
     }
 
     loadCity();
-     
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadStage]);
 
   // City reload on tab return removed — navigating back from shop already
@@ -1996,7 +2265,7 @@ function HomeContent() {
         if (data.equippedRelicId) {
           setEquippedRelicId(data.equippedRelicId);
           const active = (data.relics || STATIC_RELICS).find(
-            (r: Relic) => r.id === data.equippedRelicId
+            (r: any) => r.id === data.equippedRelicId
           );
           if (active) {
             setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
@@ -2071,7 +2340,7 @@ function HomeContent() {
     if (cached && Date.now() - cached.timestamp < 60_000) {
       setFeedback({
         type: "error",
-        code: cached.code as "not-found" | "org" | "no-activity" | "rate-limit" | "github-rate-limit" | "network" | "generic",
+        code: cached.code as any,
         username: trimmed,
       });
       return;
@@ -2273,8 +2542,8 @@ function HomeContent() {
       setShowLinkModal(false);
       trackBuildingClaimed(data.leetcode_username);
       await reloadCity();
-    } catch (err: unknown) {
-      setLinkError(err instanceof Error ? err.message : String(err));
+    } catch (err: any) {
+      setLinkError(err.message);
     } finally {
       setLinking(false);
     }
@@ -2300,8 +2569,8 @@ function HomeContent() {
         data.message || "Claim reset. You can now link a new GitHub account.",
       );
       await reloadCity();
-    } catch (err: unknown) {
-      setResetMsg("Error: " + (err instanceof Error ? err.message : String(err)));
+    } catch (err: any) {
+      setResetMsg("Error: " + err.message);
     } finally {
       setResetting(false);
     }
@@ -2851,49 +3120,393 @@ function HomeContent() {
 
       {/* ─── Intro Flyover Overlay ─── */}
       {introMode && (
-        <IntroOverlay
-          introPhase={introPhase}
-          introConfetti={introConfetti}
-          theme={theme}
-          onSkip={endIntro}
-        />
+        <div className="pointer-events-none fixed inset-0 z-50">
+          {/* Cinematic letterbox bars (transform: scaleY for composited-only GPU animation) */}
+          <div
+            className="absolute inset-x-0 top-0 origin-top bg-black/80 transition-transform duration-1000"
+            style={{
+              height: "12%",
+              transform: introPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 origin-bottom bg-black/80 transition-transform duration-1000"
+            style={{
+              height: "18%",
+              transform: introPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
+            }}
+          />
+
+          {/* Text in the lower bar area */}
+          <div
+            className="absolute inset-x-0 bottom-0 flex items-center justify-center"
+            style={{ height: "18%" }}
+          >
+            {/* Narrative texts (phases 0-2) */}
+            {[
+              "Inside the digital arena of logic...",
+              "Problem solvers became towers",
+              "And submissions became towers' floors",
+            ].map((text, i) => (
+              <p
+                key={i}
+                className="absolute text-center font-pixel normal-case text-cream"
+                style={{
+                  fontSize: "clamp(0.85rem, 3vw, 1.5rem)",
+                  letterSpacing: "0.05em",
+                  opacity: introPhase === i ? 1 : 0,
+                  transition: "opacity 0.7s ease-in-out",
+                }}
+              >
+                {text}
+              </p>
+            ))}
+
+            {/* Welcome to LeetCode City (phase 3) */}
+            <div
+              className="absolute flex flex-col items-center gap-1"
+              style={{
+                opacity: introPhase === 3 ? 1 : 0,
+                transform: introPhase === 3 ? "scale(1)" : "scale(0.95)",
+                transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+              }}
+            >
+              <p
+                className="text-center font-pixel uppercase text-cream"
+                style={{ fontSize: "clamp(1.2rem, 5vw, 2.8rem)" }}
+              >
+                Welcome to{" "}
+                <span style={{ color: theme.accent }}>LeetCode City</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Confetti burst */}
+          {introConfetti && (
+            <div className="absolute inset-0 overflow-hidden">
+              {Array.from({ length: 25 }).map((_, i) => {
+                const colors = [
+                  theme.accent,
+                  "#fff",
+                  theme.shadow,
+                  "#f0c060",
+                  "#e040c0",
+                  "#60c0f0",
+                ];
+                const color = colors[i % colors.length];
+                const left = 10 + Math.random() * 80;
+                const delay = Math.random() * 0.6;
+                const duration = 2.5 + Math.random() * 1.5;
+                const w = 3 + Math.random() * 5;
+                const h = Math.random() > 0.5 ? w : w * 0.35;
+                const drift = (Math.random() - 0.5) * 80;
+                const rotation = Math.random() * 720;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      position: "absolute",
+                      left: `${left}%`,
+                      top: "-8px",
+                      width: `${w}px`,
+                      height: `${h}px`,
+                      backgroundColor: color,
+                      animation: `introConfettiFall ${duration}s ${delay}s ease-in forwards`,
+                      transform: `rotate(${rotation}deg) translateX(${drift}px)`,
+                      opacity: 0,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
+
+          {/* Skip button - top right, outside the cinematic bars */}
+          <button
+            className="pointer-events-auto absolute top-4 right-4 font-pixel text-[10px] uppercase text-cream/40 transition-colors hover:text-cream sm:text-xs"
+            onClick={endIntro}
+          >
+            Skip &gt;
+          </button>
+        </div>
       )}
 
       {/* ─── Fly Mode HUD ─── */}
       {flyMode && (
-        <FlyModeHud
-          flyPaused={flyPaused}
-          flyScore={flyScore}
-          flyVehicle={flyVehicle}
-          flyElapsedSec={flyElapsedSec}
-          flyPersonalBest={flyPersonalBest}
-          quotaReached={quotaReached}
-          hud={hud}
-          districtAnnouncement={districtAnnouncement}
-          theme={theme}
-          onVehicleChange={setFlyVehicle}
-          onExit={() => endFly(false)}
-          onDismissQuota={() => setQuotaReached(false)}
-        />
+        <div className="pointer-events-none fixed inset-0 z-30">
+          {/* Top bar */}
+          <div className="absolute top-4 left-1/2 -translate-x-1/2">
+            <div className="inline-flex items-center gap-3 border-[3px] border-border bg-bg/70 px-5 py-2.5 backdrop-blur-sm">
+              <span
+                className={`h-2 w-2 flex-shrink-0 ${flyPaused ? "" : "blink-dot"}`}
+                style={{
+                  backgroundColor: flyPaused ? "#f85149" : theme.accent,
+                }}
+              />
+              <span className="text-[10px] text-cream">
+                {flyPaused ? "Paused" : "Fly"}
+              </span>
+              <span className="mx-1 text-border">|</span>
+              <span className="text-[10px]" style={{ color: theme.accent }}>
+                {flyScore.score}
+              </span>
+              <span className="text-[10px] text-muted">PX</span>
+              {flyScore.combo >= 2 && (
+                <span
+                  className="animate-pulse text-[10px] font-bold"
+                  style={{ color: "#ffd700" }}
+                >
+                  &times;
+                  {flyScore.combo >= 4 ? 3 : flyScore.combo >= 3 ? 2 : 1.5}
+                </span>
+              )}
+
+              <span className="mx-1 text-border">|</span>
+              {/* Vehicle selector */}
+              {(
+                [
+                  { id: "airplane", label: "✈", title: "Airplane" },
+                  {
+                    id: "futuristic_jet",
+                    label: "🚀",
+                    title: "Futuristic Jet",
+                  },
+                ] as { id: string; label: string; title: string }[]
+              ).map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setFlyVehicle(v.id)}
+                  title={v.title}
+                  className="pointer-events-auto btn-press border px-1.5 py-0.5 text-[11px] transition-colors"
+                  style={{
+                    borderColor:
+                      flyVehicle === v.id
+                        ? theme.accent
+                        : "rgba(255,255,255,0.15)",
+                    backgroundColor:
+                      flyVehicle === v.id ? theme.accent + "22" : "transparent",
+                    color: flyVehicle === v.id ? theme.accent : "#888",
+                  }}
+                >
+                  {v.label}
+                </button>
+              ))}
+              <button
+                onClick={() => endFly(false)}
+                className="pointer-events-auto btn-press ml-2 border border-border-light bg-bg-raised/80 px-2 py-1 text-[9px] font-bold text-cream transition-colors hover:bg-border"
+              >
+                EXIT
+              </button>
+            </div>
+          </div>
+
+          {/* Quota notification popover */}
+          {quotaReached && (
+            <div className="absolute top-20 left-1/2 z-50 -translate-x-1/2 animate-bounce-short">
+              <div className="flex flex-col items-center gap-2 border-[3px] border-[#4ade80] bg-bg/90 p-4 text-center backdrop-blur-md shadow-lg">
+                <div className="text-[12px] font-bold text-[#4ade80]">
+                  MISSION QUOTA MATCHED!
+                </div>
+                <div className="text-[10px] text-cream/80">
+                  You&apos;ve reached 50 PX. Exit now to complete quest?
+                </div>
+                <div className="mt-2 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => endFly(false)}
+                    className="pointer-events-auto btn-press bg-[#4ade80] px-3 py-1.5 text-[10px] font-bold text-bg transition-all hover:brightness-110"
+                  >
+                    EXIT NOW
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuotaReached(false);
+                      setQuotaDismissed(true);
+                    }}
+                    className="pointer-events-auto btn-press border border-cream/30 bg-bg/50 px-3 py-1.5 text-[10px] text-cream transition-colors hover:bg-bg-raised"
+                  >
+                    KEEP FLYING
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Score HUD (top right) */}
+          <div className="absolute top-4 right-3 text-right text-[9px] text-muted sm:right-4 sm:text-[10px]">
+            <div>{flyScore.collected}/40 collected</div>
+            <div className="mt-1 flex h-[4px] w-24 items-center border border-border/40 bg-bg/50 ml-auto">
+              <div
+                className="h-full transition-all duration-150"
+                style={{
+                  width: `${(flyScore.collected / 40) * 100}%`,
+                  backgroundColor: theme.accent,
+                }}
+              />
+            </div>
+            <div className="mt-1.5 text-[8px]">
+              <span className="text-muted">TIME </span>
+              <span
+                style={{
+                  color: flyElapsedSec < 900 ? theme.accent : "#f85149",
+                }}
+              >
+                {Math.floor(flyElapsedSec / 60)}:
+                {String(flyElapsedSec % 60).padStart(2, "0")} / 15:00
+              </span>
+            </div>
+            {flyPersonalBest > 0 && (
+              <div className="mt-0.5 text-[8px] text-muted">
+                BEST:{" "}
+                <span style={{ color: theme.accent }}>{flyPersonalBest}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Flight data (above lo-fi radio) */}
+          <div className="absolute bottom-14 left-3 text-[9px] leading-loose text-muted sm:left-4 sm:text-[10px]">
+            <div className="flex items-center gap-2">
+              <span>SPD</span>
+              <span style={{ color: theme.accent }} className="w-6 text-right">
+                {Math.round(hud.speed)}
+              </span>
+              <div className="flex h-[6px] w-20 items-center border border-border/60 bg-bg/50">
+                <div
+                  className="h-full transition-all duration-150"
+                  style={{
+                    width: `${Math.round(((hud.speed - 20) / 140) * 100)}%`,
+                    backgroundColor: theme.accent,
+                  }}
+                />
+              </div>
+            </div>
+            <div>
+              ALT{" "}
+              <span style={{ color: theme.accent }}>
+                {Math.round(hud.altitude)}
+              </span>
+            </div>
+          </div>
+
+          {/* District announcement */}
+          {districtAnnouncement && (
+            <div
+              key={districtAnnouncement.name}
+              className="absolute bottom-32 left-3 animate-district-in sm:left-4"
+            >
+              <div
+                className="border-l-4 bg-bg/80 px-4 py-2 backdrop-blur-sm"
+                style={{ borderColor: districtAnnouncement.color }}
+              >
+                <div className="text-[8px] uppercase tracking-widest text-muted">
+                  District
+                </div>
+                <div className="font-pixel text-sm text-cream">
+                  {districtAnnouncement.name}
+                </div>
+                <div className="text-[8px] text-muted">
+                  {districtAnnouncement.population.toLocaleString()} devs
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Controls hint */}
+          <div className="absolute bottom-[140px] right-3 text-right text-[8px] leading-loose text-muted sm:right-4 sm:text-[9px]">
+            {flyPaused ? (
+              <>
+                <div>
+                  <span className="text-cream">Drag</span> orbit
+                </div>
+                <div>
+                  <span className="text-cream">Scroll</span> zoom
+                </div>
+                <div>
+                  <span className="text-cream">WASD</span> resume
+                </div>
+                <div>
+                  <span style={{ color: theme.accent }}>ESC</span> exit
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <span className="text-cream">Mouse</span> steer
+                </div>
+                <div>
+                  <span className="text-cream">Shift</span> boost
+                </div>
+                <div>
+                  <span className="text-cream">Alt</span> slow
+                </div>
+                <div>
+                  <span className="text-cream">Scroll</span> base speed
+                </div>
+                <div>
+                  <span style={{ color: theme.accent }}>P</span> pause
+                </div>
+                <div>
+                  <span style={{ color: theme.accent }}>ESC</span> pause
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
+
       {/* ─── Feature 3: First-Flight Controls Overlay ─── */}
       {showFlyControls && flyMode && (
-        <FirstFlightControlsOverlay
-          theme={theme}
-          onDismiss={() => {
-            setShowFlyControls(false);
-            try {
-              localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-            } catch { }
-            // Resume the paused flight by dispatching Space keydown
-            window.dispatchEvent(
-              new KeyboardEvent("keydown", {
-                code: "Space",
-                bubbles: true,
-              }),
-            );
-          }}
-        />
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-bg/50 backdrop-blur-[2px]">
+          <div
+            className="border-[3px] border-border bg-bg-raised px-8 py-6 text-center animate-[fade-in_0.3s_ease-out]"
+            style={{ borderColor: theme.accent + "60" }}
+          >
+            <p className="mb-4 text-xs tracking-widest text-muted">
+              FLIGHT CONTROLS
+            </p>
+            <div className="flex flex-col gap-2.5 text-[11px]">
+              <div className="flex items-center justify-between gap-6">
+                <span className="text-cream">Mouse</span>
+                <span className="text-muted">Steer</span>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <span className="text-cream">Scroll</span>
+                <span className="text-muted">Speed</span>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <span className="text-cream">Shift / Alt</span>
+                <span className="text-muted">Boost / Slow</span>
+              </div>
+              <div className="flex items-center justify-between gap-6">
+                <span style={{ color: theme.accent }}>ESC</span>
+                <span className="text-muted">Pause &amp; Exit</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowFlyControls(false);
+                try {
+                  localStorage.setItem("leetcodecity_fly_controls_seen", "1");
+                } catch { }
+                // Resume the paused flight by dispatching Space keydown
+                window.dispatchEvent(
+                  new KeyboardEvent("keydown", {
+                    code: "Space",
+                    bubbles: true,
+                  }),
+                );
+              }}
+              className="btn-press mt-5 px-6 py-2 text-[10px] text-bg"
+              style={{
+                backgroundColor: theme.accent,
+                boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+              }}
+            >
+              Got it, let&apos;s fly!
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ─── Mini-map ─── */}
@@ -3432,8 +4045,8 @@ function HomeContent() {
                                         if (mountedRef.current) setVsCodeKeyCopied(false);
                                       }, 2000);
                                     }
-                                  } catch (e: unknown) {
-                                    if (e instanceof Error && e.name === "AbortError") return;
+                                  } catch (e: any) {
+                                    if (e.name === "AbortError") return;
                                   } finally {
                                     if (mountedRef.current) {
                                       setVsCodeKeyLoading(false);
@@ -4566,24 +5179,24 @@ function HomeContent() {
                       .findIndex((b) => b.login === selectedBuilding.login) + 1;
 
                   const lcRank =
-                    selectedBuilding.rank ?? 0;
+                    ((selectedBuilding as any).rank as number) ?? 0;
                   const lcRankStr =
                     lcRank === 0 || lcRank === 999999
                       ? "N/A"
                       : `#${lcRank.toLocaleString()}`;
                   const solved = selectedBuilding.contributions;
                   const easySolved =
-                    selectedBuilding.easy_solved ?? 0;
+                    ((selectedBuilding as any).easy_solved as number) ?? 0;
                   const medSolved =
-                    selectedBuilding.medium_solved ?? 0;
+                    ((selectedBuilding as any).medium_solved as number) ?? 0;
                   const hardSolved =
-                    selectedBuilding.hard_solved ?? 0;
+                    ((selectedBuilding as any).hard_solved as number) ?? 0;
                   const contestRating =
-                    selectedBuilding.contest_rating ?? 0;
+                    ((selectedBuilding as any).contest_rating as number) ?? 0;
                   const streak =
-                    selectedBuilding.lc_streak ?? 0;
+                    ((selectedBuilding as any).lc_streak as number) ?? 0;
                   const reputation = selectedBuilding.total_stars;
-                  const acceptanceRateRaw = selectedBuilding.acceptance_rate;
+                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
                   const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
@@ -4602,7 +5215,7 @@ function HomeContent() {
                     },
                     {
                       label: "Language",
-                      value: selectedBuilding.primary_language ?? "--",
+                      value: (selectedBuilding as any)?.primary_language ?? "--",
                     },
                     ...(easySolved || medSolved || hardSolved
                       ? [
@@ -4981,23 +5594,63 @@ function HomeContent() {
 
       {/* ─── Compare Pick Prompt ─── */}
       {compareBuilding && !comparePair && !flyMode && (
-        <ComparePickPrompt
-          compareBuilding={compareBuilding}
-          compareSelfHint={compareSelfHint}
-          username={username}
-          feedback={feedback}
-          loading={loading}
-          theme={theme}
-          onUsernameChange={setUsername}
-          onFeedbackChange={setFeedback}
-          onSearchUser={searchUser}
-          onCancel={() => {
-            setSelectedBuilding(compareBuilding);
-            setFocusedBuilding(compareBuilding.login);
-            setCompareBuilding(null);
-          }}
-        />
+        <div className="fixed top-3 left-1/2 z-40 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-sm sm:top-4 sm:w-auto">
+          <div className="border-[3px] border-border bg-bg-raised/95 px-4 py-2.5 backdrop-blur-sm">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                className="blink-dot h-2 w-2 flex-shrink-0"
+                style={{ backgroundColor: theme.accent }}
+              />
+              <span className="text-[10px] text-cream normal-case truncate min-w-0">
+                Comparing{" "}
+                <span style={{ color: theme.accent }}>
+                  @{compareBuilding.login}
+                </span>
+              </span>
+              <button
+                onClick={() => {
+                  setSelectedBuilding(compareBuilding);
+                  setFocusedBuilding(compareBuilding.login);
+                  setCompareBuilding(null);
+                }}
+                className="ml-1 flex-shrink-0 text-[9px] text-muted transition-colors hover:text-cream"
+              >
+                Cancel
+              </button>
+            </div>
+            {/* Self-compare hint */}
+            {compareSelfHint && (
+              <p
+                className="mt-1 text-[9px] normal-case"
+                style={{ color: "#f85149" }}
+              >
+                Pick a different building to compare
+              </p>
+            )}
+            {/* Search field for compare pick */}
+            <SearchBar
+              username={username}
+              setUsername={setUsername}
+              feedback={feedback}
+              setFeedback={setFeedback}
+              loading={loading}
+              theme={theme}
+              searchUser={searchUser}
+            />
+            {feedback && (
+              <div className="mt-1.5">
+                <SearchFeedback
+                  feedback={feedback}
+                  accentColor={theme.accent}
+                  onDismiss={() => setFeedback(null)}
+                  onRetry={searchUser}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       )}
+
       {/* ─── Comparison Panel ─── */}
       {comparePair &&
         (() => {
@@ -5064,10 +5717,10 @@ function HomeContent() {
                   <div
                     className="flex justify-center py-2 sm:hidden"
                     onTouchStart={(e) => {
-                      (e.currentTarget as HTMLDivElement & { _touchY?: number })._touchY = e.touches[0].clientY;
+                      (e.currentTarget as any)._touchY = e.touches[0].clientY;
                     }}
                     onTouchEnd={(e) => {
-                      const start = (e.currentTarget as HTMLDivElement & { _touchY?: number })._touchY;
+                      const start = (e.currentTarget as any)._touchY;
                       if (
                         start != null &&
                         e.changedTouches[0].clientY - start > 50
@@ -5316,56 +5969,228 @@ function HomeContent() {
 
       {/* ─── Share Modal ─── */}
       {shareData && !flyMode && !exploreMode && (
-        <ShareModal
-          shareData={shareData}
-          copied={copied}
-          theme={theme}
-          onClose={() => {
-            setShareData(null);
-            setSelectedBuilding(null);
-            setFocusedBuilding(null);
-          }}
-          onExploreBuilding={() => {
-            if (!selectedBuilding && shareData) {
-              const b = buildings.find(
-                (b) =>
-                  b.login.toLowerCase() === shareData.login.toLowerCase(),
-              );
-              if (b) setSelectedBuilding(b);
-            }
-            setShareData(null);
-            setExploreMode(true);
-          }}
-          onShareX={() => trackShareClicked("x")}
-          onCopyLink={() => {
-            trackShareClicked("copy_link");
-            navigator.clipboard.writeText(
-              `${window.location.origin}/dev/${shareData.login}`,
-            );
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }}
-        />
+        <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-bg/70 backdrop-blur-sm"
+            onClick={() => {
+              setShareData(null);
+              setSelectedBuilding(null);
+              setFocusedBuilding(null);
+            }}
+          />
+
+          {/* Modal */}
+          <div className="relative mx-3 border-[3px] border-border bg-bg-raised p-4 text-center sm:mx-0 sm:p-6">
+            {/* Close */}
+            <button
+              onClick={() => {
+                setShareData(null);
+                setSelectedBuilding(null);
+                setFocusedBuilding(null);
+              }}
+              className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
+            >
+              &#10005;
+            </button>
+
+            <UserProfile shareData={shareData} theme={theme} />
+
+            {/* Buttons */}
+            <div className="mt-4 flex flex-col items-center gap-2 sm:mt-5 sm:flex-row sm:justify-center sm:gap-3">
+              <button
+                onClick={() => {
+                  if (!selectedBuilding && shareData) {
+                    const b = buildings.find(
+                      (b) =>
+                        b.login.toLowerCase() === shareData.login.toLowerCase(),
+                    );
+                    if (b) setSelectedBuilding(b);
+                  }
+                  setShareData(null);
+                  setExploreMode(true);
+                }}
+                className="btn-press px-4 py-2 text-[10px] text-bg"
+                style={{
+                  backgroundColor: theme.accent,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+              >
+                Explore Building
+              </button>
+
+              <a
+                href={`https://x.com/intent/tweet?text=${encodeURIComponent(
+                  `My LeetCode just turned into a city building! ${shareData.contributions.toLocaleString()} LeetCode algorithms solved, Rank #${shareData.rank ?? "?"}. What does yours look like?`,
+                )}&url=${encodeURIComponent(
+                  `${window.location.origin}/dev/${shareData.login}`,
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackShareClicked("x")}
+                className="btn-press border-[3px] border-border px-4 py-2 text-[10px] text-cream transition-colors hover:border-border-light"
+              >
+                Share on X
+              </a>
+
+              <button
+                onClick={() => {
+                  trackShareClicked("copy_link");
+                  navigator.clipboard.writeText(
+                    `${window.location.origin}/dev/${shareData.login}`,
+                  );
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="btn-press border-[3px] border-border px-4 py-2 text-[10px] text-cream transition-colors hover:border-border-light"
+              >
+                {copied ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
+
+            {/* View profile link */}
+            <a
+              href={`/dev/${shareData.login}`}
+              className="mt-4 inline-block text-[9px] text-muted transition-colors hover:text-cream normal-case"
+            >
+              View full profile &rarr;
+            </a>
+          </div>
+        </div>
       )}
 
       {/* ─── Sky Ad Card ─── */}
       {clickedAd && (
-        <SkyAdCard
-          ad={clickedAd}
-          ctaHref={buildAdLink(clickedAd) ?? clickedAd.link ?? null}
-          theme={theme}
-          onClose={() => setClickedAd(null)}
-          onCtaClick={() => {
-            track("sky_ad_click", {
-              ad_id: clickedAd.id,
-              vehicle: clickedAd.vehicle,
-              brand: clickedAd.brand ?? "",
-            });
-            trackAdEvent(clickedAd.id, "cta_click", authLogin || undefined);
-            trackSkyAdCtaClick(clickedAd.id, clickedAd.vehicle);
+        <div
+          className="fixed inset-0 z-50 bg-black/50"
+          onClick={() => setClickedAd(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setClickedAd(null);
           }}
-        />
+          tabIndex={-1}
+          ref={(el) => el?.focus()}
+        >
+          {/* Desktop: centered card. Mobile: bottom sheet */}
+          <div className="pointer-events-none flex h-full items-end sm:items-center sm:justify-center">
+            <div
+              className="pointer-events-auto relative w-full border-t-[3px] border-border bg-bg-raised/95 backdrop-blur-sm
+                sm:w-[340px] sm:mx-4 sm:border-[3px]
+                animate-[slide-up_0.2s_ease-out] sm:animate-[fade-in_0.15s_ease-out]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close */}
+              <button
+                onClick={() => setClickedAd(null)}
+                className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream z-10 cursor-pointer"
+              >
+                ESC
+              </button>
+
+              {/* Drag handle on mobile */}
+              <div className="flex justify-center py-2 sm:hidden">
+                <div className="h-1 w-10 rounded-full bg-border" />
+              </div>
+
+              {/* Header: brand + sponsored tag */}
+              <div className="flex items-center gap-3 px-4 pb-3 sm:pt-4">
+                <div
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border-[2px]"
+                  style={{
+                    borderColor: clickedAd.color,
+                    color: clickedAd.color,
+                  }}
+                >
+                  <span className="text-sm">
+                    {clickedAd.vehicle === "blimp"
+                      ? "\u25C6"
+                      : clickedAd.vehicle === "billboard"
+                        ? "\uD83D\uDCCB"
+                        : clickedAd.vehicle === "rooftop_sign"
+                          ? "\uD83D\uDD04"
+                          : clickedAd.vehicle === "led_wrap"
+                            ? "\uD83D\uDCA1"
+                            : "\u2708"}
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  {clickedAd.brand && (
+                    <p className="truncate text-sm text-cream">
+                      {clickedAd.brand}
+                    </p>
+                  )}
+                  <p className="text-[9px] text-dim">Sponsored</p>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="mx-4 mb-3 h-px bg-border" />
+
+              {/* Description */}
+              {clickedAd.description && (
+                <p className="mx-4 mb-4 text-xs text-cream normal-case leading-relaxed">
+                  {clickedAd.description}
+                </p>
+              )}
+
+              {/* CTA */}
+              {clickedAd.link &&
+                (() => {
+                  const ctaHref = buildAdLink(clickedAd) ?? clickedAd.link;
+                  const isMailto = clickedAd.link.startsWith("mailto:");
+                  return (
+                    <div className="px-4 pb-5 sm:pb-4">
+                      <a
+                        href={ctaHref}
+                        target={isMailto ? undefined : "_blank"}
+                        rel={isMailto ? undefined : "noopener noreferrer"}
+                        className="btn-press block w-full py-2.5 text-center text-[10px] text-bg"
+                        style={{
+                          backgroundColor: theme.accent,
+                          boxShadow: `4px 4px 0 0 ${theme.shadow}`,
+                        }}
+                        onClick={() => {
+                          track("sky_ad_click", {
+                            ad_id: clickedAd.id,
+                            vehicle: clickedAd.vehicle,
+                            brand: clickedAd.brand ?? "",
+                          });
+                          trackAdEvent(
+                            clickedAd.id,
+                            "cta_click",
+                            authLogin || undefined,
+                          );
+                          trackSkyAdCtaClick(clickedAd.id, clickedAd.vehicle);
+                        }}
+                      >
+                        {isMailto
+                          ? "Send Email \u2192"
+                          : `Visit ${new URL(clickedAd.link!).hostname.replace("www.", "")} \u2192`}
+                      </a>
+                    </div>
+                  );
+                })()}
+            </div>
+          </div>
+        </div>
       )}
+
+      <CodexModal
+        isOpen={isCodexOpen}
+        onClose={() => setIsCodexOpen(false)}
+        accentColor={theme.accent}
+        shadowColor={theme.shadow}
+      />
+
+      <RelicModal
+        isOpen={isRelicModalOpen}
+        onClose={() => setIsRelicModalOpen(false)}
+        equippedRelicId={equippedRelicId}
+        onEquip={handleEquipRelic}
+        relics={relics}
+        accentColor={theme.accent}
+        shadowColor={theme.shadow}
+      />
+
       {/* ─── Bottom-left controls: Theme + Radio (portal slot) + Intro ─── */}
       {!flyMode && !introMode && !rabbitCinematic && !exploreMode && (
         <div className="pointer-events-auto fixed bottom-[82px] left-3 z-[25] flex items-center gap-2 sm:bottom-10 sm:left-4">
@@ -5622,58 +6447,260 @@ function HomeContent() {
 
       {/* ─── Feature 4: Post-Flight Results Modal ─── */}
       {showFlyResults && !flyMode && (
-        <PostFlightResultsModal
-          results={showFlyResults}
-          theme={theme}
-          onClose={() => {
-            setShowFlyResults(null);
-            clearTimeout(flyResultsTimerRef.current);
-          }}
-          onFlyAgain={() => {
-            setShowFlyResults(null);
-            clearTimeout(flyResultsTimerRef.current);
-            setFocusedBuilding(null);
-            setFlyMode(true);
-            setFlyScore({
-              score: 0,
-              earned: 0,
-              combo: 0,
-              collected: 0,
-              maxCombo: 1,
-            });
-            flyStartTime.current = Date.now();
-            flyPausedAt.current = 0;
-            flyTotalPauseMs.current = 0;
-            setFlyElapsedSec(0);
-            try {
-              setFlyPersonalBest(
-                parseInt(
-                  localStorage.getItem("leetcodecity_fly_pb") || "0",
-                  10,
-                ) || 0,
-              );
-            } catch {
-              setFlyPersonalBest(0);
-            }
-          }}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-bg/70 backdrop-blur-sm"
+            onClick={() => {
+              setShowFlyResults(null);
+              clearTimeout(flyResultsTimerRef.current);
+            }}
+          />
+          {/* Modal */}
+          <div
+            className="relative mx-3 border-[3px] border-border bg-bg-raised p-5 text-center sm:mx-0 sm:p-7 animate-[gift-bounce_0.5s_ease-out]"
+            style={{ borderColor: theme.accent + "60", minWidth: 280 }}
+          >
+            {/* Close */}
+            <button
+              onClick={() => {
+                setShowFlyResults(null);
+                clearTimeout(flyResultsTimerRef.current);
+              }}
+              className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
+            >
+              ESC
+            </button>
+
+            <p className="text-[9px] tracking-widest text-muted mb-1">
+              FLIGHT COMPLETE
+            </p>
+
+            {/* Score */}
+            <div
+              className="text-3xl sm:text-4xl font-bold"
+              style={{ color: theme.accent }}
+            >
+              {showFlyResults.score}
+            </div>
+            <p className="text-[9px] text-muted mt-0.5">points</p>
+
+            {/* New PB badge */}
+            {showFlyResults.isNewPB && (
+              <div
+                className="mt-2 inline-block rounded-sm px-2.5 py-0.5 text-[9px] font-bold text-bg animate-pulse"
+                style={{ backgroundColor: theme.accent }}
+              >
+                NEW PERSONAL BEST!
+              </div>
+            )}
+
+            {/* Stats grid */}
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+              <div>
+                <div className="text-sm font-bold text-cream">
+                  {showFlyResults.collected}
+                </div>
+                <div className="text-[8px] text-muted">Collected</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-cream">
+                  {showFlyResults.maxCombo}x
+                </div>
+                <div className="text-[8px] text-muted">Max Combo</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-cream">
+                  +{showFlyResults.timeBonus}
+                </div>
+                <div className="text-[8px] text-muted">Time Bonus</div>
+              </div>
+            </div>
+
+            {/* Rank */}
+            {showFlyResults.rank > 0 && (
+              <div className="mt-3 border-t border-border/40 pt-3">
+                <span className="text-[9px] text-muted">Rank </span>
+                <span
+                  className="text-sm font-bold"
+                  style={{ color: theme.accent }}
+                >
+                  #{showFlyResults.rank}
+                </span>
+                {showFlyResults.totalPilots > 0 && (
+                  <span className="text-[9px] text-muted">
+                    {" "}
+                    of {showFlyResults.totalPilots}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* CTAs */}
+            <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
+              <button
+                onClick={() => {
+                  setShowFlyResults(null);
+                  clearTimeout(flyResultsTimerRef.current);
+                  setFocusedBuilding(null);
+                  setFlyMode(true);
+                  setFlyScore({
+                    score: 0,
+                    earned: 0,
+                    combo: 0,
+                    collected: 0,
+                    maxCombo: 1,
+                  });
+                  flyStartTime.current = Date.now();
+                  flyPausedAt.current = 0;
+                  flyTotalPauseMs.current = 0;
+                  setFlyElapsedSec(0);
+                  setQuotaReached(false);
+                  setQuotaNotified(false);
+                  setQuotaDismissed(false);
+                  try {
+                    setFlyPersonalBest(
+                      parseInt(
+                        localStorage.getItem("leetcodecity_fly_pb") || "0",
+                        10,
+                      ) || 0,
+                    );
+                  } catch {
+                    setFlyPersonalBest(0);
+                  }
+                }}
+                className="btn-press px-5 py-2 text-[10px] text-bg"
+                style={{
+                  backgroundColor: theme.accent,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+              >
+                Fly Again
+              </button>
+              <Link
+                href="/leaderboard?mode=game"
+                onClick={() => {
+                  setShowFlyResults(null);
+                  clearTimeout(flyResultsTimerRef.current);
+                }}
+                className="btn-press border-[2px] border-border px-5 py-2 text-[10px] transition-colors hover:border-border-light"
+                style={{ color: theme.accent }}
+              >
+                See Leaderboard
+              </Link>
+              <button
+                onClick={() => {
+                  setShowFlyResults(null);
+                  clearTimeout(flyResultsTimerRef.current);
+                }}
+                className="text-[9px] text-muted transition-colors hover:text-cream"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
       {/* ─── Free Gift Celebration Modal ─── */}
       {giftClaimed && !flyMode && !exploreMode && (
-        <FreeGiftCelebrationModal
-          shopHref={shopHref}
-          theme={theme}
-          onClose={() => setGiftClaimed(false)}
-          onViewCity={() => {
-            setGiftClaimed(false);
-            if (myBuilding) {
-              setFocusedBuilding(myBuilding.login);
-              setSelectedBuilding(myBuilding);
-              setExploreMode(true);
-            }
-          }}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-bg/70 backdrop-blur-sm"
+            onClick={() => setGiftClaimed(false)}
+          />
+
+          {/* Modal */}
+          <div
+            className="relative mx-3 border-[3px] border-border bg-bg-raised p-5 text-center sm:mx-0 sm:p-7 animate-[gift-bounce_0.5s_ease-out]"
+            style={{ borderColor: theme.accent + "60" }}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setGiftClaimed(false)}
+              className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
+            >
+              ESC
+            </button>
+
+            <div className="text-3xl sm:text-4xl mb-3">{"\uD83C\uDF89"}</div>
+
+            <p className="text-sm text-cream sm:text-base">Gift Unlocked!</p>
+
+            <div className="mt-4 inline-flex items-center gap-3 border-[2px] border-border bg-bg-card px-5 py-3">
+              <span className="text-2xl">{"\uD83C\uDFC1"}</span>
+              <div className="text-left">
+                <p className="text-xs text-cream">Flag</p>
+                <p className="text-[9px] text-muted normal-case">
+                  A flag on top of your building
+                </p>
+              </div>
+            </div>
+
+            {/* Upsell strip */}
+            <div className="mt-5 w-full max-w-[280px]">
+              <p className="mb-2 text-[9px] tracking-widest text-muted uppercase">
+                Upgrade your building
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { emoji: "\uD83C\uDF3F", name: "Garden", price: "$0.75" },
+                  { emoji: "\u2728", name: "Neon", price: "$1.00" },
+                  { emoji: "\uD83D\uDD25", name: "Fire", price: "$1.00" },
+                ].map((item) => (
+                  <Link
+                    key={item.name}
+                    href={shopHref}
+                    onClick={() => setGiftClaimed(false)}
+                    className="flex flex-col items-center gap-1 border-[2px] border-border bg-bg-card px-2 py-2.5 transition-colors hover:border-border-light"
+                  >
+                    <span className="text-xl">{item.emoji}</span>
+                    <span className="text-[8px] text-cream leading-tight">
+                      {item.name}
+                    </span>
+                    <span
+                      className="text-[9px] font-bold"
+                      style={{ color: theme.accent }}
+                    >
+                      {item.price}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-3">
+              <button
+                onClick={() => {
+                  setGiftClaimed(false);
+                  if (myBuilding) {
+                    setFocusedBuilding(myBuilding.login);
+                    setSelectedBuilding(myBuilding);
+                    setExploreMode(true);
+                  }
+                }}
+                className="btn-press px-5 py-2.5 text-[10px] text-bg"
+                style={{
+                  backgroundColor: theme.accent,
+                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                }}
+              >
+                View in City
+              </button>
+              <Link
+                href={shopHref}
+                onClick={() => setGiftClaimed(false)}
+                className="btn-press border-[3px] border-border px-5 py-2 text-[10px] text-cream transition-colors hover:border-border-light"
+              >
+                Visit Shop {"→"}
+              </Link>
+            </div>
+          </div>
+        </div>
       )}
+
       {/* Mark streak achievements as seen on check-in */}
 
       {/* Raid Preview Modal */}
@@ -5743,13 +6770,129 @@ function HomeContent() {
       {founderMessageOpen && (
         <FounderMessage onClose={() => setFounderMessageOpen(false)} />
       )}
+      {eArcadeOpen && (
+        <EArcadeCard
+          onClose={() => setEArcadeOpen(false)}
+          onEnter={() => {
+            window.location.href = "/arcade";
+          }}
+          session={session}
+          onSignIn={handleSignInWithRef}
+        />
+      )}
+      {zenCodingOpen && (
+        <ZenCodingModal onClose={() => setZenCodingOpen(false)} />
+      )}
+      {codeForgeOpen && (
+        <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
+      )}
+      {solanaOpen && (
+        <SolanaModal onClose={() => setSolanaOpen(false)} />
+      )}
+      {/* Rabbit Quest Cinematic Overlay */}
+      {rabbitCinematic && (
+        <div className="fixed inset-0 z-50 pointer-events-none">
+          {/* Letterbox bars */}
+          <div
+            className="absolute inset-x-0 top-0 origin-top bg-black/80 transition-transform duration-700"
+            style={{
+              height: "12%",
+              transform: rabbitCinematicPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 origin-bottom bg-black/80 transition-transform duration-700"
+            style={{
+              height: "18%",
+              transform: rabbitCinematicPhase >= 0 ? "scaleY(1)" : "scaleY(0)",
+            }}
+          />
 
-      <RabbitQuestOverlay
-        rabbitCinematic={rabbitCinematic}
-        rabbitCinematicPhase={rabbitCinematicPhase}
-        rabbitHintFlash={rabbitHintFlash}
-        onEndRabbitCinematic={endRabbitCinematic}
-      />
+          {/* CRT scanlines */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(255,161,22,0.08) 1px, rgba(255,161,22,0.08) 2px)",
+              backgroundSize: "100% 2px",
+            }}
+          />
+
+          {/* Text in lower bar */}
+          <div
+            className="absolute inset-x-0 bottom-0 flex items-center justify-center"
+            style={{ height: "18%" }}
+          >
+            {["Follow the white rabbit...", "It hides among the plazas..."].map(
+              (text, i) => (
+                <p
+                  key={i}
+                  className="absolute text-center font-pixel normal-case px-4"
+                  style={{
+                    fontSize: "clamp(0.85rem, 3vw, 1.5rem)",
+                    letterSpacing: "0.08em",
+                    color: "#ffa116",
+                    textShadow:
+                      "0 0 20px rgba(255,161,22,0.5), 0 0 40px rgba(255,161,22,0.2)",
+                    opacity: rabbitCinematicPhase === i ? 1 : 0,
+                    transition: "opacity 0.7s ease-in-out",
+                  }}
+                >
+                  {text}
+                </p>
+              ),
+            )}
+          </div>
+
+          {/* Skip button */}
+          <button
+            className="pointer-events-auto absolute top-4 right-4 z-[60] font-pixel text-[10px] sm:text-[12px] tracking-wider border border-[#ffa116]/40 px-3 py-1.5 transition-colors hover:bg-[#ffa116]/10"
+            style={{
+              color: "#ffa116",
+              textShadow: "0 0 8px rgba(255,161,22,0.3)",
+            }}
+            onClick={endRabbitCinematic}
+          >
+            SKIP
+          </button>
+        </div>
+      )}
+
+      {/* Rabbit hint flash ("The rabbit moves deeper...") */}
+      {rabbitHintFlash && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ animation: "rabbitHintAnim 3s ease-in-out forwards" }}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <p
+            className="relative font-pixel text-[14px] sm:text-[16px] tracking-widest text-center px-4"
+            style={{
+              color: "#ffa116",
+              textShadow:
+                "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
+            }}
+          >
+            {rabbitHintFlash}
+          </p>
+          <style jsx>{`
+            @keyframes rabbitHintAnim {
+              0% {
+                opacity: 0;
+              }
+              15% {
+                opacity: 1;
+              }
+              70% {
+                opacity: 1;
+              }
+              100% {
+                opacity: 0;
+              }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Rabbit completion cinematic */}
       {rabbitCompletion && (
@@ -5758,25 +6901,132 @@ function HomeContent() {
 
       {/* ─── Link LeetCode Modal ─── */}
       {showLinkModal && (
-        <LinkLeetCodeModal
-          linkedLeetCodeUsername={linkedLeetCodeUsername}
-          resetMsg={resetMsg}
-          resetting={resetting}
-          linkInput={linkInput}
-          confirmedUsername={confirmedUsername}
-          expectedToken={expectedToken}
-          linkError={linkError}
-          linking={linking}
-          theme={theme}
-          onClose={() => {
-            setShowLinkModal(false);
-            setResetMsg("");
-          }}
-          onResetClaim={handleResetClaim}
-          onVerifyLeetCode={handleVerifyLeetCode}
-          onLinkInputChange={setLinkInput}
-          onConfirmUsername={setConfirmedUsername}
-        />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-bg/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
+          <div className="w-full max-w-sm border-[3px] border-border bg-bg p-6 relative">
+            <button
+              onClick={() => {
+                setShowLinkModal(false);
+                setResetMsg("");
+              }}
+              className="absolute top-3 right-4 text-muted hover:text-cream text-lg"
+            >
+              &#10005;
+            </button>
+            <h2
+              className="text-xl text-cream mb-4 font-pixel"
+              style={{ color: theme.accent }}
+            >
+              Link LeetCode
+            </h2>
+
+            {/* Already linked — show current linked account + reset option */}
+            {linkedLeetCodeUsername ? (
+              <div className="space-y-4">
+                <div className="p-3 border border-border/50 bg-bg-card text-[11px] text-cream">
+                  Currently linked to:{" "}
+                  <span style={{ color: theme.accent }} className="font-bold">
+                    @{linkedLeetCodeUsername}
+                  </span>
+                </div>
+                {resetMsg && (
+                  <div className="p-2 border border-border/50 text-[10px] text-muted">
+                    {resetMsg}
+                  </div>
+                )}
+                <button
+                  onClick={handleResetClaim}
+                  disabled={resetting}
+                  className="w-full btn-press py-3 text-[11px] disabled:opacity-50 border-[2px] border-red-500/50 text-red-400 hover:bg-red-500/10"
+                >
+                  {resetting ? "Resetting..." : "Reset Claim (Unlink)"}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleVerifyLeetCode}>
+                <div className="mb-4">
+                  <label className="block text-[10px] text-muted mb-2 font-pixel">
+                    1. Enter your LeetCode Username
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      placeholder="LeetCode Username"
+                      className="flex-1 bg-black/50 border border-border px-3 py-2 text-[12px] text-cream outline-none focus:border-border-light normal-case"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (linkInput.trim())
+                          setConfirmedUsername(linkInput.trim());
+                      }}
+                      className="px-3 py-2 text-[11px] border border-border hover:border-border-light text-cream"
+                    >
+                      Confirm
+                    </button>
+                  </div>
+                </div>
+
+                {confirmedUsername && (
+                  <div className="mb-6 animate-[fade-in_0.2s_ease-out]">
+                    <label className="block text-[10px] text-muted mb-2 font-pixel">
+                      2. Verify Ownership
+                    </label>
+                    <p className="text-[10px] text-cream mb-3 leading-relaxed">
+                      Copy the code below and paste it into your{" "}
+                      <a
+                        href={`https://leetcode.com/u/${confirmedUsername}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline text-blue-400 hover:text-blue-300"
+                      >
+                        LeetCode Profile → Edit Profile → About Me
+                      </a>
+                      . Save, then click Verify.
+                    </p>
+
+                    <div className="flex items-center gap-2 bg-black/50 border border-border p-3 mb-2">
+                      <code
+                        className="text-[12px] flex-1 text-center font-bold"
+                        style={{ color: theme.accent }}
+                      >
+                        {expectedToken}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(expectedToken);
+                        }}
+                        className="text-[10px] bg-white/10 px-2 py-1 hover:bg-white/20"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {linkError && (
+                  <div className="mb-4 p-2 border border-red-500/50 bg-red-500/10 text-red-400 text-[10px]">
+                    {linkError}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={linking || !linkInput.trim()}
+                  className="w-full btn-press py-3 text-[12px] disabled:opacity-50 text-bg"
+                  style={{
+                    backgroundColor: theme.accent,
+                    boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+                  }}
+                >
+                  {linking ? "Verifying..." : "Verify & Link"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
       )}
 
 
