@@ -460,79 +460,6 @@ function SearchFeedback({
   );
 }
 
-function BuildingCardSkeleton() {
-  return (
-    <div
-      className="px-4 pb-4 sm:pt-4"
-      role="status"
-      aria-live="polite"
-      aria-label="Refreshing building details"
-    >
-      <div className="flex items-center gap-3 pb-3">
-        <Skeleton
-          variant="rectangular"
-          width={48}
-          height={48}
-          className="flex-shrink-0 rounded-none border-[2px] border-border"
-        />
-        <div className="min-w-0 flex-1 space-y-2.5">
-          <Skeleton variant="text" width="65%" height={14} />
-          <Skeleton variant="text" width="42%" height={10} />
-        </div>
-      </div>
-
-      <div className="mb-3 flex items-center gap-2">
-        <Skeleton
-          variant="rectangular"
-          width={28}
-          height={28}
-          className="flex-shrink-0 rounded-none"
-        />
-        <div className="flex-1 space-y-2">
-          <Skeleton variant="text" width="55%" height={10} />
-          <Skeleton variant="rectangular" width="100%" height={4} />
-        </div>
-      </div>
-
-      <Skeleton variant="text" width={76} height={14} className="mb-3" />
-
-      <div className="mb-4 grid grid-cols-3 gap-px border border-border/50 bg-border/30">
-        {Array.from({ length: 9 }).map((_, index) => (
-          <div key={index} className="space-y-2 bg-bg-card p-2">
-            <Skeleton
-              variant="text"
-              width="70%"
-              height={12}
-              className="mx-auto"
-            />
-            <Skeleton
-              variant="text"
-              width="85%"
-              height={8}
-              className="mx-auto"
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex gap-2">
-        <Skeleton
-          variant="rectangular"
-          width="50%"
-          height={32}
-          className="rounded-none"
-        />
-        <Skeleton
-          variant="rectangular"
-          width="50%"
-          height={32}
-          className="rounded-none"
-        />
-      </div>
-    </div>
-  );
-}
-
 const LEADERBOARD_CATEGORIES = [
   { label: "Solved", key: "contributions" as const, tab: "solved" },
   { label: "LC Rank", key: "rank" as const, tab: "lc_rank" },
@@ -5235,7 +5162,7 @@ function HomeContent() {
                     setSelectedBuilding(null);
                     setFocusedBuilding(null);
                   }}
-                  className="absolute top-2 right-3 z-30 text-[10px] text-muted transition-colors hover:text-cream"
+                  className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream z-10"
                 >
                   ESC
                 </button>
@@ -5245,12 +5172,8 @@ function HomeContent() {
                   <div className="h-1 w-10 rounded-full bg-border" />
                 </div>
 
-                {refreshingStats ? (
-                  <BuildingCardSkeleton />
-                ) : (
-                  <>
-                    {/* Header with avatar + name */}
-                    <div className="flex items-center gap-3 px-4 pb-3 sm:pt-4">
+                {/* Header with avatar + name */}
+                <div className="flex items-center gap-3 px-4 pb-3 sm:pt-4">
                   {selectedBuilding.avatar_url && (
                     <Image
                       src={selectedBuilding.avatar_url}
@@ -5746,8 +5669,8 @@ function HomeContent() {
                 )}
 
                 {/* Actions */}
-                    {identityResolved && (
-                      <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
+                {identityResolved && (
+                  <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
                     {isOwnBuilding ? (
                       <>
                         <Link
@@ -5789,9 +5712,7 @@ function HomeContent() {
                         </a>
                       </>
                     )}
-                      </div>
-                    )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
