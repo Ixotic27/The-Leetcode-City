@@ -21,8 +21,9 @@ export async function GET(
   const sb = getSupabaseAdmin();
 
   // 1. Fetch developer by username
-  let dev: any = null;
-  let devError: any = null;
+  type DevStats = { id: number; name: string | null; github_login: string; avatar_url: string | null; xp_level: number };
+  let dev: DevStats | null = null;
+  let devError: { message: string; code?: string } | null = null;
 
   // Check if authenticated user is fetching their own stats
   const authHeader = request.headers.get("Authorization");
@@ -143,7 +144,7 @@ export async function GET(
       rank_badge: rankInfo.badge,
       rank_rarity: rankInfo.rarity
     },
-    recent_submissions: (submissions || []).map((sub: any) => ({
+    recent_submissions: (submissions || []).map((sub: Record<string, unknown>) => ({
       id: sub.id,
       language: sub.language,
       status: sub.status,

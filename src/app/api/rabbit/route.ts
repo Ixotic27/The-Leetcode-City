@@ -30,12 +30,6 @@ export async function POST(request: Request) {
 
   const admin = getSupabaseAdmin();
 
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
-
   const { data: dev } = await admin
     .from("developers")
     .select("id, claimed, rabbit_progress, rabbit_completed")
@@ -148,7 +142,7 @@ export async function GET(request: Request) {
 
   // Check personal progress
   if (searchParams.has("check")) {
-    let dev: any = null;
+    let dev: { rabbit_progress: number | null; rabbit_completed: boolean | null; rabbit_completed_at: string | null } | null = null;
 
     // Try extension/custom token first
     const authedDev = await getAuthenticatedDeveloper(request);
