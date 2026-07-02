@@ -167,7 +167,7 @@ export async function GET(request: Request) {
           dev = qDev;
         }
       } catch (err) {
-        // ignore
+        console.error("[app/api/rabbit/route.ts] failed to load rabbit dev info:", err);
       }
     }
 

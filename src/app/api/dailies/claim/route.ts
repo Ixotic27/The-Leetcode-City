@@ -47,8 +47,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     isMobile = body?.mobile === true;
-  } catch {
-    // no body or invalid json — default to desktop
+  } catch (err) {
+    console.error("[app/api/dailies/claim/route.ts] failed to parse request body:", err);
   }
 
   // Verify all 3 missions are completed

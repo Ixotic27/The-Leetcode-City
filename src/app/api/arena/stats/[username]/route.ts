@@ -46,7 +46,7 @@ export async function GET(
         }
       }
     } catch (e) {
-      // Ignore auth getUser error (e.g. invalid token format when extension calls it)
+      console.error("[app/api/arena/stats/[username]/route.ts] auth getUser failure:", e);
     }
   }
 
