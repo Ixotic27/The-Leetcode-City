@@ -79,8 +79,14 @@ export function useCodingPresence() {
     channelRef.current = channel;
 
     channel
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .on("broadcast", { event: "heartbeat" }, ({ payload }: { payload: any }) => {
+      .on("broadcast", { event: "heartbeat" }, ({ payload }: {
+        payload: {
+          githubLogin: string;
+          status?: "active" | "offline";
+          avatarUrl?: string;
+          language?: string;
+        };
+      }) => {
         if (!payload?.githubLogin) return;
 
         // Offline signal: remove dev from live map immediately
@@ -92,7 +98,7 @@ export function useCodingPresence() {
 
         mapRef.current.set(payload.githubLogin, {
           githubLogin: payload.githubLogin,
-          avatarUrl: payload.avatarUrl,
+          avatarUrl: payload.avatarUrl ?? "",
           status: payload.status ?? "active",
           language: payload.language,
           lastUpdated: Date.now(),

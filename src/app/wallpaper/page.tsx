@@ -8,6 +8,7 @@ import {
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
+  type DeveloperRecord,
 } from "@/lib/github";
 
 const CityCanvas = dynamic(() => import("@/components/CityCanvas"), { ssr: false });
@@ -34,8 +35,7 @@ function WallpaperInner() {
   const [ready, setReady] = useState(false);
 
   const fetchCity = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allDevs: any[] = [];
+    let allDevs: DeveloperRecord[] = [];
 
     // Try pre-computed snapshot first
     try {

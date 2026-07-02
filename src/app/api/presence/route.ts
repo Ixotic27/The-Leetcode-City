@@ -44,9 +44,8 @@ export async function GET() {
       }
     }
 
-    const developers = Array.from(byDev.values()).map((s) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const dev = s.developers as any;
+    const developers = Array.from(byDev.values()).map((s) => { 
+      const dev = s.developers as unknown as { github_login: string; avatar_url: string | null };
       return {
         githubLogin: dev.github_login,
         avatarUrl: dev.avatar_url,
