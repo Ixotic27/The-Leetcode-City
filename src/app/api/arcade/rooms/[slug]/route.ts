@@ -18,6 +18,12 @@ export async function GET(
     .eq("slug", slug)
     .single();
 
+  const isPublic = data?.visibility === 'open' || data?.visibility === 'public';
+  if (!isPublic && data) {
+    data.map_json = null;
+    data.portals = null;
+  }
+
   if (error || !data) {
     if (slug === "lobby") {
       try {
