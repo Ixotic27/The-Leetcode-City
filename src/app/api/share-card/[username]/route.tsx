@@ -6,6 +6,8 @@ import { type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+
 const TIER_COLORS: Record<string, string> = {
   bronze: "#cd7f32",
   silver: "#c0c0c0",
@@ -22,7 +24,6 @@ const TIER_LABELS: Record<string, string> = {
   diamond: "LEGEND",
 };
 
-// ─── i18n ─────────────────────────────────────────────────────
 const i18n = {
   inTheCity: "in the city",
   commits: "SOLVED",
@@ -33,7 +34,6 @@ const i18n = {
   notFound: "Developer not found",
 };
 
-// ─── Colors ───────────────────────────────────────────────────
 const accent = "#ffa116";
 const bg = "#0d0d0f";
 const cream = "#e8dcc8";
@@ -41,7 +41,6 @@ const border = "#2a2a30";
 const cardBg = "#1c1c20";
 const muted = "#8c8c9c";
 
-// ─── Window renderer (shared) ─────────────────────────────────
 const WSIZE = 24;
 const WGAP = 10;
 const WCOLS = 5;
@@ -75,11 +74,6 @@ function renderWindows(bHeight: number, color: string) {
   return rows;
 }
 
-// ─── GET handler ──────────────────────────────────────────────
-/**
- * @param {import('next/server').NextRequest} request
- * @param {{ params: any }} context
- */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ username: string }> }
@@ -139,7 +133,6 @@ export async function GET(
     );
   }
 
-  // Fetch achievements
   const { data: devAchievements } = await supabase
     .from("developer_achievements")
     .select("achievement_id, achievements(name, tier)")
@@ -156,14 +149,12 @@ export async function GET(
     })
   );
 
-  // Find highest tier
   const highestTier =
     achievements.length > 0
       ? TIER_ORDER.find((tier) => achievements.some((a) => a.tier === tier)) ??
       "bronze"
       : null;
 
-  // Fetch selected custom title from developer_customizations
   const { data: titleCustomization } = await supabase
     .from("developer_customizations")
     .select("config")
@@ -174,7 +165,6 @@ export async function GET(
   const titleSlug =
     (titleCustomization?.config as Record<string, unknown>)?.slug as string | null ?? null;
 
-  // Resolve slug to a human-readable display name via arena_items
   let titleLabel: string | null = null;
   if (titleSlug) {
     const { data: titleItem } = await supabase
@@ -182,11 +172,9 @@ export async function GET(
       .select("name")
       .eq("slug", titleSlug)
       .maybeSingle();
-    // Fall back to raw slug if the arena_items row is missing (e.g. developer-reserved titles)
     titleLabel = titleItem?.name ?? titleSlug;
   }
 
-  // Effective contributions (matches rank calculation)
   const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
   const devEff = { ...dev, contributions: contribs };
 
@@ -197,7 +185,6 @@ export async function GET(
   return renderLandscape(devEff, achievements, highestTier, titleLabel, fontData, t);
 }
 
-// ─── Landscape (1200x675) ─────────────────────────────────────
 function renderLandscape(
   dev: Record<string, unknown>,
   achievements: { name: string; tier: string }[],
@@ -235,7 +222,6 @@ function renderLandscape(
           overflow: "hidden",
         }}
       >
-        {/* Building */}
         <div
           style={{
             position: "absolute",
@@ -257,7 +243,6 @@ function renderLandscape(
           {renderWindows(buildingH, accent)}
         </div>
 
-        {/* Right column */}
         <div
           style={{
             position: "absolute",
@@ -268,7 +253,6 @@ function renderLandscape(
             flexDirection: "column",
           }}
         >
-          {/* Avatar + Name */}
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
             {dev.avatar_url ? (
               <img
@@ -301,7 +285,6 @@ function renderLandscape(
               >
                 {`@${dev.github_login}`}
               </div>
-              {/* Custom title badge — rendered between @username and rank pill */}
               {titleLabel ? (
                 <div
                   style={{
@@ -335,7 +318,6 @@ function renderLandscape(
             </div>
           </div>
 
-          {/* Stats 2x2 */}
           <div
             style={{
               display: "flex",
@@ -380,7 +362,6 @@ function renderLandscape(
             ))}
           </div>
 
-          {/* Achievements + Tier label */}
           {achievements.length > 0 && (
             <div
               style={{
@@ -435,7 +416,6 @@ function renderLandscape(
           )}
         </div>
 
-        {/* Ground line */}
         <div
           style={{
             position: "absolute",
@@ -448,7 +428,6 @@ function renderLandscape(
           }}
         />
 
-        {/* Ground fill */}
         <div
           style={{
             position: "absolute",
@@ -461,7 +440,6 @@ function renderLandscape(
           }}
         />
 
-        {/* Branding bottom */}
         <div
           style={{
             position: "absolute",
@@ -493,7 +471,7 @@ function renderLandscape(
               textTransform: "uppercase",
             }}
           >
-            theleetcodecity.tech/dev/{dev.github_login as string}
+            {`${APP_URL}/dev/${dev.github_login as string}`}
           </div>
         </div>
       </div>
@@ -513,7 +491,6 @@ function renderLandscape(
   );
 }
 
-// ─── Taunt phrases by rank/contributions ──────────────────────
 const TAUNTS: {
   rank: [number, string][];
   contribs: [number, string][];
@@ -552,7 +529,6 @@ function getTaunt(rank: number | null, contributions: number): string {
   return t.fallback;
 }
 
-// ─── Stories (1080x1920) ──────────────────────────────────────
 function renderStories(
   dev: Record<string, unknown>,
   achievements: { name: string; tier: string }[],
@@ -591,7 +567,6 @@ function renderStories(
           alignItems: "center",
         }}
       >
-        {/* ── Taunt ── */}
         <div
           style={{
             position: "absolute",
@@ -615,7 +590,6 @@ function renderStories(
           </div>
         </div>
 
-        {/* ── Profile ── */}
         <div
           style={{
             position: "absolute",
@@ -660,7 +634,6 @@ function renderStories(
           >
             @{dev.github_login as string}
           </div>
-          {/* Custom title badge — rendered between @username and rank/tier pills */}
           {titleLabel ? (
             <div
               style={{
@@ -715,7 +688,6 @@ function renderStories(
           </div>
         </div>
 
-        {/* ── Building ── */}
         <div
           style={{
             position: "absolute",
@@ -737,7 +709,6 @@ function renderStories(
           {renderWindows(buildingH, accent)}
         </div>
 
-        {/* ── Ground line ── */}
         <div
           style={{
             position: "absolute",
@@ -750,7 +721,6 @@ function renderStories(
           }}
         />
 
-        {/* ── Stats ── */}
         <div
           style={{
             position: "absolute",
@@ -788,7 +758,6 @@ function renderStories(
           ))}
         </div>
 
-        {/* ── Achievement badges ── */}
         {achievements.length > 0 ? (
           <div
             style={{
@@ -820,7 +789,6 @@ function renderStories(
           </div>
         ) : null}
 
-        {/* ── Challenge CTA ── */}
         <div
           style={{
             position: "absolute",
@@ -842,7 +810,7 @@ function renderStories(
               textTransform: "uppercase",
             }}
           >
-            {t.cta} → theleetcodecity.tech
+            {t.cta} &rarr; {APP_URL}
           </div>
           <div
             style={{
