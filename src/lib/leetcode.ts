@@ -24,8 +24,10 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
         if (!res.ok) return null;
         const data = await res.json();
         return data?.data?.matchedUser?.profile?.aboutMe ?? null;
-    } catch (err) { console.error("[lib/leetcode.ts] error:", err); return null;
-     }
+    } catch (err) {
+        console.error("[lib/leetcode.ts] failed to fetch LeetCode aboutMe:", err);
+        return null;
+    }
 }
 
 // Calendars are keyed dynamically as `y<year>` (e.g. y2015, y2016, …),
@@ -44,7 +46,9 @@ export function parseMaxStreak(
             try {
                 const parsed = JSON.parse(cal);
                 allTimestamps.push(...Object.keys(parsed).map(Number));
-            } catch (err) { console.warn("[lib/leetcode.ts] non-critical error:", err); }
+            } catch (err) {
+                console.warn("[lib/leetcode.ts] skipped invalid submission calendar:", err);
+            }
         }
     }
     allTimestamps.sort((a, b) => a - b);
@@ -131,7 +135,7 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
 
         return totalWeeklyCount;
     } catch (err) {
-        console.error("[lib/leetcode.ts] error fetching weekly submissions:", err);
+        console.error("[lib/leetcode.ts] failed to fetch weekly submissions:", err);
         // Signal failure (not a real zero) so the caller keeps the prior count.
         return null;
     }
