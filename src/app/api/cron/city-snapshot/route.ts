@@ -5,23 +5,65 @@ import { serializeDeveloper } from "@/lib/serialize";
 const STORAGE_BUCKET = "city-data";
 const STORAGE_PATH = "snapshot.json";
 const PAGE_SIZE = 1000; // Supabase PostgREST caps at 1000 rows per request
+ 
+interface DeveloperRow {
+  id: number;
+  github_login: string;
+  name: string | null;
+  avatar_url: string | null;
+  contributions: number;
+  total_stars: number;
+  public_repos: number;
+  primary_language: string | null;
+  rank: number | null;
+  claimed: boolean;
+  kudos_count: number;
+  visit_count: number;
+  contributions_total: number;
+  contribution_years: number;
+  total_prs: number;
+  total_reviews: number;
+  repos_contributed_to: number;
+  followers: number;
+  following: number;
+  organizations_count: number;
+  account_created_at: string | null;
+  current_streak: number;
+  active_days_last_year: number;
+  language_diversity: number;
+  app_streak: number;
+  rabbit_completed: boolean;
+  district: string | null;
+  district_chosen: boolean;
+  xp_total: number;
+  xp_level: number;
+  raid_xp: number;
+  current_week_contributions?: number;
+  current_week_kudos_given?: number;
+  current_week_kudos_received?: number;
+}
+
+interface SupabaseQuery extends PromiseLike<{ data: unknown[] | null; error: { message: string } | null }> {
+  eq(column: string, value: unknown): SupabaseQuery;
+  is(column: string, value: unknown): SupabaseQuery;
+  not(column: string, operator: string, value: unknown): SupabaseQuery;
+  in(column: string, values: unknown[]): SupabaseQuery;
+  order(column: string, options?: { ascending?: boolean }): SupabaseQuery;
+}
 
 /** Paginate through all rows of a table. */
- 
 async function fetchAll<T>(
   sb: ReturnType<typeof getSupabaseAdmin>,
   table: string,
-  select: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  apply?: (q: any) => any,
+  select: string, 
+  apply?: (q: SupabaseQuery) => SupabaseQuery,
   orderBy?: string,
 ): Promise<T[]> {
   const all: T[] = [];
   let from = 0;
 
-  while (true) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let q: any = sb.from(table).select(select).range(from, from + PAGE_SIZE - 1);
+  while (true) { 
+    let q = sb.from(table).select(select).range(from, from + PAGE_SIZE - 1) as unknown as SupabaseQuery;
     if (orderBy) q = q.order(orderBy, { ascending: true });
     if (apply) q = apply(q);
     const { data, error } = await q;
@@ -55,9 +97,8 @@ export async function GET(request: NextRequest) {
 
   // Fetch everything in parallel
   const [devs, purchases, giftPurchases, customizations, achievements, raidTags, statsResult] =
-    await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fetchAll<Record<string, any>>(
+    await Promise.all([ 
+      fetchAll<DeveloperRow>(
         sb,
         "developers",
         "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp",
