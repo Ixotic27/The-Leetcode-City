@@ -43,7 +43,8 @@ export async function POST(request: Request) {
     .eq("claimed", true)
     .maybeSingle();
 
-  if (dev && relicId) {
+  if (dev) {
+    if (relicId) {
     const loginLower = dev.github_login.toLowerCase();
     const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(loginLower);
 
@@ -124,17 +125,19 @@ export async function POST(request: Request) {
       .eq("developer_id", dev.id);
 
     // 2. Upsert/Equip the selected relic
-    await admin
-      .from("developer_relics")
-      .upsert(
-        {
-          developer_id: dev.id,
-          relic_id: relicId,
-          is_equipped: true,
-          created_at: new Date().toISOString(),
-        },
-        { onConflict: "developer_id,relic_id" }
-      );
+    if (relicId) {
+      await admin
+        .from("developer_relics")
+        .upsert(
+          {
+            developer_id: dev.id,
+            relic_id: relicId,
+            is_equipped: true,
+            created_at: new Date().toISOString(),
+          },
+          { onConflict: "developer_id,relic_id" }
+        );
+    }
   }
 
   return NextResponse.json({ success: true, equippedRelicId: relicId });
