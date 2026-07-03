@@ -2,8 +2,8 @@ name: LC City Seeder Cron
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # Every 6 hours
-  workflow_dispatch:          # Allow manual trigger from GitHub UI
+    - cron: "0 */6 * * *"    # Every 6 hours
+  workflow_dispatch:         # Allow manual trigger from GitHub UI
 
 permissions:
   contents: read
@@ -39,10 +39,14 @@ jobs:
           fi
           if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
             echo "❌ Error: SUPABASE_SERVICE_ROLE_KEY secret is not set! The seeder will fail."
+            exit 1
           else
             echo "✅ SUPABASE_SERVICE_ROLE_KEY secret is present."
           fi
 
+      # The seeder's resume cursor lives in scripts/seed-lc-state.json. This cache
+      # is what lets one scheduled run pick up where the last one left off; if the
+      # cache is ever evicted, the seeder just restarts from page 1.
       - name: Restore seeder state cache
         uses: actions/cache/restore@v4
         with:
@@ -58,6 +62,7 @@ jobs:
         run: npx tsx scripts/seed-lc-infinite.ts --pages 5
 
       - name: Save seeder state cache
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: scripts/seed-lc-state.json
