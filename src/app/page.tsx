@@ -783,6 +783,20 @@ function HomeContent() {
     avatar_url: string | null;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState<string | null>(null);
+  const [isNewBuilding, setIsNewBuilding] = useState(false);
+  const [celebrationActive, setCelebrationActive] = useState(false);
+
+  // Auto-dismiss welcome celebration overlay after 6 seconds
+  useEffect(() => {
+    if (!showWelcomeOverlay) return;
+    const timer = setTimeout(() => {
+      setShowWelcomeOverlay(null);
+      setCelebrationActive(false);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [showWelcomeOverlay]);
+
   const [vsCodeKey, setVsCodeKey] = useState<string | null>(null);
   const [hasVsCodeKey, setHasVsCodeKey] = useState<boolean | null>(() => {
     // Check localStorage first so returning users don't see setup instructions
@@ -1624,11 +1638,18 @@ function HomeContent() {
       !zenCodingOpen &&
       !codeForgeOpen &&
       !rabbitCinematic &&
+      !showWelcomeOverlay &&
       raidState.phase === "idle"
     )
       return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
+        if (showWelcomeOverlay) {
+          setShowWelcomeOverlay(null);
+          setCelebrationActive(false);
+          setIsNewBuilding(false);
+          return;
+        }
         // Founder modals take highest priority
         if (founderMessageOpen) {
           setFounderMessageOpen(false);
@@ -1695,11 +1716,16 @@ function HomeContent() {
             setShareData(null);
             setSelectedBuilding(null);
             setFocusedBuilding(null);
+            setIsNewBuilding(false);
+            setCelebrationActive(false);
           } else if (selectedBuilding) {
             setSelectedBuilding(null);
             setFocusedBuilding(null);
-          } else if (focusedBuilding) setFocusedBuilding(null);
-          else if (exploreMode) {
+            setIsNewBuilding(false);
+          } else if (focusedBuilding) {
+            setFocusedBuilding(null);
+            setIsNewBuilding(false);
+          } else if (exploreMode) {
             setExploreMode(false);
             setFocusedBuilding(savedFocusRef.current);
             savedFocusRef.current = null;
@@ -1728,6 +1754,7 @@ function HomeContent() {
     endRabbitCinematic,
     raidState.phase,
     raidActions,
+    showWelcomeOverlay,
   ]);
 
   // Rabbit cinematic text phase timing (8s total flyover)
@@ -2719,7 +2746,20 @@ function HomeContent() {
           }
         }
       } else if (!existedBefore) {
-        // New developer: show the share modal, then enter explore mode to show profile card
+        // New developer: trigger celebration, welcome overlay, sound and zoom-in camera pan
+        setCelebrationActive(true);
+        setIsNewBuilding(true);
+        setShowWelcomeOverlay(devData.github_login);
+
+        // Sound effect fanfare
+        try {
+          const audio = new Audio("/audio/raid/victory.mp3");
+          audio.volume = 0.45;
+          audio.play().catch(() => {});
+        } catch (e) {
+          console.warn("Failed to play victory sound:", e);
+        }
+
         setShareData({
           login: devData.github_login,
           contributions: devData.contributions,
@@ -3001,10 +3041,8 @@ function HomeContent() {
     return Math.min(1.4, 1.2 + (codingCount - 15) * 0.02); // 25+->1.4 cap
   }, [codingCount]);
 
-  // ─── Milestone celebration system ──────────────────────────
   const forceCelebrate = searchParams.has("celebrate");
-
-  const celebrationActive = false;
+  const isCelebrationActive = celebrationActive || forceCelebrate;
 
   // Fetch milestone celebrations on mount
   useEffect(() => {
@@ -3187,14 +3225,18 @@ function HomeContent() {
         focusedBuilding={focusedBuilding}
         focusedBuildingB={focusedBuildingB}
         accentColor={theme.accent}
-        onClearFocus={() => setFocusedBuilding(null)}
+        onClearFocus={() => {
+          setFocusedBuilding(null);
+          setIsNewBuilding(false);
+        }}
         onBuildingFocus={(b) => setFocusedBuilding(b.login)}
         flyPauseSignal={flyPauseSignal}
         flyHasOverlay={!!selectedBuilding || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
-        celebrationActive={celebrationActive}
+        celebrationActive={isCelebrationActive}
+        isNewBuilding={isNewBuilding}
         skyAds={skyAds}
         onAdClick={(ad) => {
           trackSkyAdClick(ad.id, ad.vehicle, ad.link);
@@ -3318,6 +3360,7 @@ function HomeContent() {
           setBuildingCardLoading(true);
           setSelectedBuilding(b);
           setFocusedBuilding(b.login);
+          setIsNewBuilding(false);
           setKudosSent(false);
           setKudosError(null);
           lastDistRef.current = 999;
@@ -6233,6 +6276,8 @@ function HomeContent() {
               setShareData(null);
               setSelectedBuilding(null);
               setFocusedBuilding(null);
+              setIsNewBuilding(false);
+              setCelebrationActive(false);
             }}
           />
 
@@ -6244,6 +6289,8 @@ function HomeContent() {
                 setShareData(null);
                 setSelectedBuilding(null);
                 setFocusedBuilding(null);
+                setIsNewBuilding(false);
+                setCelebrationActive(false);
               }}
               className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
             >
@@ -6265,6 +6312,7 @@ function HomeContent() {
                   }
                   setShareData(null);
                   setExploreMode(true);
+                  setCelebrationActive(false);
                 }}
                 className="btn-press px-4 py-2 text-[10px] text-bg"
                 style={{
@@ -7302,7 +7350,71 @@ function HomeContent() {
         </div>
       )}
 
+      {/* ─── New Building Welcome Overlay ─── */}
+      {showWelcomeOverlay && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-[fade-in_0.5s_ease-out]">
+          {/* Decorative rising sparks / pixel elements using CSS */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute bottom-0 left-[20%] w-2.5 h-2.5 bg-amber-400 opacity-60 animate-rise-1" />
+            <div className="absolute bottom-0 left-[40%] w-3.5 h-3.5 bg-rose-400 opacity-60 animate-rise-2" />
+            <div className="absolute bottom-0 left-[60%] w-2 h-2 bg-emerald-400 opacity-60 animate-rise-3" />
+            <div className="absolute bottom-0 left-[80%] w-4.5 h-4.5 bg-sky-400 opacity-60 animate-rise-4" />
+          </div>
 
+          <div className="text-center px-4 max-w-lg z-10">
+            {/* Celebration Emoji / Graphic */}
+            <div className="mb-6 flex justify-center gap-3 animate-bounce">
+              <span className="text-5xl select-none">🏗️</span>
+              <span className="text-5xl select-none">✨</span>
+              <span className="text-5xl select-none">🏢</span>
+            </div>
+
+            {/* Title with retro pixel style and gradient text */}
+            <h1 
+              className="font-pixel uppercase text-2xl md:text-4xl mb-4 tracking-wider animate-[pulse_2s_infinite]"
+              style={{ color: theme.accent, textShadow: `0 0 12px ${theme.accent}60` }}
+            >
+              Welcome to the City!
+            </h1>
+
+            {/* Message */}
+            <p className="font-pixel text-[11px] md:text-xs text-cream tracking-wider leading-relaxed mb-6 uppercase">
+              A new building is being added to the skyline for
+              <br />
+              <span className="text-white text-base md:text-lg block mt-2 font-bold" style={{ color: theme.accent }}>
+                @{showWelcomeOverlay}
+              </span>
+            </p>
+
+            {/* Loading / Construction bar */}
+            <div className="w-64 h-4 bg-bg border-2 border-border mx-auto relative overflow-hidden mb-6">
+              <div 
+                className="h-full bg-stripes animate-progress-slide"
+                style={{ 
+                  width: '100%',
+                  backgroundImage: `linear-gradient(45deg, ${theme.accent} 25%, transparent 25%, transparent 50%, ${theme.accent} 50%, ${theme.accent} 75%, transparent 75%, transparent)`,
+                  backgroundSize: '32px 32px'
+                }}
+              />
+            </div>
+
+            {/* Dismiss Button */}
+            <button
+              onClick={() => {
+                setShowWelcomeOverlay(null);
+                setCelebrationActive(false);
+              }}
+              className="btn-press px-6 py-2.5 text-xs text-bg uppercase font-pixel tracking-widest cursor-pointer animate-[pulse_1.5s_infinite]"
+              style={{
+                backgroundColor: theme.accent,
+                boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+              }}
+            >
+              Enter the City
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
