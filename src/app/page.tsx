@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
@@ -19,7 +19,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createBrowserSupabase } from "@/lib/supabase";
 import {
   generateCityLayout,
@@ -788,6 +788,7 @@ function HomeContent() {
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
   const mountedRef = useRef(true);
+  const touchYRef = useRef<number | null>(null);
   const generateControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -968,7 +969,7 @@ function HomeContent() {
         .from("arcade_active_players")
         .select("user_id", { count: "exact", head: true })
         .gt("last_heartbeat", cutoff)
-        .then((res: any) => {
+        .then((res: { count: number | null }) => {
           if (res.count != null) {
             setArcadeOnline(res.count);
           }
@@ -1203,7 +1204,7 @@ function HomeContent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (event: any, s: Session | null) => {
+      async (event: AuthChangeEvent, s: Session | null) => {
         if (event !== "TOKEN_REFRESHED") {
           await updateSession(s);
           // Auto-open the Link LeetCode modal when user first signs in
@@ -2481,7 +2482,7 @@ function HomeContent() {
         if (data.equippedRelicId) {
           setEquippedRelicId(data.equippedRelicId);
           const active = (data.relics || STATIC_RELICS).find(
-            (r: any) => r.id === data.equippedRelicId
+            (r: Relic) => r.id === data.equippedRelicId
           );
           if (active) {
             setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
@@ -2758,8 +2759,8 @@ function HomeContent() {
       setShowLinkModal(false);
       trackBuildingClaimed(data.leetcode_username);
       await reloadCity();
-    } catch (err: any) {
-      setLinkError(err.message);
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLinking(false);
     }
@@ -2785,8 +2786,8 @@ function HomeContent() {
         data.message || "Claim reset. You can now link a new GitHub account.",
       );
       await reloadCity();
-    } catch (err: any) {
-      setResetMsg("Error: " + err.message);
+    } catch (err) {
+      setResetMsg("Error: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setResetting(false);
     }
@@ -4267,8 +4268,8 @@ function HomeContent() {
                                         if (mountedRef.current) setVsCodeKeyCopied(false);
                                       }, 2000);
                                     }
-                                  } catch (e: any) {
-                                    if (e.name === "AbortError") return;
+                                  } catch (e) {
+                                    if (e instanceof Error && e.name === "AbortError") return;
                                   } finally {
                                     if (mountedRef.current) {
                                       setVsCodeKeyLoading(false);
@@ -5404,25 +5405,19 @@ function HomeContent() {
                       .sort((a, b) => b.contributions - a.contributions)
                       .findIndex((b) => b.login === selectedBuilding.login) + 1;
 
-                  const lcRank =
-                    ((selectedBuilding as any).rank as number) ?? 0;
+                  const lcRank = selectedBuilding.rank ?? 0;
                   const lcRankStr =
                     lcRank === 0 || lcRank === 999999
                       ? "N/A"
                       : `#${lcRank.toLocaleString()}`;
                   const solved = selectedBuilding.contributions;
-                  const easySolved =
-                    ((selectedBuilding as any).easy_solved as number) ?? 0;
-                  const medSolved =
-                    ((selectedBuilding as any).medium_solved as number) ?? 0;
-                  const hardSolved =
-                    ((selectedBuilding as any).hard_solved as number) ?? 0;
-                  const contestRating =
-                    ((selectedBuilding as any).contest_rating as number) ?? 0;
-                  const streak =
-                    ((selectedBuilding as any).lc_streak as number) ?? 0;
+                  const easySolved = selectedBuilding.easy_solved ?? 0;
+                  const medSolved = selectedBuilding.medium_solved ?? 0;
+                  const hardSolved = selectedBuilding.hard_solved ?? 0;
+                  const contestRating = selectedBuilding.contest_rating ?? 0;
+                  const streak = selectedBuilding.lc_streak ?? 0;
                   const reputation = selectedBuilding.total_stars;
-                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
+                  const acceptanceRateRaw = selectedBuilding.acceptance_rate;
                   const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
@@ -5441,7 +5436,7 @@ function HomeContent() {
                     },
                     {
                       label: "Language",
-                      value: (selectedBuilding as any)?.primary_language ?? "--",
+                      value: selectedBuilding?.primary_language ?? "--",
                     },
                     ...(easySolved || medSolved || hardSolved
                       ? [
@@ -5945,15 +5940,16 @@ function HomeContent() {
                   <div
                     className="flex justify-center py-2 sm:hidden"
                     onTouchStart={(e) => {
-                      (e.currentTarget as any)._touchY = e.touches[0].clientY;
+                      touchYRef.current = e.touches[0].clientY;
                     }}
                     onTouchEnd={(e) => {
-                      const start = (e.currentTarget as any)._touchY;
+                      const start = touchYRef.current;
                       if (
                         start != null &&
                         e.changedTouches[0].clientY - start > 50
                       )
                         closeCompare();
+                      touchYRef.current = null;
                     }}
                   >
                     <div className="h-1 w-10 rounded-full bg-border" />
