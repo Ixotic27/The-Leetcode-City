@@ -50,7 +50,9 @@ CREATE OR REPLACE FUNCTION public.execute_raid(
   p_attack_breakdown  JSONB,
   p_defense_breakdown JSONB,
   p_vehicle           TEXT,
-  p_tag_style         TEXT
+  p_tag_style         TEXT,
+  p_consumable_item_id TEXT,
+  p_week_start        DATE
 )
 RETURNS TABLE(
   ok            BOOLEAN,
@@ -71,6 +73,10 @@ DECLARE
   v_week_start       TIMESTAMPTZ;
   v_new_raid_id      UUID;
   v_cooldown_updated BOOLEAN := false;
+  v_inv_id           UUID;
+  v_quantity         INT;
+  v_weekly_uses      INT;
+  v_last_reset_week  DATE;
 BEGIN
   v_today_start := date_trunc('day', now() AT TIME ZONE 'UTC');
   v_week_start  := date_trunc('week', now() AT TIME ZONE 'UTC');
@@ -138,6 +144,44 @@ BEGIN
 
     RETURN QUERY SELECT false, 'weekly_pair'::TEXT, NULL::UUID;
     RETURN;
+  END IF;
+
+  IF p_consumable_item_id IS NOT NULL THEN
+    SELECT id, quantity, weekly_uses, last_reset_week
+    INTO v_inv_id, v_quantity, v_weekly_uses, v_last_reset_week
+    FROM public.developer_consumables
+    WHERE developer_id = p_attacker_id AND item_id = p_consumable_item_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+      UPDATE public.raid_cooldowns
+      SET cooldown_until = '1970-01-01T00:00:00Z'
+      WHERE developer_id = p_attacker_id;
+
+      RETURN QUERY SELECT false, 'consumable'::TEXT, NULL::UUID;
+      RETURN;
+    END IF;
+
+    IF v_last_reset_week != p_week_start THEN
+      v_weekly_uses := 0;
+      v_last_reset_week := p_week_start;
+    END IF;
+
+    IF v_weekly_uses >= 3 OR v_quantity <= 0 THEN
+      UPDATE public.raid_cooldowns
+      SET cooldown_until = '1970-01-01T00:00:00Z'
+      WHERE developer_id = p_attacker_id;
+
+      RETURN QUERY SELECT false, 'consumable'::TEXT, NULL::UUID;
+      RETURN;
+    END IF;
+
+    UPDATE public.developer_consumables
+    SET quantity = v_quantity - 1,
+        weekly_uses = v_weekly_uses + 1,
+        last_reset_week = v_last_reset_week,
+        updated_at = now()
+    WHERE id = v_inv_id;
   END IF;
 
   -- ── All guards passed: insert raid + update shield ────────
