@@ -680,7 +680,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
     try {
       const v = Math.floor(Date.now() / 300_000);
-      const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
+      const supabaseUrl = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+      const snapshotUrl = `${supabaseUrl}/storage/v1/object/public/city-data/snapshot.json?v=${v}${cacheBust ? `&_t=${Date.now()}` : ""}`;
       const snapshotRes = await fetch(snapshotUrl);
       if (snapshotRes.ok) {
         const snapshot = await snapshotRes.json();
@@ -1663,7 +1664,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
         try {
           const v = Math.floor(Date.now() / 300_000);
-          const snapshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
+          const supabaseUrl = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+          const snapshotUrl = `${supabaseUrl}/storage/v1/object/public/city-data/snapshot.json?v=${v}`;
           const snapshotRes = await fetch(snapshotUrl);
           if (snapshotRes.ok) {
             const snapshot = await snapshotRes.json();
