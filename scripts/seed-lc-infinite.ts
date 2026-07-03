@@ -100,10 +100,8 @@ async function fetchLCUserStats(username: string) {
           acSubmissionNum { difficulty count }
           totalSubmissionNum { difficulty count }
         }
-        userCalendar { streak totalActiveDays }${
-            [currentYear, prevYear]
-                .map(y => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`).join("")
-        }
+        yearCurrent: userCalendar(year: ${currentYear}) { streak totalActiveDays submissionCalendar }
+        yearPrev: userCalendar(year: ${prevYear}) { submissionCalendar }
       }
       userContestRanking(username: $username) { 
         rating 
@@ -118,6 +116,21 @@ async function fetchLCUserStats(username: string) {
             body: JSON.stringify({ query, variables: { username } }),
         });
         const json = await res.json();
+        if (json?.data?.matchedUser) {
+            const mu = json.data.matchedUser;
+            if (mu.yearCurrent) {
+                mu[`y${currentYear}`] = mu.yearCurrent;
+                if (!mu.userCalendar) {
+                    mu.userCalendar = {
+                        streak: mu.yearCurrent.streak ?? 0,
+                        totalActiveDays: mu.yearCurrent.totalActiveDays ?? 0
+                    };
+                }
+            }
+            if (mu.yearPrev) {
+                mu[`y${prevYear}`] = mu.yearPrev;
+            }
+        }
         return json?.data ?? null;
     } catch {
         return null;
