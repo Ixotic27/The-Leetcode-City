@@ -613,7 +613,9 @@ function HomeContent() {
     setWeatherMode(next);
     try {
       localStorage.setItem("leetcodecity_weather_mode", next);
-    } catch { }
+    } catch (err) {
+      console.warn("[cycleWeather] Failed to persist weather mode:", err);
+    }
   };
 
   useEffect(() => {
@@ -628,13 +630,17 @@ function HomeContent() {
       if (savedCycle === "0") {
         setDayNightCycleActive(false);
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[init] Failed to read day/night cycle preference:", err);
+    }
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
         setWeatherMode(savedWeather as any);
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[init] Failed to read weather mode preference:", err);
+    }
   }, []);
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
@@ -725,7 +731,9 @@ function HomeContent() {
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
               else localStorage.removeItem("leetcodecity_has_vscode_key");
-            } catch { }
+            } catch (err) {
+              console.warn("[vscode-key] Failed to sync key flag to localStorage:", err);
+            }
           }
         })
         .catch(() => { });
@@ -1119,7 +1127,9 @@ function HomeContent() {
                 // Small delay so the UI has settled after login redirect
                 setTimeout(() => setShowLinkModal(true), 800);
               }
-            } catch { }
+            } catch (err) {
+              console.warn("[auth] Failed to check leetcode_username after sign-in:", err);
+            }
           }
         }
       },
@@ -1673,7 +1683,9 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch { }
+      } catch (err) {
+        console.warn("[rabbit] Failed to sync rabbit progress:", err);
+      }
     })();
   }, [session]);
 
@@ -2107,7 +2119,9 @@ function HomeContent() {
           currentPB,
           parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0,
         );
-      } catch { }
+      } catch (err) {
+        console.warn("[fly] Failed to read personal best from localStorage:", err);
+      }
       // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
       const isNewPB = currentPB > 0 && finalScore > currentPB;
       // Update personal best
@@ -2116,7 +2130,9 @@ function HomeContent() {
         flyPersonalBestRef.current = finalScore;
         try {
           localStorage.setItem("leetcodecity_fly_pb", String(finalScore));
-        } catch { }
+        } catch (err) {
+          console.warn("[fly] Failed to save new personal best:", err);
+        }
       }
       // Update fly history (streak, days played, per-seed scores)
       if (finalScore > 0) {
@@ -2165,7 +2181,9 @@ function HomeContent() {
             "leetcodecity_fly_history",
             JSON.stringify(hist),
           );
-        } catch { }
+        } catch (err) {
+          console.warn("[fly] Failed to update fly history/streak data:", err);
+        }
       }
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
@@ -2965,7 +2983,9 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch { }
+      } catch (err) {
+        console.warn("[dailyNudge] Failed to check fly history for nudge:", err);
+      }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2989,7 +3009,9 @@ function HomeContent() {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch { }
+        } catch (err) {
+          console.warn("[flyHint] Failed to persist fly hint seen flag:", err);
+        }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -3613,7 +3635,9 @@ function HomeContent() {
                 setShowFlyControls(false);
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-                } catch { }
+                } catch (err) {
+                  console.warn("[flyControls] Failed to persist controls seen flag:", err);
+                }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", {
@@ -3738,7 +3762,9 @@ function HomeContent() {
                   const next = !prev;
                   try {
                     localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
-                  } catch { }
+                  } catch (err) {
+                    console.warn("[dayNightToggle] Failed to persist cycle preference:", err);
+                  }
                   return next;
                 });
               }}
@@ -4163,7 +4189,11 @@ function HomeContent() {
                                     if (mountedRef.current && data.key) {
                                       setVsCodeKey(data.key);
                                       setHasVsCodeKey(true);
-                                      try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
+                                      try {
+                                        localStorage.setItem("leetcodecity_has_vscode_key", "1");
+                                      } catch (err) {
+                                        console.warn("[vscode-key] Failed to persist key flag:", err);
+                                      }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
                                       setTimeout(() => {
@@ -4613,7 +4643,9 @@ function HomeContent() {
                                   "leetcodecity_fly_hint_seen",
                                   "1",
                                 );
-                              } catch { }
+                              } catch (err) {
+                                console.warn("[flyHint] Failed to persist dismiss flag:", err);
+                              }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
