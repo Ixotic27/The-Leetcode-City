@@ -2,29 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, broadcastToChannel } from "@/lib/supabase";
 import crypto from "crypto";
 
-const SECRET = process.env.SUPABASE_SERVICE_ROLE_KEY || "fallback-secret";
+function getSigningSecret(): string {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) {
+    throw new Error("[api/arcade/game] Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+  return secret;
+}
 const GAME_TARGET_MS = 10000;
 const GAME_TIMEOUT_MS = 60000;
 const VALID_GAMES = ["10s_classic"];
 
-interface MilestoneDef {
-  id: string;
-  max_diff_ms: number;
-  px: number;
-}
-
-const MILESTONES: MilestoneDef[] = [
-  { id: "first_try", max_diff_ms: Infinity, px: 5 },
-  { id: "close_enough", max_diff_ms: 500, px: 10 },
-  { id: "sharp", max_diff_ms: 100, px: 25 },
-  { id: "sniper", max_diff_ms: 50, px: 50 },
-  { id: "inhuman", max_diff_ms: 10, px: 100 },
-  { id: "perfection", max_diff_ms: 5, px: 250 },
-];
+// Milestone evaluation moved to atomic RPC `submit_arcade_score`.
 
 function signToken(userId: string, game: string, startTime: number): string {
   return crypto
-    .createHmac("sha256", SECRET)
+    .createHmac("sha256", getSigningSecret())
     .update(`${userId}:${game}:${startTime}`)
     .digest("hex");
 }
@@ -93,7 +86,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Game timeout" }, { status: 400 });
       }
 
-      // Persist score & milestones & achievements (analogous to submitScore in PartyKit server)
+      // Persist score & milestones atomically via RPC.
+      // Always use the `submit_arcade_score` RPC as single source of truth.
       let best_ms = diff_ms;
       let attempts = 1;
       let is_new_record = true;
@@ -101,106 +95,47 @@ export async function POST(req: NextRequest) {
       const milestones_earned: string[] = [];
       let px_earned = 0;
 
-      // 1. Get current best score + attempt count
-      const { data: scoreRows } = await sb
-        .from("arcade_scores")
-        .select("best_ms, attempts")
+      // Lookup developer id (may be null) to pass through to RPC
+      const { data: devRows } = await sb
+        .from("developers")
+        .select("id")
         .eq("user_id", userId)
-        .eq("game", game);
+        .limit(1);
 
-      const current = scoreRows?.[0] ?? null;
-      const prevBest = current?.best_ms ?? Infinity;
-      attempts = (current?.attempts ?? 0) + 1;
-      is_new_record = diff_ms < prevBest;
-      best_ms = Math.min(diff_ms, prevBest);
+      const developerId: number | null = devRows?.[0]?.id ?? null;
 
-      // 2. Upsert score
-      if (current) {
-        const updateBody: Record<string, unknown> = {
-          attempts,
-          updated_at: new Date().toISOString(),
-        };
-        if (is_new_record) {
-          updateBody.best_ms = diff_ms;
-        }
-        await sb
-          .from("arcade_scores")
-          .update(updateBody)
-          .eq("user_id", userId)
-          .eq("game", game);
-      } else {
-        await sb
-          .from("arcade_scores")
-          .insert({ user_id: userId, game, best_ms: diff_ms, attempts: 1 });
-      }
+      type SubmitResult = {
+        best_ms: number;
+        attempts: number;
+        is_new_record: boolean;
+        rank: number | null;
+        milestones: string[];
+        px_earned: number;
+      };
 
-      // 3. Get rank if new record
-      if (is_new_record) {
-        const { count } = await sb
-          .from("arcade_scores")
-          .select("user_id", { count: "exact", head: true })
-          .eq("game", game)
-          .lt("best_ms", best_ms);
-        rank = (count ?? 0) + 1;
-      } else {
-        // Get rank of current best
-        const { count } = await sb
-          .from("arcade_scores")
-          .select("user_id", { count: "exact", head: true })
-          .eq("game", game)
-          .lt("best_ms", best_ms);
-        rank = (count ?? 0) + 1;
-      }
-
-      // 4. Check milestones
       try {
-        const { data: existingMilestones } = await sb
-          .from("arcade_milestones")
-          .select("milestone")
-          .eq("user_id", userId)
-          .eq("game", game);
+        const { data: rpcData, error: rpcErr } = await sb.rpc("submit_arcade_score", {
+          p_developer_id: developerId,
+          p_user_id: userId,
+          p_game: game,
+          p_diff_ms: diff_ms,
+          p_slug: slug ?? null,
+        });
 
-        const existingSet = new Set((existingMilestones ?? []).map((m) => m.milestone));
-        const newMilestones: MilestoneDef[] = [];
-
-        for (const m of MILESTONES) {
-          if (existingSet.has(m.id)) continue;
-          if (m.id === "first_try" || diff_ms <= m.max_diff_ms) {
-            newMilestones.push(m);
-          }
+        if (rpcErr) throw rpcErr;
+        const raw = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        const res = raw as SubmitResult | undefined;
+        if (res) {
+          best_ms = res.best_ms;
+          attempts = res.attempts;
+          is_new_record = res.is_new_record;
+          rank = res.rank;
+          px_earned = res.px_earned ?? 0;
+          if (res.milestones) milestones_earned.push(...res.milestones);
         }
-
-        if (newMilestones.length > 0) {
-          await sb
-            .from("arcade_milestones")
-            .insert(newMilestones.map((m) => ({ user_id: userId, game, milestone: m.id })));
-
-          px_earned = newMilestones.reduce((sum, m) => sum + m.px, 0);
-          milestones_earned.push(...newMilestones.map((m) => m.id));
-
-          // Credit PX via RPC
-          if (px_earned > 0) {
-            const { data: devRows } = await sb
-              .from("developers")
-              .select("id")
-              .eq("user_id", userId);
-
-            const developerId = devRows?.[0]?.id;
-            if (developerId) {
-              await sb.rpc("credit_pixels", {
-                p_developer_id: developerId,
-                p_amount: px_earned,
-                p_source: "arcade_milestone",
-                p_reference_id: game,
-                p_reference_type: "arcade",
-                p_description: `Arcade milestones: ${milestones_earned.join(", ")}`,
-                p_idempotency_key: `arcade_${userId}_${game}_${milestones_earned.join("_")}`,
-              });
-            }
-          }
-        }
-      } catch (milestoneErr) {
-        console.error("[api/arcade/game] milestone error:", milestoneErr);
+      } catch (err) {
+        console.error("[api/arcade/game] submit_arcade_score RPC error:", err);
+        return NextResponse.json({ error: "Failed to submit score" }, { status: 500 });
       }
 
       // 5. Check achievements
