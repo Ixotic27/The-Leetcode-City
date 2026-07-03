@@ -4,10 +4,6 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
-// POST - Record rabbit sighting encounter
-/**
- * @param {import('next/server').NextRequest} request
- */
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   const {
@@ -44,16 +40,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ progress: 5, completed: true });
   }
 
-  // Must be sequential: no skipping
   if (sighting !== (dev.rabbit_progress ?? 0) + 1) {
     return NextResponse.json({ error: "Wrong sighting order" }, { status: 400 });
   }
 
   if (sighting === 5) {
-    // Final sighting: complete the quest.
-    // Use an optimistic-lock WHERE clause so that only the first of any
-    // concurrent sighting-5 requests commits; the rest see rowCount = 0
-    // and return early before touching purchases.
     const { data, error } = await admin
       .from("developers")
       .update({
@@ -62,19 +53,17 @@ export async function POST(request: Request) {
         rabbit_completed_at: new Date().toISOString(),
       })
       .eq("id", dev.id)
-      .eq("rabbit_completed", false)   // optimistic lock: only win the race once
+      .eq("rabbit_completed", false)
       .select("id");
 
     if (error) {
       return NextResponse.json({ error: "Failed to update" }, { status: 500 });
     }
 
-    // Another concurrent request already completed the quest — nothing to do.
     if (!data || data.length === 0) {
       return NextResponse.json({ progress: 5, completed: true });
     }
 
-    // Grant achievement (upsert is already idempotent via ON CONFLICT).
     await admin
       .from("developer_achievements")
       .upsert(
@@ -82,11 +71,6 @@ export async function POST(request: Request) {
         { onConflict: "developer_id,achievement_id" },
       );
 
-    // Grant white_rabbit item atomically.
-    // INSERT ... ON CONFLICT DO NOTHING relies on the partial unique index
-    // idx_purchases_unique_completed (developer_id, item_id, coalesce(gifted_to,0))
-    // WHERE status = 'completed' — only the first insert wins; duplicates are
-    // silently dropped. No application-level SELECT is needed.
     await admin
       .from("purchases")
       .upsert(
@@ -102,14 +86,11 @@ export async function POST(request: Request) {
           onConflict: "developer_id,item_id",
           ignoreDuplicates: true,
         }
-      );   // maps to ON CONFLICT DO NOTHING
+      );
 
     return NextResponse.json({ progress: 5, completed: true });
   }
 
-  // Sightings 1-4
-  // For sighting 1, only set rabbit_started_at when it hasn't been set yet
-  // so concurrent first-sighting writes don't overwrite each other's timestamp.
   const updates: Record<string, unknown> = {
     rabbit_progress: sighting,
   };
@@ -117,34 +98,34 @@ export async function POST(request: Request) {
     updates.rabbit_started_at = new Date().toISOString();
   }
 
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from("developers")
     .update(updates)
     .eq("id", dev.id)
-    // Only advance progress forward; never regress if a concurrent request
-    // for a later sighting already moved the pointer past this one.
-    .lt("rabbit_progress", sighting);
+    .eq("rabbit_progress", sighting - 1)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
 
+  if (!updated || updated.length === 0) {
+    return NextResponse.json(
+      { error: "Another request already advanced this sighting" },
+      { status: 409 }
+    );
+  }
+
   return NextResponse.json({ progress: sighting, completed: false });
 }
 
-// GET - Hall of completers (public) or progress check (authenticated)
-/**
- * @param {import('next/server').NextRequest} request
- */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const admin = getSupabaseAdmin();
 
-  // Check personal progress
   if (searchParams.has("check")) {
     let dev: { rabbit_progress: number | null; rabbit_completed: boolean | null; rabbit_completed_at: string | null } | null = null;
 
-    // Try extension/custom token first
     const authedDev = await getAuthenticatedDeveloper(request);
     if (authedDev) {
       const { data: qDev } = await admin
@@ -154,7 +135,6 @@ export async function GET(request: Request) {
         .maybeSingle();
       dev = qDev;
     } else {
-      // Fallback to cookie user
       try {
         const supabase = await createServerSupabase();
         const { data: { user } } = await supabase.auth.getUser();
@@ -178,7 +158,6 @@ export async function GET(request: Request) {
     });
   }
 
-  // Hall of completers
   const { data: completers } = await admin
     .from("developers")
     .select("github_login, avatar_url, name, rabbit_completed_at")
