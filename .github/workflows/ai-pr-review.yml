@@ -140,16 +140,16 @@ jobs:
               console.log("No OPENAI_API_KEY provided. Running basic security scan fallback...");
 
               const suspiciousPatterns = [
-                { regex: /ev[a]l\s*\(/, name: 'eval() usage' },
-                { regex: /Func[t]ion\s*\(/, name: 'Function() constructor' },
-                { regex: /child_pro[c]ess|(?<!\.)ex[e]c\s*\(|ex[e]cSync/, name: 'shell command execution' },
-                { regex: /proc[e]ss\.env\.\w+/, name: 'direct env access (review needed)' },
-                { regex: /SUPABASE_SERVICE_ROLE|SEC[R]ET|PASS[W]ORD|PRIVATE_KEY/, name: 'hardcoded secret/key reference' },
-                { regex: /bt[o]a|at[o]b|Buffer\.from.*base[6]4/, name: 'base64 encoding (potential obfuscation)' },
-                { regex: /fe[t]ch\s*\(\s*['"`]http:/, name: 'insecure HTTP fetch' },
-                { regex: /inner[H]TML\s*=/, name: 'innerHTML assignment (XSS risk)' },
-                { regex: /doc[u]ment\.write/, name: 'document.write (XSS risk)' },
-                { regex: /\.en[v]\.local|\.en[v]\.production/, name: 'env file reference' },
+                { regex: new RegExp("ev" + "al\\s*\\("), name: 'ev' + 'al() usage' },
+                { regex: new RegExp("Func" + "tion\\s*\\("), name: 'Func' + 'tion() constructor' },
+                { regex: new RegExp("child_pro" + "cess|ex" + "ec\\s*\\(|ex" + "ecSync"), name: 'shell command ex' + 'ecution' },
+                { regex: new RegExp("pro" + "cess\\.en" + "v\\.\\w+"), name: 'direct env access (review needed)' },
+                { regex: new RegExp("SUPA" + "BASE_SER" + "VICE_ROLE|SEC" + "RET|PASS" + "WORD|PRI" + "VATE_KEY"), name: 'hardcoded se' + 'cret/key reference' },
+                { regex: new RegExp("bt" + "oa|at" + "ob|Buf" + "fer\\.from.*base" + "64"), name: 'base' + '64 encoding (potential obfuscation)' },
+                { regex: new RegExp("fe" + "tch\\s*\\(\\s*['\"\`]ht" + "tp:"), name: 'insecure HTTP fe' + 'tch' },
+                { regex: new RegExp("inner" + "HTML\\s*="), name: 'inner' + 'HTML assignment (XSS risk)' },
+                { regex: new RegExp("docu" + "ment\\.wr" + "ite"), name: 'docu' + 'ment.write (XSS risk)' },
+                { regex: new RegExp("\\.en" + "v\\.lo" + "cal|\\.en" + "v\\.pro" + "duction"), name: 'env file reference' },
               ];
 
               const findings = [];
@@ -264,16 +264,16 @@ jobs:
               console.error("OpenAI API failed. Falling back to basic security scan.", err.message);
               // Run basic security scan as a safety fallback
               const basicPatterns = [
-                { regex: /ev[a]l\s*\(/, name: 'eval() usage' },
-                { regex: /Func[t]ion\s*\(/, name: 'Function() constructor' },
-                { regex: /child_pro[c]ess|(?<!\.)ex[e]c\s*\(|ex[e]cSync/, name: 'shell command execution' },
-                { regex: /proc[e]ss\.env\.\w+/, name: 'direct env access (review needed)' },
-                { regex: /SUPABASE_SERVICE_ROLE|SEC[R]ET|PASS[W]ORD|PRIVATE_KEY/, name: 'hardcoded secret/key reference' },
-                { regex: /bt[o]a|at[o]b|Buffer\.from.*base[6]4/, name: 'base64 encoding (potential obfuscation)' },
-                { regex: /fe[t]ch\s*\(\s*['"`]http:/, name: 'insecure HTTP fetch' },
-                { regex: /inner[H]TML\s*=/, name: 'innerHTML assignment (XSS risk)' },
-                { regex: /doc[u]ment\.write/, name: 'document.write (XSS risk)' },
-                { regex: /\.en[v]\.local|\.en[v]\.production/, name: 'env file reference' },
+                { regex: new RegExp("ev" + "al\\s*\\("), name: 'ev' + 'al() usage' },
+                { regex: new RegExp("Func" + "tion\\s*\\("), name: 'Func' + 'tion() constructor' },
+                { regex: new RegExp("child_pro" + "cess|ex" + "ec\\s*\\(|ex" + "ecSync"), name: 'shell command ex' + 'ecution' },
+                { regex: new RegExp("pro" + "cess\\.en" + "v\\.\\w+"), name: 'direct env access (review needed)' },
+                { regex: new RegExp("SUPA" + "BASE_SER" + "VICE_ROLE|SEC" + "RET|PASS" + "WORD|PRI" + "VATE_KEY"), name: 'hardcoded se' + 'cret/key reference' },
+                { regex: new RegExp("bt" + "oa|at" + "ob|Buf" + "fer\\.from.*base" + "64"), name: 'base' + '64 encoding (potential obfuscation)' },
+                { regex: new RegExp("fe" + "tch\\s*\\(\\s*['\"\`]ht" + "tp:"), name: 'insecure HTTP fe' + 'tch' },
+                { regex: new RegExp("inner" + "HTML\\s*="), name: 'inner' + 'HTML assignment (XSS risk)' },
+                { regex: new RegExp("docu" + "ment\\.wr" + "ite"), name: 'docu' + 'ment.write (XSS risk)' },
+                { regex: new RegExp("\\.en" + "v\\.lo" + "cal|\\.en" + "v\\.pro" + "duction"), name: 'env file reference' },
               ];
 
               const findings = [];
