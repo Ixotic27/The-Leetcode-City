@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
+interface ProblemRow {
+  id: number;
+  title: string;
+  description: string;
+  difficulty_rating: number;
+  tags: string[];
+  time_limit_ms: number;
+  memory_limit_mb: number;
+  sample_tests: unknown;
+  hidden_tests: unknown[] | null;
+}
+
 export async function GET(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
@@ -44,8 +56,7 @@ export async function GET(
     return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const prob = challenge.problem as any;
+  const prob = challenge.problem as unknown as ProblemRow | null;
   if (!prob) {
     return NextResponse.json({ error: "Associated problem not found" }, { status: 404 });
   }

@@ -48,7 +48,9 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
             const next = !prev;
             try {
               localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
-            } catch {}
+            } catch (err) {
+              console.warn("[ActionToolbar] Failed to persist cycle preference:", err);
+            }
             return next;
           });
         }}

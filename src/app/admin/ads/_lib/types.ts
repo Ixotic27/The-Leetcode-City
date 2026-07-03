@@ -60,6 +60,8 @@ export interface AdsFilters {
   q: string;
   sort: SortKey;
   dir: SortDir;
+  page: number;
+  pageSize: number;
 }
 
 export interface ConfirmState {

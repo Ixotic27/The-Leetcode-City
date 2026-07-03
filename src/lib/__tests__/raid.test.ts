@@ -1,6 +1,7 @@
 import {
   calculateAttackScore,
   calculateDefenseScore,
+  getRaidConsumableToastMessage,
   getRaidTitle,
   getStrengthEstimate,
 } from "../raid";
@@ -202,5 +203,70 @@ describe("getStrengthEstimate", () => {
   it("returns strong for score > 40", () => {
     expect(getStrengthEstimate(41)).toBe("strong");
     expect(getStrengthEstimate(999)).toBe("strong");
+  });
+});
+
+describe("getRaidConsumableToastMessage", () => {
+  it("returns null when no consumable was used", () => {
+    expect(
+      getRaidConsumableToastMessage({
+        raid_id: "raid-1",
+        success: true,
+        attack_score: 10,
+        defense_score: 5,
+        attack_breakdown: { commits: 0, streak: 0, kudos: 0 },
+        defense_breakdown: { commits: 0, streak: 0, kudos: 0 },
+        attacker: { login: "a", avatar: null, position: [0, 0, 0], height: 20 },
+        defender: { login: "b", avatar: null, position: [0, 0, 0], height: 20 },
+        xp_earned: 50,
+        new_raid_xp: 50,
+        new_title: null,
+        new_achievements: [],
+        vehicle: "airplane",
+        tag_style: "default",
+      }),
+    ).toBeNull();
+  });
+
+  it("returns a generic success message without boost value", () => {
+    expect(
+      getRaidConsumableToastMessage({
+        raid_id: "raid-2",
+        success: true,
+        attack_score: 10,
+        defense_score: 5,
+        attack_breakdown: { commits: 0, streak: 0, kudos: 0, boost_item: "emp_device" },
+        defense_breakdown: { commits: 0, streak: 0, kudos: 0 },
+        attacker: { login: "a", avatar: null, position: [0, 0, 0], height: 20 },
+        defender: { login: "b", avatar: null, position: [0, 0, 0], height: 20 },
+        xp_earned: 50,
+        new_raid_xp: 50,
+        new_title: null,
+        new_achievements: [],
+        vehicle: "airplane",
+        tag_style: "default",
+      }),
+    ).toBe("EMP Offense Device activated successfully.");
+  });
+
+  it("includes the effect when a boost value is returned", () => {
+    expect(
+      getRaidConsumableToastMessage({
+        raid_id: "raid-3",
+        success: true,
+        attack_score: 25,
+        defense_score: 5,
+        attack_breakdown: { commits: 0, streak: 0, kudos: 0, boost_item: "raid_boost_large", boost: 25 },
+        defense_breakdown: { commits: 0, streak: 0, kudos: 0 },
+        attacker: { login: "a", avatar: null, position: [0, 0, 0], height: 20 },
+        defender: { login: "b", avatar: null, position: [0, 0, 0], height: 20 },
+        xp_earned: 50,
+        new_raid_xp: 50,
+        new_title: null,
+        new_achievements: [],
+        vehicle: "airplane",
+        tag_style: "default",
+      }),
+    ).toBe("EMP Device activated! +25 raid power.");
   });
 });

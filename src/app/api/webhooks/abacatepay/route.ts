@@ -9,8 +9,7 @@ import { InfrastructureError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractPixId(data: any): string | undefined {
+function extractPixId(data: { id?: string; pixQrCode?: { id?: string } } | undefined): string | undefined {
   // billing.paid payload: data.pixQrCode.id
   // pixQrCode.paid payload: data.id or data.pixQrCode.id
   return data?.pixQrCode?.id ?? data?.id;
@@ -32,9 +31,8 @@ export async function POST(request: Request) {
   }
 
   const rawBody = await request.text();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let body: any;
+ 
+  let body: { event?: string; data?: { id?: string; pixQrCode?: { id?: string } } };
   try {
     body = JSON.parse(rawBody);
   } catch (err) { console.warn("[app/api/webhooks/abacatepay/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });

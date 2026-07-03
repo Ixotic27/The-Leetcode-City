@@ -402,7 +402,6 @@ export const ClaimedGlow = memo(function ClaimedGlow({ height, width, depth }: {
 
 // ─── Multi-Level Labels ──────────────────────────────────────
 
-/** Level 1: Far — just @USERNAME (512x80, semi-transparent bg for readability) */
 function createFarLabel(building: CityBuilding): THREE.CanvasTexture {
   const W = 512;
   const H = 80;
@@ -415,17 +414,30 @@ function createFarLabel(building: CityBuilding): THREE.CanvasTexture {
     ? building.login.slice(0, 16).toUpperCase() + "..."
     : building.login.toUpperCase();
   const isFirstCitizen = building.login.toLowerCase() === "ishant_27";
-  const text = isFirstCitizen ? `@${login} 👑` : `@${login}`;
 
-  ctx.font = 'bold 40px "Silkscreen", monospace';
-  ctx.textAlign = "center";
+  // Use bold monospace to match the E-Arcade building text style
+  ctx.font = "bold 40px monospace";
   ctx.textBaseline = "middle";
 
-  // Semi-transparent background pill for contrast
-  const textWidth = ctx.measureText(text).width;
+  const tier = tierFromLevel(building.xp_level ?? 1);
+  let accentColor = "#ffa116";
+  if (building.claimed) {
+    if (tier.id !== "localhost") {
+      accentColor = tier.color;
+    }
+  } else {
+    accentColor = "rgba(140, 140, 160, 0.6)";
+  }
+
+  // Measure segments
+  const atWidth = ctx.measureText("@").width;
+  const nameWidth = ctx.measureText(login).width;
+  const crownWidth = isFirstCitizen ? ctx.measureText(" 👑").width : 0;
+  const totalWidth = atWidth + nameWidth + crownWidth;
+
   const padX = 24;
   const padY = 8;
-  const bgW = textWidth + padX * 2;
+  const bgW = totalWidth + padX * 2;
   const bgH = isFirstCitizen ? 80 : 48 + padY * 2;
   const bgX = (W - bgW) / 2;
   const bgY = (H - bgH) / 2;
@@ -444,27 +456,32 @@ function createFarLabel(building: CityBuilding): THREE.CanvasTexture {
   }
 
   if (building.claimed) {
-    const tier = tierFromLevel(building.xp_level ?? 1);
-    if (tier.id === "localhost") {
-      ctx.fillStyle = "#ffe4b5";
-      ctx.shadowColor = "rgba(255, 161, 22, 0.5)";
-    } else {
-      ctx.fillStyle = tier.color;
-      ctx.shadowColor = tier.color;
-    }
+    ctx.shadowColor = accentColor;
     ctx.shadowBlur = 8;
   } else {
-    ctx.fillStyle = "rgba(140, 140, 160, 0.6)";
+    ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
   }
 
+  // Draw prefix/segments
+  const startX = (W - totalWidth) / 2;
+  const textY = isFirstCitizen ? H / 2 - 12 : H / 2;
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = accentColor;
+  ctx.fillText("@", startX, textY);
+
+  ctx.fillStyle = building.claimed ? "#e8dcc8" : "rgba(140, 140, 160, 0.6)";
+  ctx.fillText(login, startX + atWidth, textY);
+
   if (isFirstCitizen) {
-    ctx.fillText(text, W / 2, H / 2 - 12);
-    ctx.font = 'bold 16px "Silkscreen", monospace';
     ctx.fillStyle = "#ffa116";
+    ctx.fillText(" 👑", startX + atWidth + nameWidth, textY);
+
+    ctx.font = "bold 16px monospace";
+    ctx.fillStyle = "#ffa116";
+    ctx.textAlign = "center";
     ctx.fillText("FIRST CITIZEN", W / 2, H / 2 + 22);
-  } else {
-    ctx.fillText(text, W / 2, H / 2);
   }
 
   const tex = new THREE.CanvasTexture(canvas);

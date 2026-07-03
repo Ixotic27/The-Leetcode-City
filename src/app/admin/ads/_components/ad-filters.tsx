@@ -125,6 +125,16 @@ export function AdFilters({
           <option value="manual">Manual</option>
         </select>
 
+        <select
+          value={filters.pageSize}
+          onChange={(e) => setFilter("pageSize", Number(e.target.value))}
+          className="cursor-pointer border border-border bg-bg px-3 py-1.5 text-[11px] text-cream outline-none focus:border-lime"
+        >
+          <option value={10}>10 / page</option>
+          <option value={25}>25 / page</option>
+          <option value={50}>50 / page</option>
+        </select>
+
         <p className="ml-auto text-[11px] text-dim">
           {filteredCount} of {totalCount} ads
         </p>

@@ -135,8 +135,8 @@ export async function GET(req: NextRequest) {
       favorites = (favRes.data ?? []).map((f) => f.room_id);
       recentVisits = visitRes.data ?? [];
     }
-  } catch {
-    // Not authenticated — no favorites/visits
+  } catch (err) {
+    console.error("[app/api/arcade/rooms/route.ts] failed to load favorites/visits:", err);
   }
 
   return NextResponse.json({

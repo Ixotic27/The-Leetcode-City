@@ -28,8 +28,10 @@ export function loadRadioState(): RadioState {
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
     return { ...DEFAULT_STATE, ...parsed };
-  } catch (err) { console.warn("[lib/radio.ts] error:", err); return DEFAULT_STATE;
-   }
+  } catch (err) {
+    console.warn("[lib/radio.ts] failed to load saved radio state:", err);
+    return DEFAULT_STATE;
+  }
 }
 
 export function saveRadioState(state: Partial<RadioState>) {
@@ -37,5 +39,7 @@ export function saveRadioState(state: Partial<RadioState>) {
   try {
     const current = loadRadioState();
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...state }));
-  } catch (err) { console.warn("[lib/radio.ts] non-critical error:", err); }
+  } catch (err) {
+    console.warn("[lib/radio.ts] failed to save radio state:", err);
+  }
 }

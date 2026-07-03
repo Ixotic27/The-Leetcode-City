@@ -40,16 +40,10 @@ function sleep(ms: number) {
     return new Promise((r) => setTimeout(r, ms));
 }
 
-function calendarAliases(): string {
+async function fetchLCFullProfile(username: string): Promise<any> {
     const currentYear = new Date().getFullYear();
     const prevYear = currentYear - 1;
 
-    return [currentYear, prevYear]
-        .map((y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`)
-        .join("");
-}
-
-async function fetchLCFullProfile(username: string): Promise<any> {
     const query = `
     query($username: String!) {
       matchedUser(username: $username) {
@@ -68,7 +62,8 @@ async function fetchLCFullProfile(username: string): Promise<any> {
           intermediate { tagName problemsSolved }
           fundamental { tagName problemsSolved }
         }
-        userCalendar { streak totalActiveDays }${calendarAliases()}
+        yearCurrent: userCalendar(year: ${currentYear}) { streak totalActiveDays submissionCalendar }
+        yearPrev: userCalendar(year: ${prevYear}) { submissionCalendar }
       }
       userContestRanking(username: $username) {
         rating
@@ -86,7 +81,20 @@ async function fetchLCFullProfile(username: string): Promise<any> {
         });
         const json = await res.json();
         if (json?.data?.matchedUser) {
-            json.data.matchedUser.maxStreak = parseMaxStreak(json.data.matchedUser, new Date().getFullYear());
+            const mu = json.data.matchedUser;
+            if (mu.yearCurrent) {
+                mu[`y${currentYear}`] = mu.yearCurrent;
+                if (!mu.userCalendar) {
+                    mu.userCalendar = {
+                        streak: mu.yearCurrent.streak ?? 0,
+                        totalActiveDays: mu.yearCurrent.totalActiveDays ?? 0
+                    };
+                }
+            }
+            if (mu.yearPrev) {
+                mu[`y${prevYear}`] = mu.yearPrev;
+            }
+            mu.maxStreak = parseMaxStreak(mu, currentYear);
         }
         return json?.data ?? null;
     } catch { return null; }
