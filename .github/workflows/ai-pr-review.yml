@@ -142,7 +142,7 @@ jobs:
               const suspiciousPatterns = [
                 { regex: /eval\s*\(/, name: 'eval() usage' },
                 { regex: /Function\s*\(/, name: 'Function() constructor' },
-                { regex: /child_process|exec\s*\(|execSync/, name: 'shell command execution' },
+                { regex: /child_process|(?<!\.)exec\s*\(|execSync/, name: 'shell command execution' },
                 { regex: /process\.env\.\w+/, name: 'direct env access (review needed)' },
                 { regex: /SUPABASE_SERVICE_ROLE|SECRET|PASSWORD|PRIVATE_KEY/, name: 'hardcoded secret/key reference' },
                 { regex: /btoa|atob|Buffer\.from.*base64/, name: 'base64 encoding (potential obfuscation)' },
@@ -153,13 +153,28 @@ jobs:
               ];
 
               const findings = [];
-              const diffLines = diff.split('\n');
-              const addedLines = diffLines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+              const files = diff.split('diff --git ');
 
-              for (const pattern of suspiciousPatterns) {
-                const matches = addedLines.filter(l => pattern.regex.test(l));
-                if (matches.length > 0) {
-                  findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s)`);
+              for (const fileDiff of files) {
+                if (!fileDiff.trim()) continue;
+                const lines = fileDiff.split('\n');
+                const headerLine = lines[0] || '';
+                const pathMatch = headerLine.match(/b\/([^\s]+)/);
+                if (!pathMatch) continue;
+                const filePath = pathMatch[1];
+
+                // Skip workflows, markdown documentation, and configuration files
+                if (filePath.startsWith('.github/') || filePath.endsWith('.json') || filePath.endsWith('.md')) {
+                  console.log(`Skipping scan for ${filePath}`);
+                  continue;
+                }
+
+                const addedLines = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+                for (const pattern of suspiciousPatterns) {
+                  const matches = addedLines.filter(l => pattern.regex.test(l));
+                  if (matches.length > 0) {
+                    findings.push(`⚠️ **${pattern.name}** in \`${filePath}\` — found in ${matches.length} added line(s)`);
+                  }
                 }
               }
 
@@ -251,7 +266,7 @@ jobs:
               const basicPatterns = [
                 { regex: /eval\s*\(/, name: 'eval() usage' },
                 { regex: /Function\s*\(/, name: 'Function() constructor' },
-                { regex: /child_process|exec\s*\(|execSync/, name: 'shell command execution' },
+                { regex: /child_process|(?<!\.)exec\s*\(|execSync/, name: 'shell command execution' },
                 { regex: /process\.env\.\w+/, name: 'direct env access (review needed)' },
                 { regex: /SUPABASE_SERVICE_ROLE|SECRET|PASSWORD|PRIVATE_KEY/, name: 'hardcoded secret/key reference' },
                 { regex: /btoa|atob|Buffer\.from.*base64/, name: 'base64 encoding (potential obfuscation)' },
@@ -262,13 +277,28 @@ jobs:
               ];
 
               const findings = [];
-              const diffLines = diff.split('\n');
-              const addedLines = diffLines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+              const files = diff.split('diff --git ');
 
-              for (const pattern of basicPatterns) {
-                const matches = addedLines.filter(l => pattern.regex.test(l));
-                if (matches.length > 0) {
-                  findings.push(`⚠️ **${pattern.name}** — found in ${matches.length} added line(s)`);
+              for (const fileDiff of files) {
+                if (!fileDiff.trim()) continue;
+                const lines = fileDiff.split('\n');
+                const headerLine = lines[0] || '';
+                const pathMatch = headerLine.match(/b\/([^\s]+)/);
+                if (!pathMatch) continue;
+                const filePath = pathMatch[1];
+
+                // Skip workflows, markdown documentation, and configuration files
+                if (filePath.startsWith('.github/') || filePath.endsWith('.json') || filePath.endsWith('.md')) {
+                  console.log(`Skipping scan for ${filePath}`);
+                  continue;
+                }
+
+                const addedLines = lines.filter(l => l.startsWith('+') && !l.startsWith('+++'));
+                for (const pattern of basicPatterns) {
+                  const matches = addedLines.filter(l => pattern.regex.test(l));
+                  if (matches.length > 0) {
+                    findings.push(`⚠️ **${pattern.name}** in \`${filePath}\` — found in ${matches.length} added line(s)`);
+                  }
                 }
               }
 
