@@ -1,10 +1,11 @@
-import React from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 
-interface SkeletonProps {
+interface SkeletonProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   className?: string;
   variant?: "text" | "circle" | "rectangular";
-  width?: string | number;
-  height?: string | number;
+  width?: CSSProperties["width"];
+  height?: CSSProperties["height"];
 }
 
 export default function Skeleton({
@@ -12,6 +13,8 @@ export default function Skeleton({
   variant = "rectangular",
   width,
   height,
+  style,
+  ...props
 }: SkeletonProps) {
   const baseShape =
     variant === "circle"
@@ -22,10 +25,13 @@ export default function Skeleton({
 
   return (
     <div
-      className={`animate-pulse bg-slate-700/50 backdrop-blur-sm ${baseShape} ${className}`}
+      {...props}
+      aria-hidden={props["aria-hidden"] ?? true}
+      className={`skeleton-shimmer ${baseShape} ${className}`}
       style={{
-        width: width,
-        height: height,
+        ...style,
+        width: width ?? style?.width,
+        height: height ?? style?.height,
       }}
     />
   );
