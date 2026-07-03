@@ -63,8 +63,8 @@ async function run() {
     await createLabel("type:feature", "a2eeef", "New feature or request");
 
     console.log("\nUpdating issues to replace type:enhancement with type:feature...");
-    await updateIssueLabels(660, ["gssoc 26", "gssoc:approved", "good first issues", "level:intermediate", "type:feature"]);
-    await updateIssueLabels(661, ["gssoc 26", "gssoc:approved", "good first issues", "level:advanced", "type:feature"]);
+    await updateIssueLabels(660, ["gssoc 26", "gssoc:approved", "good first issue", "level:intermediate", "type:feature"]);
+    await updateIssueLabels(661, ["gssoc 26", "gssoc:approved", "good first issue", "level:advanced", "type:feature"]);
 
     console.log("\nDeleting type:enhancement and enhancement from repository...");
     await deleteLabel("type:enhancement");

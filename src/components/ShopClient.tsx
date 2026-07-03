@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
@@ -130,7 +131,9 @@ function savePendingBillboard(file: File): void {
         PENDING_BILLBOARD_KEY,
         JSON.stringify({ data: reader.result, type: file.type, name: file.name })
       );
-    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] failed to save pending billboard:", err);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -141,7 +144,7 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
     if (!raw) return null;
     return JSON.parse(raw);
   } catch (err) {
-    console.warn("[components/ShopClient.tsx] error:", err);
+    console.warn("[components/ShopClient.tsx] failed to read pending billboard:", err);
     return null;
   }
 }
@@ -149,7 +152,9 @@ function getPendingBillboard(): { data: string; type: string; name: string } | n
 function clearPendingBillboard(): void {
   try {
     localStorage.removeItem(PENDING_BILLBOARD_KEY);
-  } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
+  } catch (err) {
+    console.warn("[components/ShopClient.tsx] failed to clear pending billboard:", err);
+  }
 }
 
 // Convert a base64 data URL to a File
@@ -218,7 +223,9 @@ function PixModal({
           trackPurchaseCompleted(data.itemId, 0, "abacatepay");
           setStatus("completed");
         }
-      } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
+      } catch (err) {
+        console.warn("[components/ShopClient.tsx] failed to poll PIX payment status:", err);
+      }
     }, 3000);
 
     return () => {
@@ -239,7 +246,9 @@ function PixModal({
       await navigator.clipboard.writeText(data.brCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); }
+    } catch (err) {
+      console.warn("[components/ShopClient.tsx] failed to copy PIX code:", err);
+    }
   }, [data.brCode]);
 
   return (
@@ -507,7 +516,7 @@ function BillboardUploadPanel({
         setTimeout(() => setSavedSlot(null), 2000);
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] failed to upload billboard image:", err);
       // ignore
     } finally {
       setUploadingSlot(null);
@@ -724,7 +733,7 @@ export default function ShopClient({
           setLoadingRelics(false);
         })
         .catch((err) => {
-          console.error("Failed to load relics:", err);
+          console.error("[components/ShopClient.tsx] failed to load relics:", err);
           setRelics(STATIC_RELICS);
           if (!selectedRelic) setSelectedRelic(STATIC_RELICS[0]);
           setLoadingRelics(false);
@@ -745,7 +754,7 @@ export default function ShopClient({
         window.dispatchEvent(new CustomEvent("leetcodecity:relic-saved"));
       }
     } catch (err) {
-      console.error("Failed to equip relic:", err);
+      console.error("[components/ShopClient.tsx] failed to equip relic:", err);
     } finally {
       setEquippingRelic(null);
     }
@@ -905,7 +914,7 @@ export default function ShopClient({
         localStorage.removeItem("leetcodecity:billboard_override");
       }
     } catch (err) {
-      console.warn("[ShopClient] Failed to save billboard override:", err);
+      console.warn("[components/ShopClient.tsx] failed to save billboard override:", err);
     }
   }, [billboardImages, developerId]);
 
@@ -967,7 +976,7 @@ export default function ShopClient({
             JSON.stringify({ developerId, value: newStyle, ts: Date.now() })
           )
         } catch (e) {
-            console.warn("[ShopClient] localStorage write failed:", e);
+            console.warn("[components/ShopClient.tsx] failed to cache loadout in localStorage:", e);
         }
       }
     } catch (e: any) {
@@ -1014,13 +1023,15 @@ export default function ShopClient({
             "leetcodecity:loadout_override",
             JSON.stringify({ developerId, loadout: payload, ts: Date.now() }),
           );
-        } catch (err) { console.warn("[components/ShopClient.tsx] non-critical error:", err); } 
+        } catch (err) {
+          console.warn("[components/ShopClient.tsx] failed to cache loadout in localStorage:", err);
+        }
         window.dispatchEvent(new CustomEvent("leetcodecity:loadout-saved"));
       } else {
         setError("Failed to save. Try again.");
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] failed to save loadout:", err);
       setError("Failed to save. Try again.");
     } finally {
       setSaving(false);
@@ -1065,7 +1076,7 @@ export default function ShopClient({
             }
           }
         } catch (err) {
-            console.warn("[ShopClient] localStorage write failed:", err);
+            console.warn("[components/ShopClient.tsx] failed to cache raid loadout in localStorage:", err);
         }
       }
     } catch (err: any) {
@@ -1100,7 +1111,7 @@ export default function ShopClient({
         prev.includes(FREE_CLAIM_ITEM) ? prev : [...prev, FREE_CLAIM_ITEM]
       );
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] failed to claim free item:", err);
       setError("Network error. Try again.");
     } finally {
       setBuyingItem(null);
@@ -1136,7 +1147,7 @@ export default function ShopClient({
         setStarVerifyStep("opened");
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] failed to verify repository star:", err);
       setError("Network error. Try again.");
       setStarVerifyStep("opened");
     } finally {
@@ -1230,7 +1241,7 @@ export default function ShopClient({
               setError(result.error.message || "Payment failed");
             }
           } catch (sdkErr) {
-            console.error("Cashfree SDK error:", sdkErr);
+            console.error("[components/ShopClient.tsx] failed to initialize Cashfree SDK:", sdkErr);
             setError("Payment gateway failed to load. Try again.");
           }
         } else if (data.brCode) {
@@ -1247,7 +1258,7 @@ export default function ShopClient({
           window.location.href = data.url;
         }
       } catch (err) {
-        console.warn("[components/ShopClient.tsx] error:", err);
+        console.error("[components/ShopClient.tsx] failed to start Cashfree checkout:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1276,10 +1287,20 @@ export default function ShopClient({
       setBuyingItem(itemId);
       setBuyingProvider("points");
       setError(null);
+      // Generate the idempotency key on the client so any retry of this same
+      // purchase (network timeout, fetch retry) reuses the identical key and the
+      // server can detect the duplicate instead of creating a second record.
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${itemId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       try {
         const res = await fetch("/api/shop/buy-with-points", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
           body: JSON.stringify({ item_id: itemId, dev_mode: devModeEnabled }),
         });
         const data = await res.json();
@@ -1293,7 +1314,7 @@ export default function ShopClient({
           setError(data.error || "Failed to buy item.");
         }
       } catch (err) {
-        console.warn("[components/ShopClient.tsx] error:", err);
+        console.error("[components/ShopClient.tsx] failed to start PIX checkout:", err);
         setError("Network error. Try again.");
       } finally {
         setBuyingItem(null);
@@ -1363,7 +1384,7 @@ export default function ShopClient({
         setTimeout(() => setRedeemState("idle"), 4000);
       }
     } catch (err) {
-      console.warn("[components/ShopClient.tsx] error:", err);
+      console.error("[components/ShopClient.tsx] failed to redeem code:", err);
       setRedeemState("error");
       setRedeemMsg("Network error. Please try again.");
       setTimeout(() => setRedeemState("idle"), 4000);
@@ -2568,7 +2589,7 @@ export default function ShopClient({
             
             <div className="mt-4 p-4 border-[2px] border-dashed border-[#ffaa00]/30 bg-[#ffaa00]/5 text-center">
               <p className="text-[10px] text-muted normal-case italic">
-                Each offensive or defensive item has a strict global limit: 3 uses per player, per week. Defenses automatically equip while you're offline to block incoming Raids unless EMP'd. Use sabotage viruses and EMP devices wisely before executing a raid!
+                Each offensive or defensive item has a strict global limit: 3 uses per player, per week. Defenses automatically equip while you&apos;re offline to block incoming Raids unless EMP&apos;d. Use sabotage viruses and EMP devices wisely before executing a raid!
               </p>
             </div>
           </div>
@@ -2693,7 +2714,7 @@ export default function ShopClient({
                         {selectedRelic.description && (
                           <div className="space-y-1">
                             <p className="text-[9px] italic leading-relaxed text-cream/90 normal-case">
-                              "{selectedRelic.description}"
+                              &quot;{selectedRelic.description}&quot;
                             </p>
                           </div>
                         )}

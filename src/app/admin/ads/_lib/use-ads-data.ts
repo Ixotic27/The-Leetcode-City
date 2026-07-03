@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react";
-import type { AdStats, AdsFilters, SortKey, SortDir, AdForm } from "./types";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import type { AdStats, AdsFilters, AdForm } from "./types";
 import { getAdStatus, getStatusOrder, generateSlug } from "./helpers";
 
 interface UseAdsDataOptions {
@@ -14,7 +14,7 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const hasFetchedRef = useRef(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchStats = useCallback(async () => {
     // Keep stale data visible (don't clear ads)
@@ -28,9 +28,9 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
       }
       const data = await res.json();
       setAds(data.ads ?? []);
-      hasFetchedRef.current = true;
-    } catch (e: any) {
-      setError(e.message);
+      setHasFetched(true);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -290,7 +290,7 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
     totals,
     activeCount,
     paidCount,
-    hasFetched: hasFetchedRef.current,
+    hasFetched,
     fetchStats,
     handleToggle,
     handleDelete,

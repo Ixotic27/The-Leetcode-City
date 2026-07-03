@@ -151,3 +151,68 @@ export async function setupChallengeWorkspace(challenge: ChallengeData, ext: str
 
   return solutionPath;
 }
+
+export async function fetchArenaStats(origin?: string): Promise<any> {
+  const { apiUrl: configApiUrl } = getConfig();
+  const apiUrl = origin || configApiUrl;
+  const apiKey = await getKey();
+  if (!apiKey) {
+    throw new Error("Pulse key not found. Please connect your extension to LeetCode City first.");
+  }
+  const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/stats/me`, {
+    headers: {
+      "Authorization": `Bearer ${apiKey}`
+    }
+  });
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error || `HTTP error ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function fetchArenaLeaderboard(origin?: string): Promise<any> {
+  const { apiUrl: configApiUrl } = getConfig();
+  const apiUrl = origin || configApiUrl;
+  const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/leaderboard?limit=10`);
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error || `HTTP error ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function fetchRabbitProgress(origin?: string): Promise<any> {
+  const { apiUrl: configApiUrl } = getConfig();
+  const apiUrl = origin || configApiUrl;
+  const apiKey = await getKey();
+  if (!apiKey) {
+    return { progress: 0, completed: false };
+  }
+  const res = await (globalThis as any).fetch(`${apiUrl}/api/rabbit?check=1`, {
+    headers: {
+      "Authorization": `Bearer ${apiKey}`
+    }
+  });
+  if (!res.ok) {
+    return { progress: 0, completed: false };
+  }
+  return await res.json();
+}
+
+export async function fetchDungeonBoss(): Promise<any> {
+  try {
+    const res = await (globalThis as any).fetch("https://alfa-leetcode-api.onrender.com/daily");
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug) return null;
+    return {
+      title: data.questionTitle,
+      difficulty: data.difficulty,
+      titleSlug: data.titleSlug
+    };
+  } catch (e) {
+    return null;
+  }
+}
+

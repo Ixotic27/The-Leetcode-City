@@ -28,8 +28,9 @@ jobs:
             
             // Characters that completely break Windows filesystems
             const invalidWindowsChars = /[<>:"|?*]/;
-            // Executables and scripts that shouldn't be added by random contributors
-            const restrictedExtensions = [/\.exe$/i, /\.dll$/i, /\.bat$/i, /\.cmd$/i, /\.sh$/i, /\.ps1$/i];
+            // Only block truly dangerous binaries. Shell scripts (.sh, .ps1) are
+            // legitimate for CI/build and should NOT be blocked.
+            const restrictedExtensions = [/\.exe$/i, /\.dll$/i, /\.bat$/i, /\.cmd$/i];
             
             let hasViolation = false;
             let violations = [];

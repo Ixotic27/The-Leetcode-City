@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendStreakReminderNotification } from "@/lib/notification-senders/streak-reminder";
 import { sendDailiesReminderNotification } from "@/lib/notification-senders/dailies-reminder";
+import crypto from "crypto";
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
 
 /**
  * Cron: Daily 20:00 UTC - Remind developers who haven't checked in today
@@ -11,11 +17,13 @@ import { sendDailiesReminderNotification } from "@/lib/notification-senders/dail
  * @param {import('next/server').NextRequest} request
  */
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
-  if (!process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const expected = `Bearer ${secret}`;
+  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -81,7 +89,7 @@ export async function GET(request: NextRequest) {
 
   // ─── Dailies reminders: users with 1-2 missions done but not 3 ────
   const dailiesResults = { reminded: 0, skipped: 0 };
-  const dailiesOffset = 0;
+  let dailiesOffset = 0;
 
   while (true) {
     // Find devs who have some (but not all) missions done today
@@ -128,8 +136,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Only one pass needed since we fetched all progress rows at once
-    break;
+    if (batch.length < batchSize) break;
+    dailiesOffset += batchSize;
   }
 
   return NextResponse.json({ ok: true, ...results, dailies: dailiesResults });

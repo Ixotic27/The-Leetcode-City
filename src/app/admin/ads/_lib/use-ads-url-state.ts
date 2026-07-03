@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import type { AdsFilters, Period, StatusFilter, VehicleFilter, SourceFilter, SortKey, SortDir } from "./types";
+import type { AdsFilters, SortKey, SortDir } from "./types";
 import { STORAGE_KEY } from "./constants";
 
 const DEFAULTS: AdsFilters = {
@@ -13,6 +13,8 @@ const DEFAULTS: AdsFilters = {
   q: "",
   sort: "impressions",
   dir: "desc",
+  page: 1,
+  pageSize: 10,
 };
 
 function loadLocalStorage(): Partial<AdsFilters> | null {
@@ -40,6 +42,16 @@ function parseParams(params: URLSearchParams): Partial<AdsFilters> {
   if (sort) result.sort = sort as SortKey;
   const dir = params.get("dir");
   if (dir === "asc" || dir === "desc") result.dir = dir;
+  const page = params.get("page");
+  if (page) {
+    const parsedPage = Number(page);
+    if (Number.isInteger(parsedPage) && parsedPage > 0) result.page = parsedPage;
+  }
+  const pageSize = params.get("pageSize");
+  if (pageSize) {
+    const parsedPageSize = Number(pageSize);
+    if (Number.isInteger(parsedPageSize) && parsedPageSize > 0) result.pageSize = parsedPageSize;
+  }
   return result;
 }
 
@@ -52,6 +64,8 @@ function filtersToParams(filters: AdsFilters): string {
   if (filters.q) params.set("q", filters.q);
   if (filters.sort !== DEFAULTS.sort) params.set("sort", filters.sort);
   if (filters.dir !== DEFAULTS.dir) params.set("dir", filters.dir);
+  if (filters.page !== DEFAULTS.page) params.set("page", String(filters.page));
+  if (filters.pageSize !== DEFAULTS.pageSize) params.set("pageSize", String(filters.pageSize));
   const str = params.toString();
   return str ? `?${str}` : "";
 }
@@ -103,7 +117,9 @@ export function useAdsUrlState() {
 
   const setFilter = useCallback(
     <K extends keyof AdsFilters>(key: K, value: AdsFilters[K]) => {
-      const next = { ...filters, [key]: value };
+      const next = key === "page"
+        ? { ...filters, page: value as number }
+        : { ...filters, [key]: value, page: 1 };
 
       // Persist to localStorage
       try {
@@ -127,7 +143,7 @@ export function useAdsUrlState() {
       if (filters.sort === key) {
         setFilter("dir", filters.dir === "asc" ? "desc" : "asc");
       } else {
-        const next = { ...filters, sort: key, dir: "desc" as SortDir };
+        const next = { ...filters, sort: key, dir: "desc" as SortDir, page: 1 };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:", err); }

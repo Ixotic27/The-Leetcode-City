@@ -34,4 +34,5 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ykqxkfazxsyantffjouf.supabase.co' }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ARENA_CRYPTO_KEY: ${{ secrets.ARENA_CRYPTO_KEY }}
         run: npx tsx scripts/seed-arena.ts

@@ -119,7 +119,7 @@ jobs:
                 const issueBody = issue.body || '';
                 const allText = `${issueTitle} ${issueBody}`.toLowerCase();
 
-                let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issues']);
+                let labelsToAdd = new Set(['Gssoc 26', 'gssoc:approved', 'good first issue']);
 
                 // 1. Detect Type
                 const prefixMapping = {

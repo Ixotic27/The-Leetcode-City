@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
+
+type ArenaItem = {
+  id: number;
+  name: string;
+  slug: string;
+  rarity: string;
+  item_type: string;
+  icon_path: string;
+};
 
 const ALLOWED_STATUSES = new Set([
   "accepted",
@@ -33,24 +43,24 @@ const MAX_CODE_BYTES = 65536;
 const CODE_HASH_RE = /^[0-9a-f]{1,128}$/i;
 
 async function rollItemDrops(
-  sb: any,
+  sb: SupabaseClient,
   difficulty: string,
   devId: number,
-): Promise<any[]> {
-  const droppedItems: any[] = [];
+): Promise<ArenaItem[]> {
+  const droppedItems: ArenaItem[] = [];
 
   /**
    * Fetch all items once up front instead of querying per rarity per call.
    * A single hard-difficulty roll could previously trigger up to 4 sequential
    * round trips (including duplicate "epic" fetches for the same rarity).
-   */ 
+   */
   const { data: allItems } = await sb.from("arena_items").select("*");
-  const itemsByRarity: Record<string, any[]> = {};
+  const itemsByRarity: Record<string, ArenaItem[]> = {};
   for (const item of allItems ?? []) {
     (itemsByRarity[item.rarity] ??= []).push(item);
   }
 
-  const getRandomItemByRarity = (rarity: string): any => {
+  const getRandomItemByRarity = (rarity: string): ArenaItem | null => {
     const pool = itemsByRarity[rarity];
     if (pool && pool.length > 0) {
       return pool[Math.floor(Math.random() * pool.length)];
@@ -166,8 +176,23 @@ export async function POST(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
 
+  // Validate problem_id exists in arena_problems before doing any reward work
+  const { data: problemRow, error: problemLookupError } = await sb
+    .from("arena_problems")
+    .select("id")
+    .eq("id", problem_id)
+    .maybeSingle();
+
+  if (problemLookupError) {
+    return NextResponse.json({ error: "Failed to validate problem" }, { status: 500 });
+  }
+
+  if (!problemRow) {
+    return NextResponse.json({ error: "Invalid problem_id" }, { status: 400 });
+  }
+
   // 1. Fetch challenge details (if linked) and developer timezone in parallel
-  let challenge: any = null;
+  let challenge: { difficulty: string; reward_points: number; reward_xp: number } | null = null;
   let difficulty = "medium";
   let basePoints = 100;
   let baseXp = 10;
@@ -217,7 +242,7 @@ export async function POST(request: NextRequest) {
   const isAccepted = status === "accepted";
   let grantedXp = 0;
   let grantedPoints = 0;
-  let droppedItems: any[] = [];
+  let droppedItems: ArenaItem[] = [];
   let isFirstSolve = false;
 
   if (isAccepted) {

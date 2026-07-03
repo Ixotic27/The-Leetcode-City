@@ -153,8 +153,8 @@ export async function POST() {
     if (!v2Err && dev && v2Data) {
       dev = { ...dev, ...v2Data };
     }
-  } catch {
-    // Ignore schema errors if migration hasn't run yet
+  } catch (err) {
+    console.error("[app/api/checkin/route.ts] schema query failed:", err);
   }
 
   const githubLogin = dev?.github_login ?? "";

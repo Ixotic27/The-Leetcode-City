@@ -171,9 +171,8 @@ export async function GET(request: Request) {
 
   return NextResponse.redirect(`${origin}/?user=${githubLogin}`);
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function countGifts(admin: any, devId: number, direction: "sent" | "received"): Promise<number> {
+ 
+async function countGifts(admin: ReturnType<typeof getSupabaseAdmin>, devId: number, direction: "sent" | "received"): Promise<number> {
   const column = direction === "sent" ? "developer_id" : "gifted_to";
   const { count } = await admin
     .from("purchases")

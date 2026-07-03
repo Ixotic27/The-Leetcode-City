@@ -30,8 +30,9 @@ jobs:
 
       - name: Run Linter
         run: |
-          # For PRs: only lint the files the contributor actually changed.
-          # This prevents pre-existing errors in untouched files from
+          # For PRs: only lint the files the contributor actually changed,
+          # and only fail on errors that fall on lines the PR touched.
+          # This prevents pre-existing errors in untouched lines from
           # blocking new contributions.
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
             CHANGED=$(git diff --name-only --diff-filter=d origin/main...HEAD \
@@ -40,9 +41,81 @@ jobs:
               echo "✅ No lintable source files changed in this PR. Skipping."
               exit 0
             fi
+
             echo "Linting changed source files only:"
             echo "$CHANGED"
-            npx eslint --max-warnings=-1 $CHANGED
+
+            # Step 1: Build a map of changed line ranges per file from the diff.
+            # Format: file.ts:startLine-endLine (one per hunk)
+            DIFF_MAP=$(mktemp)
+            git diff origin/main...HEAD -- $CHANGED | awk '
+              /^diff --git/ { file = substr($3, 3) }
+              /^@@/ {
+                # Parse new-file hunk header: @@ -old,len +new,len @@
+                match($0, /\+([0-9]+)(,([0-9]+))?/, arr)
+                start = arr[1]
+                len = (arr[3] == "" ? 1 : arr[3])
+                end = start + len - 1
+                print file ":" start "-" end
+              }
+            ' > "$DIFF_MAP"
+
+            # Step 2: Run ESLint in JSON format (don't exit on errors yet)
+            ESLINT_OUT=$(mktemp)
+            npx eslint --format json --max-warnings=-1 $CHANGED > "$ESLINT_OUT" 2>&1 || true
+
+            # Step 3: Filter ESLint results — keep only messages on changed lines.
+            FOUND_NEW_ERRORS=0
+            node -e "
+              const fs = require('fs');
+              const diffLines = fs.readFileSync('$DIFF_MAP', 'utf-8').trim().split('\n').filter(Boolean);
+              const ranges = {};
+              for (const line of diffLines) {
+                const [file, range] = line.split(':');
+                const [start, end] = range.split('-').map(Number);
+                if (!ranges[file]) ranges[file] = [];
+                ranges[file].push([start, end]);
+              }
+
+              let results;
+              try {
+                results = JSON.parse(fs.readFileSync('$ESLINT_OUT', 'utf-8'));
+              } catch {
+                console.log('⚠️ Could not parse ESLint JSON output. Falling back to full lint.');
+                process.exit(2);
+              }
+
+              let newErrors = 0;
+              for (const file of results) {
+                const relPath = file.filePath.replace(process.cwd() + '/', '');
+                const fileRanges = ranges[relPath] || [];
+                for (const msg of file.messages) {
+                  if (msg.severity < 2) continue; // skip warnings
+                  const inRange = fileRanges.some(([s, e]) => msg.line >= s && msg.line <= e);
+                  if (inRange) {
+                    console.log(relPath + ':' + msg.line + ':' + msg.column + ' error ' + msg.message + ' (' + msg.ruleId + ')');
+                    newErrors++;
+                  }
+                }
+              }
+
+              if (newErrors > 0) {
+                console.log('\n❌ Found ' + newErrors + ' new ESLint error(s) introduced by this PR.');
+                process.exit(1);
+              } else {
+                console.log('✅ No new ESLint errors introduced by this PR.');
+              }
+            "
+            FILTER_EXIT=$?
+
+            rm -f "$DIFF_MAP" "$ESLINT_OUT"
+
+            if [ "$FILTER_EXIT" = "2" ]; then
+              # Fallback: if JSON parsing failed, run eslint normally
+              npx eslint --max-warnings=-1 $CHANGED
+            elif [ "$FILTER_EXIT" != "0" ]; then
+              exit 1
+            fi
           else
             # Full lint on push to main (informational — do not block)
             npm run lint || true

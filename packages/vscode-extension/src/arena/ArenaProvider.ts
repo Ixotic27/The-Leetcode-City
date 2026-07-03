@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { fetchChallenge, fetchTodayChallenges, setupChallengeWorkspace, slugifyTitle, pascalCaseTitle, ChallengeData } from "./problemManager";
+import { fetchChallenge, fetchTodayChallenges, setupChallengeWorkspace, slugifyTitle, pascalCaseTitle, ChallengeData, fetchArenaStats, fetchArenaLeaderboard, fetchRabbitProgress, fetchDungeonBoss } from "./problemManager";
 import { TimerManager, TimerState } from "./timerManager";
 import { getAvailableLanguages, getLanguageConfigByExtension, LANGUAGES } from "./languageDetector";
 import { runTests, RunResult } from "./testRunner";
@@ -108,6 +108,10 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           this._sendState();
           break;
         }
+        case "fetchStats": {
+          await this._handleFetchStats();
+          break;
+        }
       }
     });
 
@@ -180,6 +184,28 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         }
       }
       this._view.webview.postMessage({ type: "dailyError", message: err.message });
+    }
+  }
+
+  private async _handleFetchStats() {
+    if (!this._view) return;
+    this._view.webview.postMessage({ type: "statsLoading" });
+
+    try {
+      const stats = await fetchArenaStats();
+      const leaderboardData = await fetchArenaLeaderboard();
+      const rabbit = await fetchRabbitProgress();
+      const boss = await fetchDungeonBoss();
+
+      this._view.webview.postMessage({
+        type: "statsData",
+        stats: stats,
+        leaderboard: leaderboardData?.leaderboard || [],
+        rabbit: rabbit,
+        boss: boss
+      });
+    } catch (err: any) {
+      this._view.webview.postMessage({ type: "statsError", message: err.message });
     }
   }
 
@@ -1038,9 +1064,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         <span class="section-arrow" id="arrow-quests">&#9654;</span>
       </summary>
       <div class="section-body" id="body-quests">
-        <div class="empty-state">
-          Visit the website to select a quest.<br/>
-          Active quests will appear here.
+        <div id="quests-content">
+          <div class="empty-state">
+            Visit the website to select a quest.<br/>
+            Active quests will appear here.
+          </div>
         </div>
       </div>
     </details>
@@ -1052,9 +1080,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         <span class="section-arrow" id="arrow-dungeons">&#9654;</span>
       </summary>
       <div class="section-body" id="body-dungeons">
-        <div class="empty-state">
-          Visit the website to enter a dungeon.<br/>
-          Active dungeons will appear here.
+        <div id="dungeons-content">
+          <div class="empty-state">
+            Visit the website to enter a dungeon.<br/>
+            Active dungeons will appear here.
+          </div>
         </div>
       </div>
     </details>
@@ -1066,8 +1096,10 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         <span class="section-arrow" id="arrow-stats">&#9654;</span>
       </summary>
       <div class="section-body" id="body-stats">
-        <div class="empty-state">
-          Solve challenges to track your rating and streak.
+        <div id="stats-content">
+          <div class="empty-state">
+            Solve challenges to track your rating and streak.
+          </div>
         </div>
       </div>
     </details>
@@ -1183,6 +1215,34 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       dailySection.addEventListener('toggle', () => {
         if (dailySection.open && dailyChallenges.length === 0) {
           vscode.postMessage({ type: "fetchDailyChallenges" });
+        }
+      });
+    }
+
+    // Set up toggle event listener for stats, quests, and dungeons
+    const statsSection = document.getElementById('section-stats');
+    if (statsSection) {
+      statsSection.addEventListener('toggle', () => {
+        if (statsSection.open) {
+          vscode.postMessage({ type: "fetchStats" });
+        }
+      });
+    }
+
+    const questsSection = document.getElementById('section-quests');
+    if (questsSection) {
+      questsSection.addEventListener('toggle', () => {
+        if (questsSection.open) {
+          vscode.postMessage({ type: "fetchStats" });
+        }
+      });
+    }
+
+    const dungeonsSection = document.getElementById('section-dungeons');
+    if (dungeonsSection) {
+      dungeonsSection.addEventListener('toggle', () => {
+        if (dungeonsSection.open) {
+          vscode.postMessage({ type: "fetchStats" });
         }
       });
     }
@@ -1610,6 +1670,129 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ type: "requestState" });
     }
 
+    function renderStats(stats, leaderboard) {
+      const container = document.getElementById('stats-content');
+      if (!container) return;
+
+      const s = stats && stats.stats ? stats.stats : null;
+      const dev = stats && stats.developer ? stats.developer : null;
+
+      let statsHtml = '';
+      if (s && dev) {
+        const ratingColor = s.rating >= 2200 ? '#a78bfa' : s.rating >= 1800 ? '#60a5fa' : s.rating >= 1500 ? '#fbbf24' : s.rating >= 1200 ? '#9ca3af' : '#cd7c54';
+        statsHtml +=
+          '<div style="background:var(--bg-card);border:1px solid var(--border);padding:8px;margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
+              (dev.avatar_url ? '<img src="' + dev.avatar_url + '" style="width:20px;height:20px;border-radius:50%;border:1px solid var(--border);" />' : '') +
+              '<span style="color:var(--cream);font-size:11px;">' + escapeHtml(dev.name || dev.github_login) + '</span>' +
+              (s.rank ? '<span style="font-size:8px;color:var(--muted);"> #' + s.rank + '</span>' : '') +
+            '</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+              '<div class="meta-item"><span class="meta-label">Rating</span><span class="meta-value" style="color:' + ratingColor + ';">' + s.rating + '</span></div>' +
+              '<div class="meta-item"><span class="meta-label">Solved</span><span class="meta-value">' + s.problems_solved + '</span></div>' +
+              '<div class="meta-item"><span class="meta-label">Streak</span><span class="meta-value" style="color:var(--accent);">' + s.current_streak + '🔥</span></div>' +
+              '<div class="meta-item"><span class="meta-label">Best</span><span class="meta-value">' + s.best_streak + '</span></div>' +
+            '</div>' +
+            (s.rank_title ? '<div style="margin-top:6px;font-size:9px;color:var(--muted);">' + escapeHtml(s.rank_title) + '</div>' : '') +
+          '</div>';
+      } else {
+        statsHtml += '<div class="empty-state">No stats yet. Solve a daily challenge to start tracking!</div>';
+      }
+
+      // Leaderboard top-10
+      if (leaderboard && leaderboard.length > 0) {
+        statsHtml += '<div style="font-size:9px;color:var(--muted);font-weight:bold;letter-spacing:1px;margin-bottom:4px;margin-top:8px;">TOP 10 ARENA</div>';
+        leaderboard.forEach((entry) => {
+          const isMe = dev && entry.github_login === dev.github_login;
+          const ratingColor = entry.rating >= 2200 ? '#a78bfa' : entry.rating >= 1800 ? '#60a5fa' : entry.rating >= 1500 ? '#fbbf24' : '#9ca3af';
+          statsHtml +=
+            '<div style="display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--border);' + (isMe ? 'background:rgba(255,161,22,0.06);' : '') + '">' +
+              '<span style="font-size:9px;color:var(--dim);width:16px;text-align:right;">' + entry.rank + '</span>' +
+              (entry.avatar_url ? '<img src="' + entry.avatar_url + '" style="width:14px;height:14px;border-radius:50%;" />' : '<span style="width:14px;"></span>') +
+              '<span style="flex:1;font-size:10px;color:' + (isMe ? 'var(--accent)' : 'var(--cream)') + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(entry.github_login) + '</span>' +
+              '<span style="font-size:9px;color:' + ratingColor + ';">' + entry.rating + '</span>' +
+            '</div>';
+        });
+      }
+      container.innerHTML = statsHtml;
+    }
+
+    function renderQuests(stats, rabbit) {
+      const questsContainer = document.getElementById('quests-content');
+      if (!questsContainer) return;
+
+      let questsHtml = '';
+
+      // Render Rabbit Quest Status
+      if (rabbit) {
+        const statusText = rabbit.completed 
+          ? '<span style="color:var(--success);">Completed 🐇</span>'
+          : 'In Progress (' + (rabbit.progress || 0) + '/5) 🐾';
+        
+        questsHtml += 
+          '<div style="background:var(--bg-card);border:1px solid var(--border);padding:8px;margin-bottom:10px;">' +
+            '<div style="color:var(--accent);font-weight:bold;font-size:10px;margin-bottom:4px;">🐇 WHITE RABBIT QUEST</div>' +
+            '<div style="font-size:10px;color:var(--cream);margin-bottom:2px;">Status: ' + statusText + '</div>' +
+            (!rabbit.completed 
+              ? '<div style="font-size:8px;color:var(--muted);line-height:1.2;">Find white rabbits hiding on the LeetCode City map to progress!</div>'
+              : '<div style="font-size:8px;color:var(--muted);line-height:1.2;">You followed the white rabbit to the very end.</div>') +
+          '</div>';
+      }
+
+      // Populate recent submissions
+      if (stats && stats.recent_submissions && stats.recent_submissions.length > 0) {
+        questsHtml += '<div style="font-size:9px;color:var(--muted);font-weight:bold;letter-spacing:1px;margin-bottom:6px;">RECENT SUBMISSIONS</div>';
+        stats.recent_submissions.forEach(sub => {
+          const statusColor = sub.status === 'accepted' ? 'var(--success)' : sub.status === 'wrong_answer' ? 'var(--danger)' : 'var(--warning)';
+          const date = sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '';
+          questsHtml +=
+            '<div style="padding:5px 0;border-bottom:1px solid var(--border);">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="color:var(--cream);font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+                  escapeHtml(sub.problem ? sub.problem.title : 'Unknown') +
+                '</span>' +
+                '<span style="font-size:8px;color:' + statusColor + ';margin-left:4px;">' + (sub.status || '').toUpperCase() + '</span>' +
+              '</div>' +
+              '<div style="font-size:8px;color:var(--dim);margin-top:2px;">' +
+                escapeHtml(sub.language || '') + (date ? ' &middot; ' + date : '') +
+                (sub.tests_passed != null ? ' &middot; ' + sub.tests_passed + '/' + sub.tests_total + ' tests' : '') +
+              '</div>' +
+            '</div>';
+        });
+      } else {
+        questsHtml += '<div class="empty-state">No submissions yet. Solve an arena challenge to start!</div>';
+      }
+
+      questsContainer.innerHTML = questsHtml;
+    }
+
+    function renderDungeons(boss) {
+      const dungeonsContainer = document.getElementById('dungeons-content');
+      if (!dungeonsContainer) return;
+
+      if (!boss) {
+        dungeonsContainer.innerHTML = '<div class="empty-state" style="color:var(--danger)">Failed to summon the Daily Boss. Try again later.</div>';
+        return;
+      }
+
+      const BOSS_MAP = {
+        Easy:   { name: "Goblin", emoji: "👺", color: "#4ade80" },
+        Medium: { name: "Orc",    emoji: "👹", color: "#fb923c" },
+        Hard:   { name: "Dragon", emoji: "🐉", color: "#ef4444" },
+      };
+      const b = BOSS_MAP[boss.difficulty] || BOSS_MAP["Medium"];
+      const url = "https://leetcode.com/problems/" + boss.titleSlug + "/";
+
+      dungeonsContainer.innerHTML =
+        '<div style="text-align:center;padding:10px;border:1px solid var(--border);background:var(--bg-card);">' +
+          '<div style="font-size:36px;margin-bottom:6px;">' + b.emoji + '</div>' +
+          '<div style="font-size:8px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">DAILY BOSS</div>' +
+          '<div style="font-size:11px;color:' + b.color + ';font-weight:bold;margin-bottom:4px;">' + b.name.toUpperCase() + ' (' + boss.difficulty.toUpperCase() + ')</div>' +
+          '<div style="font-size:10px;color:var(--cream);margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(boss.title) + '</div>' +
+          '<a href="' + url + '" target="_blank" class="btn" style="text-decoration:none;display:inline-block;width:auto;padding:4px 12px;background:var(--danger);border-color:#cc0044;color:#fff;">⚔ FIGHT BOSS</a>' +
+        '</div>';
+    }
+
     function renderError(message) {
       const statusDiv = document.getElementById('status-display');
       statusDiv.style.display = 'block';
@@ -1632,7 +1815,35 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         case 'dailyError':
           document.getElementById('daily-content').innerHTML =
             '<div class="empty-state" style="color:var(--danger)">Failed to load: ' + escapeHtml(msg.message) + '<br/><br/>' +
-            '<button class="btn btn-secondary" style="width:auto;display:inline-block;padding:4px 12px;" onclick="vscode.postMessage({type:\\'fetchDailyChallenges\\'})">Retry</button></div>';
+            '<button class="btn btn-secondary" style="width:auto;display:inline-block;padding:4px 12px;" onclick="vscode.postMessage({type:\'fetchDailyChallenges\'})">Retry</button></div>';
+          break;
+        case 'statsLoading':
+          if (document.getElementById('stats-content')) {
+            document.getElementById('stats-content').innerHTML = '<div class="loading">Loading<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></div>';
+          }
+          if (document.getElementById('quests-content')) {
+            document.getElementById('quests-content').innerHTML = '<div class="loading">Loading<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></div>';
+          }
+          if (document.getElementById('dungeons-content')) {
+            document.getElementById('dungeons-content').innerHTML = '<div class="loading">Loading<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></div>';
+          }
+          break;
+        case 'statsData':
+          renderStats(msg.stats, msg.leaderboard);
+          renderQuests(msg.stats, msg.rabbit);
+          renderDungeons(msg.boss);
+          break;
+        case 'statsError':
+          const retryStatsBtn = '<button class="btn btn-secondary" style="width:auto;display:inline-block;padding:4px 12px;" onclick="vscode.postMessage({type:\'fetchStats\'})">Retry</button>';
+          if (document.getElementById('stats-content')) {
+            document.getElementById('stats-content').innerHTML = '<div class="empty-state" style="color:var(--danger)">Failed to load stats: ' + escapeHtml(msg.message) + '<br/><br/>' + retryStatsBtn + '</div>';
+          }
+          if (document.getElementById('quests-content')) {
+            document.getElementById('quests-content').innerHTML = '<div class="empty-state" style="color:var(--danger)">Failed to load quests: ' + escapeHtml(msg.message) + '<br/><br/>' + retryStatsBtn + '</div>';
+          }
+          if (document.getElementById('dungeons-content')) {
+            document.getElementById('dungeons-content').innerHTML = '<div class="empty-state" style="color:var(--danger)">Failed to load dungeon: ' + escapeHtml(msg.message) + '<br/><br/>' + retryStatsBtn + '</div>';
+          }
           break;
         case 'loading':
           // Show a loading state — will transition to detail on "state" or "navigateToDetail"
