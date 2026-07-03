@@ -466,3 +466,51 @@ html, body {
     gift-bounce 2.5s ease-in-out infinite,
     gift-shimmer 3s linear infinite;
 }
+
+/* --- Welcome Celebration Overlay --- */
+@keyframes progress-slide {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 32px 0;
+  }
+}
+
+@keyframes rise {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(1);
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-80vh) scale(0.5);
+  }
+}
+
+.animate-progress-slide {
+  animation: progress-slide 1.5s linear infinite;
+}
+
+.animate-rise-1 {
+  animation: rise 3s infinite ease-in;
+}
+
+.animate-rise-2 {
+  animation: rise 4s infinite ease-in 0.5s;
+}
+
+.animate-rise-3 {
+  animation: rise 2.5s infinite ease-in 1s;
+}
+
+.animate-rise-4 {
+  animation: rise 3.5s infinite ease-in 1.5s;
+}
+

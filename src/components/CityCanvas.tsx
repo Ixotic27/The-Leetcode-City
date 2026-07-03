@@ -385,12 +385,14 @@ function CameraFocus({
   focusedBuilding,
   focusedBuildingB,
   relicFocus,
+  isNewBuilding,
   controlsRef,
 }: {
   buildings: CityBuilding[];
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
   relicFocus?: { x: number; y: number; z: number } | null;
+  isNewBuilding?: boolean;
   controlsRef: React.RefObject<any>;
 }) {
   const { camera } = useThree();
@@ -486,8 +488,8 @@ function CameraFocus({
       // and pull camera further back to show more of the building
       const isMobile = window.innerWidth < 640;
       const mobileOffset = isMobile ? 60 : 0;
-      const dist = isMobile ? 250 : 80;
-      const camHeight = isMobile ? 160 : 60;
+      const dist = isNewBuilding ? (isMobile ? 150 : 35) : (isMobile ? 250 : 80);
+      const camHeight = isNewBuilding ? (isMobile ? 100 : 25) : (isMobile ? 160 : 60);
       endPos.current.set(
         bA.position[0] + dist,
         bA.height + camHeight,
@@ -507,7 +509,7 @@ function CameraFocus({
       controlsRef.current.autoRotate = false;
     }
      
-  }, [focusedBuilding, focusedBuildingB, relicFocus, camera, controlsRef]);
+  }, [focusedBuilding, focusedBuildingB, relicFocus, camera, controlsRef, isNewBuilding]);
 
   useFrame((_, delta) => {
     if (!active.current || progress.current >= 1) return;
@@ -1668,11 +1670,13 @@ function OrbitScene({
   focusedBuilding,
   focusedBuildingB,
   relicFocus,
+  isNewBuilding,
 }: {
   buildings: CityBuilding[];
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
   relicFocus?: { x: number; y: number; z: number } | null;
+  isNewBuilding?: boolean;
 }) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
@@ -1685,7 +1689,14 @@ function OrbitScene({
 
   return (
     <>
-      <CameraFocus buildings={buildings} focusedBuilding={focusedBuilding} focusedBuildingB={focusedBuildingB} relicFocus={relicFocus} controlsRef={controlsRef} />
+      <CameraFocus
+        buildings={buildings}
+        focusedBuilding={focusedBuilding}
+        focusedBuildingB={focusedBuildingB}
+        relicFocus={relicFocus}
+        isNewBuilding={isNewBuilding}
+        controlsRef={controlsRef}
+      />
       <OrbitControls
         ref={controlsRef}
         enableDamping
@@ -1790,6 +1801,7 @@ interface Props {
   onCodeForgeClick?: () => void;
   onSolanaClick?: () => void;
   multiplayerPlayers?: Map<string, CityPlayer>;
+  isNewBuilding?: boolean;
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -1873,6 +1885,7 @@ export default function CityCanvas({
   initialFlightPos,
   initialFlightYaw,
   multiplayerPlayers,
+  isNewBuilding,
 }: Props) {
   const { isRaining } = useWeather();
   const router = useRouter();
@@ -2025,7 +2038,13 @@ export default function CityCanvas({
       ) : (
         <>
           {!introMode && !rabbitCinematic && !flyMode && (!raidPhase || raidPhase === "idle" || raidPhase === "preview") && (
-            <OrbitScene buildings={buildings} focusedBuilding={focusedBuilding ?? null} focusedBuildingB={focusedBuildingB} />
+            <OrbitScene
+              buildings={buildings}
+              focusedBuilding={focusedBuilding ?? null}
+              focusedBuildingB={focusedBuildingB}
+              isNewBuilding={isNewBuilding}
+              relicFocus={relicFocus}
+            />
           )}
 
           {raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && (
