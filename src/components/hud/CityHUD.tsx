@@ -27,6 +27,7 @@ export default function CityHUD() {
   const {
     flyMode,
     lastDistrictRef,
+    setUsername,
     exploreMode,
     introMode,
     rabbitCinematic,
@@ -111,7 +112,6 @@ export default function CityHUD() {
   const handleLandingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!landingSearchInput.trim()) return;
-    const { setUsername } = useCity(); // sets main query state and triggers page search
     setUsername(landingSearchInput);
     // In page.tsx/SearchBar.tsx, the query handles fetching. Let's delegate search user directly:
     // But since they share context state, searchUser handles username state.
