@@ -453,7 +453,7 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
       _localTarget.copy(targetPos);
       tankRef.current.worldToLocal(_localTarget);
 
-      const targetYaw = Math.atan2(_localTarget.x, _localTarget.z);
+      const targetYaw = Math.atan2(-_localTarget.x, -_localTarget.z);
       turretRef.current.rotation.y = THREE.MathUtils.lerp(
         turretRef.current.rotation.y,
         targetYaw,
@@ -463,7 +463,7 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
 
     const firePulse = isAttacking ? getTankFirePulse(attackElapsedRef.current) : 0;
     if (cannonRef.current) {
-      cannonRef.current.position.z = -firePulse * 0.35;
+      cannonRef.current.position.z = firePulse * 0.35;
     }
 
     if (muzzleFlashRef.current) {
@@ -489,17 +489,17 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
         </mesh>
         <group ref={cannonRef}>
           {/* Main Cannon */}
-          <mesh position={[0, 0, 1.4]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0, -1.4]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.08, 0.12, 1.8, 8]} />
             <meshStandardMaterial color="#222" />
           </mesh>
           {/* Cannon Muzzle Brake */}
-          <mesh position={[0, 0, 2.3]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.15, 0.15, 0.2, 8]} />
             <meshStandardMaterial color="#111" />
           </mesh>
           {/* Muzzle flash */}
-          <group ref={muzzleFlashRef} position={[0, 0, 2.55]} visible={false}>
+          <group ref={muzzleFlashRef} position={[0, 0, -2.55]}>
             <mesh>
               <sphereGeometry args={[0.32, 8, 8]} />
               <meshBasicMaterial color="#fff3a3" transparent opacity={0.9} depthWrite={false} />
@@ -2149,6 +2149,10 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
       default:
         break;
+    }
+
+    if (vehicleRef.current) {
+      vehicleRef.current.updateMatrixWorld(true);
     }
   });
 
