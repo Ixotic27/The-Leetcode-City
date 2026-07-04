@@ -449,10 +449,11 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
     attackElapsedRef.current = isAttacking ? attackElapsedRef.current + delta : 0;
 
     if (turretRef.current && tankRef.current && targetPos) {
+      tankRef.current.updateMatrixWorld(true);
       _localTarget.copy(targetPos);
       tankRef.current.worldToLocal(_localTarget);
 
-      const targetYaw = Math.atan2(_localTarget.x, _localTarget.z + 0.2);
+      const targetYaw = Math.atan2(_localTarget.x, _localTarget.z);
       turretRef.current.rotation.y = THREE.MathUtils.lerp(
         turretRef.current.rotation.y,
         targetYaw,

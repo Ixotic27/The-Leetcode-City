@@ -135,8 +135,8 @@ describe('arcade game route', () => {
       headers: { get: () => `Bearer ${token}` },
     });
 
-    const p1 = POST(makeReq('t1'));
-    const p2 = POST(makeReq('t2'));
+    const p1 = POST(makeReq('t1') as unknown as Parameters<typeof POST>[0]);
+    const p2 = POST(makeReq('t2') as unknown as Parameters<typeof POST>[0]);
 
     const r1 = await p1;
     const r2 = await p2;
