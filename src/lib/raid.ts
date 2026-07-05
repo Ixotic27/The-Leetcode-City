@@ -1,6 +1,8 @@
 // ─── Raid System Utilities ────────────────────────────────────
 // Pure functions for raid calculations, titles, and estimates.
 
+import { ITEM_NAMES } from "./zones";
+
 export const RAID_TITLES = [
   { xp: 0, title: null },
   { xp: 100, title: "Pickpocket" },
@@ -221,6 +223,20 @@ export interface RaidExecuteResponse {
   new_achievements: string[];
   vehicle: string;
   tag_style: string;
+}
+
+export function getRaidConsumableToastMessage(raidData: RaidExecuteResponse): string | null {
+  const itemId = raidData.attack_breakdown.boost_item;
+  if (!itemId) return null;
+
+  const itemName = ITEM_NAMES[itemId] ?? itemId;
+  const boost = raidData.attack_breakdown.boost;
+
+  if (typeof boost === "number" && boost > 0) {
+    return `${itemName} activated! +${boost} raid power.`;
+  }
+
+  return `${itemName} activated successfully.`;
 }
 
 export interface RaidHistoryEntry {

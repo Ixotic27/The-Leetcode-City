@@ -28,4 +28,4 @@ jobs:
           MERGE_FORKS: "true"
           MERGE_RETRIES: "10"       # Check repeatedly
           MERGE_RETRY_SLEEP: "10000"
-          MERGE_REQUIRED_APPROVALS: "1" # Wait for at least 1 approval
+          MERGE_REQUIRED_APPROVALS: "1" # Wait for at least 1 approval (e.g. from the AI PR Reviewer or fallback scan)

@@ -7,7 +7,6 @@ import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { InfrastructureError } from "@/lib/errors";
 
-
 export const dynamic = "force-dynamic";
 
 /**
@@ -15,9 +14,8 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let body: any;
+  let body: Record<string, unknown> & { payment_status: string; order_id?: string; payment_id?: string | number; customer_email?: string };
+  
   try {
     body = JSON.parse(rawBody);
   } catch (err) { console.warn("[app/api/webhooks/nowpayments/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });

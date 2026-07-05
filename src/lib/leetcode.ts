@@ -24,20 +24,31 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
         if (!res.ok) return null;
         const data = await res.json();
         return data?.data?.matchedUser?.profile?.aboutMe ?? null;
-    } catch (err) { console.error("[lib/leetcode.ts] error:", err); return null;
-     }
+    } catch (err) {
+        console.error("[lib/leetcode.ts] failed to fetch LeetCode aboutMe:", err);
+        return null;
+    }
 }
 
-export function parseMaxStreak(matchedUser: any, currentYear: number): number {
+// Calendars are keyed dynamically as `y<year>` (e.g. y2015, y2016, …),
+// each holding a JSON-encoded submissionCalendar string.
+type YearCalendar = { submissionCalendar?: string };
+
+export function parseMaxStreak(
+    matchedUser: Record<string, unknown> | null | undefined,
+    currentYear: number,
+): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
     for (let y = 2015; y <= currentYear; y++) {
-        const cal = matchedUser[`y${y}`]?.submissionCalendar;
+        const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
                 const parsed = JSON.parse(cal);
                 allTimestamps.push(...Object.keys(parsed).map(Number));
-            } catch (err) { console.warn("[lib/leetcode.ts] non-critical error:", err); }
+            } catch (err) {
+                console.warn("[lib/leetcode.ts] skipped invalid submission calendar:", err);
+            }
         }
     }
     allTimestamps.sort((a, b) => a - b);
@@ -102,10 +113,14 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
                 })
             });
 
-            if (!res.ok) continue;
+            // A failed request (or missing calendar) means we cannot compute a
+            // trustworthy weekly total. Return null so callers preserve the
+            // existing contribution count instead of overwriting it with a
+            // partial/zero value during a transient LeetCode outage.
+            if (!res.ok) return null;
             const data = await res.json();
             const calendarStr = data?.data?.matchedUser?.userCalendar?.submissionCalendar;
-            if (!calendarStr) continue;
+            if (!calendarStr) return null;
 
             const calendar = JSON.parse(calendarStr);
             const sevenDaysAgoTs = nowTs - 7 * 24 * 60 * 60;
@@ -120,7 +135,8 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
 
         return totalWeeklyCount;
     } catch (err) {
-        console.error("[lib/leetcode.ts] error fetching weekly submissions:", err);
-        return 0;
+        console.error("[lib/leetcode.ts] failed to fetch weekly submissions:", err);
+        // Signal failure (not a real zero) so the caller keeps the prior count.
+        return null;
     }
 }

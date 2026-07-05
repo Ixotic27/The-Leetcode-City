@@ -449,10 +449,14 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
     attackElapsedRef.current = isAttacking ? attackElapsedRef.current + delta : 0;
 
     if (turretRef.current && tankRef.current && targetPos) {
+      // Force update world matrices to make sure worldToLocal coordinates are precise
+      tankRef.current.updateMatrixWorld(true);
+      
       _localTarget.copy(targetPos);
       tankRef.current.worldToLocal(_localTarget);
 
-      const targetYaw = Math.atan2(_localTarget.x, _localTarget.z + 0.2);
+      // Facing -Z yaw target angle calculation relative to turret offset (0.2 z)
+      const targetYaw = Math.atan2(-_localTarget.x, -(_localTarget.z - 0.2));
       turretRef.current.rotation.y = THREE.MathUtils.lerp(
         turretRef.current.rotation.y,
         targetYaw,
@@ -462,7 +466,8 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
 
     const firePulse = isAttacking ? getTankFirePulse(attackElapsedRef.current) : 0;
     if (cannonRef.current) {
-      cannonRef.current.position.z = -firePulse * 0.35;
+      // Since cannon points along -Z, recoil slides it in the +Z direction
+      cannonRef.current.position.z = firePulse * 0.35;
     }
 
     if (muzzleFlashRef.current) {
@@ -480,30 +485,30 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
         <meshStandardMaterial color="#4b5320" emissive="#2c3012" emissiveIntensity={0.2} />
       </mesh>
       {/* Rotating Turret */}
-      <group ref={turretRef} position={[0, 0.45, -0.2]}>
+      <group ref={turretRef} position={[0, 0.45, 0.2]}>
         {/* Turret Structure */}
         <mesh>
           <cylinderGeometry args={[0.5, 0.6, 0.4, 8]} />
           <meshStandardMaterial color="#3a4018" />
         </mesh>
         <group ref={cannonRef}>
-          {/* Main Cannon */}
-          <mesh position={[0, 0, 1.4]} rotation={[Math.PI / 2, 0, 0]}>
+          {/* Main Cannon (facing -Z) */}
+          <mesh position={[0, 0, -1.4]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.08, 0.12, 1.8, 8]} />
             <meshStandardMaterial color="#222" />
           </mesh>
           {/* Cannon Muzzle Brake */}
-          <mesh position={[0, 0, 2.3]} rotation={[Math.PI / 2, 0, 0]}>
+          <mesh position={[0, 0, -2.3]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[0.15, 0.15, 0.2, 8]} />
             <meshStandardMaterial color="#111" />
           </mesh>
           {/* Muzzle flash */}
-          <group ref={muzzleFlashRef} position={[0, 0, 2.55]} visible={false}>
+          <group ref={muzzleFlashRef} position={[0, 0, -2.55]}>
             <mesh>
               <sphereGeometry args={[0.32, 8, 8]} />
               <meshBasicMaterial color="#fff3a3" transparent opacity={0.9} depthWrite={false} />
             </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
               <coneGeometry args={[0.45, 0.9, 8]} />
               <meshBasicMaterial color="#ff7a18" transparent opacity={0.75} depthWrite={false} />
             </mesh>
@@ -546,17 +551,17 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
           </mesh>
         ))}
       </group>
-      {/* Headlights */}
-      <mesh position={[-0.6, 0.1, 1.26]}>
+      {/* Headlights (facing -Z) */}
+      <mesh position={[-0.6, 0.1, -1.26]}>
         <boxGeometry args={[0.2, 0.1, 0.1]} />
         <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={2} toneMapped={false} />
       </mesh>
-      <mesh position={[0.6, 0.1, 1.26]}>
+      <mesh position={[0.6, 0.1, -1.26]}>
         <boxGeometry args={[0.2, 0.1, 0.1]} />
         <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={2} toneMapped={false} />
       </mesh>
-      <pointLight position={[-0.6, 0.1, 1.5]} color="#ffaa00" intensity={1} distance={3} />
-      <pointLight position={[0.6, 0.1, 1.5]} color="#ffaa00" intensity={1} distance={3} />
+      <pointLight position={[-0.6, 0.1, -1.5]} color="#ffaa00" intensity={1} distance={3} />
+      <pointLight position={[0.6, 0.1, -1.5]} color="#ffaa00" intensity={1} distance={3} />
     </group>
   );
 }

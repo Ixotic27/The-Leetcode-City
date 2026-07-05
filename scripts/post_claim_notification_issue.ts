@@ -43,7 +43,7 @@ async function run() {
     const title = "💡 Feature: Show Claimed Rewards Notification/Toast on Completing Daily Missions";
     const body = "### Description\nCurrently, when a user completes their daily missions and clicks \"Claim Reward\" in the Daily Missions tracker, the widget footer updates to show a static text: `\"Dailies complete!\"` (or `\"Streak freeze earned!\"`). The user does not receive a clear toast notification or message specifying exactly what rewards they received (e.g. `+25 XP` or `+15 Shop Points`).\n\nTo improve user engagement and provide clear feedback, we should display a temporary message/toast indicating what rewards were claimed.\n\n### Proposed Solution\n1. Update `src/components/DailiesWidget.tsx` to show a descriptive message or fire a visual toast notification when the daily rewards are successfully claimed.\n2. The notification/message should fetch the values from the claim response (`points_granted` / XP amount) and display them:\n   - e.g. `\"🎉 Daily Missions Claimed! +25 XP, +15 Shop Points earned!\"`\n   - If `freeze_granted` is true, append: `\"❄️ Streak Freeze earned!\"`\n3. Keep the styling cohesive with the other toast alerts/notifications in the application.";
 
-    const labels = ["gssoc 26", "gssoc:approved", "good first issues", "level:beginner", "type:feature", "needs-visual-proof"];
+    const labels = ["gssoc 26", "gssoc:approved", "good first issue", "level:beginner", "type:feature", "needs-visual-proof"];
 
     await createIssue(title, body, labels);
     console.log("\nDone!");
