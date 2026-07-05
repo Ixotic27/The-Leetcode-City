@@ -5,8 +5,8 @@ import { isValidUrl, createDummyClient } from "./supabase";
 /** Server-side Supabase client with cookie-based auth (for Server Components & Route Handlers) */
 export async function createServerSupabase() {
   const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
 
   if (!isValidUrl(url) || !key) {
     console.warn(`[Supabase] Returning dummy server client due to missing or invalid URL/Key. URL: "${url}"`);

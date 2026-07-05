@@ -115,8 +115,8 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   if (hasSession) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+    const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
     const supabase = (!isValidUrl(url) || !key)
       ? createDummyClient() as unknown as ReturnType<typeof createServerClient>
       : createServerClient(

@@ -47,8 +47,8 @@ export function createDummyClient(): any {
  * returns a chainable dummy client to prevent build/runtime crashes.
  */
 export function getSafeSupabaseClient(url?: string, key?: string): SupabaseClient {
-  const targetUrl = url || process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const targetKey = key || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const targetUrl = url || process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const targetKey = key || process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
 
   if (!isValidUrl(targetUrl) || !targetKey) {
     console.warn(`[Supabase] Returning dummy client due to missing or invalid URL/Key. URL: "${targetUrl}"`);
@@ -70,8 +70,8 @@ export function isDevMode(): boolean {
 export function createBrowserSupabase() {
   if (browserClient) return browserClient;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
 
   if (!isValidUrl(url) || !key) {
     console.warn(`[Supabase] Returning dummy client for browser client due to missing or invalid URL/Key. URL: "${url}"`);
@@ -91,7 +91,7 @@ export function createBrowserSupabase() {
 let adminClientWarned = false;
 export function getSupabaseAdmin(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
 
   if (!isValidUrl(url) || !key) {
     console.warn(`[Supabase] Returning dummy admin client due to missing or invalid URL/Key. URL: "${url}"`);
