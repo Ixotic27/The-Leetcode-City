@@ -23,11 +23,14 @@ export function isValidUrl(url: string | undefined): boolean {
 /**
  * Creates a robust, chainable dummy/noop client to prevent runtime crashes during build.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function createDummyClient(): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const dummy: any = () => dummy;
   return new Proxy(dummy, {
     get(target, prop) {
       if (prop === "then") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (resolve: any) => resolve({ data: null, error: null });
       }
       if (prop === "auth") {
