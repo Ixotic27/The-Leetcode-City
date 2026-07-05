@@ -14,7 +14,7 @@ export async function GET(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("arcade_rooms")
-    .select("id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, portals, map_json, created_at, updated_at")
+    .select("id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, created_at, updated_at")
     .eq("slug", slug)
     .single();
 
@@ -44,7 +44,7 @@ export async function GET(
           updated_at: new Date().toISOString()
         };
         return NextResponse.json({ room: fallbackRoom });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to read fallback lobby map:", err);
       }
     } else if (slug === "fsociety") {
@@ -72,7 +72,7 @@ export async function GET(
           updated_at: new Date().toISOString()
         };
         return NextResponse.json({ room: fallbackRoom });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to read fallback fsociety map:", err);
       }
     } else if (slug === "trading_floor") {
@@ -100,7 +100,7 @@ export async function GET(
           updated_at: new Date().toISOString()
         };
         return NextResponse.json({ room: fallbackRoom });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to read fallback trading_floor map:", err);
       }
 
@@ -128,12 +128,45 @@ export async function GET(
           updated_at: new Date().toISOString()
         };
         return NextResponse.json({ room: fallbackRoom });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to read fallback ixotopia map:", err);
       }
     }
     return NextResponse.json({ error: "Room not found" }, { status: 404 });
   }
+
+  if (data.visibility === "private") {
+  return NextResponse.json(
+    { error: "This room is private." },
+    { status: 403 }
+  );
+}
+
+if (data.visibility === "password") {
+  return NextResponse.json(
+    { error: "Password required." },
+    { status: 401 }
+  );
+}
+
+const { data: roomDetails, error: roomError } = await sb
+  .from("arcade_rooms")
+  .select("portals, map_json")
+  .eq("slug", slug)
+  .single();
+
+if (roomError || !roomDetails) {
+  return NextResponse.json(
+    { error: "Failed to load room details" },
+    { status: 500 }
+  );
+}
+
+  const room = {
+  ...data,
+  portals: roomDetails?.portals,
+  map_json: roomDetails?.map_json,
+};
 
   // Track visit (best-effort, don't block response)
   try {
@@ -146,7 +179,7 @@ export async function GET(
     console.error("[app/api/arcade/rooms/[slug]/route.ts] visit tracking failed:", err);
   }
 
-  return NextResponse.json({ room: data }, {
+  return NextResponse.json({ room }, {
     headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
   });
 }
