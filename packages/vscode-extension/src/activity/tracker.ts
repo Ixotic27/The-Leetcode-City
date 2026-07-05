@@ -22,6 +22,7 @@
  * monitor should stay "active" until the idle timeout fires naturally.
  */
 
+import * as crypto from "crypto";
 import * as vscode from "vscode";
 import * as os from "os";
 import * as path from "path";
