@@ -20,19 +20,6 @@ const eslintConfig = defineConfig([
     // Admin / one-off scripts are not shipped in the web app.
     "scripts/**",
   ]),
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      "react-hooks/immutability": "off",
-      "react-hooks/set-state-in-effect": "off",
-      "react-hooks/purity": "off",
-      "@typescript-eslint/no-require-imports": "off",
-      "react-hooks/refs": "off",
-      "prefer-const": "off",
-      "react/no-unescaped-entities": "off",
-    }
-  }
 ]);
 
 export default eslintConfig;
