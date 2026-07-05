@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -172,20 +172,20 @@ function BannerPlane({
     [tex]
   );
 
-  // Banner dimensions (scaled up for visual prominence outside the city)
-  const BANNER_LENGTH = 115;
-  const BANNER_HEIGHT = 25;
-  const ROPE_GAP = 46;
-  const BANNER_DROP = 13;
+  // Banner dimensions
+  const BANNER_LENGTH = 45;
+  const BANNER_HEIGHT = 10;
+  const ROPE_GAP = 18;
+  const BANNER_DROP = 5;
 
   // Rope (static geometry, set once)
   const ropeLine = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    const ropeVerts = new Float32Array([0, -3.2, 8, 0, -BANNER_DROP, ROPE_GAP]);
+    const ropeVerts = new Float32Array([0, -2, 5, 0, -BANNER_DROP, ROPE_GAP]);
     geo.setAttribute("position", new THREE.BufferAttribute(ropeVerts, 3));
     const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.5 });
     return new THREE.Line(geo, mat);
-  }, [BANNER_DROP, ROPE_GAP]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -196,11 +196,12 @@ function BannerPlane({
     };
   }, [tex, ledMat, ropeLine]);
 
-  // Flight (relocated to orbit closely around the circular city boundary)
-  const rx = cityRadius * 1.15;
-  const rz = cityRadius * 1.1;
-  const altitude = 220 + index * 30;
-  const speed = 55; // slightly faster since radius is much larger
+  // Flight — spread planes across multiple orbit radii so they cover the whole city
+  const radiusFraction = 0.25 + (index / Math.max(total - 1, 1)) * 0.5; // 25-75% of city radius
+  const rx = cityRadius * radiusFraction * (0.9 + (index % 3) * 0.1);
+  const rz = cityRadius * radiusFraction * (0.8 + ((index + 1) % 3) * 0.1);
+  const altitude = 180 + index * 20 + (index % 3) * 40;
+  const speed = 30 + (index % 4) * 5;
   const phaseOffset = (index * Math.PI * 2) / total;
   const angle = useRef(phaseOffset);
 
@@ -261,17 +262,17 @@ function BannerPlane({
     <group ref={groupRef}>
       {/* Invisible hitbox for pointer guard (click-only, no hover events) */}
       <mesh
-         ref={hitboxRef}
-         position={[0, bannerY / 2, (ROPE_GAP + BANNER_LENGTH) / 2]}
-         onClick={handleClick}
-         geometry={_box}
-         scale={[30, Math.abs(bannerY) + BANNER_HEIGHT + 30, ROPE_GAP + BANNER_LENGTH + 30]}
+        ref={hitboxRef}
+        position={[0, bannerY / 2, (ROPE_GAP + BANNER_LENGTH) / 2]}
+        onClick={handleClick}
+        geometry={_box}
+        scale={[12, Math.abs(bannerY) + BANNER_HEIGHT + 12, ROPE_GAP + BANNER_LENGTH + 12]}
       >
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Paper plane — scale 9.0x (increased size for high visibility outside the city) */}
-      <group scale={[9.0, 9.0, 9.0]} rotation={[0, Math.PI / 2, 0]}>
+      {/* Paper plane — scale 3.5x (bigger than player's 3x, proportional to banner) */}
+      <group scale={[3.5, 3.5, 3.5]} rotation={[0, Math.PI / 2, 0]}>
         <primitive object={clonedScene} />
       </group>
 
@@ -286,7 +287,7 @@ function BannerPlane({
           else if (meshRef && "current" in meshRef) (meshRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
         }}
         material={ledMat}
-        position={[0.2, bannerY, bannerZ]}
+        position={[0.15, bannerY, bannerZ]}
         rotation={[0, Math.PI / 2, 0]}
         onClick={handleClick}
         geometry={_plane}
@@ -297,7 +298,7 @@ function BannerPlane({
       <mesh
         ref={side2Ref}
         material={ledMat}
-        position={[-0.2, bannerY, bannerZ]}
+        position={[-0.15, bannerY, bannerZ]}
         rotation={[0, -Math.PI / 2, 0]}
         onClick={handleClick}
         geometry={_plane}
@@ -353,10 +354,11 @@ function Blimp({
     };
   }, [tex, ledMat]);
 
-  const r = cityRadius * 1.25;
-  const altitude = 310 + index * 35;
-  const speed = 15; // slightly faster since radius is much larger
-  const phaseOffset = (index * Math.PI) / Math.max(total, 1);
+  // Orbit blimps around the landmarks area (center of city)
+  const r = 350 + index * 60;
+  const altitude = 400 + index * 25 + (index % 2) * 30;
+  const speed = 5 + (index % 3) * 2;
+  const phaseOffset = (index * Math.PI * 2) / Math.max(total, 1);
   const angle = useRef(phaseOffset);
 
   useFrame((state, delta) => {
@@ -369,7 +371,7 @@ function Blimp({
     const z = r * Math.sin(a);
     const vx = -r * Math.sin(a);
     const vz = r * Math.cos(a);
-    const yaw = Math.atan2(vx, vz);
+    const yaw = Math.atan2(-vx, -vz);
 
     if (groupRef.current) {
       groupRef.current.position.set(x, altitude + Math.sin(t * 0.3) * 2, z);
@@ -408,130 +410,129 @@ function Blimp({
 
   return (
     <group ref={groupRef}>
-      <group scale={[1.8, 1.8, 1.8]}>
-        {/* Invisible hitbox for pointer guard (click-only, no hover events) */}
-        <mesh
-          ref={blimpHitboxRef}
-          position={[0, -3, 0]}
-          onClick={handleClick}
-          geometry={_box}
-          scale={[38, 38, 86]}
-        >
-          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-        </mesh>
+      {/* Invisible hitbox for pointer guard (click-only, no hover events) */}
+      <mesh
+        ref={blimpHitboxRef}
+        position={[0, -2, 0]}
+        onClick={handleClick}
+        geometry={_box}
+        scale={[24, 24, 54]}
+      >
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
 
-        {/* Body — elongated along local Z (forward), scaled 1.6x */}
-        <mesh geometry={_sphere} scale={[0.7 * 24, 0.5 * 24, 1.6 * 24]}>
-          <meshStandardMaterial
-            color="#c0c8d0"
-            emissive="#606870"
-            emissiveIntensity={0.3}
-            metalness={0.2}
-            roughness={0.5}
-          />
-        </mesh>
-
-        {/* Accent stripe — colored band around belly */}
-        <mesh geometry={_sphere} scale={[0.72 * 24, 0.14 * 24, 1.62 * 24]} position={[0, -1.6, 0]}>
-          <meshStandardMaterial
-            color={ad.color}
-            emissive={ad.color}
-            emissiveIntensity={1.2}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Accent stripe — thin upper trim */}
-        <mesh geometry={_sphere} scale={[0.71 * 24, 0.07 * 24, 1.61 * 24]} position={[0, 5.6, 0]}>
-          <meshStandardMaterial
-            color={ad.color}
-            emissive={ad.color}
-            emissiveIntensity={0.6}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Gondola */}
-        <mesh position={[0, -14.4, 0]} geometry={_box} scale={[9.6, 4.8, 16]}>
-          <meshStandardMaterial color="#8890a0" emissive="#404860" emissiveIntensity={0.3} />
-        </mesh>
-        {/* Gondola windows */}
-        <mesh position={[4.88, -13.6, 0]} geometry={_box} scale={[0.16, 1.92, 9.6]}>
-          <meshStandardMaterial
-            color={ad.color}
-            emissive={ad.color}
-            emissiveIntensity={0.6}
-            toneMapped={false}
-          />
-        </mesh>
-        <mesh position={[-4.88, -13.6, 0]} geometry={_box} scale={[0.16, 1.92, 9.6]}>
-          <meshStandardMaterial
-            color={ad.color}
-            emissive={ad.color}
-            emissiveIntensity={0.6}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Struts — gondola to body */}
-        <mesh position={[3.2, -10.4, 4.8]} rotation={[0.15, 0, 0.2]} geometry={_box} scale={[0.48, 6.4, 0.48]}>
-          <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
-        </mesh>
-        <mesh position={[-3.2, -10.4, 4.8]} rotation={[0.15, 0, -0.2]} geometry={_box} scale={[0.48, 6.4, 0.48]}>
-          <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
-        </mesh>
-        <mesh position={[3.2, -10.4, -4.8]} rotation={[-0.15, 0, 0.2]} geometry={_box} scale={[0.48, 6.4, 0.48]}>
-          <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
-        </mesh>
-        <mesh position={[-3.2, -10.4, -4.8]} rotation={[-0.15, 0, -0.2]} geometry={_box} scale={[0.48, 6.4, 0.48]}>
-          <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
-        </mesh>
-
-        {/* Tail fin — vertical */}
-        <mesh position={[0, 3.2, -35.2]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.64, 11.2, 8]}>
-          <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
-        </mesh>
-        {/* Tail fin — vertical tip accent */}
-        <mesh position={[0, 8.8, -33.6]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.8, 1.6, 4.8]}>
-          <meshStandardMaterial
-            color={ad.color}
-            emissive={ad.color}
-            emissiveIntensity={0.5}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Tail fin — horizontal */}
-        <mesh position={[0, -1.6, -35.2]} rotation={[0.1, 0, 0]} geometry={_box} scale={[9.6, 0.64, 8]}>
-          <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
-        </mesh>
-
-        {/* LED Screen — left side (+X) */}
-        <mesh
-          ref={(el: THREE.Mesh | null) => {
-            screen1Ref.current = el;
-            if (typeof screenRef === "function") screenRef(el);
-            else if (screenRef && "current" in screenRef) (screenRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
-          }}
-          material={ledMat}
-          position={[17.28, -3.2, 0]}
-          rotation={[0, Math.PI / 2, 0]}
-          onClick={handleClick}
-          geometry={_plane}
-          scale={[41.6, 14.4, 1]}
+      {/* Body — elongated along local Z (forward), light hull */}
+      <mesh geometry={_sphere} scale={[0.7 * 15, 0.5 * 15, 1.6 * 15]}>
+        <meshStandardMaterial
+          color="#c0c8d0"
+          emissive="#606870"
+          emissiveIntensity={0.3}
+          metalness={0.2}
+          roughness={0.5}
         />
+      </mesh>
 
-        {/* LED Screen — right side (-X) */}
-        <mesh
-          ref={screen2Ref}
-          material={ledMat}
-          position={[-17.28, -3.2, 0]}
-          rotation={[0, -Math.PI / 2, 0]}
-          onClick={handleClick}
-          geometry={_plane}
-          scale={[41.6, 14.4, 1]}
+      {/* Accent stripe — colored band around belly */}
+      <mesh geometry={_sphere} scale={[0.72 * 15, 0.14 * 15, 1.62 * 15]} position={[0, -1, 0]}>
+        <meshStandardMaterial
+          color={ad.color}
+          emissive={ad.color}
+          emissiveIntensity={1.2}
+          toneMapped={false}
         />
-      </group>
+      </mesh>
+
+      {/* Accent stripe — thin upper trim */}
+      <mesh geometry={_sphere} scale={[0.71 * 15, 0.07 * 15, 1.61 * 15]} position={[0, 3.5, 0]}>
+        <meshStandardMaterial
+          color={ad.color}
+          emissive={ad.color}
+          emissiveIntensity={0.6}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Gondola */}
+      <mesh position={[0, -9, 0]} geometry={_box} scale={[6, 3, 10]}>
+        <meshStandardMaterial color="#8890a0" emissive="#404860" emissiveIntensity={0.3} />
+      </mesh>
+      {/* Gondola windows */}
+      <mesh position={[3.05, -8.5, 0]} geometry={_box} scale={[0.1, 1.2, 6]}>
+        <meshStandardMaterial
+          color={ad.color}
+          emissive={ad.color}
+          emissiveIntensity={0.6}
+          toneMapped={false}
+        />
+      </mesh>
+      <mesh position={[-3.05, -8.5, 0]} geometry={_box} scale={[0.1, 1.2, 6]}>
+        <meshStandardMaterial
+          color={ad.color}
+          emissive={ad.color}
+          emissiveIntensity={0.6}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Struts — gondola to body */}
+      <mesh position={[2, -6.5, 3]} rotation={[0.15, 0, 0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
+        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      </mesh>
+      <mesh position={[-2, -6.5, 3]} rotation={[0.15, 0, -0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
+        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      </mesh>
+      <mesh position={[2, -6.5, -3]} rotation={[-0.15, 0, 0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
+        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      </mesh>
+      <mesh position={[-2, -6.5, -3]} rotation={[-0.15, 0, -0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
+        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      </mesh>
+
+      {/* Tail fin — vertical */}
+      <mesh position={[0, 2, -22]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.4, 7, 5]}>
+        <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
+      </mesh>
+      {/* Tail fin — vertical tip accent */}
+      <mesh position={[0, 5.5, -21]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.5, 1, 3]}>
+        <meshStandardMaterial
+          color={ad.color}
+          emissive={ad.color}
+          emissiveIntensity={0.5}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Tail fin — horizontal */}
+      <mesh position={[0, -1, -22]} rotation={[0.1, 0, 0]} geometry={_box} scale={[6, 0.4, 5]}>
+        <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
+      </mesh>
+
+      {/* LED Screen — left side (+X) */}
+      <mesh
+        ref={(el: THREE.Mesh | null) => {
+          screen1Ref.current = el;
+          if (typeof screenRef === "function") screenRef(el);
+          else if (screenRef && "current" in screenRef) (screenRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
+        }}
+        material={ledMat}
+        position={[10.8, -2, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        onClick={handleClick}
+        geometry={_plane}
+        scale={[26, 9, 1]}
+      />
+
+      {/* LED Screen — right side (-X) */}
+      <mesh
+        ref={screen2Ref}
+        material={ledMat}
+        position={[-10.8, -2, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+        onClick={handleClick}
+        geometry={_plane}
+        scale={[26, 9, 1]}
+      />
+
     </group>
   );
 }
@@ -640,3 +641,4 @@ export default function SkyAds({ ads, cityRadius, flyMode, onAdClick, onAdViewed
     </group>
   );
 }
+

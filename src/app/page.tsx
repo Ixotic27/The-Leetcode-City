@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect */
 import Skeleton from "@/components/Skeleton";
 import SearchBar from "@/components/SearchBar";
 import UserProfile from "@/components/UserProfile";
@@ -19,7 +19,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createBrowserSupabase } from "@/lib/supabase";
 import {
   generateCityLayout,
@@ -29,8 +29,6 @@ import {
   type CityBuilding,
   type CityPlaza,
   type CityDecoration,
-  type CityRiver,
-  type CityBridge,
   type DistrictZone,
 } from "@/lib/github";
 import Image from "next/image";
@@ -45,6 +43,7 @@ import { useRaidSequence } from "@/lib/useRaidSequence";
 import { useDailies } from "@/lib/useDailies";
 import DailiesWidget from "@/components/DailiesWidget";
 import RaidOverlay from "@/components/RaidOverlay";
+import { getRaidConsumableToastMessage } from "@/lib/raid";
 import XpBar from "@/components/XpBar";
 import LevelUpToast from "@/components/LevelUpToast";
 import {
@@ -89,6 +88,7 @@ type CityDeveloperRecord = DeveloperRecord & {
   owned_items?: string[];
   billboard_images?: string[];
   building_style?: string | null;
+  selected_title?: string | null;
 };
 interface CityStats {
   total_developers: number;
@@ -119,6 +119,7 @@ const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ss
 const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
 const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), { ssr: false });
 const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), { ssr: false });
+const SolanaModal = dynamic(() => import("@/components/SolanaModal"), { ssr: false });
 const RabbitCompletion = dynamic(() => import("@/components/RabbitCompletion"), { ssr: false });
 const DistrictChooser = dynamic(() => import("@/components/DistrictChooser"), { ssr: false });
 const MiniMap = dynamic(() => import("@/components/MiniMap"), { ssr: false });
@@ -374,6 +375,9 @@ function SearchFeedback({
       <div
         className="relative w-full max-w-md border-[3px] bg-bg-raised/90 px-5 py-5 backdrop-blur-sm animate-[fade-in_0.15s_ease-out]"
         style={{ borderColor: accentColor + "66" }}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
       >
         {/* Skeleton layout (Avatar, Name, Stats) */}
         <div className="flex items-center gap-4 mb-5">
@@ -452,6 +456,89 @@ function SearchFeedback({
           Retry
         </button>
       )}
+    </div>
+  );
+}
+
+function BuildingCardSkeleton() {
+  return (
+    <div
+      className="min-h-[360px] px-4 pb-4 pt-4"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading building profile"
+    >
+      <div className="mb-4 flex items-center gap-3">
+        <Skeleton
+          variant="circle"
+          width={48}
+          height={48}
+          className="flex-shrink-0"
+        />
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton variant="text" width="68%" height={14} />
+          <Skeleton variant="text" width="44%" height={10} />
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center gap-2">
+        <Skeleton
+          variant="rectangular"
+          width={28}
+          height={28}
+          className="flex-shrink-0 rounded-none"
+        />
+        <div className="flex-1 space-y-2">
+          <Skeleton variant="text" width="56%" height={10} />
+          <Skeleton
+            variant="rectangular"
+            width="100%"
+            height={4}
+            className="rounded-none"
+          />
+        </div>
+      </div>
+
+      <Skeleton
+        variant="rectangular"
+        width={80}
+        height={16}
+        className="mb-3 rounded-none"
+      />
+
+      <div className="mb-4 grid grid-cols-3 gap-px border border-border/50 bg-border/30">
+        {Array.from({ length: 9 }).map((_, index) => (
+          <div key={index} className="space-y-2 bg-bg-card p-2">
+            <Skeleton
+              variant="text"
+              width="70%"
+              height={12}
+              className="mx-auto"
+            />
+            <Skeleton
+              variant="text"
+              width="82%"
+              height={8}
+              className="mx-auto"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <Skeleton
+          variant="rectangular"
+          width="50%"
+          height={34}
+          className="rounded-none"
+        />
+        <Skeleton
+          variant="rectangular"
+          width="50%"
+          height={34}
+          className="rounded-none"
+        />
+      </div>
     </div>
   );
 }
@@ -568,8 +655,7 @@ function HomeContent() {
   const rawDevsRef = useRef<CityDeveloperRecord[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
   const [decorations, setDecorations] = useState<CityDecoration[]>([]);
-  const [river, setRiver] = useState<CityRiver | null>(null);
-  const [bridges, setBridges] = useState<CityBridge[]>([]);
+
   const [districtZones, setDistrictZones] = useState<DistrictZone[]>([]);
   const [loading, setLoading] = useState(false);
   // Loading state machine — skip on return visits that still have cached data
@@ -601,13 +687,8 @@ function HomeContent() {
   const [relics, setRelics] = useState<Relic[]>(STATIC_RELICS);
   const [equippedRelicId, setEquippedRelicId] = useState<string | null>(null);
   const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
-  
-  // New World travel cinematic states
-  const [showNewWorldPrompt, setShowNewWorldPrompt] = useState(false);
-  const [newWorldCinematicActive, setNewWorldCinematicActive] = useState(false);
-  const [hasTraveledToNewWorld, setHasTraveledToNewWorld] = useState(false);
-  const [newWorldTakeoffPos, setNewWorldTakeoffPos] = useState<{ x: number; y: number; z: number } | null>(null);
-  const [newWorldTakeoffYaw, setNewWorldTakeoffYaw] = useState<number | null>(null);
+
+
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
@@ -618,7 +699,9 @@ function HomeContent() {
     setWeatherMode(next);
     try {
       localStorage.setItem("leetcodecity_weather_mode", next);
-    } catch { }
+    } catch (err) {
+      console.warn("[cycleWeather] Failed to persist weather mode:", err);
+    }
   };
 
   useEffect(() => {
@@ -633,13 +716,17 @@ function HomeContent() {
       if (savedCycle === "0") {
         setDayNightCycleActive(false);
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[init] Failed to read day/night cycle preference:", err);
+    }
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (savedWeather === "sunny" || savedWeather === "rainy" || savedWeather === "windy" || savedWeather === "stormy" || savedWeather === "snowy") {
         setWeatherMode(savedWeather as any);
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[init] Failed to read weather mode preference:", err);
+    }
   }, []);
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
@@ -696,6 +783,20 @@ function HomeContent() {
     avatar_url: string | null;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState<string | null>(null);
+  const [isNewBuilding, setIsNewBuilding] = useState(false);
+  const [celebrationActive, setCelebrationActive] = useState(false);
+
+  // Auto-dismiss welcome celebration overlay after 6 seconds
+  useEffect(() => {
+    if (!showWelcomeOverlay) return;
+    const timer = setTimeout(() => {
+      setShowWelcomeOverlay(null);
+      setCelebrationActive(false);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [showWelcomeOverlay]);
+
   const [vsCodeKey, setVsCodeKey] = useState<string | null>(null);
   const [hasVsCodeKey, setHasVsCodeKey] = useState<boolean | null>(() => {
     // Check localStorage first so returning users don't see setup instructions
@@ -707,6 +808,7 @@ function HomeContent() {
   const [vsCodeKeyCopied, setVsCodeKeyCopied] = useState(false);
   const [codingPanelOpen, setCodingPanelOpen] = useState(false);
   const mountedRef = useRef(true);
+  const touchYRef = useRef<number | null>(null);
   const generateControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -729,7 +831,9 @@ function HomeContent() {
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
               else localStorage.removeItem("leetcodecity_has_vscode_key");
-            } catch { }
+            } catch (err) {
+              console.warn("[vscode-key] Failed to sync key flag to localStorage:", err);
+            }
           }
         })
         .catch(() => { });
@@ -746,6 +850,7 @@ function HomeContent() {
   const [selectedBuilding, setSelectedBuilding] = useState<CityBuilding | null>(
     null,
   );
+  const [buildingCardLoading, setBuildingCardLoading] = useState(false);
   const [giftClaimed, setGiftClaimed] = useState(false);
   const [claimingGift, setClaimingGift] = useState(false);
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
@@ -782,6 +887,7 @@ function HomeContent() {
   const [eArcadeOpen, setEArcadeOpen] = useState(false);
   const [zenCodingOpen, setZenCodingOpen] = useState(false);
   const [codeForgeOpen, setCodeForgeOpen] = useState(false);
+  const [solanaOpen, setSolanaOpen] = useState(false);
   const [arcadeOnline, setArcadeOnline] = useState<number>(0);
   const [districtChooserOpen, setDistrictChooserOpen] = useState(false);
   const [rabbitCinematic, setRabbitCinematic] = useState(false);
@@ -810,6 +916,16 @@ function HomeContent() {
   // Welcome CTA (shown after intro for non-logged-in users)
   const [welcomeCtaVisible, setWelcomeCtaVisible] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!buildingCardLoading) return;
+
+    const timeout = window.setTimeout(() => {
+      setBuildingCardLoading(false);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, [buildingCardLoading, selectedBuilding?.login]);
 
   // XP level-up toast
   const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
@@ -840,6 +956,8 @@ function HomeContent() {
 
   // Raid system
   const [raidState, raidActions] = useRaidSequence();
+  const [raidToast, setRaidToast] = useState<string | null>(null);
+  const lastRaidToastIdRef = useRef<string | null>(null);
   const prevRaidPhaseRef = useRef<string>("idle");
   const lastSuccessfulRaidRef = useRef<{
     defenderLogin: string;
@@ -873,7 +991,7 @@ function HomeContent() {
         .from("arcade_active_players")
         .select("user_id", { count: "exact", head: true })
         .gt("last_heartbeat", cutoff)
-        .then((res: any) => {
+        .then((res: { count: number | null }) => {
           if (res.count != null) {
             setArcadeOnline(res.count);
           }
@@ -1015,6 +1133,77 @@ function HomeContent() {
           const res = await fetch("/api/me");
           const data = await res.json();
           setLinkedLeetCodeUsername(data.leetcode_username || null);
+
+          if (data.leetcode_username && data.customizations) {
+            const devId = data.developer_id;
+            const username = data.leetcode_username.toLowerCase();
+            const custs = data.customizations;
+
+            // 1. Refresh local storage overrides
+            try {
+              if (custs.custom_color?.color) {
+                localStorage.setItem(
+                  "leetcodecity:color_override",
+                  JSON.stringify({ developerId: devId, value: custs.custom_color.color, ts: Date.now() })
+                );
+              }
+              if (custs.billboard) {
+                const images = Array.isArray(custs.billboard.images)
+                  ? custs.billboard.images
+                  : (custs.billboard.image_url ? [custs.billboard.image_url] : []);
+                localStorage.setItem(
+                  "leetcodecity:billboard_override",
+                  JSON.stringify({ developerId: devId, value: images, ts: Date.now() })
+                );
+              }
+              if (custs.loadout) {
+                localStorage.setItem(
+                  "leetcodecity:loadout_override",
+                  JSON.stringify({ developerId: devId, loadout: custs.loadout, ts: Date.now() })
+                );
+              }
+              if (custs.building_style?.style) {
+                localStorage.setItem(
+                  "leetcodecity:style_override",
+                  JSON.stringify({ developerId: devId, value: custs.building_style.style, ts: Date.now() })
+                );
+              }
+              if (custs.led_banner?.text) {
+                localStorage.setItem(
+                  "leetcodecity:led_banner_override",
+                  JSON.stringify({ developerId: devId, value: custs.led_banner.text, ts: Date.now() })
+                );
+              }
+              if (custs.selected_title?.slug) {
+                localStorage.setItem(
+                  "leetcodecity:selected_title_override",
+                  JSON.stringify({ developerId: devId, value: custs.selected_title.slug, ts: Date.now() })
+                );
+              }
+            } catch (err) {
+              console.warn("Failed to set local storage overrides in session update:", err);
+            }
+
+            // 2. Update buildings state directly
+            setBuildings((prev) =>
+              prev.map((b) => {
+                if (b.login.toLowerCase() === username) {
+                  return {
+                    ...b,
+                    custom_color: custs.custom_color?.color ?? b.custom_color,
+                    billboard_images: Array.isArray(custs.billboard?.images)
+                      ? custs.billboard.images
+                      : (custs.billboard?.image_url ? [custs.billboard.image_url] : b.billboard_images),
+                    loadout: custs.loadout ?? b.loadout,
+                    building_style: custs.building_style?.style ?? b.building_style,
+                    led_banner_text: custs.led_banner?.text ?? b.led_banner_text,
+                    selected_title: custs.selected_title?.slug ?? b.selected_title,
+                  };
+                }
+                return b;
+              })
+            );
+          }
         } catch {
           setLinkedLeetCodeUsername(null);
         } finally {
@@ -1037,7 +1226,7 @@ function HomeContent() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      async (event: any, s: Session | null) => {
+      async (event: AuthChangeEvent, s: Session | null) => {
         if (event !== "TOKEN_REFRESHED") {
           await updateSession(s);
           // Auto-open the Link LeetCode modal when user first signs in
@@ -1049,7 +1238,9 @@ function HomeContent() {
                 // Small delay so the UI has settled after login redirect
                 setTimeout(() => setShowLinkModal(true), 800);
               }
-            } catch { }
+            } catch (err) {
+              console.warn("[auth] Failed to check leetcode_username after sign-in:", err);
+            }
           }
         }
       },
@@ -1061,8 +1252,11 @@ function HomeContent() {
   // ── LeetCode Pulse: report activity every 5 min while logged in ──
   useEffect(() => {
     if (!session || !linkedLeetCodeUsername) return;
-    const ping = () =>
+    const ping = () => {
+      // Skip when tab is hidden — no point reporting activity when user isn't looking
+      if (typeof document !== "undefined" && document.hidden) return;
       fetch("/api/lc-pulse", { method: "POST" }).catch(() => { });
+    };
     ping(); // fire immediately on account link / page load
     const id = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
     return () => clearInterval(id);
@@ -1276,6 +1470,7 @@ function HomeContent() {
   useEffect(() => {
     let cancelled = false;
     const fetchFeed = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const res = await fetch("/api/feed?limit=50&today=1");
         if (!res.ok) return;
@@ -1443,11 +1638,18 @@ function HomeContent() {
       !zenCodingOpen &&
       !codeForgeOpen &&
       !rabbitCinematic &&
+      !showWelcomeOverlay &&
       raidState.phase === "idle"
     )
       return;
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
+        if (showWelcomeOverlay) {
+          setShowWelcomeOverlay(null);
+          setCelebrationActive(false);
+          setIsNewBuilding(false);
+          return;
+        }
         // Founder modals take highest priority
         if (founderMessageOpen) {
           setFounderMessageOpen(false);
@@ -1514,11 +1716,16 @@ function HomeContent() {
             setShareData(null);
             setSelectedBuilding(null);
             setFocusedBuilding(null);
+            setIsNewBuilding(false);
+            setCelebrationActive(false);
           } else if (selectedBuilding) {
             setSelectedBuilding(null);
             setFocusedBuilding(null);
-          } else if (focusedBuilding) setFocusedBuilding(null);
-          else if (exploreMode) {
+            setIsNewBuilding(false);
+          } else if (focusedBuilding) {
+            setFocusedBuilding(null);
+            setIsNewBuilding(false);
+          } else if (exploreMode) {
             setExploreMode(false);
             setFocusedBuilding(savedFocusRef.current);
             savedFocusRef.current = null;
@@ -1547,6 +1754,7 @@ function HomeContent() {
     endRabbitCinematic,
     raidState.phase,
     raidActions,
+    showWelcomeOverlay,
   ]);
 
   // Rabbit cinematic text phase timing (8s total flyover)
@@ -1599,7 +1807,9 @@ function HomeContent() {
         if (best >= 5 && serverProgress < 5 && localProgress >= 5) {
           setRabbitCompletion(true);
         }
-      } catch { }
+      } catch (err) {
+        console.warn("[rabbit] Failed to sync rabbit progress:", err);
+      }
     })();
   }, [session]);
 
@@ -1732,8 +1942,7 @@ function HomeContent() {
     setBuildings(layout.buildings);
     setPlazas(layout.plazas);
     setDecorations(layout.decorations);
-    setRiver(layout.river);
-    setBridges(layout.bridges);
+
     setDistrictZones(layout.districtZones);
     setCityCache({ ...layout, stats: cityStats });
     return layout.buildings;
@@ -1766,18 +1975,6 @@ function HomeContent() {
     const needsRefresh =
       sessionStorage.getItem("leetcodecity:refresh_city") === "true";
 
-    if (cached && !needsRefresh) {
-      setBuildings(cached.buildings);
-      setPlazas(cached.plazas);
-      setDecorations(cached.decorations);
-      setRiver(cached.river);
-      setBridges(cached.bridges);
-      setDistrictZones(cached.districtZones);
-      setStats(cached.stats);
-      setLoadStage("done");
-      return;
-    }
-
     const loadStartTime = performance.now();
 
     async function loadCity() {
@@ -1796,10 +1993,42 @@ function HomeContent() {
           return;
         }
 
+        if (cached && !needsRefresh) {
+          setBuildings(cached.buildings);
+          setPlazas(cached.plazas);
+          setDecorations(cached.decorations);
+          setDistrictZones(cached.districtZones);
+          setStats(cached.stats);
+
+          setLoadStage("rendering");
+          setLoadProgress(70);
+
+          await new Promise<void>((resolve) => {
+            let resolved = false;
+            const done = () => {
+              if (resolved) return;
+              resolved = true;
+              resolve();
+            };
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => done());
+            });
+            setTimeout(done, 500);
+          });
+
+          const elapsed = performance.now() - loadStartTime;
+          if (elapsed < 800) {
+            await new Promise((r) => setTimeout(r, 800 - elapsed));
+          }
+
+          setLoadProgress(100);
+          setLoadStage("ready");
+          return;
+        }
+
         // Fetch city data
         setLoadStage("fetching");
         setLoadProgress(10);
-
 
         let allDevs: CityDeveloperRecord[] = [];
         let cityStats: CityStats = {
@@ -1879,16 +2108,19 @@ function HomeContent() {
         setBuildings(finalLayout.buildings);
         setPlazas(finalLayout.plazas);
         setDecorations(finalLayout.decorations);
-        setRiver(finalLayout.river);
-        setBridges(finalLayout.bridges);
         setDistrictZones(finalLayout.districtZones);
 
         setLoadProgress(55);
 
-        // Rendering: wait for Canvas to process data (2 rAF + fallback)
+        // Rendering: wait for Canvas + WebGL to fully warm up.
+        // Fresh loads compile all shaders, upload textures, and render
+        // instanced buildings + 13 landmark components from scratch.
+        // We need significantly more warm-up than a cached load.
         setLoadStage("rendering");
         setLoadProgress(65);
 
+        // Phase 1: Wait for React to commit the building data into the Canvas
+        // and for WebGL to begin shader compilation (4 rAF frames).
         await new Promise<void>((resolve) => {
           let resolved = false;
           const done = () => {
@@ -1896,22 +2128,38 @@ function HomeContent() {
             resolved = true;
             resolve();
           };
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => done());
-          });
-          setTimeout(done, 500);
+          let frameCount = 0;
+          const waitFrames = () => {
+            frameCount++;
+            if (frameCount >= 4) {
+              done();
+            } else {
+              requestAnimationFrame(waitFrames);
+            }
+          };
+          requestAnimationFrame(waitFrames);
+          // Safety fallback in case rAF is blocked
+          setTimeout(done, 2000);
         });
 
-        setLoadProgress(80);
+        setLoadProgress(75);
+
+        // Phase 2: Give the GPU time to finish compiling shaders and
+        // uploading geometry/textures. Shader compilation is async within
+        // the GPU driver and doesn't block rAF callbacks.
+        await new Promise((r) => setTimeout(r, 1200));
+
+        setLoadProgress(85);
 
         // Save to cache for return visits
         setCityCache({ ...finalLayout, stats: cityStats });
         setLoadProgress(95);
 
-        // Enforce minimum 800ms display time to avoid flash
+        // Enforce minimum 1.5s total display time for fresh loads
+        // (longer than cached loads since there's more to render)
         const elapsed = performance.now() - loadStartTime;
-        if (elapsed < 800) {
-          await new Promise((r) => setTimeout(r, 800 - elapsed));
+        if (elapsed < 1500) {
+          await new Promise((r) => setTimeout(r, 1500 - elapsed));
         }
 
         setLoadProgress(100);
@@ -1925,7 +2173,7 @@ function HomeContent() {
     }
 
     loadCity();
-    // esliloadCitynt-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadStage]);
 
   // City reload on tab return removed — navigating back from shop already
@@ -1995,7 +2243,9 @@ function HomeContent() {
           currentPB,
           parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0,
         );
-      } catch { }
+      } catch (err) {
+        console.warn("[fly] Failed to read personal best from localStorage:", err);
+      }
       // Only show "New PB!" if there WAS a previous best to beat (not on first-ever flight)
       const isNewPB = currentPB > 0 && finalScore > currentPB;
       // Update personal best
@@ -2004,7 +2254,9 @@ function HomeContent() {
         flyPersonalBestRef.current = finalScore;
         try {
           localStorage.setItem("leetcodecity_fly_pb", String(finalScore));
-        } catch { }
+        } catch (err) {
+          console.warn("[fly] Failed to save new personal best:", err);
+        }
       }
       // Update fly history (streak, days played, per-seed scores)
       if (finalScore > 0) {
@@ -2053,14 +2305,14 @@ function HomeContent() {
             "leetcodecity_fly_history",
             JSON.stringify(hist),
           );
-        } catch { }
+        } catch (err) {
+          console.warn("[fly] Failed to update fly history/streak data:", err);
+        }
       }
       // Exit fly immediately (don't block on API)
       setFlyMode(false);
       setFlyPaused(false);
-      setHasTraveledToNewWorld(false);
-      setNewWorldCinematicActive(false);
-      setShowNewWorldPrompt(false);
+
       lastDistrictRef.current = null;
       setDistrictAnnouncement(null);
       clearTimeout(announceTimerRef.current);
@@ -2115,36 +2367,7 @@ function HomeContent() {
     [session],
   );
 
-  const handlePromptNewWorldTravel = useCallback((x: number, y: number, z: number, yaw: number) => {
-    setNewWorldTakeoffPos({ x, y, z });
-    setNewWorldTakeoffYaw(yaw);
-    setShowNewWorldPrompt(true);
-    setFlyPaused(true);
-  }, []);
 
-  const handleConfirmNewWorldTravel = useCallback(() => {
-    setShowNewWorldPrompt(false);
-    const takeoffX = newWorldTakeoffPos?.x ?? 0;
-    const takeoffY = newWorldTakeoffPos?.y ?? 120;
-    const takeoffZ = newWorldTakeoffPos?.z ?? 400;
-    const takeoffYaw = newWorldTakeoffYaw ?? 0;
-    window.location.href = `/new-world?x=${takeoffX}&y=${takeoffY}&z=${takeoffZ}&yaw=${takeoffYaw}`;
-  }, [newWorldTakeoffPos, newWorldTakeoffYaw]);
-
-  const handleCancelNewWorldTravel = useCallback(() => {
-    setShowNewWorldPrompt(false);
-    setFlyPaused(false);
-    setFlyPauseSignal((prev) => prev + 1); // Resume
-  }, []);
-
-  const handleNewWorldCinematicEnd = useCallback(() => {
-    setNewWorldCinematicActive(false);
-    setHasTraveledToNewWorld(true);
-  }, []);
-
-  const handleReturnToCity = useCallback(() => {
-    setHasTraveledToNewWorld(false);
-  }, []);
 
   const endIntro = useCallback(() => {
     setIntroMode(false);
@@ -2304,7 +2527,7 @@ function HomeContent() {
         if (data.equippedRelicId) {
           setEquippedRelicId(data.equippedRelicId);
           const active = (data.relics || STATIC_RELICS).find(
-            (r: any) => r.id === data.equippedRelicId
+            (r: Relic) => r.id === data.equippedRelicId
           );
           if (active) {
             setRelicFocus({ x: active.target_x, y: active.target_y, z: active.target_z });
@@ -2467,8 +2690,7 @@ function HomeContent() {
         setBuildings(layout.buildings);
         setPlazas(layout.plazas);
         setDecorations(layout.decorations);
-        setRiver(layout.river);
-        setBridges(layout.bridges);
+
         setDistrictZones(layout.districtZones);
         setCityCache({
           ...layout,
@@ -2524,7 +2746,20 @@ function HomeContent() {
           }
         }
       } else if (!existedBefore) {
-        // New developer: show the share modal, then enter explore mode to show profile card
+        // New developer: trigger celebration, welcome overlay, sound and zoom-in camera pan
+        setCelebrationActive(true);
+        setIsNewBuilding(true);
+        setShowWelcomeOverlay(devData.github_login);
+
+        // Sound effect fanfare
+        try {
+          const audio = new Audio("/audio/raid/victory.mp3");
+          audio.volume = 0.45;
+          audio.play().catch(() => {});
+        } catch (e) {
+          console.warn("Failed to play victory sound:", e);
+        }
+
         setShareData({
           login: devData.github_login,
           contributions: devData.contributions,
@@ -2582,8 +2817,8 @@ function HomeContent() {
       setShowLinkModal(false);
       trackBuildingClaimed(data.leetcode_username);
       await reloadCity();
-    } catch (err: any) {
-      setLinkError(err.message);
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLinking(false);
     }
@@ -2609,8 +2844,8 @@ function HomeContent() {
         data.message || "Claim reset. You can now link a new GitHub account.",
       );
       await reloadCity();
-    } catch (err: any) {
-      setResetMsg("Error: " + err.message);
+    } catch (err) {
+      setResetMsg("Error: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setResetting(false);
     }
@@ -2620,7 +2855,7 @@ function HomeContent() {
     if (!selectedBuilding) return;
     setRefreshingStats(true);
     try {
-       const res = await fetch(
+      const res = await fetch(
         `/api/dev/${encodeURIComponent(selectedBuilding.login)}?refresh=true&t=${Date.now()}`,
         { cache: "no-store" },
       );
@@ -2716,6 +2951,22 @@ function HomeContent() {
     (mission) => mission.id === "fly_score_50" && mission.completed,
   );
 
+  useEffect(() => {
+    const raidData = raidState.raidData;
+    if (!raidData) return;
+
+    if (lastRaidToastIdRef.current === raidData.raid_id) return;
+
+    const toastMessage = getRaidConsumableToastMessage(raidData);
+    if (!toastMessage) return;
+
+    lastRaidToastIdRef.current = raidData.raid_id;
+    setRaidToast(toastMessage);
+
+    const timer = setTimeout(() => setRaidToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [raidState.raidData]);
+
   // Monitor fly score for mission quota
   useEffect(() => {
     if (
@@ -2790,21 +3041,8 @@ function HomeContent() {
     return Math.min(1.4, 1.2 + (codingCount - 15) * 0.02); // 25+->1.4 cap
   }, [codingCount]);
 
-  // ─── Milestone celebration system ──────────────────────────
   const forceCelebrate = searchParams.has("celebrate");
-
-  const celebrationActive = useMemo(() => {
-    if (forceCelebrate) return true;
-    if (stats.total_developers < CELEBRATION_MILESTONES[0]) return false;
-    const current = [...CELEBRATION_MILESTONES]
-      .reverse()
-      .find((m) => stats.total_developers >= m);
-    if (!current) return false;
-    const record = milestoneCelebrations.find((c) => c.milestone === current);
-    if (!record) return true;
-    const elapsed = Date.now() - new Date(record.reached_at).getTime();
-    return elapsed < 24 * 60 * 60 * 1000;
-  }, [stats.total_developers, milestoneCelebrations, forceCelebrate]);
+  const isCelebrationActive = celebrationActive || forceCelebrate;
 
   // Fetch milestone celebrations on mount
   useEffect(() => {
@@ -2880,7 +3118,9 @@ function HomeContent() {
         // Auto-dismiss after 15s
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch { }
+      } catch (err) {
+        console.warn("[dailyNudge] Failed to check fly history for nudge:", err);
+      }
     }, 2000);
     return () => clearTimeout(dailyNudgeTimerRef.current);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -2904,7 +3144,9 @@ function HomeContent() {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch { }
+        } catch (err) {
+          console.warn("[flyHint] Failed to persist fly hint seen flag:", err);
+        }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -2920,8 +3162,6 @@ function HomeContent() {
         buildings={buildings}
         plazas={plazas}
         decorations={decorations}
-        river={river}
-        bridges={bridges}
         flyMode={flyMode}
         relicFocus={relicFocus}
         flyVehicle={flyVehicle}
@@ -2985,20 +3225,18 @@ function HomeContent() {
         focusedBuilding={focusedBuilding}
         focusedBuildingB={focusedBuildingB}
         accentColor={theme.accent}
-        onClearFocus={() => setFocusedBuilding(null)}
+        onClearFocus={() => {
+          setFocusedBuilding(null);
+          setIsNewBuilding(false);
+        }}
+        onBuildingFocus={(b) => setFocusedBuilding(b.login)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || showNewWorldPrompt || eArcadeOpen || zenCodingOpen || codeForgeOpen}
+        flyHasOverlay={!!selectedBuilding || eArcadeOpen || zenCodingOpen || codeForgeOpen}
         flyStartPaused={showFlyControls}
         holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
         equippedRelicId={equippedRelicId}
-        newWorldCinematic={newWorldCinematicActive}
-        onNewWorldCinematicEnd={handleNewWorldCinematicEnd}
-        onPromptNewWorldTravel={handlePromptNewWorldTravel}
-        newWorldTakeoffPos={newWorldTakeoffPos}
-        newWorldTakeoffYaw={newWorldTakeoffYaw}
-        hasTraveledToNewWorld={hasTraveledToNewWorld}
-        onReturnToCity={handleReturnToCity}
-        celebrationActive={celebrationActive}
+        celebrationActive={isCelebrationActive}
+        isNewBuilding={isNewBuilding}
         skyAds={skyAds}
         onAdClick={(ad) => {
           trackSkyAdClick(ad.id, ad.vehicle, ad.link);
@@ -3085,6 +3323,9 @@ function HomeContent() {
           setCodeForgeOpen(true);
           setSelectedBuilding(null);
         }}
+        onSolanaClick={() => {
+          setSolanaOpen(true);
+        }}
         rabbitSighting={rabbitSighting}
         onRabbitCaught={onRabbitCaught}
         rabbitCinematic={rabbitCinematic}
@@ -3116,8 +3357,10 @@ function HomeContent() {
           // Active comparison: ignore clicks
           if (comparePair) return;
 
+          setBuildingCardLoading(true);
           setSelectedBuilding(b);
           setFocusedBuilding(b.login);
+          setIsNewBuilding(false);
           setKudosSent(false);
           setKudosError(null);
           lastDistRef.current = 999;
@@ -3533,7 +3776,9 @@ function HomeContent() {
                 setShowFlyControls(false);
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
-                } catch { }
+                } catch (err) {
+                  console.warn("[flyControls] Failed to persist controls seen flag:", err);
+                }
                 // Resume the paused flight by dispatching Space keydown
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", {
@@ -3658,7 +3903,9 @@ function HomeContent() {
                   const next = !prev;
                   try {
                     localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
-                  } catch { }
+                  } catch (err) {
+                    console.warn("[dayNightToggle] Failed to persist cycle preference:", err);
+                  }
                   return next;
                 });
               }}
@@ -4083,15 +4330,19 @@ function HomeContent() {
                                     if (mountedRef.current && data.key) {
                                       setVsCodeKey(data.key);
                                       setHasVsCodeKey(true);
-                                      try { localStorage.setItem("leetcodecity_has_vscode_key", "1"); } catch { }
+                                      try {
+                                        localStorage.setItem("leetcodecity_has_vscode_key", "1");
+                                      } catch (err) {
+                                        console.warn("[vscode-key] Failed to persist key flag:", err);
+                                      }
                                       navigator.clipboard.writeText(data.key);
                                       setVsCodeKeyCopied(true);
                                       setTimeout(() => {
                                         if (mountedRef.current) setVsCodeKeyCopied(false);
                                       }, 2000);
                                     }
-                                  } catch (e: any) {
-                                    if (e.name === "AbortError") return;
+                                  } catch (e) {
+                                    if (e instanceof Error && e.name === "AbortError") return;
                                   } finally {
                                     if (mountedRef.current) {
                                       setVsCodeKeyLoading(false);
@@ -4533,7 +4784,9 @@ function HomeContent() {
                                   "leetcodecity_fly_hint_seen",
                                   "1",
                                 );
-                              } catch { }
+                              } catch (err) {
+                                console.warn("[flyHint] Failed to persist dismiss flag:", err);
+                              }
                             }}
                             className="mt-2 px-3 py-1 text-[9px] text-bg"
                             style={{ backgroundColor: theme.accent }}
@@ -5080,7 +5333,7 @@ function HomeContent() {
                     setSelectedBuilding(null);
                     setFocusedBuilding(null);
                   }}
-                  className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream z-10"
+                  className="absolute top-2 right-3 z-30 text-[10px] text-muted transition-colors hover:text-cream"
                 >
                   ESC
                 </button>
@@ -5090,8 +5343,12 @@ function HomeContent() {
                   <div className="h-1 w-10 rounded-full bg-border" />
                 </div>
 
-                {/* Header with avatar + name */}
-                <div className="flex items-center gap-3 px-4 pb-3 sm:pt-4">
+                {buildingCardLoading ? (
+                  <BuildingCardSkeleton />
+                ) : (
+                  <div>
+                    {/* Header with avatar + name */}
+                    <div className="flex items-center gap-3 px-4 pb-3 sm:pt-4">
                   {selectedBuilding.avatar_url && (
                     <Image
                       src={selectedBuilding.avatar_url}
@@ -5223,25 +5480,19 @@ function HomeContent() {
                       .sort((a, b) => b.contributions - a.contributions)
                       .findIndex((b) => b.login === selectedBuilding.login) + 1;
 
-                  const lcRank =
-                    ((selectedBuilding as any).rank as number) ?? 0;
+                  const lcRank = selectedBuilding.rank ?? 0;
                   const lcRankStr =
                     lcRank === 0 || lcRank === 999999
                       ? "N/A"
                       : `#${lcRank.toLocaleString()}`;
                   const solved = selectedBuilding.contributions;
-                  const easySolved =
-                    ((selectedBuilding as any).easy_solved as number) ?? 0;
-                  const medSolved =
-                    ((selectedBuilding as any).medium_solved as number) ?? 0;
-                  const hardSolved =
-                    ((selectedBuilding as any).hard_solved as number) ?? 0;
-                  const contestRating =
-                    ((selectedBuilding as any).contest_rating as number) ?? 0;
-                  const streak =
-                    ((selectedBuilding as any).lc_streak as number) ?? 0;
+                  const easySolved = selectedBuilding.easy_solved ?? 0;
+                  const medSolved = selectedBuilding.medium_solved ?? 0;
+                  const hardSolved = selectedBuilding.hard_solved ?? 0;
+                  const contestRating = selectedBuilding.contest_rating ?? 0;
+                  const streak = selectedBuilding.lc_streak ?? 0;
                   const reputation = selectedBuilding.total_stars;
-                  const acceptanceRateRaw = (selectedBuilding as any).acceptance_rate;
+                  const acceptanceRateRaw = selectedBuilding.acceptance_rate;
                   const acceptanceRate = typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw) ? acceptanceRateRaw : -1;
 
                   const stats = [
@@ -5260,7 +5511,7 @@ function HomeContent() {
                     },
                     {
                       label: "Language",
-                      value: (selectedBuilding as any)?.primary_language ?? "--",
+                      value: selectedBuilding?.primary_language ?? "--",
                     },
                     ...(easySolved || medSolved || hardSolved
                       ? [
@@ -5587,8 +5838,8 @@ function HomeContent() {
                 )}
 
                 {/* Actions */}
-                {identityResolved && (
-                  <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
+                    {identityResolved && (
+                      <div className="flex gap-2 p-4 pt-0 pb-5 sm:pb-4">
                     {isOwnBuilding ? (
                       <>
                         <Link
@@ -5629,6 +5880,8 @@ function HomeContent() {
                           LeetCode
                         </a>
                       </>
+                    )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -5762,15 +6015,16 @@ function HomeContent() {
                   <div
                     className="flex justify-center py-2 sm:hidden"
                     onTouchStart={(e) => {
-                      (e.currentTarget as any)._touchY = e.touches[0].clientY;
+                      touchYRef.current = e.touches[0].clientY;
                     }}
                     onTouchEnd={(e) => {
-                      const start = (e.currentTarget as any)._touchY;
+                      const start = touchYRef.current;
                       if (
                         start != null &&
                         e.changedTouches[0].clientY - start > 50
                       )
                         closeCompare();
+                      touchYRef.current = null;
                     }}
                   >
                     <div className="h-1 w-10 rounded-full bg-border" />
@@ -6022,6 +6276,8 @@ function HomeContent() {
               setShareData(null);
               setSelectedBuilding(null);
               setFocusedBuilding(null);
+              setIsNewBuilding(false);
+              setCelebrationActive(false);
             }}
           />
 
@@ -6033,6 +6289,8 @@ function HomeContent() {
                 setShareData(null);
                 setSelectedBuilding(null);
                 setFocusedBuilding(null);
+                setIsNewBuilding(false);
+                setCelebrationActive(false);
               }}
               className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
             >
@@ -6054,6 +6312,7 @@ function HomeContent() {
                   }
                   setShareData(null);
                   setExploreMode(true);
+                  setCelebrationActive(false);
                 }}
                 className="btn-press px-4 py-2 text-[10px] text-bg"
                 style={{
@@ -6300,11 +6559,38 @@ function HomeContent() {
                 borderColor: t.done ? theme.accent : undefined,
               }}
             >
-              <span style={{ color: theme.accent }}>
-                {t.done ? "\u2713" : "\u2606"}
-              </span>{" "}
-              {t.title}
-              {t.done ? " \u2014 Complete!" : ""}
+              {t.reward ? (
+                <>
+                  <div
+                    className="font-semibold"
+                    style={{ color: theme.accent }}
+                  >
+                    🎉 Daily Rewards Claimed!
+                  </div>
+
+                  <div className="mt-1 text-[10px] text-cream">
+                    +{t.reward.xp} XP
+                  </div>
+
+                  <div className="text-[10px] text-cream">
+                    +{t.reward.points} Shop Points
+                  </div>
+
+                  {t.reward.freeze && (
+                    <div className="text-[10px] text-cream">
+                      🧊 Streak Freeze Earned!
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span style={{ color: theme.accent }}>
+                    {t.done ? "✓" : "☆"}
+                  </span>{" "}
+                  {t.title}
+                  {t.done ? " — Complete!" : ""}
+                </>
+              )}
             </div>
           ))}
           <style jsx>{`
@@ -6328,6 +6614,23 @@ function HomeContent() {
               }
             }
           `}</style>
+        </div>
+      )}
+
+      {raidToast && (
+        <div
+          className="pointer-events-none fixed left-1/2 top-16 z-[61] -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div
+            className="flex items-center gap-2 border-[2px] border-border bg-bg-raised/95 px-4 py-2 text-[11px] backdrop-blur-sm"
+            style={{ borderColor: theme.accent }}
+          >
+            <span style={{ color: theme.accent }}>✓</span>
+            <span className="text-cream">{raidToast}</span>
+          </div>
         </div>
       )}
 
@@ -6804,7 +7107,9 @@ function HomeContent() {
       {codeForgeOpen && (
         <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
       )}
-
+      {solanaOpen && (
+        <SolanaModal onClose={() => setSolanaOpen(false)} />
+      )}
       {/* Rabbit Quest Cinematic Overlay */}
       {rabbitCinematic && (
         <div className="fixed inset-0 z-50 pointer-events-none">
@@ -7045,40 +7350,68 @@ function HomeContent() {
         </div>
       )}
 
-      {/* ─── New World Travel Prompt Modal ─── */}
-      {showNewWorldPrompt && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-[fade-in_0.2s_ease-out]">
-          <div
-            className="w-full max-w-md border-[3px] bg-bg-raised p-6 text-cream shadow-2xl relative text-center"
-            style={{
-              borderColor: theme.accent,
-              boxShadow: `6px 6px 0 0 ${theme.shadow}`,
-            }}
-          >
-            <h2 className="text-lg font-bold tracking-widest mb-2 font-pixel" style={{ color: theme.accent }}>
-              NEW WORLD DETECTED
-            </h2>
-            <p className="text-[11px] text-muted normal-case mb-6 leading-relaxed font-pixel">
-              Your equipped New World Relic is vibrating intensely. Do you want to navigate across the fog of war to the Outer Wildlands?
-            </p>
-            <div className="flex gap-4 justify-center font-pixel items-center">
-              <span
-                className="px-6 py-2.5 text-[11px] font-bold select-none cursor-not-allowed"
-                style={{
-                  color: theme.accent,
-                  border: `2px dashed ${theme.accent}`,
-                  boxShadow: `3px 3px 0 0 ${theme.shadow}`,
-                }}
-              >
-                COMING SOON
-              </span>
-              <button
-                onClick={handleCancelNewWorldTravel}
-                className="px-6 py-2.5 text-[11px] font-bold border-2 border-muted hover:border-cream text-muted hover:text-cream active:scale-95 transition-all"
-              >
-                STAY IN CITY
-              </button>
+      {/* ─── New Building Welcome Overlay ─── */}
+      {showWelcomeOverlay && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/85 backdrop-blur-md animate-[fade-in_0.5s_ease-out]">
+          {/* Decorative rising sparks / pixel elements using CSS */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute bottom-0 left-[20%] w-2.5 h-2.5 bg-amber-400 opacity-60 animate-rise-1" />
+            <div className="absolute bottom-0 left-[40%] w-3.5 h-3.5 bg-rose-400 opacity-60 animate-rise-2" />
+            <div className="absolute bottom-0 left-[60%] w-2 h-2 bg-emerald-400 opacity-60 animate-rise-3" />
+            <div className="absolute bottom-0 left-[80%] w-4.5 h-4.5 bg-sky-400 opacity-60 animate-rise-4" />
+          </div>
+
+          <div className="text-center px-4 max-w-lg z-10">
+            {/* Celebration Emoji / Graphic */}
+            <div className="mb-6 flex justify-center gap-3 animate-bounce">
+              <span className="text-5xl select-none">🏗️</span>
+              <span className="text-5xl select-none">✨</span>
+              <span className="text-5xl select-none">🏢</span>
             </div>
+
+            {/* Title with retro pixel style and gradient text */}
+            <h1 
+              className="font-pixel uppercase text-2xl md:text-4xl mb-4 tracking-wider animate-[pulse_2s_infinite]"
+              style={{ color: theme.accent, textShadow: `0 0 12px ${theme.accent}60` }}
+            >
+              Welcome to the City!
+            </h1>
+
+            {/* Message */}
+            <p className="font-pixel text-[11px] md:text-xs text-cream tracking-wider leading-relaxed mb-6 uppercase">
+              A new building is being added to the skyline for
+              <br />
+              <span className="text-white text-base md:text-lg block mt-2 font-bold" style={{ color: theme.accent }}>
+                @{showWelcomeOverlay}
+              </span>
+            </p>
+
+            {/* Loading / Construction bar */}
+            <div className="w-64 h-4 bg-bg border-2 border-border mx-auto relative overflow-hidden mb-6">
+              <div 
+                className="h-full bg-stripes animate-progress-slide"
+                style={{ 
+                  width: '100%',
+                  backgroundImage: `linear-gradient(45deg, ${theme.accent} 25%, transparent 25%, transparent 50%, ${theme.accent} 50%, ${theme.accent} 75%, transparent 75%, transparent)`,
+                  backgroundSize: '32px 32px'
+                }}
+              />
+            </div>
+
+            {/* Dismiss Button */}
+            <button
+              onClick={() => {
+                setShowWelcomeOverlay(null);
+                setCelebrationActive(false);
+              }}
+              className="btn-press px-6 py-2.5 text-xs text-bg uppercase font-pixel tracking-widest cursor-pointer animate-[pulse_1.5s_infinite]"
+              style={{
+                backgroundColor: theme.accent,
+                boxShadow: `3px 3px 0 0 ${theme.shadow}`,
+              }}
+            >
+              Enter the City
+            </button>
           </div>
         </div>
       )}
@@ -7091,7 +7424,7 @@ export default function Home() {
       <div className="h-screen w-screen bg-black flex items-center justify-center">
         <div className="text-red-500 font-pixel text-center px-4">
           Something went wrong loading the city.
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
           >

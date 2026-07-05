@@ -300,7 +300,10 @@ export default function FlyLeaderboard() {
         </Link>
       )}
 
-      <div className="mt-6 border-[3px] border-border">
+      <div
+        className="mt-6 border-[3px] border-border"
+        aria-busy={loading}
+      >
         <div className="flex items-center gap-4 border-b-[3px] border-border bg-bg-card px-5 py-3 text-xs text-muted">
           <span className="w-10 text-center">#</span>
           <span className="flex-1">Pilot</span>
@@ -310,7 +313,12 @@ export default function FlyLeaderboard() {
         </div>
 
         {loading && (
-          <div className="w-full">
+          <div
+            className="w-full"
+            role="status"
+            aria-live="polite"
+            aria-label="Loading pilot scores"
+          >
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
@@ -330,13 +338,13 @@ export default function FlyLeaderboard() {
                   variant="text"
                   width={40}
                   height={14}
-                  className="hidden sm:block ml-auto"
+                  className="ml-auto hidden sm:block"
                 />
                 <Skeleton
                   variant="text"
                   width={40}
                   height={14}
-                  className="hidden sm:block ml-auto"
+                  className="ml-auto hidden sm:block"
                 />
                 <Skeleton
                   variant="rectangular"

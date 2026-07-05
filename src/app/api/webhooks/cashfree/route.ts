@@ -33,8 +33,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let body: any;
+  let body: {
+    type?: string;
+    event?: string;
+    data?: {
+      order?: { order_id?: string };
+      customer_details?: { customer_email?: string };
+    };
+  };
   try {
     body = JSON.parse(rawBody);
   } catch {

@@ -24,6 +24,10 @@ export function useCodingPresence() {
 
   useEffect(() => {
     const fetchPresence = () => {
+      // Skip poll when the tab is hidden — saves bandwidth and server load.
+      // Realtime broadcast still handles instant updates for active tabs.
+      if (typeof document !== "undefined" && document.hidden) return;
+
       const requestTime = Date.now();
       fetch("/api/presence")
         .then((r) => r.json())
@@ -75,8 +79,14 @@ export function useCodingPresence() {
     channelRef.current = channel;
 
     channel
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .on("broadcast", { event: "heartbeat" }, ({ payload }: { payload: any }) => {
+      .on("broadcast", { event: "heartbeat" }, ({ payload }: {
+        payload: {
+          githubLogin: string;
+          status?: "active" | "offline";
+          avatarUrl?: string;
+          language?: string;
+        };
+      }) => {
         if (!payload?.githubLogin) return;
 
         // Offline signal: remove dev from live map immediately
@@ -88,7 +98,7 @@ export function useCodingPresence() {
 
         mapRef.current.set(payload.githubLogin, {
           githubLogin: payload.githubLogin,
-          avatarUrl: payload.avatarUrl,
+          avatarUrl: payload.avatarUrl ?? "",
           status: payload.status ?? "active",
           language: payload.language,
           lastUpdated: Date.now(),
@@ -98,7 +108,8 @@ export function useCodingPresence() {
       .subscribe();
 
     // Periodically re-fetch to stay in sync with server state
-    const pruneInterval = setInterval(fetchPresence, 30_000);
+    // 60s is sufficient since realtime broadcast handles instant updates
+    const pruneInterval = setInterval(fetchPresence, 60_000);
 
     return () => {
       channel.unsubscribe();

@@ -47,8 +47,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     isMobile = body?.mobile === true;
-  } catch {
-    // no body or invalid json — default to desktop
+  } catch (err) {
+    console.error("[app/api/dailies/claim/route.ts] failed to parse request body:", err);
   }
 
   // Verify all 3 missions are completed
@@ -89,8 +89,9 @@ export async function POST(request: Request) {
   }
 
   const points_granted = 15;
+  const xp_granted = 25;
   // Grant XP for completing all dailies
-  await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "dailies", p_amount: 25 });
+  await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "dailies", p_amount: xp_granted });
 
   // Grant streak freeze every 7 completions (cap at 2)
   // ── BEFORE (read-then-write race): ─────────────────────────────────────────
@@ -173,5 +174,6 @@ export async function POST(request: Request) {
     total: claimResult.total,
     freeze_granted: freezeGranted,
     points_granted: points_granted,
+    xp_granted,
   });
 }

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const HF_TOKEN = process.env.HF_WRITE_TOKEN;
 const DATASET_REPO = "Ixotic/coding-problems"; // Your HF Repo
 
@@ -21,9 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing HF_WRITE_TOKEN" }, { status: 500 });
   }
 
-  const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false },
-  });
+  const sb = getSupabaseAdmin();
 
   try {
     // 2. Fetch the entire dataset from Hugging Face
@@ -134,8 +130,12 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, message: `Successfully rotated ${formattedForSupabase.length} problems for the month.` });
 
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+  } catch (err: unknown) {
+  console.error(err);
+
+  const message =
+    err instanceof Error ? err.message : 'Internal server error';
+
+  return NextResponse.json({ error: message }, { status: 500 });
+}
 }

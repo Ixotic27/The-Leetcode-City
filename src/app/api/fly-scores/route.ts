@@ -3,6 +3,7 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { trackDailyMission } from "@/lib/dailies";
+import { buildFlyLeaderboard, type FlyScoreRow } from "@/lib/fly-leaderboard";
 
 function getTodaySeed() {
   const now = new Date();
@@ -23,27 +24,6 @@ function maxScoreForCollected(collected: number): number {
 
 interface FlyScoreDev {
   developer_id: number;
-}
-
-interface FlyScoreLeaderboard {
-  score: number;
-  collected: number;
-  max_combo: number;
-  flight_ms: number;
-  created_at: string;
-  developer_id: number;
-  developers: any;
-}
-
-// Type for the raw data from Supabase (developers is an array)
-interface FlyScoreRaw {
-  score: number;
-  collected: number;
-  max_combo: number;
-  flight_ms: number;
-  created_at: string;
-  developer_id: number;
-  developers: { github_login: string; avatar_url: string }[] | null;
 }
 
 export async function POST(request: Request) {
@@ -217,23 +197,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 });
   }
 
-  const seen = new Set<number>();
-  // Use the raw type for filtering since developers comes as array
-  const unique = (data ?? []).filter((row: FlyScoreRaw) => {
-    if (seen.has(row.developer_id)) return false;
-    seen.add(row.developer_id);
-    return true;
-  });
-
-  const leaderboard = unique.slice(0, 20).map((row: FlyScoreRaw) => ({
-    score: row.score,
-    collected: row.collected,
-    max_combo: row.max_combo,
-    flight_ms: row.flight_ms,
-    created_at: row.created_at,
-    github_login: row.developers?.[0]?.github_login,
-    avatar_url: row.developers?.[0]?.avatar_url,
-  }));
+  // `developers` is a to-one embed (single object); buildFlyLeaderboard
+  // dedupes per developer, takes the top 20, and resolves login/avatar.
+  const leaderboard = buildFlyLeaderboard(
+    (data ?? []) as unknown as FlyScoreRow[],
+  );
 
   const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
 

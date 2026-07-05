@@ -142,8 +142,8 @@ export async function GET(
     if (user) {
       void sb.rpc("upsert_arcade_visit", { p_user_id: user.id, p_room_id: data.id });
     }
-  } catch {
-    // Not authenticated — skip visit tracking
+  } catch (err) {
+    console.error("[app/api/arcade/rooms/[slug]/route.ts] visit tracking failed:", err);
   }
 
   return NextResponse.json({ room: data }, {
