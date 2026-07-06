@@ -527,3 +527,4 @@ Thanks to all contributors ❤️
 <p align="center">
   Inspired by <a href="https://github.com/srizzon/git-city">Git City</a>
 </p>
+# TODO: [bug] `isv2dev()` always returns false — v2 building formulas are dead code
