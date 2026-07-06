@@ -527,3 +527,4 @@ Thanks to all contributors ❤️
 <p align="center">
   Inspired by <a href="https://github.com/srizzon/git-city">Git City</a>
 </p>
+# TODO: [bug] script `add-leetcode-items.ts` crashes with 'cannot find module dotenv'
