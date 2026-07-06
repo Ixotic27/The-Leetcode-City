@@ -527,3 +527,4 @@ Thanks to all contributors ❤️
 <p align="center">
   Inspired by <a href="https://github.com/srizzon/git-city">Git City</a>
 </p>
+# TODO: hourly fetcher only refreshes existing users — no new users are ever discovered
