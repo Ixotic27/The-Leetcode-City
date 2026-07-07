@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { getSafeSupabaseClient } from "@/lib/supabase";
 
 export const alt = "Developer Comparison - LeetCode City";
 export const size = { width: 1200, height: 630 };
@@ -18,10 +18,7 @@ export default async function Image({
     join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")
   );
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSafeSupabaseClient();
 
   const accent = "#ffa116";
   const bg = "#0d0d0f";

@@ -8,6 +8,60 @@ let lastAdminKey: string | null = null;
 let lastAdminUrl: string | null = null;
 
 /**
+ * Returns true if the string is a valid URL starting with http/https.
+ */
+export function isValidUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Creates a robust, chainable dummy/noop client to prevent runtime crashes during build.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function createDummyClient(): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dummy: any = () => dummy;
+  return new Proxy(dummy, {
+    get(target, prop) {
+      if (prop === "then") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (resolve: any) => resolve({ data: null, error: null });
+      }
+      if (prop === "auth") {
+        return {
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          getSession: async () => ({ data: { session: null }, error: null }),
+          getUser: async () => ({ data: { user: null }, error: null }),
+        };
+      }
+      return dummy;
+    }
+  });
+}
+
+/**
+ * Safely creates a Supabase client. If the URL is invalid or key is missing,
+ * returns a chainable dummy client to prevent build/runtime crashes.
+ */
+export function getSafeSupabaseClient(url?: string, key?: string): SupabaseClient {
+  const targetUrl = url || process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const targetKey = key || process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+
+  if (!isValidUrl(targetUrl) || !targetKey) {
+    console.warn(`[Supabase] Returning dummy client due to missing or invalid URL/Key. URL: "${targetUrl}"`);
+    return createDummyClient() as unknown as SupabaseClient;
+  }
+
+  return createClient(targetUrl!, targetKey, { auth: { persistSession: false } });
+}
+
+/**
  * Returns true when running without the service-role key.
  * In dev mode, admin operations gracefully degrade (read-only via anon key).
  */
@@ -19,10 +73,15 @@ export function isDevMode(): boolean {
 export function createBrowserSupabase() {
   if (browserClient) return browserClient;
 
-  browserClient = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+
+  if (!isValidUrl(url) || !key) {
+    console.warn(`[Supabase] Returning dummy client for browser client due to missing or invalid URL/Key. URL: "${url}"`);
+    return createDummyClient() as unknown as ReturnType<typeof createBrowserClient>;
+  }
+
+  browserClient = createBrowserClient(url!, key);
   return browserClient;
 }
 
@@ -35,7 +94,12 @@ export function createBrowserSupabase() {
 let adminClientWarned = false;
 export function getSupabaseAdmin(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+
+  if (!isValidUrl(url) || !key) {
+    console.warn(`[Supabase] Returning dummy admin client due to missing or invalid URL/Key. URL: "${url}"`);
+    return createDummyClient() as unknown as SupabaseClient;
+  }
 
   // Return cached instance if credentials haven't changed
   if (adminClient && lastAdminKey === key && lastAdminUrl === url) {
@@ -51,12 +115,12 @@ export function getSupabaseAdmin(): SupabaseClient {
   }
 
   adminClient = createClient(
-    url,
-    key!,
+    url!,
+    key,
     { auth: { persistSession: false } }
   );
   lastAdminKey = key ?? null;
-  lastAdminUrl = url;
+  lastAdminUrl = url ?? null;
 
   return adminClient;
 }
