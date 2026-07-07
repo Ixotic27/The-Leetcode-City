@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createClient } from "@supabase/supabase-js";
+import { getSafeSupabaseClient } from "@/lib/supabase";
 import { type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -85,10 +85,7 @@ export async function GET(
     join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")
   );
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSafeSupabaseClient();
 
   const { data: dev } = await supabase
     .from("developers")

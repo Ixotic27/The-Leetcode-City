@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { getSafeSupabaseClient } from "@/lib/supabase";
 import type { Metadata } from "next";
 import { CompareRedirect } from "./compare-redirect";
 
@@ -9,10 +9,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { userA, userB } = await params;
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = getSafeSupabaseClient();
 
   const [{ data: devA }, { data: devB }] = await Promise.all([
     supabase
