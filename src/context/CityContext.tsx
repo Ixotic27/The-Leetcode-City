@@ -442,6 +442,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
     try {
       return localStorage.getItem("leetcodecity_has_vscode_key") === "1" ? true : null;
     } catch {
+      // localStorage can be unavailable in privacy-restricted browsers.
       return null;
     }
   });
@@ -689,7 +690,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
         allDevs = snapshot.developers;
         cityStats = snapshot.stats;
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[city] Snapshot fetch failed; falling back to chunked city data.", err);
+    }
 
     if (allDevs.length === 0) {
       const cbParam = bustCache ? `&_t=${Date.now()}` : "";
@@ -887,7 +890,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
           redirectTo += `?ref=${encodeURIComponent(login)}`;
         }
       }
-    } catch { }
+    } catch (err) {
+      console.warn("[auth] Failed to read referral metadata before GitHub login.", err);
+    }
     await supabase.auth.signInWithOAuth({
       provider: "github",
       options: { redirectTo },
@@ -926,7 +931,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
           setTimeout(() => setRabbitSighting(data.progress + 1), 2000);
           return;
         }
-      } catch { }
+      } catch (err) {
+        console.warn("[rabbit] Failed to sync rabbit sighting progress.", err);
+      }
     }
 
     const newProgress = sighting;
@@ -971,7 +978,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setKudosError(msg);
         setTimeout(() => setKudosError(null), 3000);
       }
-    } catch {
+    } catch (err) {
+      console.warn("[kudos] Failed to send kudos.", err);
     } finally {
       setKudosSending(false);
     }
@@ -991,7 +999,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
         .filter((i) => i.price_usd_cents > 0 && !NON_GIFTABLE.has(i.id))
         .map((i) => ({ ...i, owned: receiverOwned.has(i.id) }));
       setGiftItems(available);
-    } catch { }
+    } catch (err) {
+      console.warn("[gifts] Failed to load giftable avatar items.", err);
+    }
   }, [selectedBuilding, session, identityResolved]);
 
   const handleGiftCheckout = useCallback(
@@ -1012,7 +1022,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
         if (res.ok && data.url) {
           window.location.href = data.url;
         }
-      } catch {
+      } catch (err) {
+        console.warn("[gifts] Failed to start gift checkout.", err);
       } finally {
         setGiftBuying(null);
       }
@@ -1212,7 +1223,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
               })
             );
           }
-        } catch {
+        } catch (err) {
+          console.warn("[profile] Failed to resolve linked LeetCode status.", err);
           setLinkedLeetCodeUsername(null);
         } finally {
           setLinkStatusResolved(true);
@@ -1290,7 +1302,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
             return layout.buildings.find((b) => b.login.toLowerCase() === devData.github_login?.toLowerCase()) ?? prev;
           });
         }
-      } catch { }
+      } catch (err) {
+        console.warn("[profile] Silent LeetCode refresh failed.", err);
+      }
     };
     const initialDelay = setTimeout(silentRefresh, 10000);
     const interval = setInterval(silentRefresh, 60 * 60 * 1000);
@@ -1311,13 +1325,17 @@ export function CityProvider({ children }: { children: ReactNode }) {
     try {
       const savedCycle = localStorage.getItem("leetcodecity_daynight_cycle");
       if (savedCycle === "0") setDayNightCycleActive(false);
-    } catch { }
+    } catch {
+      // Preferences are optional; ignore storage failures and keep defaults.
+    }
     try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (["sunny", "rainy", "windy", "stormy", "snowy"].includes(savedWeather ?? "")) {
         setWeatherMode(savedWeather as any);
       }
-    } catch { }
+    } catch {
+      // Preferences are optional; ignore storage failures and keep defaults.
+    }
   }, []);
 
   useEffect(() => {
@@ -1349,7 +1367,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
         if (!res.ok) return;
         const data = await res.json();
         if (!cancelled) setFeedEvents(data.events ?? []);
-      } catch { }
+      } catch (err) {
+        console.warn("[feed] Failed to refresh activity feed.", err);
+      }
     };
     fetchFeed();
     const interval = setInterval(fetchFeed, 120000);
@@ -1381,10 +1401,14 @@ export function CityProvider({ children }: { children: ReactNode }) {
             try {
               if (d.hasKey) localStorage.setItem("leetcodecity_has_vscode_key", "1");
               else localStorage.removeItem("leetcodecity_has_vscode_key");
-            } catch { }
+            } catch {
+              // Cache only; keep the in-memory VS Code key status when storage fails.
+            }
           }
         })
-        .catch(() => { });
+        .catch((err) => {
+          console.warn("[profile] Failed to load VS Code key status.", err);
+        });
       return () => controller.abort();
     }
   }, [codingPanelOpen, hasVsCodeKey]);
@@ -1524,7 +1548,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
           });
           trackMissionRef.current("visit_building");
           trackMissionRef.current("visit_3_buildings");
-        } catch { }
+        } catch (err) {
+          console.warn("[missions] Failed to track building visit mission.", err);
+        }
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -1558,7 +1584,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setShowDailyNudge(true);
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);
         dailyNudgeTimerRef.current = autoDismiss;
-      } catch { }
+      } catch {
+        // Daily nudge history is optional; skip the nudge when storage cannot be read.
+      }
     }, 2000);
     return () => clearTimeout(timer);
   }, [loadStage, isMobile, session, flyMode, introMode]);
@@ -1569,6 +1597,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
     try {
       if (localStorage.getItem("leetcodecity_fly_history") || localStorage.getItem("leetcodecity_fly_hint_seen")) return;
     } catch {
+      // Fly-mode hint is optional; avoid showing it when storage cannot be read.
       return;
     }
     const timer = setTimeout(() => {
@@ -1577,7 +1606,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setShowFlyHint(false);
         try {
           localStorage.setItem("leetcodecity_fly_hint_seen", "1");
-        } catch { }
+        } catch {
+          // Hint dismissal is best-effort; failure only means it may show again later.
+        }
       }, 10000);
       flyHintTimerRef.current = autoDismiss;
     }, 5000);
@@ -1673,7 +1704,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
             allDevs = snapshot.developers;
             cityStats = snapshot.stats;
           }
-        } catch { }
+        } catch (err) {
+          console.warn("[city] Snapshot fetch failed during load; falling back to chunked city data.", err);
+        }
 
         if (allDevs.length === 0) {
           const CHUNK = 1000;
