@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { rateLimit } from "@/lib/rate-limit";
+import { isValidUrl, createDummyClient } from "./lib/supabase";
+
 
 // ---------------------------------------------------------------------------
 // Route-specific rate limits: [maxRequests, windowMs]
@@ -113,26 +115,30 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   if (hasSession) {
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
+    const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+    const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+    const supabase = (!isValidUrl(url) || !key)
+      ? createDummyClient() as unknown as ReturnType<typeof createServerClient>
+      : createServerClient(
+          url!,
+          key,
+          {
+            cookies: {
+              getAll() {
+                return request.cookies.getAll();
+              },
+              setAll(cookiesToSet) {
+                cookiesToSet.forEach(({ name, value }) =>
+                  request.cookies.set(name, value),
+                );
+                supabaseResponse = NextResponse.next({ request });
+                cookiesToSet.forEach(({ name, value, options }) =>
+                  supabaseResponse.cookies.set(name, value, options),
+                );
+              },
+            },
           },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value),
-            );
-            supabaseResponse = NextResponse.next({ request });
-            cookiesToSet.forEach(({ name, value, options }) =>
-              supabaseResponse.cookies.set(name, value, options),
-            );
-          },
-        },
-      },
-    );
+        );
 
     try {
       // Timeout auth validation to prevent slow Supabase responses from
