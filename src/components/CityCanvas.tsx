@@ -43,6 +43,7 @@ import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
+import CodeForgeModal from "@/components/CodeForgeModal";
 
 
 // ─── Theme Definitions ───────────────────────────────────────
@@ -1890,6 +1891,7 @@ export default function CityCanvas({
   const { isRaining } = useWeather();
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
+  const [codeForgeOpen, setCodeForgeOpen] = useState(false);
   const t = THEMES[themeIndex] ?? THEMES[0];
   const [kbBuildingIndex, setKbBuildingIndex] = useState(0);
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
@@ -2094,7 +2096,7 @@ export default function CityCanvas({
             <AstralObservatory onClick={() => { }} position={landmarkPositions[3]} />
             <CryptOfEchoes onClick={() => { }} position={landmarkPositions[4]} />
             <SunkenSanctum onClick={() => { }} position={landmarkPositions[5]} />
-            <CodeForge onClick={onCodeForgeClick ?? (() => { })} position={landmarkPositions[6]} />
+            <CodeForge onClick={() => setCodeForgeOpen(true)} position={landmarkPositions[6]} />
           </Suspense>
           <EArcadeLandmark
             onClick={onEArcadeClick ?? (() => { })}
@@ -2195,6 +2197,9 @@ export default function CityCanvas({
     </div>
     {dungeonOpen && (
       <DungeonModal onClose={() => setDungeonOpen(false)} />
+    )}
+    {codeForgeOpen && (
+      <CodeForgeModal onClose={() => setCodeForgeOpen(false)} />
     )}
   </>
   );
