@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { DailiesData } from "@/lib/useDailies";
-
 interface Props {
   data: DailiesData | null;
   accent: string;
@@ -28,6 +27,7 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
   const [claimResult, setClaimResult] = useState<{ freeze_granted: boolean } | null>(null);
   const [timeLeft, setTimeLeft] = useState(getTimeUntilReset);
   const [desktopOnlyAlert, setDesktopOnlyAlert] = useState(false);
+  const [claimMessage, setClaimMessage] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
