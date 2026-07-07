@@ -37,9 +37,14 @@ const TANK_FIRE_DELAY = 0.45;
 const TANK_FIRE_INTERVAL = 0.65;
 const TANK_FIRE_FLASH_DURATION = 0.16;
 
-// Ground vehicle constants
+// Ground vehicle constants and configs
+// GROUND_FIRE_OFFSET determines the distance from the target building where the ground vehicle (tank) stops to fire.
 const GROUND_FIRE_OFFSET = 85;
+
+// Set of all vehicle types that should behave as ground vehicles instead of taking the orbital flight path.
 const GROUND_VEHICLES = new Set(["vehicle_tank"]);
+
+// Helper utility to detect if a specific vehicle type is registered as a ground vehicle.
 const isGroundVehicle = (type: string) => GROUND_VEHICLES.has(type);
 
 // ─── Easing ───────────────────────────────────────────────────
@@ -1418,6 +1423,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
   const isGround = useMemo(() => isGroundVehicle(vehicleType), [vehicleType]);
 
   // Ground vehicle positions: start at attacker ground level, drive to defender
+  // groundStartPos: The coordinates where the tank spawns on the ground (concrete walkway Y = 0.35).
   const groundStartPos = useMemo(() => {
     return new THREE.Vector3(
       attackerPos.x,
@@ -1426,6 +1432,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     );
   }, [attackerPos]);
 
+  // groundFirePos: The final stationary firing point on the ground level, positioned a offset distance away from the defender.
   const groundFirePos = useMemo(() => {
     // Fire position: on the ground, GROUND_FIRE_OFFSET away from defender
     return new THREE.Vector3(
@@ -1435,6 +1442,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     );
   }, [defenderTopPos, flightDir]);
 
+  // groundDriveEndPos: The target point for the intro driving phase (8 units forward from the spawn point).
   const groundDriveEndPos = useMemo(() => {
     // Where the intro drive-forward ends (ground level, 8 units forward)
     return new THREE.Vector3(
@@ -1444,7 +1452,8 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     );
   }, [attackerPos, flightDir]);
 
-  // Ground flight curve: straight line on the ground with slight approach curve
+  // groundFlightCurve: Generates a 3D path curve for the cruise/flight phase.
+  // Instead of a straight line, it interpolates with a sideways offset (S-Curve) at ground level.
   const groundFlightCurve = useMemo(() => {
     const mid = new THREE.Vector3().lerpVectors(groundDriveEndPos, groundFirePos, 0.5);
     mid.y = 0.35; // flat on walkway ground level
