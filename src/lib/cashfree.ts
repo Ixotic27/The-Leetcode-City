@@ -81,9 +81,9 @@ export async function createCashfreeOrder(opts: {
         customer_phone: phone,
       },
       order_meta: {
-        return_url: (opts.returnUrl.includes("?") 
-          ? opts.returnUrl + "&order_id={order_id}" 
-          : opts.returnUrl + "?order_id={order_id}").replace(/^http:\/\/localhost:\d+/, "https://great-sheep-sniff.loca.lt"),
+        return_url: (opts.returnUrl.includes("?")
+          ? opts.returnUrl + "&order_id={order_id}"
+          : opts.returnUrl + "?order_id={order_id}").replace(/^http:\/\/localhost:\d+/, process.env.CASHFREE_TUNNEL_URL || "$&"),
       },
       order_note: opts.itemName,
     }),
