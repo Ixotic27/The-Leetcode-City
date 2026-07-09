@@ -178,7 +178,8 @@ export async function GET() {
         toInsert.push({
           developer_id: devRecord.id,
           relic_id: relic.id,
-          is_equipped: false
+          is_equipped: false,
+          created_at: new Date().toISOString(),
         });
       }
     }

@@ -93,13 +93,13 @@ export async function POST(request: Request) {
   );
 
   // 5. If we unlocked a relic, upsert it into developer_relics
+  //    created_at is intentionally excluded from upsert to preserve original unlock timestamp
   if (unlockedRelicId) {
     await admin.from("developer_relics").upsert(
       {
         developer_id: dev.id,
         relic_id: unlockedRelicId,
         is_equipped: false,
-        created_at: new Date().toISOString(),
       },
       { onConflict: "developer_id,relic_id" }
     );
