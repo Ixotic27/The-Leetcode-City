@@ -168,8 +168,13 @@ export async function GET(
     rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;
-    if (!skipRateLimit && await isRateLimited(key)) {
-      return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    if (!skipRateLimit) {
+      if (await isRateLimited(key)) {
+        return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+      }
+      // Record immediately, before the LeetCode API call, to prevent race condition
+      await recordRateLimitRequest(key);
+      rateLimitKey = null;
     }
   }
 
@@ -349,8 +354,6 @@ export async function GET(
     building_style: buildingStyle,
     active_raid_tag: raidTagsResult.data?.[0] ?? null,
   };
-
-  if (rateLimitKey) await recordRateLimitRequest(rateLimitKey);
 
   return NextResponse.json(result);
 }
