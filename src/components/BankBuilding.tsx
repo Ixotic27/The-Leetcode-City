@@ -45,6 +45,13 @@ function roundedSquare(size: number, r: number): THREE.Shape {
   return s;
 }
 
+/** Circular vault door profile, extruded along the facade for visible depth. */
+function vaultDoorShape(radius: number): THREE.Shape {
+  const shape = new THREE.Shape();
+  shape.absarc(0, 0, radius, 0, Math.PI * 2, false);
+  return shape;
+}
+
 interface BankBuildingProps {
   onClick?: () => void;
   themeAccent?: string;
@@ -98,6 +105,18 @@ export default function BankBuilding({
     return g;
   }, []);
 
+  const vaultDoorGeo = useMemo(() => {
+    const g = new THREE.ExtrudeGeometry(vaultDoorShape(78), {
+      depth: 24,
+      bevelEnabled: true,
+      bevelThickness: 5,
+      bevelSize: 4,
+      bevelSegments: 3,
+    });
+    g.center();
+    return g;
+  }, []);
+
   const markMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -131,6 +150,19 @@ export default function BankBuilding({
         transparent: true,
         opacity: 0.5,
         side: THREE.DoubleSide,
+        toneMapped: false,
+      }),
+    [],
+  );
+
+  const vaultDoorMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: LIME,
+        emissive: LIME,
+        emissiveIntensity: 0.8,
+        roughness: 0.3,
+        metalness: 0.7,
         toneMapped: false,
       }),
     [],
@@ -268,6 +300,35 @@ export default function BankBuilding({
           </mesh>
         )),
       )}
+
+      {/* Front entrance columns and capitals */}
+      {[-1, 1].map((sz) => (
+        <group key={`entry-column${sz}`} position={[D / 2 + 18, BASE_H + 92, sz * 104]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[17, 21, 184, 8]} />
+            <meshStandardMaterial color={LIME} emissive={LIME} emissiveIntensity={0.7} roughness={0.3} metalness={0.5} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 98, 0]} castShadow>
+            <boxGeometry args={[52, 12, 52]} />
+            <meshStandardMaterial color={LIME_HOT} emissive={LIME_HOT} emissiveIntensity={0.8} roughness={0.3} metalness={0.5} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 108, 0]} castShadow>
+            <boxGeometry args={[42, 8, 42]} />
+            <meshStandardMaterial color={LIME} emissive={LIME} emissiveIntensity={0.8} roughness={0.3} metalness={0.5} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Deep front vault door with a raised rim and central hub */}
+      <mesh geometry={vaultDoorGeo} material={vaultDoorMat} position={[D / 2 + 18, BASE_H + 154, 0]} rotation={[0, Math.PI / 2, 0]} castShadow />
+      <mesh position={[D / 2 + 34, BASE_H + 154, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[58, 5, 8, 32]} />
+        <meshStandardMaterial color={LIME_HOT} emissive={LIME_HOT} emissiveIntensity={0.9} roughness={0.25} metalness={0.6} toneMapped={false} />
+      </mesh>
+      <mesh position={[D / 2 + 39, BASE_H + 154, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <cylinderGeometry args={[13, 13, 8, 12]} />
+        <meshStandardMaterial color={WHITE} emissive={LIME_HOT} emissiveIntensity={0.5} roughness={0.25} metalness={0.65} toneMapped={false} />
+      </mesh>
 
       {/* Cornice + dark roof slab */}
       <mesh position={[0, CORNICE_Y, 0]} castShadow>
