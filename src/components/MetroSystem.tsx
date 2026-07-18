@@ -3,13 +3,13 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { DISTRICT_ORIGINS } from "@/lib/github";
-
-interface TrackSegment {
-  start: THREE.Vector3;
-  end: THREE.Vector3;
-  name: string;
-}
+import {
+  METRO_DIMENSIONS,
+  METRO_LAYOUT,
+  METRO_STATION_PILLAR_X_OFFSETS,
+  METRO_STATION_PILLAR_Z_OFFSETS,
+  type MetroTrackSegment,
+} from "@/lib/metroCollisions";
 
 // ─── Elevated Metro Station Platform ──────────────────────────────
 interface MetroStationProps {
@@ -21,10 +21,15 @@ function MetroStation({ position, name }: MetroStationProps) {
   return (
     <group position={position}>
       {/* 1. Large pillars holding the station */}
-      {[-16, 16].map((x) =>
-        [-30, 0, 30].map((z) => (
-          <mesh key={`sp-${x}-${z}`} position={[x, 20, z]}>
-            <cylinderGeometry args={[2.5, 3.2, 40, 6]} />
+      {METRO_STATION_PILLAR_X_OFFSETS.map((x) =>
+        METRO_STATION_PILLAR_Z_OFFSETS.map((z) => (
+          <mesh key={`sp-${x}-${z}`} position={[x, METRO_DIMENSIONS.pillarCenterY, z]}>
+            <cylinderGeometry args={[
+              METRO_DIMENSIONS.stationPillarTopRadius,
+              METRO_DIMENSIONS.stationPillarBottomRadius,
+              METRO_DIMENSIONS.pillarHeight,
+              6,
+            ]} />
             <meshStandardMaterial color="#3a3d45" roughness={0.8} />
           </mesh>
         ))
@@ -94,7 +99,7 @@ function MetroStation({ position, name }: MetroStationProps) {
 
 // ─── Animated Metro Train ─────────────────────────────────────────
 interface TrainProps {
-  segment: TrackSegment;
+  segment: MetroTrackSegment;
   speedMultiplier?: number;
 }
 
@@ -162,37 +167,12 @@ function MetroTrain({ segment, speedMultiplier = 1.0 }: TrainProps) {
 
 // ─── Main Elevated Track & Pillars Assembly ───────────────────────
 export default function MetroSystem() {
-  const o = DISTRICT_ORIGINS;
-
-  // Define elevated track paths (Y=40)
-  const trackSegments = useMemo<TrackSegment[]>(() => {
-    const list: TrackSegment[] = [];
-
-    // Track 1: Downtown (Bengaluru) to Delhi (fullstack) - Offset outside city perimeters by [+450, 0, +450]
-    if (o.downtown && o.fullstack) {
-      list.push({
-        start: new THREE.Vector3(o.downtown[0] + 450, 40, o.downtown[2] + 450),
-        end: new THREE.Vector3(o.fullstack[0] + 450, 40, o.fullstack[2] + 450),
-        name: "bengaluru-delhi"
-      });
-    }
-
-    // Track 2: Delhi (fullstack) to Kolkata (devops) - Offset outside city perimeters by [+450, 0, +450]
-    if (o.fullstack && o.devops) {
-      list.push({
-        start: new THREE.Vector3(o.fullstack[0] + 450, 40, o.fullstack[2] + 450),
-        end: new THREE.Vector3(o.devops[0] + 450, 40, o.devops[2] + 450),
-        name: "delhi-kolkata"
-      });
-    }
-
-    return list;
-  }, [o]);
+  const { trackSegments, stations } = METRO_LAYOUT;
 
   const railsAndPillars = useMemo(() => {
     const pillars: React.ReactNode[] = [];
     const rails: React.ReactNode[] = [];
-    const step = 300;
+    const step = METRO_DIMENSIONS.trackPillarStep;
 
     trackSegments.forEach((segment) => {
       const dir = new THREE.Vector3().subVectors(segment.end, segment.start);
@@ -203,10 +183,18 @@ export default function MetroSystem() {
 
       // Track beams structure
       rails.push(
-        <group key={`track-${segment.name}`} position={[center.x, 39.5, center.z]} rotation={[0, angle, 0]}>
+        <group
+          key={`track-${segment.name}`}
+          position={[center.x, METRO_DIMENSIONS.trackCenterY, center.z]}
+          rotation={[0, angle, 0]}
+        >
           {/* Main viaduct bed */}
           <mesh>
-            <boxGeometry args={[14, 1.2, length]} />
+            <boxGeometry args={[
+              METRO_DIMENSIONS.trackWidth,
+              METRO_DIMENSIONS.trackHeight,
+              length,
+            ]} />
             <meshStandardMaterial color="#50525c" roughness={0.8} />
           </mesh>
           {/* Left Rail line */}
@@ -228,8 +216,13 @@ export default function MetroSystem() {
         pillars.push(
           <group key={`metro-pill-${segment.name}-${d}`}>
             {/* Main support column */}
-            <mesh position={[pos.x, 20, pos.z]}>
-              <cylinderGeometry args={[2.8, 3.8, 40, 6]} />
+            <mesh position={[pos.x, METRO_DIMENSIONS.pillarCenterY, pos.z]}>
+              <cylinderGeometry args={[
+                METRO_DIMENSIONS.trackPillarTopRadius,
+                METRO_DIMENSIONS.trackPillarBottomRadius,
+                METRO_DIMENSIONS.pillarHeight,
+                6,
+              ]} />
               <meshStandardMaterial color="#42454f" roughness={0.85} />
             </mesh>
             {/* T-bar lintel supporting the tracks */}
@@ -252,9 +245,13 @@ export default function MetroSystem() {
       {railsAndPillars.pillars}
 
       {/* Stations */}
-      {o.downtown && <MetroStation position={[o.downtown[0] + 450, 0, o.downtown[2] + 450]} name="BENGALURU CENTRAL" />}
-      {o.fullstack && <MetroStation position={[o.fullstack[0] + 450, 0, o.fullstack[2] + 450]} name="DELHI JUNCTION" />}
-      {o.devops && <MetroStation position={[o.devops[0] + 450, 0, o.devops[2] + 450]} name="KOLKATA TERMINUS" />}
+      {stations.map((station) => (
+        <MetroStation
+          key={station.name}
+          position={station.position}
+          name={station.name}
+        />
+      ))}
 
       {/* Animated Metro Trains running on the track segments */}
       {trackSegments.map((seg, idx) => (

@@ -44,6 +44,11 @@ import BusTransit from "./BusTransit";
 import InterCityConnections from "./InterCityConnections";
 import MetroSystem from "./MetroSystem";
 import TramSystem from "./TramSystem";
+import {
+  METRO_LAYOUT,
+  METRO_VEHICLE_COLLISION_RADIUS,
+  resolveMetroMovement,
+} from "@/lib/metroCollisions";
 import AtmosphereCycleManager from "./AtmosphereCycleManager";
 import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
@@ -571,6 +576,8 @@ const _camOffset = new THREE.Vector3();
 const _idealCamPos = new THREE.Vector3();
 const _idealLook = new THREE.Vector3();
 const _blendedPos = new THREE.Vector3();
+const _proposedFlightPos = new THREE.Vector3();
+const _resolvedFlightPos = new THREE.Vector3();
 const _yAxis = new THREE.Vector3(0, 1, 0);
 
 function AirplaneFlight({
@@ -846,11 +853,20 @@ function AirplaneFlight({
     // Climb scales gently with speed using sqrt so it stays proportional
     // without getting out of control at high speeds
     const climbScale = Math.sqrt(actualSpeed / DEFAULT_FLY_SPEED);
-    pos.current.y += altInput * CLIMB_RATE * climbScale * dt;
-    pos.current.y = Math.max(MIN_ALT, Math.min(MAX_ALT, pos.current.y));
-
     _fwd.set(-Math.sin(yaw.current), 0, -Math.cos(yaw.current));
-    pos.current.addScaledVector(_fwd, actualSpeed * dt);
+    _proposedFlightPos.copy(pos.current);
+    _proposedFlightPos.y += altInput * CLIMB_RATE * climbScale * dt;
+    _proposedFlightPos.y = Math.max(MIN_ALT, Math.min(MAX_ALT, _proposedFlightPos.y));
+    _proposedFlightPos.addScaledVector(_fwd, actualSpeed * dt);
+
+    resolveMetroMovement(
+      pos.current,
+      _proposedFlightPos,
+      METRO_LAYOUT.colliders,
+      METRO_VEHICLE_COLLISION_RADIUS,
+      _resolvedFlightPos,
+    );
+    pos.current.copy(_resolvedFlightPos);
 
     if (posRef) posRef.current.copy(pos.current);
 
