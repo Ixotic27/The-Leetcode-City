@@ -208,9 +208,28 @@ function isInsideExpandedCollider(
   point: THREE.Vector3,
   halfSize: THREE.Vector3,
 ): boolean {
-  return Math.abs(point.x) <= halfSize.x
-    && Math.abs(point.y) <= halfSize.y
-    && Math.abs(point.z) <= halfSize.z;
+  return Math.abs(point.x) + PARALLEL_EPSILON < halfSize.x
+    && Math.abs(point.y) + PARALLEL_EPSILON < halfSize.y
+    && Math.abs(point.z) + PARALLEL_EPSILON < halfSize.z;
+}
+
+function startsOnBoundaryWithoutEntering(
+  start: THREE.Vector3,
+  end: THREE.Vector3,
+  halfSize: THREE.Vector3,
+): boolean {
+  for (const axis of ["x", "y", "z"] as const) {
+    const startValue = start[axis];
+    const extent = halfSize[axis];
+    if (Math.abs(Math.abs(startValue) - extent) > PARALLEL_EPSILON) continue;
+
+    const outwardDelta = Math.sign(startValue) * (end[axis] - startValue);
+
+    // Outward or tangential movement on any contacted face cannot enter the box.
+    if (outwardDelta >= 0) return true;
+  }
+
+  return false;
 }
 
 function segmentExpandedBoxEntry(
@@ -222,6 +241,9 @@ function segmentExpandedBoxEntry(
     // Let a vehicle that loaded inside legacy geometry move back out instead of trapping it.
     return null;
   }
+
+  if (startsOnBoundaryWithoutEntering(start, end, halfSize)) return null;
+
 
   let entryTime = 0;
   let exitTime = 1;

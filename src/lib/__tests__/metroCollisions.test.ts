@@ -83,6 +83,51 @@ describe("metro movement resolution", () => {
     expect(output.toArray()).toEqual(proposed.toArray());
   });
 
+  it("blocks inward movement that starts exactly on the expanded collider boundary", () => {
+    const start = new THREE.Vector3(3, 20, 0);
+    const proposed = new THREE.Vector3(0, 20, 0);
+    const output = new THREE.Vector3();
+
+    expect(resolveMetroMovement(start, proposed, [pillar], 1, output)).toBe(true);
+    expect(output.toArray()).toEqual(start.toArray());
+  });
+
+  it("allows outward movement that starts exactly on the expanded collider boundary", () => {
+    const start = new THREE.Vector3(3, 20, 0);
+    const proposed = new THREE.Vector3(10, 20, 0);
+    const output = new THREE.Vector3();
+
+    expect(resolveMetroMovement(start, proposed, [pillar], 1, output)).toBe(false);
+    expect(output.toArray()).toEqual(proposed.toArray());
+  });
+
+  it("allows tangential movement along the expanded collider boundary", () => {
+    const start = new THREE.Vector3(3, 20, 0);
+    const proposed = new THREE.Vector3(3, 20, 10);
+    const output = new THREE.Vector3();
+
+    expect(resolveMetroMovement(start, proposed, [pillar], 1, output)).toBe(false);
+    expect(output.toArray()).toEqual(proposed.toArray());
+  });
+
+  it("blocks inward movement from a numerically near-boundary position", () => {
+    const start = new THREE.Vector3(3 - 5e-9, 20, 0);
+    const proposed = new THREE.Vector3(0, 20, 0);
+    const output = new THREE.Vector3();
+
+    expect(resolveMetroMovement(start, proposed, [pillar], 1, output)).toBe(true);
+    expect(output.toArray()).toEqual(start.toArray());
+  });
+
+  it("blocks sub-epsilon inward movement from the boundary", () => {
+    const start = new THREE.Vector3(3, 20, 0);
+    const proposed = new THREE.Vector3(3 - 5e-9, 20, 0);
+    const output = new THREE.Vector3();
+
+    expect(resolveMetroMovement(start, proposed, [pillar], 1, output)).toBe(true);
+    expect(output.toArray()).toEqual(start.toArray());
+  });
+
   it("blocks a vehicle from re-entering after it has left a collider", () => {
     const start = new THREE.Vector3(10, 20, 0);
     const proposed = new THREE.Vector3(0, 20, 0);
