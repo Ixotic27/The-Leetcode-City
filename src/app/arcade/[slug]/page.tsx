@@ -24,6 +24,7 @@ import {
   loadMapFromData,
   resetMap,
   isWalkable,
+  getSpawns,
   type GameMap,
   type RoomPortal,
 } from "@/lib/arcade/engine/tileMap";
@@ -208,6 +209,8 @@ interface InterpolatedPlayer extends PlayerState {
   prevX: number;
   prevY: number;
   lerpTimer: number;
+  lerpDuration: number;
+  lastUpdate: number;
   walking: boolean;
   idleGrace: number;
 }
@@ -449,6 +452,8 @@ export default function ArcadeRoomPage({
             prevX: p.x,
             prevY: p.y,
             lerpTimer: LERP_DURATION,
+            lerpDuration: LERP_DURATION,
+            lastUpdate: Date.now(),
             walking: false,
             idleGrace: 0,
           });
@@ -482,6 +487,8 @@ export default function ArcadeRoomPage({
           prevX: player.x,
           prevY: player.y,
           lerpTimer: LERP_DURATION,
+          lerpDuration: LERP_DURATION,
+          lastUpdate: Date.now(),
           walking: false,
           idleGrace: 0,
         });
@@ -497,6 +504,15 @@ export default function ArcadeRoomPage({
         if (!p) return;
 
         const isLocal = id === localIdRef.current;
+        const now = Date.now();
+        const prevLerpDuration = p.lerpDuration ?? LERP_DURATION;
+        if (!isLocal) {
+          const delta = (now - p.lastUpdate) / 1000;
+          p.lastUpdate = now;
+          p.lerpDuration = Math.max(0.1, Math.min(0.5, delta));
+        } else {
+          p.lerpDuration = LERP_DURATION;
+        }
 
         // Local player with prediction: reconcile against authoritative state.
         if (isLocal && ackSeq !== undefined) {
@@ -548,7 +564,7 @@ export default function ArcadeRoomPage({
               snapCamera(px * ts + ts / 2, py * ts + ts / 2, mapRef.current);
             }
           } else {
-            const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
+            const t = Math.min(p.lerpTimer / prevLerpDuration, 1);
             p.prevX = p.prevX + (p.x - p.prevX) * t;
             p.prevY = p.prevY + (p.y - p.prevY) * t;
           }
@@ -580,7 +596,7 @@ export default function ArcadeRoomPage({
             snapCamera(x * ts + ts / 2, y * ts + ts / 2, mapRef.current);
           }
         } else {
-          const t = Math.min(p.lerpTimer / LERP_DURATION, 1);
+          const t = Math.min(p.lerpTimer / prevLerpDuration, 1);
           p.prevX = p.prevX + (p.x - p.prevX) * t;
           p.prevY = p.prevY + (p.y - p.prevY) * t;
         }
@@ -869,7 +885,8 @@ export default function ArcadeRoomPage({
 
           // Apply predicted state to local render. Preserve current interpolated
           // position as the new lerp start to avoid visual teleport.
-          const t = Math.min(localP.lerpTimer / LERP_DURATION, 1);
+          const currentLerpDuration = localP.lerpDuration ?? LERP_DURATION;
+          const t = Math.min(localP.lerpTimer / currentLerpDuration, 1);
           const moved = localP.x !== px || localP.y !== py;
           localP.prevX = localP.prevX + (localP.x - localP.prevX) * t;
           localP.prevY = localP.prevY + (localP.y - localP.prevY) * t;
@@ -920,8 +937,9 @@ export default function ArcadeRoomPage({
           if (isMobileRef.current) updateTouchMovement(dt);
 
           for (const p of playersRef.current.values()) {
-            p.lerpTimer = Math.min(p.lerpTimer + dt, LERP_DURATION);
-            if (p.lerpTimer >= LERP_DURATION) {
+            const currentLerpDuration = p.lerpDuration ?? LERP_DURATION;
+            p.lerpTimer = Math.min(p.lerpTimer + dt, currentLerpDuration);
+            if (p.lerpTimer >= currentLerpDuration) {
               // Grace period absorbs network jitter between consecutive moves
               // (MOVE_INTERVAL is ~150ms + round-trip). Without this the
               // walk animation snaps back to idle every step.
@@ -980,7 +998,8 @@ export default function ArcadeRoomPage({
           {
             const lp = playersRef.current.get(localIdRef.current);
             if (lp) {
-              const t = Math.min(lp.lerpTimer / LERP_DURATION, 1);
+              const currentLerpDuration = lp.lerpDuration ?? LERP_DURATION;
+              const t = Math.min(lp.lerpTimer / currentLerpDuration, 1);
               const lpx =
                 (lp.prevX + (lp.x - lp.prevX) * t) * tileSize + tileSize / 2;
               const lpy =
@@ -1069,7 +1088,8 @@ export default function ArcadeRoomPage({
           // Update camera to follow local player
           const camTarget = playersRef.current.get(localIdRef.current);
           if (camTarget && mapRef.current) {
-            const ct = Math.min(camTarget.lerpTimer / LERP_DURATION, 1);
+            const currentLerpDuration = camTarget.lerpDuration ?? LERP_DURATION;
+            const ct = Math.min(camTarget.lerpTimer / currentLerpDuration, 1);
             const cpx =
               (camTarget.prevX + (camTarget.x - camTarget.prevX) * ct) *
                 tileSize +
@@ -1087,7 +1107,8 @@ export default function ArcadeRoomPage({
 
           const renderPlayers: RenderPlayer[] = [];
           for (const p of playersRef.current.values()) {
-            const rawT = Math.min(p.lerpTimer / LERP_DURATION, 1);
+            const currentLerpDuration = p.lerpDuration ?? LERP_DURATION;
+            const rawT = Math.min(p.lerpTimer / currentLerpDuration, 1);
             const t = 1 - Math.pow(1 - rawT, 3); // cubic ease-out
 
             const rx = (p.prevX + (p.x - p.prevX) * t) * tileSize;
@@ -1124,7 +1145,29 @@ export default function ArcadeRoomPage({
       setPetEnabled(!!loadout.pet_id);
       if (loadout.pet_id) setActivePet(loadout.pet_id);
       spriteIdRef.current = 0;
-      connect(token, connectCallbacks(), 0, slug!);
+
+      // Get spawn coordinates from map or fallback to default
+      let startX = 2;
+      let startY = 2;
+      const spawns = getSpawns();
+      if (spawns.length > 0) {
+        const randSpawn = spawns[Math.floor(Math.random() * spawns.length)];
+        startX = randSpawn.x;
+        startY = randSpawn.y;
+      } else if (slug === "ixotopia") {
+        startX = 41;
+        startY = 35;
+      }
+
+      // Snap camera initially to the spawn point
+      const ts = map.tileSize;
+      snapCamera(
+        startX * ts + ts / 2,
+        startY * ts + ts / 2,
+        map,
+      );
+
+      connect(token, connectCallbacks(), 0, slug!, startX, startY);
     }
 
     if (slug) init();

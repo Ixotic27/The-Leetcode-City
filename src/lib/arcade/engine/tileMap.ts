@@ -208,9 +208,10 @@ export function isWalkable(x: number, y: number): boolean {
 
 export function getSpawns(): Array<{ x: number; y: number }> {
   if (!currentMap) return [{ x: 12, y: 15 }];
-  return currentMap.objects
+  const list = (currentMap.objects ?? [])
     .filter((o) => o.type === "spawn")
     .map((o) => ({ x: o.x, y: o.y }));
+  return list.length > 0 ? list : [{ x: 12, y: 15 }];
 }
 
 export function getRandomSpawn(): { x: number; y: number } {

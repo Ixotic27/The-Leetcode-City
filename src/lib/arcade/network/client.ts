@@ -32,6 +32,9 @@ let localAvatarUrl = "";
 let localSpriteId = 0;
 let localLoadout: AvatarLoadout | null = null;
 let localToken = "";
+let initialStartX = 2;
+let initialStartY = 2;
+let unloadHandler: (() => void) | null = null;
 
 let lastPresenceTrack = 0;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -45,6 +48,8 @@ export function connect(
   callbacks: ArcadeCallbacks,
   spriteId?: number,
   slug: string = "lobby",
+  startX: number = 2,
+  startY: number = 2,
 ): void {
   if (channel) {
     disconnect();
@@ -53,6 +58,8 @@ export function connect(
   currentCallbacks = callbacks;
   currentSlug = slug;
   localToken = token;
+  initialStartX = startX;
+  initialStartY = startY;
   if (spriteId !== undefined) {
     localSpriteId = spriteId;
   }
@@ -212,9 +219,7 @@ export function connect(
         if (subStatus === "SUBSCRIBED") {
           callbacks.onStatusChange("connected");
 
-          // Start position in room
-          const startX = 2;
-          const startY = 2;
+           // Start position in room
           recentPositions.set(localUserId, { x: startX, y: startY, dir: "down" });
 
           chan.track({
@@ -240,6 +245,27 @@ export function connect(
           };
           sendHeartbeat();
           heartbeatInterval = setInterval(sendHeartbeat, 20000);
+
+          // Register unload handlers for immediate cleanup
+          unloadHandler = () => {
+            if (localUserId && localToken) {
+              const sbUrl = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+              const sbKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+              if (sbUrl && sbKey) {
+                const url = `${sbUrl}/rest/v1/arcade_active_players?user_id=eq.${localUserId}`;
+                fetch(url, {
+                  method: "DELETE",
+                  headers: {
+                    apikey: sbKey,
+                    Authorization: `Bearer ${localToken}`,
+                  },
+                  keepalive: true,
+                });
+              }
+            }
+          };
+          window.addEventListener("pagehide", unloadHandler);
+          window.addEventListener("beforeunload", unloadHandler);
         } else if (subStatus === "CLOSED" || subStatus === "CHANNEL_ERROR") {
           callbacks.onStatusChange("reconnecting");
         }
@@ -362,7 +388,7 @@ export function sendSit(x: number, y: number, dir: "up" | "down" | "left" | "rig
 
 export function sendStand(): void {
   if (!channel) return;
-  const currentPos = recentPositions.get(localUserId) || { x: 2, y: 2, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
 
   channel.send({
     type: "broadcast",
@@ -400,7 +426,7 @@ export function sendAvatar(spriteId: number): void {
     },
   });
 
-  const currentPos = recentPositions.get(localUserId) || { x: 2, y: 2, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
   channel.track({
     github_login: localGithubLogin,
     avatar_url: localAvatarUrl,
@@ -427,7 +453,7 @@ export function sendLoadout(loadout: AvatarLoadout): void {
     },
   });
 
-  const currentPos = recentPositions.get(localUserId) || { x: 2, y: 2, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
   channel.track({
     github_login: localGithubLogin,
     avatar_url: localAvatarUrl,
@@ -516,6 +542,12 @@ export function disconnect(): void {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
+  }
+
+  if (unloadHandler) {
+    window.removeEventListener("pagehide", unloadHandler);
+    window.removeEventListener("beforeunload", unloadHandler);
+    unloadHandler = null;
   }
 
   // Remove player presence heartbeat from DB immediately on active disconnect
