@@ -116,6 +116,16 @@ const fragmentShader = /* glsl */ `
     // Exclude tinted face pixels from being treated as windows
     float isWindow = step(0.12, length(wallColor - uFaceColor)) * (1.0 - preTintFace * step(0.5, vTint.a));
     float totalSolved = vLcStats.x + vLcStats.y + vLcStats.z;
+    float milestoneStrength = 0.0;
+
+if (totalSolved >= 1000.0)
+    milestoneStrength = 0.8;
+else if (totalSolved >= 500.0)
+    milestoneStrength = 0.6;
+else if (totalSolved >= 300.0)
+    milestoneStrength = 0.4;
+else if (totalSolved >= 100.0)
+    milestoneStrength = 0.2;
     if (totalSolved > 0.01 && isRoof < 0.5 && isWindow > 0.5) {
       float easyEdge = vLcStats.x / totalSolved;
       float medEdge = easyEdge + (vLcStats.y / totalSolved);
@@ -165,6 +175,7 @@ const fragmentShader = /* glsl */ `
     }
 
     vec3 color = mix(wallFinal, roofFinal, isRoof);
+    color += milestoneStrength * vec3(1.0, 0.85, 0.25);
 
     // Directional light changes based on time
     vec3 lightDir = normalize(vec3(0.3, mix(0.2, 1.0, uTimeOfDay), 0.5));
