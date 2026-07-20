@@ -7,14 +7,32 @@ export type CityLoadOptions = {
   to: number;
 };
 
+type CityLoadSuccessBody = {
+  developers: Array<Record<string, CitySerializableValue>>;
+  stats: Record<string, CitySerializableValue>;
+};
+
+type CityLoadErrorBody = {
+  error: string;
+};
+
 export type CityLoadResponse = {
   status: number;
   headers: Record<string, string>;
-  body: {
-    developers: Array<Record<string, CitySerializableValue>>;
-    stats: Record<string, CitySerializableValue>;
-  };
+  body: CityLoadSuccessBody | CityLoadErrorBody;
 };
+
+function cityLoadError(): CityLoadResponse {
+  return {
+    status: 500,
+    headers: { "Cache-Control": "no-store" },
+    body: { error: "Failed to load city data" },
+  };
+}
+
+function hasQueryError(...results: Array<{ error: unknown }>): boolean {
+  return results.some((result) => result.error !== null && result.error !== undefined);
+}
 
 export class CityService {
   private readonly admin: SupabaseClient;
@@ -41,6 +59,10 @@ export class CityService {
       sb.from("city_stats").select("*").eq("id", 1).single(),
       sb.from("items").select("metadata").eq("id", "support_renewal").maybeSingle(),
     ]);
+
+    if (hasQueryError(devsResult, statsResult, supportProgressResult)) {
+      return cityLoadError();
+    }
 
     const devs = (devsResult.data ?? []) as Array<CityDeveloperLike>;
     const devIds = devs.map((d) => Number(d.id));
@@ -93,6 +115,16 @@ export class CityService {
         .in("building_id", devIds)
         .eq("active", true),
     ]);
+
+    if (hasQueryError(
+      purchasesResult,
+      giftPurchasesResult,
+      customizationsResult,
+      achievementsResult,
+      raidTagsResult,
+    )) {
+      return cityLoadError();
+    }
 
     const ownedItemsMap: Record<number, string[]> = {};
     for (const row of purchasesResult.data ?? []) {
