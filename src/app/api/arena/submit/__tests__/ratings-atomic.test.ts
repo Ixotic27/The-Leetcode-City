@@ -53,7 +53,17 @@ function setupMocks({
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     insert: vi.fn().mockResolvedValue({ error: insertError }),
   };
-  mockFrom.mockReturnValue(chainDefault);
+
+  mockFrom.mockImplementation((table: string) => {
+    if (table === "arena_problems") {
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({ data: { id: "two-sum" }, error: null }),
+      };
+    }
+    return chainDefault;
+  });
 
   mockRpc.mockImplementation((name: string) => {
     if (name === "claim_first_solve")
