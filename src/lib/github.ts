@@ -777,7 +777,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
     // Plaza at center of the district [0, 0] relative
     if (addPlaza) {
       const px = origin[0];
-      const pcz = origin[2];
+      const pcz = origin[2]+150;
       plazas.push({
         position: [px, 0, pcz],
         size: Math.min(BLOCK_FOOTPRINT_X, BLOCK_FOOTPRINT_Z) * 0.8,
