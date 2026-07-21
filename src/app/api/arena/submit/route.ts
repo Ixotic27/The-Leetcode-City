@@ -238,7 +238,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  // 3. Process rewards only for accepted submissions
   const isAccepted = status === "accepted";
   let grantedXp = 0;
   let grantedPoints = 0;
@@ -270,36 +269,33 @@ export async function POST(request: NextRequest) {
     grantedXp = Math.round(baseXp * xpMultiplier);
     grantedPoints = Math.round(basePoints * pointsMultiplier);
 
-    // Atomic first-solve claim — INSERT (ON CONFLICT DO NOTHING inside Postgres)
-    // Only the first concurrent caller wins (won_race = true).
-    const { data: claimResult, error: claimError } = await sb.rpc(
-      "claim_first_solve",
+    const claimResponse = await sb.rpc(
+      "claim_first_solve_and_update_arena_ratings_atomic",
       {
         p_user_id: dev.id,
+        p_is_accepted: isAccepted,
         p_challenge_id: challenge_id || null,
         p_problem_id: challenge_id ? null : problem_id,
         p_points: grantedPoints,
         p_xp: grantedXp,
+        p_source: `arena_${difficulty}`,
+        p_difficulty: difficulty,
+        p_timezone: devTimezone,
       },
     );
 
-    if (claimError) {
-      console.error("[arena/submit] claim_first_solve error:", claimError);
+    if (claimResponse.error) {
+      console.error("[arena/submit] claim_first_solve_and_update_arena_ratings_atomic error:", claimResponse.error);
       return NextResponse.json(
         { error: "Failed to process submission" },
         { status: 500 },
       );
     }
 
+    const claimResult = claimResponse.data;
     isFirstSolve = claimResult?.[0]?.won_race === true;
 
     if (isFirstSolve) {
-      await sb.rpc("grant_xp_atomic", {
-        p_developer_id: dev.id,
-        p_source: `arena_${difficulty}`,
-        p_amount: grantedXp,
-      });
-
       droppedItems = await rollItemDrops(sb, difficulty, dev.id);
 
       // Track arena solve to update relic progress atomically
@@ -326,30 +322,22 @@ export async function POST(request: NextRequest) {
         console.error("[arena/submit] Failed to track arena solve for relic:", err);
       }
     }
-  }
+  } else {
+    const { error: ratingsError } = await sb.rpc("update_arena_ratings_atomic", {
+      p_user_id: dev.id,
+      p_is_accepted: false,
+      p_is_first_solve: false,
+      p_difficulty: difficulty,
+      p_timezone: devTimezone,
+    });
 
-  /**
-   4. Update rating and streak statistics atomically via DB function.
-      p_timezone ensures streak boundaries are evaluated in the developer's local date,
-      not always UTC — fixing the bug where a solve at e.g. 23:30 IST broke a streak.
-  */
-  const { error: ratingsError } = await sb.rpc("update_arena_ratings_atomic", {
-    p_user_id: dev.id,
-    p_is_accepted: isAccepted,
-    p_is_first_solve: isFirstSolve,
-    p_difficulty: difficulty,
-    p_timezone: devTimezone,
-  });
-
-  if (ratingsError) {
-    console.error(
-      "[arena/submit] update_arena_ratings_atomic error:",
-      ratingsError,
-    );
-    return NextResponse.json(
-      { error: "Failed to update ratings" },
-      { status: 500 },
-    );
+    if (ratingsError) {
+      console.error("[arena/submit] update_arena_ratings_atomic error:", ratingsError);
+      return NextResponse.json(
+        { error: "Failed to update ratings" },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({

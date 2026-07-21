@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "./supabase";
 import { getResend } from "./resend";
 import { getDeveloperEmail, isRecentlyActive } from "./notification-helpers";
 import { wrapInBaseTemplate } from "./email-template";
+import { DEFAULT_PREFS, evaluateNotificationPolicy, type NotificationPrefs } from "./notification-policy";
  
 // ── Types ──
  
@@ -172,23 +173,11 @@ async function processChannel(
   payload: NotificationPayload,
   prefs: NotificationPrefs,
 ): Promise<SendResult> {
-  // 1. Check channel master toggle
-  if (!payload.forceSend) {
-    if (channel === "email" && !prefs.email_enabled) {
-      return { channel, success: false, skipped: "channel_disabled" };
-    }
-    if (channel === "push" && !prefs.push_enabled) {
-      return { channel, success: false, skipped: "channel_disabled" };
-    }
+  const policyDecision = evaluateNotificationPolicy({ channel, payload, prefs });
+  if (!policyDecision.allowed) {
+    return { channel, success: false, skipped: policyDecision.skipReason };
   }
- 
-  // 2. Check category preference (with channel_overrides)
-  if (!payload.forceSend) {
-    if (!getCategoryEnabled(prefs, channel, payload.category)) {
-      return { channel, success: false, skipped: "category_disabled" };
-    }
-  }
- 
+
   // 3. Dedup check
   if (payload.dedupKey) {
     const { data: existing } = await sb
@@ -213,7 +202,7 @@ async function processChannel(
   }
  
   // 5. Batching: if low priority and user prefers digests, batch instead of sending
-  if (shouldBatch(payload, prefs)) {
+  if (policyDecision.shouldBatch) {
     return await addToBatch(sb, channel, payload);
   }
  
@@ -229,15 +218,7 @@ async function processChannel(
 }
  
 // ── Batching ──
- 
-function shouldBatch(payload: NotificationPayload, prefs: NotificationPrefs): boolean {
-  if (payload.priority === "high") return false;
-  if (payload.forceSend) return false;
-  if (!payload.batchKey) return false;
-  if (prefs.digest_frequency === "realtime") return false;
-  return true;
-}
- 
+
 async function addToBatch(
   sb: ReturnType<typeof getSupabaseAdmin>,
   channel: Channel,
@@ -567,34 +548,6 @@ async function dispatchInApp(
  
 // ── Preferences ──
  
-interface NotificationPrefs {
-  email_enabled: boolean;
-  push_enabled: boolean;
-  transactional: boolean;
-  social: boolean;
-  digest: boolean;
-  marketing: boolean;
-  streak_reminders: boolean;
-  digest_frequency: "realtime" | "hourly" | "daily" | "weekly";
-  quiet_hours_start: number | null;
-  quiet_hours_end: number | null;
-  channel_overrides: Record<string, Record<string, boolean>>;
-}
- 
-const DEFAULT_PREFS: NotificationPrefs = {
-  email_enabled: true,
-  push_enabled: true,
-  transactional: true,
-  social: true,
-  digest: true,
-  marketing: false,
-  streak_reminders: true,
-  digest_frequency: "realtime",
-  quiet_hours_start: null,
-  quiet_hours_end: null,
-  channel_overrides: {},
-};
- 
 async function getPreferences(devId: number): Promise<NotificationPrefs> {
   const sb = getSupabaseAdmin();
   const { data } = await sb
@@ -620,20 +573,7 @@ async function getPreferences(devId: number): Promise<NotificationPrefs> {
   };
 }
  
-/**
- * Check if a category is enabled for a specific channel.
- * Priority: channel_overrides > category toggle
- */
-function getCategoryEnabled(
-  prefs: NotificationPrefs,
-  channel: Channel,
-  category: NotificationCategory,
-): boolean {
-  const override = prefs.channel_overrides?.[channel]?.[category];
-  if (typeof override === "boolean") return override;
-  return prefs[category] ?? true;
-}
- 
+
 // ── Rate Limiting ──
  
 async function checkRateLimit(

@@ -53,9 +53,20 @@ function setupMocks({
     maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     insert: vi.fn().mockResolvedValue({ error: insertError }),
   };
-  mockFrom.mockReturnValue(chainDefault);
+
+  mockFrom.mockImplementation((table: string) => {
+    const chain = { ...chainDefault };
+
+    if (table === "arena_problems") {
+      chain.maybeSingle = vi.fn().mockResolvedValue({ data: { id: "any-problem" }, error: null });
+    }
+
+    return chain;
+  });
 
   mockRpc.mockImplementation((name: string) => {
+    if (name === "claim_first_solve_and_update_arena_ratings_atomic")
+      return Promise.resolve({ data: claimResult, error: ratingsError });
     if (name === "claim_first_solve")
       return Promise.resolve({ data: claimResult, error: null });
     if (name === "grant_xp_atomic")
@@ -86,7 +97,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
     );
 
     const rpcCalls = mockRpc.mock.calls.map(([name]) => name);
-    expect(rpcCalls).toContain("update_arena_ratings_atomic");
+    expect(rpcCalls).toContain("claim_first_solve_and_update_arena_ratings_atomic");
   });
 
   it("never calls arena_ratings.upsert directly from the route", async () => {
@@ -119,11 +130,10 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
     );
 
     expect(mockRpc).toHaveBeenCalledWith(
-      "update_arena_ratings_atomic",
+      "claim_first_solve_and_update_arena_ratings_atomic",
       expect.objectContaining({
-        p_user_id:        42,
-        p_is_accepted:    true,
-        p_is_first_solve: true,
+        p_user_id:     42,
+        p_is_accepted: true,
       })
     );
   });
@@ -140,10 +150,9 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
     );
 
     expect(mockRpc).toHaveBeenCalledWith(
-      "update_arena_ratings_atomic",
+      "claim_first_solve_and_update_arena_ratings_atomic",
       expect.objectContaining({
-        p_is_accepted:    true,
-        p_is_first_solve: false,
+        p_is_accepted: true,
       })
     );
   });
@@ -181,7 +190,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
     expect(res.status).toBe(500);
     const json = await res.json();
-    expect(json.error).toBe("Failed to update ratings");
+    expect(json.error).toBe("Failed to process submission");
   });
 
   it("still returns 500 on submission insert failure (pre-ratings path)", async () => {
