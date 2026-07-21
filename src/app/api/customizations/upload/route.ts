@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import sharp from "sharp";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_TYPES = new Set([
@@ -149,7 +150,7 @@ export async function POST(request: Request) {
   }
 
   // Upload file (overwrite on re-upload)
-  const fileBuffer = await file.arrayBuffer();
+  let fileBuffer: ArrayBuffer | Buffer = await file.arrayBuffer();
 
   // Detect MIME type from magic bytes — file.type comes from the client-controlled
   // Content-Type part header and cannot be trusted. Use the detected type as the
@@ -158,6 +159,20 @@ export async function POST(request: Request) {
   if (!detectedType || !ALLOWED_TYPES.has(detectedType)) {
     return NextResponse.json(
       { error: "File content does not match an allowed image type" },
+      { status: 400 }
+    );
+  }
+
+  // Strip EXIF metadata and auto-rotate
+  try {
+    fileBuffer = await sharp(Buffer.from(fileBuffer))
+      .rotate()
+      .withMetadata({})
+      .toBuffer();
+  } catch (err) {
+    console.error("Error processing image with sharp:", err);
+    return NextResponse.json(
+      { error: "Failed to process image" },
       { status: 400 }
     );
   }
