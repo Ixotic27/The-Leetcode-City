@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { checkAchievements } from "@/lib/achievements";
+import { coordinateRewardSideEffects } from "@/lib/rewardCoordinator";
 import { ITEM_NAMES } from "@/lib/zones";
 import { touchLastActive } from "@/lib/notification-helpers";
 import { sendStreakMilestoneNotification } from "@/lib/notification-senders/streak";
@@ -245,13 +245,52 @@ export async function POST() {
       .maybeSingle();
 
     if (!xpLogError) {
-      // Insert succeeded — we are the first instance, safe to grant XP
+      // Insert succeeded — we are the first instance, safe to grant XP and check achievements
       const { data: xpData } = await sb.rpc("grant_xp_atomic", {
         p_developer_id: dev.id,
         p_source: "checkin",
         p_amount: 10,
       });
       if (xpData) xpResult = xpData as { granted: number; new_total: number; new_level: number };
+
+      // Coordinate reward side effects: XP grant + achievement check + feed event
+      const eventDate = new Date().toISOString().split("T")[0];
+      const coordinationResult = await coordinateRewardSideEffects(sb as never, {
+        developerId: dev.id,
+        actorLogin: githubLogin,
+        stats: {
+          contributions: dev.contributions,
+          public_repos: dev.public_repos,
+          total_stars: dev.total_stars,
+          referral_count: 0,
+          kudos_count: dev.kudos_count ?? 0,
+          gifts_sent: 0,
+          gifts_received: 0,
+          app_streak: checkinResult.streak,
+          easy_solved: dev.easy_solved ?? 0,
+          medium_solved: dev.medium_solved ?? 0,
+          hard_solved: dev.hard_solved ?? 0,
+          contest_rating: dev.contest_rating ?? 0,
+          lc_streak: dev.lc_streak ?? 0,
+          total_prs: dev.total_prs ?? 0,
+        },
+        xpGrants: [], // XP already granted above via grant_xp_atomic RPC
+        feedEvent: {
+          event_type: "streak_checkin",
+          metadata: {
+            login: githubLogin,
+            streak: checkinResult.streak,
+            was_frozen: checkinResult.was_frozen ?? false,
+            reward: null, // Updated later if streak reward exists
+          },
+          actor_id: dev.id,
+          event_date: eventDate,
+          upsert: true,
+          onConflict: "actor_id,event_type,event_date",
+          ignoreDuplicates: true,
+        },
+      });
+      newAchievements = coordinationResult.newAchievements;
     } else if (!xpLogError.code?.includes("23505")) {
       // Unexpected error (not a duplicate) — log but don't crash
       console.error("[checkin] checkin_xp_log insert error:", xpLogError);
@@ -260,32 +299,6 @@ export async function POST() {
   }
 
   if (checkinResult.checked_in) {
-    // Check achievements with updated streak
-    const referralCount = 0; // Not fetched here, achievements will check existing unlocks
-    const giftsSent = 0;
-    const giftsReceived = 0;
-
-    newAchievements = await checkAchievements(
-      dev.id,
-      {
-        contributions: dev.contributions,
-        public_repos: dev.public_repos,
-        total_stars: dev.total_stars,
-        referral_count: referralCount,
-        kudos_count: dev.kudos_count ?? 0,
-        gifts_sent: giftsSent,
-        gifts_received: giftsReceived,
-        app_streak: checkinResult.streak,
-        easy_solved: dev.easy_solved ?? 0,
-        medium_solved: dev.medium_solved ?? 0,
-        hard_solved: dev.hard_solved ?? 0,
-        contest_rating: dev.contest_rating ?? 0,
-        lc_streak: dev.lc_streak ?? 0,
-        total_prs: dev.total_prs ?? 0,
-      },
-      githubLogin,
-    );
-
     // Grant 1 free freeze at 30-day streak milestone
     if (checkinResult.streak >= 30 && !dev.streak_freeze_30d_claimed) {
       await sb.rpc("grant_streak_freeze", { p_developer_id: dev.id });
@@ -310,23 +323,21 @@ export async function POST() {
       );
     }
 
-    // Upsert feed event — unique on (actor_id, event_type, event_date) so concurrent
-    // instances produce exactly one row rather than two.
-    const eventDate = new Date().toISOString().split("T")[0];
-    await sb.from("activity_feed").upsert(
-      {
-        event_type: "streak_checkin",
-        actor_id: dev.id,
-        event_date: eventDate,
+    // Update feed event with streak reward info (if exists)
+    if (streakReward) {
+      const eventDate = new Date().toISOString().split("T")[0];
+      await sb.from("activity_feed").update({
         metadata: {
           login: githubLogin,
           streak: checkinResult.streak,
           was_frozen: checkinResult.was_frozen ?? false,
-          reward: streakReward?.item_id ?? null,
+          reward: streakReward.item_id,
         },
-      },
-      { onConflict: "actor_id,event_type,event_date", ignoreDuplicates: true },
-    );
+      })
+      .eq("actor_id", dev.id)
+      .eq("event_type", "streak_checkin")
+      .eq("event_date", eventDate);
+    }
   }
 
   // Refresh weekly contributions from LeetCode

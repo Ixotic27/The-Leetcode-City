@@ -1,4 +1,4 @@
-import { checkAchievements } from "@/lib/achievements";
+import { coordinateRewardSideEffects } from "@/lib/rewardCoordinator";
 import { getDailyMissions, getTodayStr, MISSIONS_BY_ID, type Mission } from "@/lib/dailies";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -68,11 +68,9 @@ export type DailyMissionClaimPayload = {
 
 export class DailyMissionService {
   private readonly admin: SupabaseClient;
-  private readonly checkAchievementsFn: typeof checkAchievements;
 
-  constructor(admin?: SupabaseClient, checkAchievementsFn: typeof checkAchievements = checkAchievements) {
+  constructor(admin?: SupabaseClient) {
     this.admin = admin ?? getSupabaseAdmin();
-    this.checkAchievementsFn = checkAchievementsFn;
   }
 
   async loadMissionSummary(developer: DailyMissionDeveloper, options?: { isMobile?: boolean; today?: string }): Promise<DailyMissionSummary> {
@@ -194,7 +192,6 @@ export class DailyMissionService {
 
     const pointsGranted = 15;
     const xpGranted = 25;
-    await this.admin.rpc("grant_xp_atomic", { p_developer_id: developer.id, p_source: "dailies", p_amount: xpGranted });
 
     let freezeGranted = false;
     if (claimResult.total !== undefined && claimResult.total % 7 === 0) {
@@ -217,19 +214,11 @@ export class DailyMissionService {
       }
     }
 
-    await this.admin.from("activity_feed").insert({
-      event_type: "dailies_completed",
-      actor_id: developer.id,
-      metadata: {
-        login: developer.github_login ?? "",
-        streak: claimResult.streak ?? 0,
-        total: claimResult.total ?? 0,
-      },
-    });
-
-    await this.checkAchievementsFn(
-      developer.id,
-      {
+    // Coordinate reward side effects: XP grant + achievement check + feed event
+    await coordinateRewardSideEffects(this.admin as never, {
+      developerId: developer.id,
+      actorLogin: developer.github_login ?? "",
+      stats: {
         contributions: developer.contributions ?? 0,
         public_repos: developer.public_repos ?? 0,
         total_stars: developer.total_stars ?? 0,
@@ -245,8 +234,17 @@ export class DailyMissionService {
         lc_streak: developer.lc_streak ?? 0,
         total_prs: developer.total_prs ?? 0,
       },
-      developer.github_login ?? "",
-    );
+      xpGrants: [{ source: "dailies", amount: xpGranted }],
+      feedEvent: {
+        event_type: "dailies_completed",
+        metadata: {
+          login: developer.github_login ?? "",
+          streak: claimResult.streak ?? 0,
+          total: claimResult.total ?? 0,
+        },
+        actor_id: developer.id,
+      },
+    });
 
     return {
       ok: true,

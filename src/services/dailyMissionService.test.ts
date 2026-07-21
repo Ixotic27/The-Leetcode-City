@@ -106,7 +106,7 @@ describe("DailyMissionService", () => {
     const admin = new FakeSupabaseClient({
       developers: { id: 7, github_login: "octocat", claimed: true, last_checkin_date: "2026-07-16", last_dailies_date: null },
     });
-    const service = new DailyMissionService(admin as never, async () => []);
+    const service = new DailyMissionService(admin as never);
 
     const summary = await service.loadMissionSummary({
       id: 7,
@@ -123,7 +123,7 @@ describe("DailyMissionService", () => {
 
   it("rejects progress updates for missions that are not assigned today", async () => {
     const admin = new FakeSupabaseClient({ developers: { id: 8, claimed: true } });
-    const service = new DailyMissionService(admin as never, async () => []);
+    const service = new DailyMissionService(admin as never);
 
     await expect(
       service.updateProgress({ developerId: 8, missionId: "fly_score_150", increment: 1, isMobile: false, today: "2026-07-16" }),
@@ -136,7 +136,7 @@ describe("DailyMissionService", () => {
       developers: { id: 9, github_login: "octocat", claimed: true, last_dailies_date: null },
       daily_mission_progress: missions.map((mission) => ({ mission_id: mission.id, completed: true })),
     });
-    const service = new DailyMissionService(admin as never, async () => []);
+    const service = new DailyMissionService(admin as never);
 
     const result = await service.claimReward({
       developer: { id: 9, github_login: "octocat", claimed: true, last_dailies_date: null },
