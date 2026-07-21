@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { serializeDeveloper } from "@/lib/serialize";
+import { buildDeveloperProjection } from "@/services/cityProjection";
 
 const STORAGE_BUCKET = "city-data";
 const STORAGE_PATH = "snapshot.json";
@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Merge
-  const developers = devs.map((dev) => serializeDeveloper({
+  const developers = devs.map((dev) => buildDeveloperProjection({
     ...dev,
     kudos_count: dev.kudos_count ?? 0,
     visit_count: dev.visit_count ?? 0,
