@@ -31,6 +31,10 @@ vi.mock("@/lib/achievements", () => ({
   checkAchievements: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock("@/lib/rewardCoordinator", () => ({
+  coordinateRewardSideEffects: vi.fn().mockResolvedValue({ newAchievements: [] }),
+}));
+
 vi.mock("@/lib/notification-helpers", () => ({
   touchLastActive: vi.fn().mockResolvedValue(undefined),
 }));

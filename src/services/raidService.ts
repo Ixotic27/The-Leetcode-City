@@ -1,4 +1,4 @@
-import { checkAchievements } from "@/lib/achievements";
+import { coordinateRewardSideEffects } from "@/lib/rewardCoordinator";
 import { touchLastActive } from "@/lib/notification-helpers";
 import { sendRaidAlertNotification } from "@/lib/notification-senders/raid";
 import { trackDailyMission } from "@/lib/dailies";
@@ -176,40 +176,55 @@ export class RaidService {
     const newAttackerXp = updatedAttacker?.raid_xp ?? ((attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0));
     const newDefenderXp = updatedDefender?.raid_xp ?? ((defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER));
 
-    const [attackerAchievements] = await Promise.all([
-      checkAchievements(attacker.id, {
-        contributions: attacker.contributions ?? 0,
-        public_repos: attacker.public_repos ?? 0,
-        total_stars: attacker.total_stars ?? 0,
-        referral_count: 0,
-        kudos_count: attacker.kudos_count ?? 0,
-        gifts_sent: 0,
-        gifts_received: 0,
-        raid_xp: newAttackerXp,
-        easy_solved: attacker.easy_solved ?? 0,
-        medium_solved: attacker.medium_solved ?? 0,
-        hard_solved: attacker.hard_solved ?? 0,
-        contest_rating: attacker.contest_rating ?? 0,
-        lc_streak: attacker.lc_streak ?? 0,
-        total_prs: attacker.total_prs ?? 0,
-      }, attacker.github_login),
-      checkAchievements(defender.id, {
-        contributions: defender.contributions ?? 0,
-        public_repos: defender.public_repos ?? 0,
-        total_stars: defender.total_stars ?? 0,
-        referral_count: 0,
-        kudos_count: defender.kudos_count ?? 0,
-        gifts_sent: 0,
-        gifts_received: 0,
-        raid_xp: newDefenderXp,
-        easy_solved: defender.easy_solved ?? 0,
-        medium_solved: defender.medium_solved ?? 0,
-        hard_solved: defender.hard_solved ?? 0,
-        contest_rating: defender.contest_rating ?? 0,
-        lc_streak: defender.lc_streak ?? 0,
-        total_prs: defender.total_prs ?? 0,
-      }, defender.github_login),
+    // Coordinate achievement checks for both attacker and defender (no additional XP grants)
+    const [attackerAchievementsResult] = await Promise.all([
+      coordinateRewardSideEffects(this.admin as never, {
+        developerId: attacker.id,
+        actorLogin: attacker.github_login,
+        stats: {
+          contributions: attacker.contributions ?? 0,
+          public_repos: attacker.public_repos ?? 0,
+          total_stars: attacker.total_stars ?? 0,
+          referral_count: 0,
+          kudos_count: attacker.kudos_count ?? 0,
+          gifts_sent: 0,
+          gifts_received: 0,
+          raid_xp: newAttackerXp,
+          easy_solved: attacker.easy_solved ?? 0,
+          medium_solved: attacker.medium_solved ?? 0,
+          hard_solved: attacker.hard_solved ?? 0,
+          contest_rating: attacker.contest_rating ?? 0,
+          lc_streak: attacker.lc_streak ?? 0,
+          total_prs: attacker.total_prs ?? 0,
+        },
+        xpGrants: [], // XP already granted in handlePostExecution
+        feedEvent: undefined, // Raid feed event already written in handlePostExecution
+      }),
+      coordinateRewardSideEffects(this.admin as never, {
+        developerId: defender.id,
+        actorLogin: defender.github_login,
+        stats: {
+          contributions: defender.contributions ?? 0,
+          public_repos: defender.public_repos ?? 0,
+          total_stars: defender.total_stars ?? 0,
+          referral_count: 0,
+          kudos_count: defender.kudos_count ?? 0,
+          gifts_sent: 0,
+          gifts_received: 0,
+          raid_xp: newDefenderXp,
+          easy_solved: defender.easy_solved ?? 0,
+          medium_solved: defender.medium_solved ?? 0,
+          hard_solved: defender.hard_solved ?? 0,
+          contest_rating: defender.contest_rating ?? 0,
+          lc_streak: defender.lc_streak ?? 0,
+          total_prs: defender.total_prs ?? 0,
+        },
+        xpGrants: [], // XP already granted in handlePostExecution
+        feedEvent: undefined, // Raid feed event already written in handlePostExecution
+      }),
     ]);
+
+    const attackerAchievements = attackerAchievementsResult.newAchievements;
 
     const xpEarned = success ? XP_WIN_ATTACKER : 0;
 
