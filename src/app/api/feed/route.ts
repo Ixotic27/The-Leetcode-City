@@ -40,7 +40,8 @@ export async function GET(request: Request) {
       created_at
     `)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("id", { ascending: false })
+    .limit(limit + 1);
 
   if (todayOnly) {
     const today = new Date().toISOString().split("T")[0];
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
   if (before) {
     const { data: cursor } = await sb
       .from("activity_feed")
-      .select("created_at")
+      .select("id, created_at")
       .eq("id", before)
       .maybeSingle();
 
@@ -61,7 +62,9 @@ export async function GET(request: Request) {
       );
     }
 
-    query = query.lt("created_at", cursor.created_at);
+    query = query.or(
+      `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
+    );
   }
 
   let events = (await query).data ?? [];
@@ -73,7 +76,8 @@ export async function GET(request: Request) {
       .select("id, event_type, actor_id, target_id, metadata, created_at")
       .gte("created_at", weekAgo)
       .order("created_at", { ascending: false })
-      .limit(limit);
+      .order("id", { ascending: false })
+      .limit(limit + 1);
 
     if (recent && recent.length > events.length) {
       events = recent;
@@ -84,6 +88,9 @@ export async function GET(request: Request) {
     const synthetic = await generateSyntheticEvents(sb, MIN_EVENTS - events.length);
     events = [...events, ...synthetic];
   }
+
+  const hasMore = events.length > limit;
+  events = events.slice(0, limit);
 
   if (events.length === 0) {
     return NextResponse.json(
@@ -119,7 +126,7 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       events: enriched,
-      has_more: events.length === limit,
+      has_more: hasMore,
     },
     {
       headers: {
