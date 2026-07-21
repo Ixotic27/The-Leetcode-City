@@ -190,11 +190,16 @@ export async function POST(request: Request) {
   if (equippedIds.length > 0) {
     try {
       // Check ownership (free items + purchased items)
-      const { data: owned } = await admin
+      const { data: owned, error } = await admin
         .from("arcade_inventory")
         .select("item_id")
         .eq("developer_id", dev.id)
         .in("item_id", equippedIds);
+
+      if (error) {
+        console.warn("Could not verify item ownership from database:", error);
+        return NextResponse.json({ error: "Failed to verify item ownership" }, { status: 500 });
+      }
 
       const ownedSet = new Set((owned ?? []).map((r) => r.item_id));
       const notOwned = equippedIds.filter((id) => !ownedSet.has(id));
@@ -205,8 +210,9 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
-    } catch (e) {
-      console.warn("Could not verify item ownership from database:", e);
+    } catch (error) {
+      console.warn("Could not verify item ownership from database:", error);
+      return NextResponse.json({ error: "Failed to verify item ownership" }, { status: 500 });
     }
   }
 
