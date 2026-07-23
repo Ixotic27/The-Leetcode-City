@@ -251,6 +251,35 @@ export async function checkAchievements(
   return newUnlocks.map((a) => a.id);
 }
 
+/**
+ * Count completed gift purchases sent or received by a developer.
+ * "sent": purchases they paid for that were gifted to someone else.
+ * "received": purchases gifted to them by someone else.
+ *
+ * Throws if the underlying Supabase query fails, instead of silently
+ * treating a database error the same as "zero gifts" — a query failure
+ * (timeout, connection issue, schema change) should never be mistaken
+ * for a real gift count of 0, since that could permanently block a
+ * gift-based achievement from ever unlocking.
+ */
+export async function countGifts(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  devId: number,
+  direction: "sent" | "received"
+): Promise<number> {
+  const column = direction === "sent" ? "developer_id" : "gifted_to";
+  const { count, error } = await admin
+    .from("purchases")
+    .select("id", { count: "exact", head: true })
+    .eq(column, devId)
+    .eq("status", "completed")
+    .not("gifted_to", "is", null);
+  if (error) {
+    throw new Error(`countGifts(${direction}) query failed: ${error.message}`);
+  }
+  return count ?? 0;
+}
+
 /** Max IDs per Supabase `.in()` query to avoid URL length limits. */
 const CHUNK_SIZE = 500;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createServerSupabase } from "@/lib/supabase-server";
+import { checkAchievements, countGifts } from "@/lib/achievements";
 
 export const dynamic = "force-dynamic";
 
@@ -204,8 +205,7 @@ export async function GET(
     }
   }
 
-  // Rate limit check
-  // Bypass rate limit for authenticated force-refreshes (e.g., the ↻ button in the building card)
+  
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   if (!cachedRecord) {
@@ -357,10 +357,38 @@ export async function GET(
         return NextResponse.json({ error: "Database error" }, { status: 500 });
       }
       upserted = upsertedResult;
+
+      try {
+        const [giftsSent, giftsReceived] = await Promise.all([
+          countGifts(sb, upserted.id, "sent"),
+          countGifts(sb, upserted.id, "received"),
+        ]);
+
+        await checkAchievements(
+          upserted.id,
+          {
+            contributions: upserted.contributions,
+            public_repos: upserted.public_repos,
+            total_stars: upserted.total_stars,
+            referral_count: upserted.referral_count ?? 0,
+            kudos_count: upserted.kudos_count ?? 0,
+            gifts_sent: giftsSent,
+            gifts_received: giftsReceived,
+            easy_solved: upserted.easy_solved ?? 0,
+            medium_solved: upserted.medium_solved ?? 0,
+            hard_solved: upserted.hard_solved ?? 0,
+            contest_rating: upserted.contest_rating ?? 0,
+            lc_streak: upserted.lc_streak ?? 0,
+          },
+          upserted.github_login,
+        );
+      } catch (err) {
+        console.error("[dev/[username]] achievement check failed:", err);
+      }
     }
   }
 
-  // Round 2: Fetch customizations and items to return a full building record
+  
   const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
     sb
       .from("purchases")
