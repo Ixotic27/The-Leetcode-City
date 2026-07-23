@@ -497,7 +497,7 @@ export default function CityHUD() {
                     </Link>
                   </div>
 
-                  {/* Row 3: Shop and Arena (Smaller buttons, side-by-side) */}
+                  {/* Row 3: Shop, Compare and Arena (Smaller buttons, side-by-side) */}
                   <div className="flex w-full items-center justify-center gap-3 mt-1.5">
                     <Link
                       href={shopHref}
@@ -505,6 +505,13 @@ export default function CityHUD() {
                       style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
                     >
                       🛍️ SHOP
+                    </Link>
+                    <Link
+                      href="/compare"
+                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
+                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
+                    >
+                      ⚖️ COMPARE
                     </Link>
                     <Link
                       href="/arena"

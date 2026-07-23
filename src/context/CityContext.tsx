@@ -51,6 +51,7 @@ import {
 } from "@/lib/himetrica";
 import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
 import { getCityCache, setCityCache, clearCityCache } from "@/lib/cityCache";
+import { getTodaySeed, seedToDate, getSeedForDate } from "@/lib/fly-seed";
 
 export type CityDeveloperRecord = DeveloperRecord & {
   loadout?: unknown;
@@ -823,10 +824,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
       if (finalScore > 0) {
         try {
-          const now = new Date();
-          const start = new Date(now.getFullYear(), 0, 0);
-          const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-          const currentSeed = `${now.getFullYear()}-${dayOfYear}`;
+          const currentSeed = getTodaySeed();
           const raw = localStorage.getItem("leetcodecity_fly_history");
           const hist = raw
             ? JSON.parse(raw)
@@ -837,8 +835,9 @@ export function CityProvider({ children }: { children: ReactNode }) {
             playCount: (prev?.playCount ?? 0) + 1,
           };
           if (hist.lastPlayedSeed !== currentSeed) {
-            const yesterdayDay = dayOfYear - 1;
-            const yesterdaySeed = yesterdayDay >= 1 ? `${now.getFullYear()}-${yesterdayDay}` : `${now.getFullYear() - 1}-365`;
+            const curDate = seedToDate(currentSeed);
+            curDate.setUTCDate(curDate.getUTCDate() - 1);
+            const yesterdaySeed = getSeedForDate(curDate);
             if (hist.lastPlayedSeed === yesterdaySeed) {
               hist.currentStreak = (hist.currentStreak || 0) + 1;
             } else {
@@ -1636,10 +1635,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
         if (!raw) return;
         const hist = JSON.parse(raw);
         if (!hist.seeds || Object.keys(hist.seeds).length === 0) return;
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 0);
-        const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000);
-        const currentSeed = `${now.getFullYear()}-${dayOfYear}`;
+        const currentSeed = getTodaySeed();
         if (hist.seeds[currentSeed]) return;
         setShowDailyNudge(true);
         const autoDismiss = setTimeout(() => setShowDailyNudge(false), 15000);

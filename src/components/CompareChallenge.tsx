@@ -17,7 +17,7 @@ export default function CompareChallenge({ login, accent, shadow }: Props) {
     e.preventDefault();
     const trimmed = rival.trim().replace(/^@/, "");
     if (trimmed && trimmed.toLowerCase() !== login.toLowerCase()) {
-      router.push(`/?compare=${encodeURIComponent(login)},${encodeURIComponent(trimmed)}`);
+      router.push(`/compare?a=${encodeURIComponent(login)}&b=${encodeURIComponent(trimmed)}`);
     }
   };
 

@@ -4,14 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { trackDailyMission } from "@/lib/dailies";
 import { buildFlyLeaderboard, type FlyScoreRow } from "@/lib/fly-leaderboard";
-
-function getTodaySeed() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / 86400000);
-  return `${now.getFullYear()}-${dayOfYear}`;
-}
+import { getTodaySeed } from "@/lib/fly-seed";
 
 function maxScoreForCollected(collected: number): number {
   if (collected <= 0) return 0;

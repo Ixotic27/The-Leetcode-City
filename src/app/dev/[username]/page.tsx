@@ -515,6 +515,14 @@ export default async function DevPage({ params }: Props) {
             />
           </div>
           {!isOwner && <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />}
+          <div className="text-center mt-2">
+            <Link
+              href={`/compare?a=${dev.github_login}`}
+              className="text-[10px] text-[#ffa116] hover:underline tracking-wider uppercase"
+            >
+              ⚖️ Compare @{dev.github_login} with someone else
+            </Link>
+          </div>
         </div>
 
         {/* Stats Grid — LeetCode Metrics */}

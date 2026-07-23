@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLeaderboardAuth } from "@/components/LeaderboardYouBadge";
 import Skeleton from "@/components/Skeleton";
+import { getTodaySeed, seedToDate, getSeedForDate } from "@/lib/fly-seed";
 
 const ACCENT = "#ffa116";
 const FIRST_SEED = "2026-1";
@@ -30,24 +31,10 @@ export interface FlyHistory {
 
 // ── Seed utilities ─────────────────────────────────────────────────────
 
-function getTodaySeed(): string {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), 0, 0);
-  const diff = now.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / 86400000);
-  return `${now.getFullYear()}-${dayOfYear}`;
-}
-
-function seedToDate(seed: string): Date {
-  const [year, day] = seed.split("-").map(Number);
-  const d = new Date(year, 0);
-  d.setDate(day);
-  return d;
-}
-
 function formatSeedDate(seed: string): string {
   return seedToDate(seed)
     .toLocaleDateString("en-US", {
+      timeZone: "UTC",
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -58,11 +45,8 @@ function formatSeedDate(seed: string): string {
 function prevSeed(seed: string): string | null {
   if (seed === FIRST_SEED) return null;
   const d = seedToDate(seed);
-  d.setDate(d.getDate() - 1);
-  const start = new Date(d.getFullYear(), 0, 0);
-  const diff = d.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / 86400000);
-  const result = `${d.getFullYear()}-${dayOfYear}`;
+  d.setUTCDate(d.getUTCDate() - 1);
+  const result = getSeedForDate(d);
   if (seedToDate(result) < seedToDate(FIRST_SEED)) return null;
   return result;
 }
@@ -71,11 +55,8 @@ function nextSeed(seed: string): string | null {
   const today = getTodaySeed();
   if (seed === today) return null;
   const d = seedToDate(seed);
-  d.setDate(d.getDate() + 1);
-  const start = new Date(d.getFullYear(), 0, 0);
-  const diff = d.getTime() - start.getTime();
-  const dayOfYear = Math.floor(diff / 86400000);
-  const result = `${d.getFullYear()}-${dayOfYear}`;
+  d.setUTCDate(d.getUTCDate() + 1);
+  const result = getSeedForDate(d);
   if (seedToDate(result) > seedToDate(today)) return null;
   return result;
 }
