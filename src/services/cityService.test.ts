@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CityService } from "./cityService";
+import { CityService, type CityLoadSuccessBody } from "./cityService";
 
 type QueryResult<T> = { data: T | null; error?: Error | null };
 
@@ -91,8 +91,11 @@ describe("CityService", () => {
     const service = new CityService(admin as never);
     const result = await service.loadCityData({ from: 0, to: 50 });
 
-    expect(result.body.developers).toHaveLength(1);
-    expect(result.body.developers[0]).toEqual({
+    expect(result.status).toBe(200);
+    const body = result.body as CityLoadSuccessBody;
+
+    expect(body.developers).toHaveLength(1);
+    expect(body.developers[0]).toEqual({
       id: 1,
       github_login: "octocat",
       name: "Octo",
@@ -100,7 +103,7 @@ describe("CityService", () => {
       total_stars: 2,
       public_repos: 3,
     });
-    expect(result.body.stats).toMatchObject({
+    expect(body.stats).toMatchObject({
       total_developers: 1,
       total_contributions: 10,
       renewal_raised_inr: 1200,
@@ -161,6 +164,7 @@ describe("CityService query failures", () => {
     expect(result.headers).toEqual({
       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
     });
-    expect(result.body).toMatchObject({ developers: [] });
+    const body = result.body as CityLoadSuccessBody;
+    expect(body).toMatchObject({ developers: [] });
   });
 });
