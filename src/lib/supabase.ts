@@ -156,7 +156,11 @@ export async function broadcastToChannel(
     });
   } catch (err) {
     // Fire and forget: broadcast failure should never block the API response.
-    console.warn("[supabase.ts] failed to broadcast realtime message:", err);
+    // Structured log includes topic and event for easier debugging in production.
+    console.error(
+      "[supabase.ts] failed to broadcast realtime message:",
+      { topic, event, error: err instanceof Error ? err.message : String(err) }
+    );
   }
 }
 
