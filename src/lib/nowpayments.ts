@@ -19,6 +19,13 @@ interface InvoiceResponse {
  * Create a NOWPayments invoice (hosted checkout page where the user picks
  * their crypto currency). This is simpler and safer than creating a direct
  * payment because NOWPayments handles the coin selection UI.
+ *
+ * @param itemId       Active item ID from the items table
+ * @param developerId  Database ID of the purchasing developer
+ * @param githubLogin  GitHub login of the purchasing developer
+ * @param purchaseId   Unique purchase/order ID for NOWPayments
+ * @returns            Invoice URL and invoice ID
+ * @throws            Error if the item is not found/inactive, API key is missing, or API returns an error
  */
 export async function createCryptoInvoice(
   itemId: string,
@@ -85,7 +92,16 @@ export async function createCryptoInvoice(
 }
 
 /**
- * Create a raw NOWPayments invoice (without checking the items table).
+ * Create a raw NOWPayments invoice without validating against the items table.
+ * Use this when the caller already knows the price and description.
+ *
+ * @param opts.priceUsd         Amount in US dollars
+ * @param opts.orderId          Unique order/purchase ID
+ * @param opts.orderDescription Human-readable order description
+ * @param opts.successUrl      URL to redirect to on successful payment
+ * @param opts.cancelUrl       URL to redirect to if the user cancels
+ * @returns                    Invoice URL and invoice ID
+ * @throws                     Error if NOWPAYMENTS_API_KEY is not set or the API returns an error
  */
 export async function createCryptoInvoiceRaw({
   priceUsd,
@@ -142,8 +158,13 @@ export async function createCryptoInvoiceRaw({
 }
 
 /**
- * Verify NOWPayments IPN callback signature.
- * They use HMAC-SHA512 with sorted JSON body.
+ * Verify the HMAC-SHA512 signature on a NOWPayments IPN callback.
+ *
+ * NOWPayments signs IPN payloads as HMAC-SHA512 over the sorted JSON body.
+ *
+ * @param rawBody    Raw request body object (not stringified)
+ * @param signature  The signature from the `NOWPAYMENTS_SIGNATURE` header
+ * @returns          True if the signature is valid; false if missing secret or signature mismatch
  */
 export function verifyIpnSignature(
   rawBody: Record<string, unknown>,
