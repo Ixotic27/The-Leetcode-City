@@ -37,6 +37,19 @@ interface CashfreeOrderResponse {
   order_status: string;
 }
 
+/**
+ * Create a Cashfree order and return the payment session ID.
+ *
+ * @param opts.orderId       Unique order identifier
+ * @param opts.amountINR      Order amount in Indian Rupees (NOT paise)
+ * @param opts.customerName   Customer full name
+ * @param opts.customerEmail  Customer email address
+ * @param opts.customerPhone Customer phone number
+ * @param opts.itemName       Description of the purchased item
+ * @param opts.returnUrl     URL Cashfree redirects to after payment attempt
+ * @returns                  Payment session ID and Cashfree order ID
+ * @throws                  Error on API failure or missing session ID in response
+ */
 export async function createCashfreeOrder(opts: {
   orderId: string;
   amountINR: number; // in rupees (NOT paise)
@@ -109,6 +122,13 @@ export async function createCashfreeOrder(opts: {
 // ---------------------------------------------------------------------------
 // Verify Cashfree order status (called after return or from webhook)
 // ---------------------------------------------------------------------------
+/**
+ * Fetch the current status of a Cashfree order.
+ *
+ * @param orderId  The order ID previously passed to `createCashfreeOrder`
+ * @returns        Order and payment status details from Cashfree
+ * @throws         Error on API failure
+ */
 export async function getCashfreeOrderStatus(orderId: string): Promise<{
   orderStatus: string;
   paymentStatus: string;
@@ -143,6 +163,16 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
 // Webhook signature verification
 // Signature = Base64(HMAC-SHA256(timestamp + rawBody, secretKey))
 // ---------------------------------------------------------------------------
+/**
+ * Verify the HMAC-SHA256 signature on a Cashfree webhook callback.
+ *
+ * Cashfree signs webhook payloads as Base64(HMAC-SHA256(timestamp + rawBody, secretKey)).
+ *
+ * @param signature  The `x-cf-signature` header value
+ * @param rawBody    Raw request body string (not parsed)
+ * @param timestamp  The `x-cf-timestamp` header value
+ * @returns          True if the signature is valid, false otherwise
+ */
 export function verifyCashfreeWebhook(
   signature: string,
   rawBody: string,
@@ -161,6 +191,21 @@ export function verifyCashfreeWebhook(
 // ---------------------------------------------------------------------------
 // Helper: Create a full checkout flow for shop items
 // ---------------------------------------------------------------------------
+/**
+ * Create a complete Cashfree checkout flow for a shop item.
+ * Looks up the item price in the DB, creates a Cashfree order, and returns
+ * the payment session ID and order ID for the frontend SDK.
+ *
+ * @param itemId          Active item ID from the items table
+ * @param developerId     Database ID of the purchasing developer
+ * @param githubLogin     GitHub login of the purchasing developer
+ * @param customerEmail   Optional billing email; defaults to a generated placeholder
+ * @param customerPhone   Customer phone number
+ * @param giftedToDevId   If gifting, the DB ID of the recipient developer
+ * @param giftedToLogin   If gifting, the GitHub login of the recipient
+ * @returns               Payment session ID and the internal order ID
+ * @throws                Error if the item does not exist or is not active
+ */
 export async function createCashfreeCheckout(
   itemId: string,
   developerId: number,
