@@ -16,6 +16,20 @@ export function getStripe(): Stripe {
   return stripeInstance;
 }
 
+/**
+ * Create a Stripe Checkout session for a shop item purchase.
+ *
+ * @param itemId          Active item ID from the items table
+ * @param developerId     Database ID of the purchasing developer
+ * @param githubLogin     GitHub login of the purchasing developer
+ * @param currency        Billing currency; defaults to "usd"
+ * @param customerEmail   Optional billing email; Stripe infers from existing customer if omitted
+ * @param giftedToDevId   If gifting, the DB ID of the recipient developer
+ * @param giftedToLogin   If gifting, the GitHub login of the recipient
+ * @param idempotencyKey  Optional Stripe idempotency key to safely retry without double-charging
+ * @returns               Redirect URL to the Stripe-hosted checkout page
+ * @throws                Error if the item does not exist or is not active
+ */
 export async function createCheckoutSession(
   itemId: string,
   developerId: number,
@@ -80,6 +94,17 @@ export async function createCheckoutSession(
   return { url: session.url! };
 }
 
+/**
+ * Create a Stripe Checkout session for a pixel package purchase.
+ *
+ * @param packageId     Active pixel package ID from the pixel_packages table
+ * @param developerId   Database ID of the purchasing developer
+ * @param githubLogin   GitHub login of the purchasing developer
+ * @param currency      Billing currency; defaults to "usd"
+ * @param customerEmail Optional billing email
+ * @returns             Redirect URL and the Stripe session ID
+ * @throws              Error if the package does not exist or is not active
+ */
 export async function createPixelCheckoutSession(
   packageId: string,
   developerId: number,
