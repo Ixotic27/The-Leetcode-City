@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { grantFreeClaimItem } from "@/lib/items";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function POST() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({
+    loadDeveloper: false,
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
+
+  const user = auth.user;
 
   const githubLogin = (
     user.user_metadata.user_name ??
@@ -29,13 +30,7 @@ export async function POST() {
   const admin = getSupabaseAdmin();
 
   // Check that the user hasn't already claimed a different building
-  const { data: alreadyClaimed } = await admin
-    .from("developers")
-    .select("github_login")
-    .eq("claimed_by", user.id)
-    .maybeSingle();
-
-  if (alreadyClaimed) {
+  if (auth.developer) {
     return NextResponse.json(
       { error: "You have already claimed a building" },
       { status: 409 }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
@@ -8,13 +7,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing pix_id" }, { status: 400 });
   }
 
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const githubLogin = (
     user.user_metadata?.user_name ??

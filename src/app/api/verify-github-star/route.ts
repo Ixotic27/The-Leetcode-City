@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -48,23 +47,21 @@ async function isStargazer(login: string): Promise<boolean> {
 }
 
 export async function POST() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { ok } = await rateLimit(`github_star:${user.id}`, 1, 5000);
+  const { ok } = await rateLimit(`github_star:${auth.user.id}`, 1, 5000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
 
   const githubLogin = (
-    user.user_metadata?.user_name ??
-    user.user_metadata?.preferred_username ??
+    auth.user.user_metadata?.user_name ??
+    auth.user.user_metadata?.preferred_username ??
     ""
   ).toLowerCase();
 
@@ -77,7 +74,7 @@ export async function POST() {
   const { data: dev } = await sb
     .from("developers")
     .select("id, claimed")
-    .eq("claimed_by", user.id)
+    .eq("claimed_by", auth.user.id)
     .single();
 
   if (!dev || !dev.claimed) {

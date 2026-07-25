@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 // POST /api/arcade/favorites — toggle favorite
 export async function POST(req: NextRequest) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status });
   }
+  const user = auth.user;
 
   const { room_id } = (await req.json()) as { room_id?: string };
   if (!room_id) {

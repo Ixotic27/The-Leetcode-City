@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createServerSupabase } from "@/lib/supabase-server";
 
 export async function GET() {
   const sb = getSupabaseAdmin();
@@ -33,11 +32,12 @@ export async function GET() {
   }
 
   // Check if user is logged in to return their solve status
-  const clientSupabase = await createServerSupabase();
-  const { data: { user } } = await clientSupabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  const user = auth.user;
 
   const submissionStatus: Record<string, string> = {}; // challenge_id -> status ('accepted', etc.)
-  if (user) {
+  if (auth.ok && user) {
     // Get developer record
     const { data: dev } = await sb
       .from("developers")
