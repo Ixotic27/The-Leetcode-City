@@ -208,11 +208,10 @@ export async function GET(
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   if (!cachedRecord) {
-    let key: string;
     const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     isAuthenticatedUser = !!auth.user;
-    key = auth.user ? `user:${auth.user.id}` : (
+    const key = auth.user ? `user:${auth.user.id}` : (
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
     );
     rateLimitKey = key;

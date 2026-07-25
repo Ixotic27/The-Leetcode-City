@@ -15,8 +15,8 @@ export async function GET(request: Request) {
 
   const admin = getSupabaseAdmin();
   const service = new DailyMissionService(admin);
-  const dev = authDev.developer as any;
-  const githubLogin = dev?.github_login ?? "";
+  const dev = authDev.developer;
+  const githubLogin = typeof dev.github_login === "string" ? dev.github_login : null;
 
   if (!dev || !dev.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
@@ -29,14 +29,14 @@ export async function GET(request: Request) {
 
   const summary = await service.loadMissionSummary(
     {
-      id: dev.id,
-      github_login: dev.github_login,
-      claimed: dev.claimed,
-      dailies_completed: dev.dailies_completed,
-      dailies_streak: dev.dailies_streak,
-      last_dailies_date: dev.last_dailies_date,
-      last_checkin_date: dev.last_checkin_date,
-      points: dev.points,
+      id: dev.id!,
+      github_login: githubLogin,
+      claimed: typeof dev.claimed === "boolean" ? dev.claimed : null,
+      dailies_completed: typeof dev.dailies_completed === "number" ? dev.dailies_completed : null,
+      dailies_streak: typeof dev.dailies_streak === "number" ? dev.dailies_streak : null,
+      last_dailies_date: typeof dev.last_dailies_date === "string" ? dev.last_dailies_date : null,
+      last_checkin_date: typeof dev.last_checkin_date === "string" ? dev.last_checkin_date : null,
+      points: typeof dev.points === "number" ? dev.points : null,
     },
     { isMobile, today },
   );
