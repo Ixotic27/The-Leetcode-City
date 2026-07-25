@@ -119,7 +119,7 @@ export function tierFromLevel(level: number): XpTier {
 
 /** Get rank info (title + tier) for a given level. */
 export function rankFromLevel(level: number): XpRank {
-  if (level >= 25) {
+  if (level > 25) {
     return { level, title: "Legend", tier: XP_TIERS[5] };
   }
   const rank = XP_RANKS.find((r) => r.level === level);
