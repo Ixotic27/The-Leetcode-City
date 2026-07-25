@@ -71,6 +71,7 @@ function rateLimitLocal(
 
 let redis: Redis | null = null;
 
+/** Returns the cached Upstash Redis client, or null if credentials are not configured. */
 function getRedis(): Redis | null {
   if (redis) return redis;
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -84,6 +85,7 @@ function getRedis(): Redis | null {
 // creating a new instance on every request (each carries its own Redis conn).
 const limiterCache = new Map<string, Ratelimit>();
 
+/** Returns a cached Ratelimit instance for the given limit/window config, or null if Redis is unavailable. */
 function getLimiter(limit: number, windowMs: number): Ratelimit | null {
   const r = getRedis();
   if (!r) return null;
