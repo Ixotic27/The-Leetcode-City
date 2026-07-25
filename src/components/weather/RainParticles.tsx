@@ -21,7 +21,7 @@ export function RainParticles({
 }: RainParticlesProps) {
   const pointsRef = useRef<THREE.Points>(null);
   const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
-  // eslint-disable-next-line react-hooks/purity
+   
   const positions = useMemo(() => {
     const pos = new Float32Array(dropCount * 3);
 
