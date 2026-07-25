@@ -84,9 +84,7 @@ export async function createCryptoInvoice(
   };
 }
 
-/**
- * Create a raw NOWPayments invoice (without checking the items table).
- */
+/** Creates a raw NOWPayments invoice without validating the item in the database. Returns the invoice URL and ID. */
 export async function createCryptoInvoiceRaw({
   priceUsd,
   orderId,
@@ -141,10 +139,7 @@ export async function createCryptoInvoiceRaw({
   };
 }
 
-/**
- * Verify NOWPayments IPN callback signature.
- * They use HMAC-SHA512 with sorted JSON body.
- */
+/** Verifies the HMAC-SHA512 signature of an incoming NOWPayments IPN callback payload. */
 export function verifyIpnSignature(
   rawBody: Record<string, unknown>,
   signature: string,
