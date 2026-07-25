@@ -183,6 +183,34 @@ describe("rateLimit – local in-process fallback (no Redis configured)", () => 
     const keyB = await rateLimit("key-b", 1, 60_000);
     expect(keyB.ok).toBe(true);
   });
+
+  it("respects MAX_STORE_SIZE and triggers immediate cleanup when size exceeded", async () => {
+    const { _setMaxStoreSizeForTesting } = await import("../rate-limit");
+    _setMaxStoreSizeForTesting(3);
+
+    await rateLimit("key1", 5, -100);
+    await rateLimit("key2", 5, -100);
+    await rateLimit("key3", 5, -100);
+
+    const result = await rateLimit("key4", 5, 60_000);
+    expect(result.ok).toBe(true);
+
+    const key1Result = await rateLimit("key1", 5, 60_000);
+    expect(key1Result.remaining).toBe(4);
+  });
+
+  it("does not delete non-expired entries during immediate cleanup", async () => {
+    const { _setMaxStoreSizeForTesting } = await import("../rate-limit");
+    _setMaxStoreSizeForTesting(2);
+
+    await rateLimit("key-alive-1", 5, 60_000);
+    await rateLimit("key-alive-2", 5, 60_000);
+
+    await rateLimit("key-alive-3", 5, 60_000);
+
+    const r = await rateLimit("key-alive-1", 5, 60_000);
+    expect(r.remaining).toBe(3);
+  });
 });
 
 describe("getClientIp IP extraction (via middleware logic — unit)", () => {
