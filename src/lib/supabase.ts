@@ -156,7 +156,7 @@ export async function broadcastToChannel(
     });
   } catch (err) {
     // Fire and forget: broadcast failure should never block the API response.
-    console.warn("[supabase.ts] failed to broadcast realtime message:", err);
+    console.error("[supabase.ts] failed to broadcast realtime message:", err);
   }
 }
 
