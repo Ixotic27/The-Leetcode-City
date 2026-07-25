@@ -30,6 +30,7 @@ interface Entry {
 const store = new Map<string, Entry>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 60_000;
+const MAX_STORE_SIZE = 10_000;
 
 function cleanup() {
   const now = Date.now();
@@ -45,6 +46,13 @@ function rateLimitLocal(
   limit: number,
   windowMs: number,
 ): RateLimitResult {
+  // Force cleanup if store grows beyond MAX_STORE_SIZE to prevent unbounded memory growth
+  if (store.size >= MAX_STORE_SIZE) {
+    const evictNow = Date.now();
+    for (const [k, entry] of store) {
+      if (evictNow > entry.resetAt) store.delete(k);
+    }
+  }
   cleanup();
 
   const now = Date.now();
