@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Skeleton from "@/components/Skeleton";
 import { useCity } from "@/context/CityContext";
 import { generateCityLayout } from "@/lib/github";
@@ -229,8 +229,65 @@ export default function SearchBar() {
     exploreMode,
   } = useCity();
 
-  const searchUser = async () => {
-    const trimmed = username.trim().toLowerCase();
+  const [results, setResults] = useState<any[]>([]);
+  const [activeIdx, setActiveIdx] = useState(-1);
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const trimmed = username.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data);
+          setOpen(true);
+          setActiveIdx(-1);
+        }
+      } catch (err) {
+        console.error("Autocomplete fetch error:", err);
+      }
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIdx((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Enter" && activeIdx >= 0) {
+      e.preventDefault();
+      const selected = results[activeIdx].github_login;
+      setUsername(selected);
+      setOpen(false);
+      searchUser(selected);
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
+  const searchUser = async (overrideUsername?: string) => {
+    const target = overrideUsername ?? username;
+    const trimmed = target.trim().toLowerCase();
     if (!trimmed) return;
 
     // Track search event dynamically
@@ -390,7 +447,7 @@ export default function SearchBar() {
   if (!exploreMode || compareBuilding || comparePair) return null;
 
   return (
-    <div className="pointer-events-auto absolute top-3 left-32 right-3 z-[31] sm:left-36 sm:right-auto sm:top-4 sm:w-72">
+    <div ref={containerRef} className="pointer-events-auto absolute top-3 left-32 right-3 z-[31] sm:left-36 sm:right-auto sm:top-4 sm:w-72">
       <form id="search-bar-form" onSubmit={handleSubmit} className="flex items-center gap-2">
         <input
           type="text"
@@ -399,6 +456,7 @@ export default function SearchBar() {
             setUsername(e.target.value);
             if (feedback?.type === "error") setFeedback(null);
           }}
+          onKeyDown={handleKeyDown}
           aria-label="Search a LeetCode username and fly to their building"
           placeholder="search a username"
           className="min-w-0 flex-1 border-[3px] border-border bg-bg/70 px-3 py-1.5 text-base text-cream outline-none backdrop-blur-sm transition-colors placeholder:text-dim normal-case sm:text-[11px]"
@@ -414,6 +472,34 @@ export default function SearchBar() {
           {loading ? <span className="blink-dot inline-block">_</span> : "Go"}
         </button>
       </form>
+      {open && results.length > 0 && (
+        <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto border-[3px] border-border bg-bg/95 backdrop-blur-md shadow-lg z-[32]">
+          {results.map((dev, idx) => {
+            const totalSolved = (dev.easy_solved ?? 0) + (dev.medium_solved ?? 0) + (dev.hard_solved ?? 0);
+            return (
+              <div
+                key={dev.github_login}
+                onClick={() => {
+                  setUsername(dev.github_login);
+                  setOpen(false);
+                  searchUser(dev.github_login);
+                }}
+                className={`flex items-center justify-between px-3 py-2 cursor-pointer text-xs transition-colors font-pixel uppercase ${
+                  idx === activeIdx
+                    ? "bg-white/10 text-white"
+                    : "text-cream/90 hover:bg-white/5 hover:text-white"
+                }`}
+                style={{
+                  borderLeft: idx === activeIdx ? `3px solid ${theme.accent}` : "3px solid transparent",
+                }}
+              >
+                <span>{dev.github_login}</span>
+                <span className="text-[10px] text-muted normal-case">{totalSolved} solved</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {feedback && (
         <div className="mt-1.5">
           <SearchFeedback
