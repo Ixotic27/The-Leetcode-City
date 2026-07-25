@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyCashfreeWebhook, getCashfreeOrderStatus } from "@/lib/cashfree";
-import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
-import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { InfrastructureError } from "@/lib/errors";
+import { claimPendingPurchaseAtomically, orchestratePurchaseFulfillment } from "@/lib/purchase-orchestrator";
 
 
 export const dynamic = "force-dynamic";
@@ -214,80 +212,31 @@ export async function POST(request: Request) {
           break;
         }
 
-        const ownerId = purchase.gifted_to ?? purchase.developer_id;
-        const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
+        const orchestrationResult = await orchestratePurchaseFulfillment({
+          provider: "cashfree",
+          transactionId: orderId,
+          purchaseId: purchase.id,
+          developerId: purchase.developer_id,
+          itemId: purchase.item_id,
+          giftedTo: purchase.gifted_to,
+          idempotencyKey,
+          supabaseClient: sb,
+          claimPendingPurchase: async ({ transactionId, developerId: claimDeveloperId, itemId: claimItemId, purchaseId: pendingPurchaseId, supabaseClient: claimSb }) =>
+            claimPendingPurchaseAtomically({
+              provider: "cashfree",
+              transactionId,
+              developerId: claimDeveloperId,
+              itemId: claimItemId,
+              purchaseId: pendingPurchaseId,
+              supabaseClient: claimSb,
+            }),
+        });
 
-        // Mark as completed/delivered
-        await sb
-          .from("purchases")
-          .update({ status: purchaseStatus, idempotency_key: idempotencyKey })
-          .eq("id", purchase.id);
-
-        const fullPurchase = purchase;
-
-        if (fullPurchase) {
-          // Auto-equip if it's the only item in its zone
-          const itemOwner = fullPurchase.gifted_to ?? fullPurchase.developer_id;
-          await autoEquipIfSolo(itemOwner, fullPurchase.item_id);
-
-          // Get developer info for notifications
-          const { data: dev } = await sb
-            .from("developers")
-            .select("github_login")
-            .eq("id", fullPurchase.developer_id)
-            .single();
-
-          if (fullPurchase.gifted_to) {
-            // Gift notifications
-            const { data: receiver } = await sb
-              .from("developers")
-              .select("github_login")
-              .eq("id", fullPurchase.gifted_to)
-              .single();
-
-            await sb.from("activity_feed").insert({
-              event_type: "gift_sent",
-              actor_id: fullPurchase.developer_id,
-              target_id: fullPurchase.gifted_to,
-              metadata: {
-                giver_login: dev?.github_login,
-                receiver_login: receiver?.github_login,
-                item_id: fullPurchase.item_id,
-              },
-            });
-
-            sendGiftSentNotification(
-              fullPurchase.developer_id,
-              dev?.github_login ?? "",
-              receiver?.github_login ?? "unknown",
-              purchase.id,
-              fullPurchase.item_id,
-            );
-            sendGiftReceivedNotification(
-              fullPurchase.gifted_to,
-              dev?.github_login ?? "someone",
-              receiver?.github_login ?? "unknown",
-              purchase.id,
-              fullPurchase.item_id,
-            );
-          } else {
-            // Purchase notification
-            await sb.from("activity_feed").insert({
-              event_type: "item_purchased",
-              actor_id: fullPurchase.developer_id,
-              metadata: {
-                login: dev?.github_login,
-                item_id: fullPurchase.item_id,
-              },
-            });
-
-            sendPurchaseNotification(
-              fullPurchase.developer_id,
-              dev?.github_login ?? "",
-              purchase.id,
-              fullPurchase.item_id,
-            );
+        if (orchestrationResult.kind !== "completed") {
+          if (orchestrationResult.kind === "sold_out") {
+            await sb.from("purchases").update({ status: "failed", provider_tx_id: orderId }).eq("id", purchase.id).eq("status", "pending");
           }
+          console.log(`[Cashfree webhook] Purchase ${purchase.id} finished with result ${orchestrationResult.kind}`);
         }
         break;
       }
