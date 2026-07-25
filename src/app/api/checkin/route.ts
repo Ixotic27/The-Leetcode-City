@@ -9,6 +9,7 @@ import { sendStreakMilestoneNotification } from "@/lib/notification-senders/stre
 import { sendStreakBrokenNotification } from "@/lib/notification-senders/streak-broken";
 import { trackDailyMission } from "@/lib/dailies";
 import { fetchLeetCodeWeeklySubmissions } from "@/lib/leetcode";
+import { InventoryEconomyService } from "@/services/inventoryEconomyService";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Developer = {
@@ -84,19 +85,13 @@ async function grantStreakReward(
     // Only grant the item if we actually inserted the reward row (not a duplicate)
     if (!rewardInserted) continue;
 
-    // Grant the item
-    await sb.from("purchases").upsert(
-      {
-        developer_id: developerId,
-        item_id: itemId,
-        provider: "free",
-        provider_tx_id: `streak_reward_${tier.milestone}_${developerId}`,
-        amount_cents: 0,
-        currency: "usd",
-        status: "completed",
-      },
-      { onConflict: "provider_tx_id", ignoreDuplicates: true },
-    );
+    const service = new InventoryEconomyService(sb);
+    await service.grantRewardItem({
+      developerId,
+      itemId,
+      providerTxId: `streak_reward_${tier.milestone}_${developerId}`,
+      supabaseClient: sb,
+    });
 
     return {
       milestone: tier.milestone,
