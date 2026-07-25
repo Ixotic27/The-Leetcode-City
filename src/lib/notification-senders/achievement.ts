@@ -26,7 +26,7 @@ export function sendAchievementNotification(
 
   const dedupKey = notable.length === 1
     ? `achievement:${devId}:${notable[0].id}`
-    : `achievement_batch:${devId}:${notable.map((a) => a.id).sort().join(",")}`;
+    : `achievement_batch:${devId}:${notable.map((a) => a.id).sort().join("|")}`;
 
   const isSingle = notable.length === 1;
   const first = notable[0];
