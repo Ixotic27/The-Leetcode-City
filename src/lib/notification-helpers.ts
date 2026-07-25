@@ -85,7 +85,8 @@ export function touchLastActive(devId: number): void {
   sb.from("developers")
     .update({ last_active_at: new Date().toISOString() })
     .eq("id", devId)
-    .then();
+    .then()
+    .catch(console.error);
 }
 
 /**
