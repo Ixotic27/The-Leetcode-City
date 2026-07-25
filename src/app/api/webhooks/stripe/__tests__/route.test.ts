@@ -126,8 +126,15 @@ describe("Stripe webhook route", () => {
 
   it("skips duplicate Stripe events before processing", async () => {
     const callLog: string[] = [];
+    const record1 = { callLog, stripeProcessedEventExists: true, processedEventInsertCount: { count: 0 } };
     mockGetSupabaseAdmin.mockReturnValue({
-      from: (table: string) => createMockQuery(table, { callLog, stripeProcessedEventExists: true, processedEventInsertCount: { count: 0 } }),
+      from: (table: string) => createMockQuery(table, record1),
+      rpc: async (name: string) => {
+        if (name === "claim_pending_purchase_atomic") {
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
+      },
     });
     mockGetStripe.mockReturnValue({
       refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
@@ -145,13 +152,16 @@ describe("Stripe webhook route", () => {
   it("returns 500 and does not mark event processed when fulfillment throws InfrastructureError", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
+    const record2 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: true, processedEventInsertCount };
     mockGetSupabaseAdmin.mockReturnValue({
-      from: (table: string) => createMockQuery(table, {
-        callLog,
-        stripeProcessedEventExists: false,
-        enablePendingPurchase: true,
-        processedEventInsertCount,
-      }),
+      from: (table: string) => createMockQuery(table, record2),
+      rpc: async (name: string) => {
+        if (name === "claim_pending_purchase_atomic") {
+          // Simulate pending purchase found
+          return { data: [{ ok: true, purchase_id: "purchase_pending" }], error: null };
+        }
+        return { data: null, error: null };
+      },
     });
     mockFulfillItemPurchase.mockRejectedValueOnce(new InfrastructureError("DB timeout", { code: "PGRST_TIMEOUT" }));
     mockGetStripe.mockReturnValue({
@@ -179,13 +189,15 @@ describe("Stripe webhook route", () => {
   it("marks Stripe event processed after deterministic business error and returns 200", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
+    const record3 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: true, processedEventInsertCount };
     mockGetSupabaseAdmin.mockReturnValue({
-      from: (table: string) => createMockQuery(table, {
-        callLog,
-        stripeProcessedEventExists: false,
-        enablePendingPurchase: true,
-        processedEventInsertCount,
-      }),
+      from: (table: string) => createMockQuery(table, record3),
+      rpc: async (name: string) => {
+        if (name === "claim_pending_purchase_atomic") {
+          return { data: [{ ok: true, purchase_id: "purchase_pending" }], error: null };
+        }
+        return { data: null, error: null };
+      },
     });
     mockFulfillItemPurchase.mockRejectedValueOnce(new BusinessLogicError("Item already owned"));
     mockGetStripe.mockReturnValue({
@@ -213,13 +225,16 @@ describe("Stripe webhook route", () => {
   it("issues a refund when no pending purchase is found", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
+    const record4 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: false, processedEventInsertCount };
     mockGetSupabaseAdmin.mockReturnValue({
-      from: (table: string) => createMockQuery(table, {
-        callLog,
-        stripeProcessedEventExists: false,
-        enablePendingPurchase: false,
-        processedEventInsertCount,
-      }),
+      from: (table: string) => createMockQuery(table, record4),
+      rpc: async (name: string) => {
+        if (name === "claim_pending_purchase_atomic") {
+          // No pending purchase found
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
+      },
     });
     mockGetStripe.mockReturnValue({
       refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
@@ -249,14 +264,10 @@ describe("Stripe webhook route", () => {
   it("does not issue a refund when a processed purchase exists for the same txId", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
+    const record5 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: false, processedEventInsertCount };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => {
-        const query = createMockQuery(table, {
-          callLog,
-          stripeProcessedEventExists: false,
-          enablePendingPurchase: false,
-          processedEventInsertCount,
-        });
+        const query = createMockQuery(table, record5);
         if (table === "purchases") {
           const originalMaybeSingle = query.maybeSingle;
           query.maybeSingle = async () => {
@@ -268,7 +279,13 @@ describe("Stripe webhook route", () => {
           };
         }
         return query;
-      }
+      },
+      rpc: async (name: string) => {
+        if (name === "claim_pending_purchase_atomic") {
+          return { data: null, error: null };
+        }
+        return { data: null, error: null };
+      },
     });
     
     mockGetStripe.mockReturnValue({

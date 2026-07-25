@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function GET() {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ leetcode_username: null, claimed: false });
+    const auth = await resolveAuthenticatedDeveloper({
+        select: "id, github_login, claimed, xp_level, xp_total",
+        applyQuery: (query) => query.eq("claimed", true),
+    });
+
+    if (!auth.ok || !auth.user) {
+        return NextResponse.json({ leetcode_username: null, claimed: false });
+    }
 
     const admin = getSupabaseAdmin();
-    const { data } = await admin
-        .from("developers")
-        .select("id, github_login, claimed, xp_level, xp_total")
-        .eq("claimed_by", user.id)
-        .eq("claimed", true)   // only count active claims
-        .single();
+    const data = auth.developer;
 
     let customizations: Record<string, unknown> | null = null;
     if (data?.id) {

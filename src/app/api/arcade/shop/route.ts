@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 const FALLBACK_ITEMS = [
   { id: "buzzcut", category: "hair", name: "Buzzcut", file: "hair/buzzcut_grey.png", rarity: "free", price_px: 0, default_color: "#1a1a1a", no_tint: false, tags: [], slot: "hair" },
@@ -16,20 +16,15 @@ const FALLBACK_ITEMS = [
 
 // GET /api/arcade/shop — catalog + player inventory + balance
 export async function GET() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const admin = getSupabaseAdmin();
 
-  const { data: dev } = await admin
-    .from("developers")
-    .select("id")
-    .eq("claimed_by", user.id)
-    .maybeSingle();
+  const dev = auth.developer;
 
   if (!dev) {
     // If the developer building has not been claimed yet, return fallback items as unowned catalog
@@ -91,12 +86,12 @@ export async function GET() {
 
 // POST /api/arcade/shop — buy an item (atomic: debit PX + grant item)
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   let body: { item_id: unknown };
   try {

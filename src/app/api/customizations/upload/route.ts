@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import sharp from "sharp";
 
@@ -45,12 +44,10 @@ function detectMimeFromBytes(bytes: Uint8Array): string | null {
  */
 export async function POST(request: Request) {
   // Auth required
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({});
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -60,12 +57,10 @@ export async function POST(request: Request) {
   const { data: dev } = await sb
     .from("developers")
     .select("id, github_login, claimed, claimed_by")
-    .eq("claimed_by", user.id)
+    .eq("claimed_by", auth.user.id)
     .single();
 
-  const githubLogin = dev?.github_login ?? "";
-
-  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+  if (!dev || !dev.claimed || dev.claimed_by !== auth.user.id) {
     return NextResponse.json(
       { error: "Building not found or not yours" },
       { status: 403 }
@@ -267,12 +262,10 @@ export async function POST(request: Request) {
  */
 export async function DELETE(request: Request) {
   // Auth required
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({});
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -282,10 +275,10 @@ export async function DELETE(request: Request) {
   const { data: dev } = await sb
     .from("developers")
     .select("id, github_login, claimed, claimed_by")
-    .eq("claimed_by", user.id)
+    .eq("claimed_by", auth.user.id)
     .single();
 
-  if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
+  if (!dev || !dev.claimed || dev.claimed_by !== auth.user.id) {
     return NextResponse.json(
       { error: "Building not found or not yours" },
       { status: 403 }

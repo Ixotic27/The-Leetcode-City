@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { getTodayStr } from "@/lib/dailies";
 import { DailyMissionService, DailyMissionServiceError } from "@/services/dailyMissionService";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
-  const { ok } = await rateLimit(`dailies-progress:${user.id}`, 5, 10_000);
+  const { ok } = await rateLimit(`dailies-progress:${auth.user.id}`, 5, 10_000);
   if (!ok) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
@@ -32,13 +29,13 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin();
   const service = new DailyMissionService(admin);
 
-  const { data: dev } = await admin
-    .from("developers")
-    .select("id, claimed")
-    .eq("claimed_by", user.id)
-    .single();
+  const authDev = await resolveAuthenticatedDeveloper({ select: "id, claimed" });
+  if (!authDev.ok || !authDev.user || !authDev.developer) {
+    return NextResponse.json({ error: authDev.error ?? "Developer not found" }, { status: authDev.status });
+  }
 
-  if (!dev || !dev.claimed) {
+  const dev = authDev.developer;
+  if (typeof dev.id !== "number" || !dev.claimed) {
     return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
   }
 

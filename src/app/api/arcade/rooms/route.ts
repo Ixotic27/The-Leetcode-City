@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createServerSupabase } from "@/lib/supabase-server";
 
 // GET /api/arcade/rooms — list rooms with search, category, pagination
 export async function GET(req: NextRequest) {
@@ -130,17 +129,17 @@ export async function GET(req: NextRequest) {
   let recentVisits: Array<{ room_id: string; last_visited_at: string }> = [];
 
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-    if (user) {
+    if (auth.ok && auth.user) {
       const [favRes, visitRes] = await Promise.all([
         sb.from("arcade_room_favorites")
           .select("room_id")
-          .eq("user_id", user.id),
+          .eq("user_id", auth.user.id),
         sb.from("arcade_room_visits")
           .select("room_id, last_visited_at")
-          .eq("user_id", user.id)
+          .eq("user_id", auth.user.id)
           .order("last_visited_at", { ascending: false })
           .limit(10),
       ]);

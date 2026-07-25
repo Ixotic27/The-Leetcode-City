@@ -1,21 +1,18 @@
-  import { NextResponse } from "next/server";
-  import { createServerSupabase } from "@/lib/supabase-server";
-  import { getSupabaseAdmin } from "@/lib/supabase";
-  import { rateLimit } from "@/lib/rate-limit";
-  import { getTodayStr } from "@/lib/dailies";
-  import { DailyMissionService, DailyMissionServiceError } from "@/services/dailyMissionService";
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
+import { rateLimit } from "@/lib/rate-limit";
+import { getTodayStr } from "@/lib/dailies";
+import { DailyMissionService, DailyMissionServiceError, type DailyMissionDeveloper } from "@/services/dailyMissionService";
 
-  export async function POST(request: Request) {
-    const supabase = await createServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+export async function POST(request: Request) {
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+  }
 
-    const { ok } = await rateLimit(`dailies-claim:${user.id}`, 2, 10_000);
+    const { ok } = await rateLimit(`dailies-claim:${auth.user.id}`, 2, 10_000);
     if (!ok) {
       return NextResponse.json({ error: "Too fast" }, { status: 429 });
     }
@@ -23,13 +20,15 @@
     const admin = getSupabaseAdmin();
     const service = new DailyMissionService(admin);
 
-    const { data: dev } = await admin
-      .from("developers")
-      .select("id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, dailies_completed, dailies_streak, last_dailies_date, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
-      .eq("claimed_by", user.id)
-      .single();
+    const authDev = await resolveAuthenticatedDeveloper({
+      select: "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, dailies_completed, dailies_streak, last_dailies_date, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs",
+    });
 
-    const githubLogin = dev?.github_login ?? "";
+    if (!authDev.ok || !authDev.user || !authDev.developer) {
+      return NextResponse.json({ error: authDev.error ?? "Developer not found" }, { status: authDev.status });
+    }
+
+    const dev = authDev.developer as DailyMissionDeveloper;
 
     if (!dev || !dev.claimed) {
       return NextResponse.json({ error: "Must claim building first" }, { status: 403 });

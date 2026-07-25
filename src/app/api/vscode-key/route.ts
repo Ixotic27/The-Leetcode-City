@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import crypto from "crypto";
 
@@ -10,9 +9,10 @@ function hashKey(key: string): string {
 }
 
 async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: string; status: number }> {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated", status: 401 };
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) return { error: "Not authenticated", status: 401 };
+  const user = auth.user;
 
   const githubLogin = (
     user.user_metadata.user_name ??

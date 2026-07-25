@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const MAX_THEME = 3;
@@ -9,19 +9,15 @@ const MAX_THEME = 3;
  * Returns the authenticated user's saved city theme index.
  */
 export async function GET() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({
+    select: "city_theme",
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
-  const sb = getSupabaseAdmin();
-  const { data: dev } = await sb
-    .from("developers")
-    .select("city_theme")
-    .eq("claimed_by", user.id)
-    .single();
+  const dev = auth.developer;
 
   if (!dev) {
     return NextResponse.json({ city_theme: 0 });
@@ -39,11 +35,12 @@ export async function GET() {
  * @param {import('next/server').NextRequest} request
  */
 export async function PATCH(request: Request) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({
+    select: "id",
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const body = await request.json();
@@ -57,7 +54,7 @@ export async function PATCH(request: Request) {
   const { error } = await sb
     .from("developers")
     .update({ city_theme: theme })
-    .eq("claimed_by", user.id);
+    .eq("claimed_by", auth.user.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
