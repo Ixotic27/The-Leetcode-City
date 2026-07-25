@@ -12,6 +12,8 @@ interface ActionToolbarProps {
   isMounted: boolean;
   dayNightCycleActive: boolean;
   setDayNightCycleActive: React.Dispatch<React.SetStateAction<boolean>>;
+  neonGridActive: boolean;
+  setNeonGridActive: React.Dispatch<React.SetStateAction<boolean>>;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   cycleWeather?: () => void;
 }
@@ -25,6 +27,8 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
   isMounted,
   dayNightCycleActive,
   setDayNightCycleActive,
+  neonGridActive,
+  setNeonGridActive,
   weatherMode = "sunny",
   cycleWeather = () => {},
 }) => {
@@ -63,6 +67,30 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
       >
         <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
         <span>{dayNightCycleActive ? "CYCLE ON" : "CYCLE OFF"}</span>
+      </button>
+
+      {/* Cyberpunk Neon Grid Toggle Button */}
+      <button
+        onClick={() => {
+          setNeonGridActive((prev) => {
+            const next = !prev;
+            try {
+              localStorage.setItem("leetcodecity_neongrid_enabled", next ? "1" : "0");
+            } catch (err) {
+              console.warn("[ActionToolbar] Failed to persist grid preference:", err);
+            }
+            return next;
+          });
+        }}
+        className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${
+          neonGridActive
+            ? "border-pink-500/80 bg-pink-500/10 text-pink-400 hover:border-pink-400"
+            : "border-border bg-bg/70 text-cream hover:border-border-light"
+        }`}
+        aria-label={neonGridActive ? "Turn off Neon grid" : "Turn on Neon grid"}
+      >
+        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span>GRID: {neonGridActive ? "ON" : "OFF"}</span>
       </button>
  
       {/* Weather Selector Button */}

@@ -155,6 +155,8 @@ interface CityContextProps {
   setRelicFocus: React.Dispatch<React.SetStateAction<{ x: number; y: number; z: number } | null>>;
   dayNightCycleActive: boolean;
   setDayNightCycleActive: React.Dispatch<React.SetStateAction<boolean>>;
+  neonGridActive: boolean;
+  setNeonGridActive: React.Dispatch<React.SetStateAction<boolean>>;
   weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   setWeatherMode: React.Dispatch<React.SetStateAction<"sunny" | "rainy" | "windy" | "stormy" | "snowy">>;
   hud: { speed: number; altitude: number };
@@ -430,6 +432,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
   const [relicFocus, setRelicFocus] = useState<{ x: number; y: number; z: number } | null>(null);
 
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
+  const [neonGridActive, setNeonGridActive] = useState(false);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
@@ -595,6 +598,20 @@ export function CityProvider({ children }: { children: ReactNode }) {
     setThemeIndex((i) => {
       const next = (i + 1) % THEMES.length;
       localStorage.setItem("leetcodecity_theme", String(next));
+      
+      // Auto toggle neon grid overlay state when cycling theme
+      if (next === 2) {
+        setNeonGridActive(true);
+        try {
+          localStorage.setItem("leetcodecity_neongrid_enabled", "1");
+        } catch {}
+      } else {
+        setNeonGridActive(false);
+        try {
+          localStorage.setItem("leetcodecity_neongrid_enabled", "0");
+        } catch {}
+      }
+
       if (session?.user?.id) {
         fetch("/api/preferences/theme", {
           method: "PATCH",
@@ -1388,6 +1405,17 @@ export function CityProvider({ children }: { children: ReactNode }) {
       // Preferences are optional; ignore storage failures and keep defaults.
     }
     try {
+      const savedGrid = localStorage.getItem("leetcodecity_neongrid_enabled");
+      if (savedGrid !== null) {
+        setNeonGridActive(savedGrid === "1");
+      } else {
+        const savedTheme = localStorage.getItem("leetcodecity_theme");
+        if (savedTheme === "2") setNeonGridActive(true);
+      }
+    } catch {
+      // Preferences are optional; ignore storage failures and keep defaults.
+    }
+    try {
       const savedWeather = localStorage.getItem("leetcodecity_weather_mode");
       if (["sunny", "rainy", "windy", "stormy", "snowy"].includes(savedWeather ?? "")) {
         setWeatherMode(savedWeather as any);
@@ -1989,6 +2017,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setRelicFocus,
         dayNightCycleActive,
         setDayNightCycleActive,
+        neonGridActive,
+        setNeonGridActive,
         weatherMode,
         setWeatherMode,
         hud,

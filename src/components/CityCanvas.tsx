@@ -8,6 +8,7 @@ import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
 import * as THREE from "three";
 import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
+import NeonGridOverlay from "./NeonGridOverlay";
 import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityBuilding, CityPlaza, CityDecoration, CityRiver, CityBridge, CityCanal } from "@/lib/github";
 import SkyAds from "./SkyAds";
@@ -1188,7 +1189,7 @@ function CameraReset() {
 
 // ─── Ground ──────────────────────────────────────────────────
 
-function Ground({ color, grid1, grid2 }: { color: string; grid1: string; grid2: string }) {
+function Ground({ color, grid1, grid2, showNeonGrid, accentColor }: { color: string; grid1: string; grid2: string; showNeonGrid?: boolean; accentColor?: string }) {
   return (
     <group>
       {/* City ground — compact island */}
@@ -1196,7 +1197,11 @@ function Ground({ color, grid1, grid2 }: { color: string; grid1: string; grid2: 
         <planeGeometry args={[6000, 6000]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} roughness={0.95} />
       </mesh>
-      <gridHelper args={[4000, 200, grid1, grid2]} position={[0, -0.5, 0]} />
+      {showNeonGrid ? (
+        <NeonGridOverlay accentColor={accentColor ?? "#e040c0"} />
+      ) : (
+        <gridHelper args={[4000, 200, grid1, grid2]} position={[0, -0.5, 0]} />
+      )}
       {/* Ocean — flat infinite water plane surrounding the city */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} renderOrder={-1}>
         <planeGeometry args={[80000, 80000]} />
@@ -2332,6 +2337,7 @@ export interface CityCanvasProps {
   liveByLogin?: Map<string, LiveSession>;
   cityEnergy?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  neonGridActive?: boolean;
   relicFocus?: { x: number; y: number; z: number } | null;
   equippedRelicId?: string | null;
   initialFlightPos?: THREE.Vector3 | null;
@@ -2455,6 +2461,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
   liveByLogin,
   cityEnergy,
   weatherMode = "sunny",
+  neonGridActive,
   relicFocus,
   equippedRelicId,
   initialFlightPos,
@@ -2545,7 +2552,14 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         </>
       )}
 
-      <Ground key={`ground-${themeIndex}`} color={theme.groundColor} grid1={theme.grid1} grid2={theme.grid2} />
+      <Ground
+        key={`ground-${themeIndex}`}
+        color={theme.groundColor}
+        grid1={theme.grid1}
+        grid2={theme.grid2}
+        showNeonGrid={neonGridActive}
+        accentColor={theme.building.accent}
+      />
 
       <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
       <Suspense fallback={null}>
@@ -2760,6 +2774,7 @@ export default function CityCanvas({
   liveByLogin,
   cityEnergy,
   weatherMode = "sunny",
+  neonGridActive,
   relicFocus,
   equippedRelicId,
   initialFlightPos,
@@ -2989,6 +3004,7 @@ export default function CityCanvas({
         liveByLogin={liveByLogin}
         cityEnergy={cityEnergy}
         weatherMode={weatherMode}
+        neonGridActive={neonGridActive}
         relicFocus={relicFocus}
         equippedRelicId={equippedRelicId}
         initialFlightPos={initialFlightPos}
