@@ -16,6 +16,8 @@ export default function SettingsPanel() {
     cycleTheme,
     dayNightCycleActive,
     setDayNightCycleActive,
+    neonGridActive,
+    setNeonGridActive,
     weatherMode,
     cycleWeather,
     replayIntro,
@@ -59,6 +61,27 @@ export default function SettingsPanel() {
           <span style={{ color: theme.accent }}>&#9654;</span>
           <span>{dayNightCycleActive ? "CYCLE ON" : "CYCLE OFF"}</span>
         </button>
+        <button
+          onClick={() => {
+            setNeonGridActive((prev: boolean) => {
+              const next = !prev;
+              try {
+                localStorage.setItem("leetcodecity_neongrid_enabled", next ? "1" : "0");
+              } catch (err) {
+                console.warn("[neonGridToggle] Failed to persist grid preference:", err);
+              }
+              return next;
+            });
+          }}
+          className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${
+            neonGridActive
+              ? "border-pink-500/80 bg-pink-500/10 text-pink-400 hover:border-pink-400"
+              : "border-border bg-bg/70 text-cream hover:border-border-light"
+          }`}
+        >
+          <span style={{ color: theme.accent }}>&#9654;</span>
+          <span>GRID: {neonGridActive ? "ON" : "OFF"}</span>
+        </button>
         <div id="gc-radio-slot" />
       </div>
     );
@@ -76,6 +99,8 @@ export default function SettingsPanel() {
         isMounted={true}
         dayNightCycleActive={dayNightCycleActive}
         setDayNightCycleActive={setDayNightCycleActive}
+        neonGridActive={neonGridActive}
+        setNeonGridActive={setNeonGridActive}
         weatherMode={weatherMode}
         cycleWeather={cycleWeather}
       />
