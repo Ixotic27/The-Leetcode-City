@@ -65,6 +65,7 @@ function HomeContent() {
     endFly,
     themeIndex,
     dayNightCycleActive,
+    neonGridActive,
     weatherMode,
     setHud,
     setPlayerPos,
@@ -175,6 +176,7 @@ function HomeContent() {
         themeIndex={themeIndex}
         dayNightCycleActive={dayNightCycleActive}
         weatherMode={weatherMode}
+        neonGridActive={neonGridActive}
         onHud={(s, a, x, z, yaw) => {
           setHud({ speed: s, altitude: a });
           const mapX = x - Math.sin(yaw) * 40;
