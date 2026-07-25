@@ -7,7 +7,7 @@ export type CityLoadOptions = {
   to: number;
 };
 
-type CityLoadSuccessBody = {
+export type CityLoadSuccessBody = {
   developers: Array<Record<string, CitySerializableValue>>;
   stats: Record<string, CitySerializableValue>;
 };
