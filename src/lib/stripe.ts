@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "./supabase";
 
 let stripeInstance: Stripe | null = null;
 
+/** Returns the cached Stripe client instance, initializing it on first call. */
 export function getStripe(): Stripe {
   if (stripeInstance) return stripeInstance;
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -16,6 +17,7 @@ export function getStripe(): Stripe {
   return stripeInstance;
 }
 
+/** Creates a Stripe Checkout session for a shop item purchase. Returns the session URL to redirect the user to. */
 export async function createCheckoutSession(
   itemId: string,
   developerId: number,
@@ -80,6 +82,7 @@ export async function createCheckoutSession(
   return { url: session.url! };
 }
 
+/** Creates a Stripe Checkout session for a pixel package purchase. Returns the session URL and Stripe session ID. */
 export async function createPixelCheckoutSession(
   packageId: string,
   developerId: number,

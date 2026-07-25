@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyIpnSignature } from "@/lib/nowpayments";
-import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
-import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { InfrastructureError } from "@/lib/errors";
+import { orchestratePurchaseFulfillment } from "@/lib/purchase-orchestrator";
 
 export const dynamic = "force-dynamic";
 
@@ -107,69 +105,37 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Atomic claim: transition pending → processing in one UPDATE.
-        // If a concurrent request already claimed it, claimed will be null.
-        const { data: claimed } = await sb
-          .from("purchases")
-          .update({ status: "processing" })
-          .eq("id", purchase.id)
-          .eq("status", "pending")
-          .select("id")
-          .maybeSingle();
-
-        if (!claimed) {
-          console.log(`[NOWPayments webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`);
-          break;
-        }
-
-        const ownerId = purchase.gifted_to ?? purchase.developer_id;
-        const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, purchase.item_id, sb);
-
-        // Update payment ID and mark status (completed or delivered)
-        await sb
-          .from("purchases")
-          .update({
-            status: purchaseStatus,
+        const result = await orchestratePurchaseFulfillment({
+          provider: "nowpayments",
+          transactionId: orderId,
+          purchaseId: purchase.id,
+          developerId: purchase.developer_id,
+          itemId: purchase.item_id,
+          giftedTo: purchase.gifted_to,
+          idempotencyKey,
+          updatePurchaseFields: {
             provider_tx_id: paymentId ?? orderId,
-            idempotency_key: idempotencyKey,
-          })
-          .eq("id", purchase.id);
+          },
+          supabaseClient: sb,
+          claimPendingPurchase: async ({ supabaseClient: claimSb, purchaseId: pendingPurchaseId }) => {
+            const { data: claimed } = await claimSb
+              .from("purchases")
+              .update({ status: "processing" })
+              .eq("id", pendingPurchaseId)
+              .eq("status", "pending")
+              .select("id")
+              .maybeSingle();
 
-        // Auto-equip if solo item in zone
-        await autoEquipIfSolo(ownerId, purchase.item_id);
+            if (!claimed) {
+              return { ok: false, purchase_id: pendingPurchaseId, already_claimed: true, reason: "already_claimed" };
+            }
 
-        // Insert feed event
-        const { data: dev } = await sb
-          .from("developers")
-          .select("github_login")
-          .eq("id", purchase.developer_id)
-          .single();
+            return { ok: true, purchase_id: pendingPurchaseId };
+          },
+        });
 
-        if (purchase.gifted_to) {
-          const { data: receiver } = await sb
-            .from("developers")
-            .select("github_login")
-            .eq("id", purchase.gifted_to)
-            .single();
-          await sb.from("activity_feed").insert({
-            event_type: "gift_sent",
-            actor_id: purchase.developer_id,
-            target_id: purchase.gifted_to,
-            metadata: {
-              giver_login: dev?.github_login,
-              receiver_login: receiver?.github_login ?? "unknown",
-              item_id: purchase.item_id,
-            },
-          });
-          sendGiftSentNotification(purchase.developer_id, dev?.github_login ?? "", receiver?.github_login ?? "unknown", purchase.id, purchase.item_id);
-          sendGiftReceivedNotification(purchase.gifted_to, dev?.github_login ?? "someone", receiver?.github_login ?? "unknown", purchase.id, purchase.item_id);
-        } else {
-          await sb.from("activity_feed").insert({
-            event_type: "item_purchased",
-            actor_id: purchase.developer_id,
-            metadata: { login: dev?.github_login, item_id: purchase.item_id },
-          });
-          sendPurchaseNotification(purchase.developer_id, dev?.github_login ?? "", purchase.id, purchase.item_id);
+        if (result.kind !== "completed") {
+          console.log(`[NOWPayments webhook] Purchase ${purchase.id} finished with result ${result.kind}`);
         }
         break;
       }

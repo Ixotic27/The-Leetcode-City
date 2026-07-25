@@ -30,10 +30,15 @@ interface Entry {
 const store = new Map<string, Entry>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 60_000;
+export let MAX_STORE_SIZE = 10_000;
 
-function cleanup() {
+export function _setMaxStoreSizeForTesting(size: number): void {
+  MAX_STORE_SIZE = size;
+}
+
+function cleanup(force = false) {
   const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL) return;
+  if (!force && now - lastCleanup < CLEANUP_INTERVAL) return;
   lastCleanup = now;
   for (const [key, entry] of store) {
     if (now > entry.resetAt) store.delete(key);
@@ -51,6 +56,9 @@ function rateLimitLocal(
   const entry = store.get(key);
 
   if (!entry || now > entry.resetAt) {
+    if (!entry && store.size >= MAX_STORE_SIZE) {
+      cleanup(true);
+    }
     store.set(key, { count: 1, resetAt: now + windowMs });
     return { ok: true, remaining: Math.max(0, limit - 1), reset: now + windowMs };
   }
@@ -71,6 +79,7 @@ function rateLimitLocal(
 
 let redis: Redis | null = null;
 
+/** Returns the cached Upstash Redis client, or null if credentials are not configured. */
 function getRedis(): Redis | null {
   if (redis) return redis;
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -84,6 +93,7 @@ function getRedis(): Redis | null {
 // creating a new instance on every request (each carries its own Redis conn).
 const limiterCache = new Map<string, Ratelimit>();
 
+/** Returns a cached Ratelimit instance for the given limit/window config, or null if Redis is unavailable. */
 function getLimiter(limit: number, windowMs: number): Ratelimit | null {
   const r = getRedis();
   if (!r) return null;
