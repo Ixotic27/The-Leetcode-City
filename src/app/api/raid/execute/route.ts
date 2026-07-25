@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getIsoWeekStartDateString } from "@/lib/week";
 import { RaidService } from "@/services/raidService";
@@ -8,14 +7,13 @@ import { RaidService } from "@/services/raidService";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const body = await request.json();
   const { target_login, boost_purchase_id, consumable_item_id: _legacy_consumable, offensive_item_id, vehicle_id } = body as {

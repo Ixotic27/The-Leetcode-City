@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { SKY_AD_PLANS, isValidPlanId, getPriceCents, type AdCurrency } from "@/lib/skyAdPlans";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 import { rateLimit } from "@/lib/rate-limit";
@@ -126,8 +125,9 @@ export async function POST(request: NextRequest) {
   // DEV BYPASS: Allow Ishant_27 to activate ads instantly for free
   let isDev = false;
   const { dev_mode } = body;
-  const supabaseAuth = await createServerSupabase();
-  const { data: { user } } = await supabaseAuth.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  const user = auth.user;
   if (user) {
     const { data: dev } = await sb
       .from("developers")
@@ -273,12 +273,12 @@ export async function POST(request: NextRequest) {
       .eq("id", adId);
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Sky ad checkout creation failed:", err);
     // Clean up the orphaned row
     await sb.from("sky_ads").delete().eq("id", adId);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Payment setup failed" },
+      { error: err instanceof Error ? err.message : String(err) || "Payment setup failed" },
       { status: 500 }
     );
   }

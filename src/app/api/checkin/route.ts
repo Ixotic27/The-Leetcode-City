@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { coordinateRewardSideEffects } from "@/lib/rewardCoordinator";
@@ -109,19 +108,17 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
 }
 
 export async function POST() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   // Early rate limit: coarse guard against extreme spam (e.g. scripted floods).
   // Allows 3 requests per 30s so transient failures don't block retries, but
   // still caps abuse. A tighter idempotency check fires after the RPC succeeds.
-  const { ok: earlyOk } = await rateLimit(`checkin:${user.id}`, 3, 30_000);
+  const { ok: earlyOk } = await rateLimit(`checkin:${auth.user.id}`, 3, 30_000);
   if (!earlyOk) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -134,7 +131,7 @@ export async function POST() {
     .select(
       "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date",
     )
-    .eq("claimed_by", user.id)
+    .eq("claimed_by", auth.user.id)
     .single();
 
   let dev: Developer | null = devData;
@@ -143,7 +140,7 @@ export async function POST() {
     const { data: v2Data, error: v2Err } = await sb
       .from("developers")
       .select("easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
-      .eq("claimed_by", user.id)
+      .eq("claimed_by", auth.user.id)
       .maybeSingle();
     if (!v2Err && dev && v2Data) {
       dev = { ...dev, ...v2Data };
@@ -200,7 +197,7 @@ export async function POST() {
   // Window: 1 token per 10s — prevents double-submits from double-clicks
   // while still allowing a quick retry after a real failure.
   if (checkinResult.checked_in) {
-    const { ok: successOk } = await rateLimit(`checkin:success:${user.id}`, 1, 10_000);
+    const { ok: successOk } = await rateLimit(`checkin:success:${auth.user.id}`, 1, 10_000);
     if (!successOk) {
       // Already processed a successful check-in within the last 10s — deduplicate.
       return NextResponse.json({ error: "Check-in already processed" }, { status: 429 });

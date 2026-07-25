@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -13,25 +13,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Missing purchase_id" }, { status: 400 });
   }
 
-  // Auth required
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Auth + developer resolution
+  const auth = await resolveAuthenticatedDeveloper({ select: "id, github_login" });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const sb = getSupabaseAdmin();
-
-  // Get dev ID for this user
-  const { data: dev } = await sb
-    .from("developers")
-    .select("id, github_login")
-    .eq("claimed_by", user.id)
-    .single();
-
+  const dev = auth.developer;
   const githubLogin = dev?.github_login ?? "";
 
   if (!dev) {

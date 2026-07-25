@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import {
@@ -32,14 +31,13 @@ type RaidDefender = {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const { ok } = await rateLimit(`raid-preview:${user.id}`, 5, 10_000);
   if (!ok) {

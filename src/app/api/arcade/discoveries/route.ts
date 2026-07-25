@@ -1,24 +1,22 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function GET() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const sb = getSupabaseAdmin();
+  const userId = auth.user.id;
   let commands: string[] = [];
   try {
     const { data } = await sb
       .from("arcade_discoveries")
       .select("commands")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
     commands = data?.commands ?? [];
   } catch (e) {
@@ -31,13 +29,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   let body: { command: unknown };
@@ -53,6 +48,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const userId = auth.user.id;
   let current: string[] = [];
 
   try {
@@ -60,7 +56,7 @@ export async function POST(request: Request) {
     const { data: existing } = await sb
       .from("arcade_discoveries")
       .select("commands")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     current = existing?.commands ?? [];
@@ -78,7 +74,7 @@ export async function POST(request: Request) {
   try {
     const { error } = await sb.from("arcade_discoveries").upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         commands: updated,
         updated_at: new Date().toISOString(),
       },

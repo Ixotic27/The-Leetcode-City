@@ -1,25 +1,16 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function POST() {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const sb = getSupabaseAdmin();
-
-  const { data: dev } = await sb
-    .from("developers")
-    .select("id")
-    .eq("claimed_by", user.id)
-    .single();
-
+  const dev = auth.developer;
   if (!dev) {
     return NextResponse.json({ error: "Developer not found" }, { status: 404 });
   }

@@ -1,11 +1,10 @@
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({});
 
     const sb = getSupabaseAdmin();
 
@@ -22,7 +21,7 @@ export async function GET() {
       .order("name", { ascending: true });
 
     // Default response for guest users
-    if (!user) {
+    if (!auth.ok || !auth.user) {
       return NextResponse.json({
         loggedIn: false,
         stats: null,
@@ -39,7 +38,7 @@ export async function GET() {
     const { data: dev } = await sb
       .from("developers")
       .select("*")
-      .eq("claimed_by", user.id)
+      .eq("claimed_by", auth.user.id)
       .maybeSingle();
 
     if (!dev) {

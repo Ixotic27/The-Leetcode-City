@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Check if a LeetCode user has solved a problem in the last N minutes
@@ -37,9 +36,9 @@ async function getRecentSubmissions(username: string, withinMinutes = 30) {
 // POST: called by the client to report "I'm on LeetCode right now"
 export async function POST() {
     try {
-        const supabase = await createServerSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+        const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+        const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+        if (!auth.ok || !auth.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
         const admin = getSupabaseAdmin();
 
@@ -47,7 +46,7 @@ export async function POST() {
         const { data: dev } = await admin
             .from("developers")
             .select("id, github_login, contributions")
-            .eq("claimed_by", user.id)
+            .eq("claimed_by", auth.user.id)
             .maybeSingle();
 
         if (!dev) return NextResponse.json({ error: "No linked GitHub account" }, { status: 404 });

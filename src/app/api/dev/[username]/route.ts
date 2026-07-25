@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 
 export const dynamic = "force-dynamic";
@@ -209,18 +208,12 @@ export async function GET(
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   if (!cachedRecord) {
-    let key: string;
-    try {
-      const authClient = await createServerSupabase();
-      const { data: { user } } = await authClient.auth.getUser();
-      isAuthenticatedUser = !!user;
-      key = user ? `user:${user.id}` : (
-        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
-      );
-    } catch (err) {
-      console.warn("[app/api/dev/[username]/route.ts] error:", err);
-      key = "unknown";
-    }
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+    isAuthenticatedUser = !!auth.user;
+    const key = auth.user ? `user:${auth.user.id}` : (
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+    );
     rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;

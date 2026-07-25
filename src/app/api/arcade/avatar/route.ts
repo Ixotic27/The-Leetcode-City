@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 // Hex color validation
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -42,22 +42,14 @@ const LEGACY_SPRITE_MAP: Record<number, Record<string, string | null>> = {
 };
 
 export async function GET() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   const admin = getSupabaseAdmin();
-
-  // Get developer_id
-  const { data: dev } = await admin
-    .from("developers")
-    .select("id")
-    .eq("claimed_by", user.id)
-    .single();
-
+  const dev = auth.developer;
   if (!dev) {
     return NextResponse.json({ error: "Developer not found" }, { status: 404 });
   }
@@ -77,10 +69,10 @@ export async function GET() {
 
   // Fallback: check old arcade_avatars and migrate
   try {
-    const { data: oldAvatar, error: oldAvatarError } = await admin
+    const { data: oldAvatar } = await admin
       .from("arcade_avatars")
       .select("config")
-      .eq("user_id", user.id)
+      .eq("user_id", auth.user.id)
       .maybeSingle();
 
     if (oldAvatar?.config) {
@@ -123,11 +115,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
   let body: Record<string, unknown>;
@@ -138,13 +129,7 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
-
-  const { data: dev } = await admin
-    .from("developers")
-    .select("id")
-    .eq("claimed_by", user.id)
-    .single();
-
+  const dev = auth.developer;
   if (!dev) {
     return NextResponse.json({ error: "Developer not found" }, { status: 404 });
   }
@@ -158,7 +143,7 @@ export async function POST(request: Request) {
     try {
       // Save to old table too for backwards compat
       await admin.from("arcade_avatars").upsert({
-        user_id: user.id,
+        user_id: auth.user.id,
         config: { sprite_id: spriteId },
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });

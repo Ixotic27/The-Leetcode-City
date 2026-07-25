@@ -8,7 +8,7 @@ import { SearchFeedback } from "./SearchBar";
 import SearchBar from "@/components/SearchBar";
 import { CityBuilding } from "@/lib/github";
 
-const DEV_CLASSES = [
+export const DEV_CLASSES = [
   "Vibe Coder",
   "Stack Overflow Tourist",
   "Console.log Debugger",
@@ -41,13 +41,85 @@ const DEV_CLASSES = [
   "Sudo Make Me A Sandwich",
 ];
 
-function getDevClass(login: string) {
+export function getDevClass(login: string) {
   let h = 0;
   for (let i = 0; i < login.length; i++)
     h = ((h << 5) - h + login.charCodeAt(i)) | 0;
   return DEV_CLASSES[
     ((h % DEV_CLASSES.length) + DEV_CLASSES.length) % DEV_CLASSES.length
   ];
+}
+
+export function buildComparisonRows(
+  comparePair: CityBuilding[]
+) {
+  const compareStatDefs: {
+    label: string;
+    key: keyof CityBuilding;
+    invert?: boolean;
+  }[] = [
+      { label: "City Rank", key: "rank", invert: true },
+      { label: "Solved", key: "contributions" },
+      { label: "Reputation", key: "total_stars" },
+      { label: "LC Rank", key: "public_repos", invert: true },
+      { label: "Kudos", key: "kudos_count" },
+    ];
+
+  let totalAWins = 0;
+  let totalBWins = 0;
+
+  const cmpRows = compareStatDefs.map((s) => {
+    const a = (comparePair[0][s.key] as number) ?? 0;
+    const b = (comparePair[1][s.key] as number) ?? 0;
+
+    let aW = false;
+    let bW = false;
+
+    if (s.invert) {
+      aW = a > 0 && (a < b || b === 0);
+      bW = b > 0 && (b < a || a === 0);
+    } else {
+      aW = a > b;
+      bW = b > a;
+    }
+
+    if (aW) totalAWins++;
+    if (bW) totalBWins++;
+
+    return {
+      ...s,
+      a,
+      b,
+      aW,
+      bW,
+    };
+  });
+
+  return {
+    cmpRows,
+    totalAWins,
+    totalBWins,
+  };
+}
+
+export function getComparisonSummary(
+  comparePair: CityBuilding[],
+  totalAWins: number,
+  totalBWins: number
+) {
+  const cmpTie = totalAWins === totalBWins;
+
+  const cmpWinner =
+    totalAWins > totalBWins
+      ? comparePair[0].login
+      : comparePair[1].login;
+
+  return cmpTie
+    ? `Tie ${totalAWins}-${totalBWins}`
+    : `@${cmpWinner} wins ${Math.max(
+      totalAWins,
+      totalBWins
+    )}-${Math.min(totalAWins, totalBWins)}`;
 }
 
 export default function ComparisonPanel() {
@@ -177,41 +249,17 @@ export default function ComparisonPanel() {
 
   // ─── Case 2: Comparison stats panel is active ───
   if (comparePair && !flyMode) {
-    const compareStatDefs: {
-      label: string;
-      key: keyof CityBuilding;
-      invert?: boolean;
-    }[] = [
-      { label: "City Rank", key: "rank", invert: true },
-      { label: "Solved", key: "contributions" },
-      { label: "Reputation", key: "total_stars" },
-      { label: "LC Rank", key: "public_repos", invert: true },
-      { label: "Kudos", key: "kudos_count" },
-    ];
-    let totalAWins = 0;
-    let totalBWins = 0;
-    const cmpRows = compareStatDefs.map((s) => {
-      const a = (comparePair[0][s.key] as number) ?? 0;
-      const b = (comparePair[1][s.key] as number) ?? 0;
-      let aW = false,
-        bW = false;
-      if (s.invert) {
-        aW = a > 0 && (a < b || b === 0);
-        bW = b > 0 && (b < a || a === 0);
-      } else {
-        aW = a > b;
-        bW = b > a;
-      }
-      if (aW) totalAWins++;
-      if (bW) totalBWins++;
-      return { ...s, a, b, aW, bW };
-    });
-    const cmpTie = totalAWins === totalBWins;
-    const cmpWinner = totalAWins > totalBWins ? comparePair[0].login : comparePair[1].login;
-    const cmpSummary = cmpTie
-      ? `Tie ${totalAWins}-${totalBWins}`
-      : `@${cmpWinner} wins ${Math.max(totalAWins, totalBWins)}-${Math.min(totalAWins, totalBWins)}`;
+    const {
+      cmpRows,
+      totalAWins,
+      totalBWins,
+    } = buildComparisonRows(comparePair);
 
+    const cmpSummary = getComparisonSummary(
+      comparePair,
+      totalAWins,
+      totalBWins
+    );
     return (
       <div
         className="pointer-events-auto fixed z-40

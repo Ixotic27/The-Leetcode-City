@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const { ok } = await rateLimit(`rabbit:${user.id}`, 2, 1000);
   if (!ok) {
@@ -136,13 +134,13 @@ export async function GET(request: Request) {
       dev = qDev;
     } else {
       try {
-        const supabase = await createServerSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+        const auth2 = await resolveAuthenticatedDeveloper({});
+        if (auth2.ok && auth2.user) {
           const { data: qDev } = await admin
             .from("developers")
             .select("rabbit_progress, rabbit_completed, rabbit_completed_at")
-            .eq("claimed_by", user.id)
+            .eq("claimed_by", auth2.user.id)
             .maybeSingle();
           dev = qDev;
         }
