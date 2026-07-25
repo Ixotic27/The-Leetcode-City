@@ -1,28 +1,21 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTodayStr } from "@/lib/dailies";
 import { DailyMissionService } from "@/services/dailyMissionService";
+import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function GET(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authDev = await resolveAuthenticatedDeveloper({
+    select: "id, github_login, claimed, dailies_completed, dailies_streak, last_dailies_date, last_checkin_date, points",
+  });
 
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!authDev.ok || !authDev.user || !authDev.developer) {
+    return NextResponse.json({ error: authDev.error ?? "Not authenticated" }, { status: authDev.status });
   }
 
   const admin = getSupabaseAdmin();
   const service = new DailyMissionService(admin);
-
-  const { data: dev } = await admin
-    .from("developers")
-    .select("id, github_login, claimed, dailies_completed, dailies_streak, last_dailies_date, last_checkin_date, points")
-    .eq("claimed_by", user.id)
-    .single();
-
+  const dev = authDev.developer as any;
   const githubLogin = dev?.github_login ?? "";
 
   if (!dev || !dev.claimed) {

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { RAID_VEHICLE_ITEMS, RAID_TAG_ITEMS } from "@/lib/zones";
 
@@ -19,16 +18,16 @@ export async function GET(request: Request) {
     developerId = parseInt(devId, 10);
   } else {
     // Auth-based: resolve developer_id from session
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+    if (!auth.ok || !auth.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { data: dev } = await admin
       .from("developers")
       .select("id")
-      .eq("claimed_by", user.id)
+      .eq("claimed_by", auth.user.id)
       .limit(1)
       .maybeSingle();
     if (dev) developerId = dev.id;
@@ -57,14 +56,13 @@ export async function GET(request: Request) {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const admin = getSupabaseAdmin();
 

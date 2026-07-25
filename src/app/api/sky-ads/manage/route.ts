@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { containsBlockedContent, isSuspiciousLink } from "@/lib/ad-moderation";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
@@ -16,15 +15,15 @@ function generateToken(): string {
 }
 
 async function checkAdmin() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) return null;
   const login = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
+    auth.user.user_metadata.user_name ??
+    auth.user.user_metadata.preferred_username ??
     ""
   ).toLowerCase();
-  return login === OWNER_LOGIN.toLowerCase() ? user : null;
+  return login === OWNER_LOGIN.toLowerCase() ? auth.user : null;
 }
 
 // Create a new ad

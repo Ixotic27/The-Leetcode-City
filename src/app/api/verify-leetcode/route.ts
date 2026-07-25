@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
@@ -68,12 +67,13 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing LeetCode username" }, { status: 400 });
         }
 
-        const supabase = await createServerSupabase();
-        const { data: { user } } = await supabase.auth.getUser();
+        const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+        const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-        if (!user) {
+        if (!auth.ok || !auth.user) {
             return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
         }
+        const user = auth.user;
 
         // Generate the expected deterministic token for this user
         const expectedToken = "LCC-" + user.id.split("-")[0].toUpperCase();

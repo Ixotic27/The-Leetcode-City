@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 /**
@@ -7,11 +6,12 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  */
 export async function POST(req: Request) {
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+    if (!auth.ok || !auth.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const user = auth.user;
 
     const { code } = await req.json();
     if (!code || typeof code !== "string") {

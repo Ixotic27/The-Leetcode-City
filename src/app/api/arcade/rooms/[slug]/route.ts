@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { createServerSupabase } from "@/lib/supabase-server";
 
 import fs from "fs/promises";
 import path from "path";
@@ -170,10 +169,10 @@ if (roomError || !roomDetails) {
 
   // Track visit (best-effort, don't block response)
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      void sb.rpc("upsert_arcade_visit", { p_user_id: user.id, p_room_id: data.id });
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+    if (auth.ok && auth.user) {
+      void sb.rpc("upsert_arcade_visit", { p_user_id: auth.user.id, p_room_id: data.id });
     }
   } catch (err) {
     console.error("[app/api/arcade/rooms/[slug]/route.ts] visit tracking failed:", err);
@@ -192,16 +191,16 @@ export async function PUT(
   const { slug } = await params;
 
   // Auth check — must be logged in
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Admin check
   const login = (
-    user.user_metadata?.user_name ??
-    user.user_metadata?.preferred_username ??
+    auth.user.user_metadata?.user_name ??
+    auth.user.user_metadata?.preferred_username ??
     ""
   ).toLowerCase();
   const admins = (process.env.ADMIN_GITHUB_LOGINS ?? "")

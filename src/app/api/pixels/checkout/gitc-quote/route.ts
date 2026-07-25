@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { quoteGitcWeiForUsdCents, getCurrentBaseBlock } from "@/lib/gitc-server";
@@ -31,14 +30,13 @@ interface DevRow {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createServerSupabase();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-  if (!user) {
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
+  const user = auth.user;
 
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??

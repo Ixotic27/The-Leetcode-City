@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { resolveAuthenticatedDeveloper, type AuthenticatedDeveloperRecord } from "@/lib/authenticated-developer";
 import { STATIC_RELICS } from "@/lib/relics";
 import { cookies } from "next/headers";
 import { levelFromXp } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";
 
+function getTrackerNumber(config: Record<string, unknown>, key: string): number {
+  const value = config[key];
+  return typeof value === "number" ? value : 0;
+}
+
 export async function GET() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  const user = auth.user;
 
   const admin = getSupabaseAdmin();
 
@@ -32,22 +37,19 @@ export async function GET() {
 
   const unlockedRelicIds = new Set<string>();
   let isDev = false;
-  let devRecord: any = null;
-  let trackerProgress: any = {};
+  let devRecord: AuthenticatedDeveloperRecord | null = null;
+  let trackerProgress: Record<string, unknown> = {};
   let hasPurchases = false;
 
-  if (user) {
-    // Fetch developer ID and stats
-    const { data: dev } = await admin
-      .from("developers")
-      .select("id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total")
-      .eq("claimed_by", user.id)
-      .eq("claimed", true)
-      .maybeSingle();
+  if (auth.ok && user) {
+    const authDev = await resolveAuthenticatedDeveloper({
+      select: "id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total",
+    });
 
-    if (dev) {
+    if (authDev.ok && authDev.developer) {
+      const dev = authDev.developer;
       devRecord = dev;
-      const loginLower = dev.github_login.toLowerCase();
+      const loginLower = String(dev.github_login ?? "").toLowerCase();
       isDev = ["ishant_27", "ixotic", "ixotic27"].includes(loginLower);
 
       // Fetch all unlocked relics from DB for this user
@@ -113,7 +115,7 @@ export async function GET() {
           locked = false;
         }
       } else if (staticRelic.id === "relic_lith_harbor_key") {
-        const visits = trackerProgress.docks_visits ?? 0;
+        const visits = getTrackerNumber(trackerProgress, "docks_visits");
         if (visits >= 5) {
           locked = false;
         }
@@ -135,12 +137,13 @@ export async function GET() {
           locked = false;
         }
       } else if (staticRelic.id === "relic_neo_holo_visor") {
-        const arenaSolves = trackerProgress.arena_solves ?? 0;
+        const arenaSolves = getTrackerNumber(trackerProgress, "arena_solves");
         if (arenaSolves >= 20) {
           locked = false;
         }
       } else if (staticRelic.id === "relic_axi_astral_prism") {
-        const level = levelFromXp(devRecord.xp_total ?? 0);
+        const xpTotal = typeof devRecord.xp_total === "number" ? devRecord.xp_total : 0;
+        const level = levelFromXp(xpTotal);
         if (level >= 30) {
           locked = false;
         }
@@ -149,7 +152,7 @@ export async function GET() {
           locked = false;
         }
       } else if (staticRelic.id === "relic_requiem_void_core") {
-        const raidWins = trackerProgress.raid_wins ?? 0;
+        const raidWins = getTrackerNumber(trackerProgress, "raid_wins");
         if (raidWins >= 1) {
           locked = false;
         }

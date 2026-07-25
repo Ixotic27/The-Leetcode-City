@@ -26,28 +26,24 @@ export async function GET(
   let devError: { message: string; code?: string } | null = null;
 
   // Check if authenticated user is fetching their own stats
-  const authHeader = request.headers.get("Authorization");
-  if (authHeader) {
-    const token = authHeader.replace("Bearer ", "");
-    try {
-      const { data: { user } } = await sb.auth.getUser(token);
-      if (user) {
-        const { data: authedDev, error: authedError } = await sb
-          .from("developers")
-          .select("id, name, github_login, avatar_url, xp_level")
-          .eq("claimed_by", user.id)
-          .maybeSingle();
-        
-        if (authedDev) {
-          const metaUser = (user.user_metadata?.user_name ?? user.user_metadata?.preferred_username ?? "").toLowerCase();
-          if (username === "me" || username === authedDev.github_login.toLowerCase() || username === metaUser) {
-            dev = authedDev;
-          }
-        }
+  try {
+    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({ select: "id, name, github_login, avatar_url, xp_level" });
+    if (auth.ok && auth.developer) {
+      const developerLogin = auth.developer.github_login?.toLowerCase() ?? "";
+      const metaUser = (auth.user?.user_metadata?.user_name ?? auth.user?.user_metadata?.preferred_username ?? "").toLowerCase();
+      if (username === "me" || username === developerLogin || username === metaUser) {
+        dev = {
+          id: typeof auth.developer.id === "number" ? auth.developer.id : 0,
+          name: typeof auth.developer.name === "string" ? auth.developer.name : null,
+          github_login: typeof auth.developer.github_login === "string" ? auth.developer.github_login : "",
+          avatar_url: typeof auth.developer.avatar_url === "string" ? auth.developer.avatar_url : null,
+          xp_level: typeof auth.developer.xp_level === "number" ? auth.developer.xp_level : 0,
+        };
       }
-    } catch (e) {
-      console.error("[app/api/arena/stats/[username]/route.ts] auth getUser failure:", e);
     }
+  } catch (e) {
+    console.error("[app/api/arena/stats/[username]/route.ts] auth getUser failure:", e);
   }
 
   // Support VS Code extension apiKey or cookie session via getAuthenticatedDeveloper if username === "me"

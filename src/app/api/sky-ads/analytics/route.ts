@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const OWNER_LOGIN = "ixotic27";
@@ -19,14 +18,14 @@ const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number
  */
 export async function GET(request: Request) {
   // Auth check
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
   const login = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
+    auth.user.user_metadata.user_name ??
+    auth.user.user_metadata.preferred_username ??
     ""
   ).toLowerCase();
   if (login !== OWNER_LOGIN) {
