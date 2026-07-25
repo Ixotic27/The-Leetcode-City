@@ -24,18 +24,20 @@ export function sendStreakMilestoneNotification(
     ? `<p style="color: #ffa116; font-size: 14px;">Reward unlocked: <strong>${rewardItemName}</strong></p>`
     : "";
 
-  sendNotificationAsync({
-    type: "streak_milestone",
-    category: "social",
-    developerId: devId,
-    dedupKey: `streak_milestone:${devId}:${streak}`,
-    title: `${streak}-day streak! ${milestoneInfo.tagline}`,
-    body: `${streak}-day streak! ${milestoneInfo.tagline}${rewardItemName ? ` Reward: ${rewardItemName}` : ""}`,
-    html: `
+  void (async () => {
+    try {
+      sendNotificationAsync({
+        type: "streak_milestone",
+        category: "social",
+        developerId: devId,
+        dedupKey: `streak_milestone:${devId}:${streak}`,
+        title: `${streak}-day streak! ${milestoneInfo.tagline}`,
+        body: `${streak}-day streak! ${milestoneInfo.tagline}${rewardItemName ? ` Reward: ${rewardItemName}` : ""}`,
+        html: `
       <div style="text-align: center;">
         <p style="font-size: 40px; margin: 0;">${milestoneInfo.emoji}</p>
         <p style="color: #ffa116; font-size: 24px; font-weight: bold; margin: 8px 0;">${streak}-day streak!</p>
-        <p style="color: #f0f0f0; font-size: 16px; margin-top: 0;">${milestoneInfo.tagline}</p>
+        <p style="color: #f0f0f0; font-size: 16px; margin: 0;">${milestoneInfo.tagline}</p>
       </div>
       ${rewardHtml}
       <p style="color: #666; font-size: 13px; text-align: center;">
@@ -43,8 +45,12 @@ export function sendStreakMilestoneNotification(
       </p>
       ${buildButton("Keep It Going", `${BASE_URL}/?user=${login}`)}
     `,
-    actionUrl: `${BASE_URL}/?user=${login}`,
-    priority: "high", // Streak milestones are celebratory, send immediately
-    channels: ["email"],
-  });
+        actionUrl: `${BASE_URL}/?user=${login}`,
+        priority: "high", // Streak milestones are celebratory, send immediately
+        channels: ["email"],
+      });
+    } catch (err: unknown) {
+      console.error("[streak] notification failed", err);
+    }
+  })();
 }
