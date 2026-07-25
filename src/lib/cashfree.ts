@@ -37,6 +37,7 @@ interface CashfreeOrderResponse {
   order_status: string;
 }
 
+/** Creates a Cashfree order and returns the payment session ID and Cashfree order ID. */
 export async function createCashfreeOrder(opts: {
   orderId: string;
   amountINR: number; // in rupees (NOT paise)
@@ -109,6 +110,7 @@ export async function createCashfreeOrder(opts: {
 // ---------------------------------------------------------------------------
 // Verify Cashfree order status (called after return or from webhook)
 // ---------------------------------------------------------------------------
+/** Returns the current status of a Cashfree order including payment status and amount. */
 export async function getCashfreeOrderStatus(orderId: string): Promise<{
   orderStatus: string;
   paymentStatus: string;
@@ -143,6 +145,7 @@ export async function getCashfreeOrderStatus(orderId: string): Promise<{
 // Webhook signature verification
 // Signature = Base64(HMAC-SHA256(timestamp + rawBody, secretKey))
 // ---------------------------------------------------------------------------
+/** Verifies the HMAC-SHA256 signature of an incoming Cashfree webhook payload. */
 export function verifyCashfreeWebhook(
   signature: string,
   rawBody: string,
@@ -161,6 +164,7 @@ export function verifyCashfreeWebhook(
 // ---------------------------------------------------------------------------
 // Helper: Create a full checkout flow for shop items
 // ---------------------------------------------------------------------------
+/** Creates a full Cashfree checkout flow for a shop item, including order creation and session ID generation. */
 export async function createCashfreeCheckout(
   itemId: string,
   developerId: number,

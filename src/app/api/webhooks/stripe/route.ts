@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
-import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { InfrastructureError } from "@/lib/errors";
+import { claimPendingPurchaseAtomically, orchestratePurchaseFulfillment } from "@/lib/purchase-orchestrator";
 import type Stripe from "stripe";
 
 // Disable body parsing — Stripe needs raw body for signature verification
@@ -167,25 +165,28 @@ export async function POST(request: Request) {
         }
 
         const txId = paymentIntentId ?? session.id;
+        const githubLogin = session.metadata?.github_login;
+        const giftedTo = session.metadata?.gifted_to;
 
-        // Atomically claim the pending purchase with stock check
-        const { data: claimData, error: claimError } = await sb.rpc("claim_pending_purchase_atomic", {
-          p_developer_id: Number(developerId),
-          p_item_id: itemId,
-          p_provider: "stripe",
-          p_tx_id: txId,
+        const orchestrationResult = await orchestratePurchaseFulfillment({
+          provider: "stripe",
+          transactionId: txId,
+          developerId: Number(developerId),
+          itemId,
+          githubLogin,
+          giftedTo: giftedTo ? Number(giftedTo) : null,
+          supabaseClient: sb,
+          claimPendingPurchase: async ({ transactionId, developerId: claimDeveloperId, itemId: claimItemId, supabaseClient: claimSb }) =>
+            claimPendingPurchaseAtomically({
+              provider: "stripe",
+              transactionId,
+              developerId: claimDeveloperId,
+              itemId: claimItemId,
+              supabaseClient: claimSb,
+            }),
         });
 
-        if (claimError) {
-          throw new InfrastructureError(
-            `[Stripe webhook] Failed to claim pending purchase ${txId}: ${claimError.message}`,
-            claimError
-          );
-        }
-
-        const claimResult = Array.isArray(claimData) ? claimData[0] : claimData;
-
-        if (claimResult && claimResult.error_code === 'sold_out') {
+        if (orchestrationResult.kind === "sold_out") {
           console.error(`[Stripe webhook] Item ${itemId} oversold. Issuing Stripe refund for ${txId}.`);
           let refundSuccess = false;
           if (paymentIntentId) {
@@ -199,95 +200,53 @@ export async function POST(request: Request) {
               console.error("[Stripe webhook] Refund failed:", refundError);
             }
           }
-          
-          if (claimResult.purchase_id) {
+
+          if (orchestrationResult.purchaseId) {
             await sb.from("purchases").update({
               status: refundSuccess ? "refunded" : "failed",
               provider_tx_id: txId,
-            }).eq("id", claimResult.purchase_id).eq("status", "pending");
+            }).eq("id", orchestrationResult.purchaseId).eq("status", "pending");
           }
           break;
         }
 
-        if (claimResult && claimResult.ok && claimResult.purchase_id) {
-          const pendingId = claimResult.purchase_id;
-          const giftedTo = session.metadata?.gifted_to;
-          const ownerId = giftedTo ? Number(giftedTo) : Number(developerId);
-          const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+        if (orchestrationResult.kind === "completed") {
+          break;
+        }
 
-          await sb
-            .from("purchases")
-            .update({
-              status: purchaseStatus,
-            })
-            .eq("id", pendingId);
+        if (orchestrationResult.kind === "duplicate") {
+          break;
+        }
 
-          // Auto-equip if solo item in zone
-          await autoEquipIfSolo(ownerId, itemId);
+        // Check if this txId already has a completed/delivered/processing purchase
+        const { data: alreadyProcessed, error: alreadyProcessedError } = await sb
+          .from("purchases")
+          .select("id, status")
+          .eq("provider_tx_id", txId)
+          .in("status", ["completed", "delivered", "processing"])
+          .maybeSingle();
 
-          // Insert feed event + send notifications
-          const githubLogin = session.metadata?.github_login;
-          if (giftedTo) {
-            const { data: receiver } = await sb
-              .from("developers")
-              .select("github_login")
-              .eq("id", Number(giftedTo))
-              .single();
-            await sb.from("activity_feed").insert({
-              event_type: "gift_sent",
-              actor_id: Number(developerId),
-              target_id: Number(giftedTo),
-              metadata: {
-                giver_login: githubLogin,
-                receiver_login: receiver?.github_login ?? "unknown",
-                item_id: itemId,
-              },
+        if (alreadyProcessedError) {
+          throw new InfrastructureError(
+            `[Stripe webhook] failed to validate processed tx ${txId}: ${alreadyProcessedError.message}`,
+            alreadyProcessedError
+          );
+        }
+
+        if (alreadyProcessed) {
+          console.log(`[Stripe webhook] Purchase ${alreadyProcessed.id} already fulfilled — skipping duplicate webhook`);
+          break;
+        }
+
+        console.error(`[Stripe webhook] Pending purchase not found for session ${session.id}. Cannot safely fulfill item ${itemId}. Issuing refund.`);
+        if (paymentIntentId) {
+          try {
+            await stripe.refunds.create({
+              payment_intent: paymentIntentId,
+              reason: "requested_by_customer",
             });
-
-            // Gift notifications: receipt to buyer, alert to receiver
-            sendGiftSentNotification(Number(developerId), githubLogin ?? "", receiver?.github_login ?? "unknown", pendingId, itemId);
-            sendGiftReceivedNotification(Number(giftedTo), githubLogin ?? "someone", receiver?.github_login ?? "unknown", pendingId, itemId);
-          } else {
-            await sb.from("activity_feed").insert({
-              event_type: "item_purchased",
-              actor_id: Number(developerId),
-              metadata: { login: githubLogin, item_id: itemId },
-            });
-
-            // Purchase receipt notification
-            sendPurchaseNotification(Number(developerId), githubLogin ?? "", pendingId, itemId);
-          }
-        } else {
-          // Check if this txId already has a completed/delivered/processing purchase
-          const { data: alreadyProcessed, error: alreadyProcessedError } = await sb
-            .from("purchases")
-            .select("id, status")
-            .eq("provider_tx_id", txId)
-            .in("status", ["completed", "delivered", "processing"])
-            .maybeSingle();
-
-          if (alreadyProcessedError) {
-            throw new InfrastructureError(
-              `[Stripe webhook] failed to validate processed tx ${txId}: ${alreadyProcessedError.message}`,
-              alreadyProcessedError
-            );
-          }
-
-          if (alreadyProcessed) {
-            console.log(`[Stripe webhook] Purchase ${alreadyProcessed.id} already fulfilled — skipping duplicate webhook`);
-            break;
-          }
-
-          console.error(`[Stripe webhook] Pending purchase not found for session ${session.id}. Cannot safely fulfill item ${itemId}. Issuing refund.`);
-          if (paymentIntentId) {
-            try {
-              await stripe.refunds.create({
-                payment_intent: paymentIntentId,
-                reason: "requested_by_customer",
-              });
-            } catch (refundError) {
-              console.error("[Stripe webhook] Refund failed for missing purchase:", refundError);
-            }
+          } catch (refundError) {
+            console.error("[Stripe webhook] Refund failed for missing purchase:", refundError);
           }
         }
         break;
