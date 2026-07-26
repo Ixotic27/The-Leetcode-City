@@ -1,14 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
+
+// Zod schema for query params
+const RoomsQuerySchema = z.object({
+  q: z.string().optional(),
+  category: z.string().optional(),
+  featured: z.enum(["true", "false"]).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
 
 // GET /api/arcade/rooms — list rooms with search, category, pagination
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const search = url.searchParams.get("q")?.trim();
-  const category = url.searchParams.get("category");
-  const featured = url.searchParams.get("featured");
-  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
+  const parsed = RoomsQuerySchema.safeParse({
+    q: url.searchParams.get("q") ?? undefined,
+    category: url.searchParams.get("category") ?? undefined,
+    featured: url.searchParams.get("featured") ?? undefined,
+    page: url.searchParams.get("page") ?? undefined,
+    limit: url.searchParams.get("limit") ?? undefined,
+  });
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid query parameters", detail: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const { q: search, category, featured, page, limit } = parsed.data;
   const offset = (page - 1) * limit;
 
   const sb = getSupabaseAdmin();
