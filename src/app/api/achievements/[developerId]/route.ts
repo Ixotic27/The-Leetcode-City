@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { validateParams } from "@/lib/validation";
+import { developerIdParamSchema } from "@/lib/validation/schemas";
 
 /**
  * @param {{ params: any }} context
@@ -8,11 +10,11 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ developerId: string }> }
 ) {
-  const { developerId: devIdStr } = await params;
-  const developerId = parseInt(devIdStr, 10);
-  if (isNaN(developerId)) {
-    return NextResponse.json({ error: "Invalid developer ID" }, { status: 400 });
+  const paramValidation = validateParams(developerIdParamSchema, await params);
+  if (!paramValidation.success) {
+    return paramValidation.response;
   }
+  const { developerId } = paramValidation.data;
 
   const sb = getSupabaseAdmin();
 

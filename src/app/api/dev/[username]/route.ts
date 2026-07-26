@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
+import { validateParams, validateQuery } from "@/lib/validation";
+import { devQuerySchema, usernameParamSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
 interface LeetCodeProfile {
@@ -182,9 +184,18 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  const { username } = await params;
+  const paramValidation = validateParams(usernameParamSchema, await params);
+  if (!paramValidation.success) {
+    return paramValidation.response;
+  }
+
+  const { username } = paramValidation.data;
   const { searchParams } = new URL(request.url);
-  const forceRefresh = searchParams.get("refresh") === "true";
+  const queryValidation = validateQuery(devQuerySchema, searchParams);
+  if (!queryValidation.success) {
+    return queryValidation.response;
+  }
+  const { refresh: forceRefresh } = queryValidation.data;
   const sb = getSupabaseAdmin();
 
   let cachedRecord = null;
