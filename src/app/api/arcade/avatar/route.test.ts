@@ -39,12 +39,13 @@ function createAdmin({ data = [], error = null, throws }: OwnershipResult) {
       const query = {
         select: () => query,
         eq: () => query,
-        in: () => {
+        maybeSingle: vi.fn().mockImplementation(() => {
           if (throws) {
             return Promise.reject(throws);
           }
-          return Promise.resolve({ data, error });
-        },
+          const hasOwned = (data ?? []).some((row) => row.item_id === "paid_dragon");
+          return Promise.resolve({ data: hasOwned ? { item_id: "paid_dragon" } : null, error });
+        }),
       };
       return query;
     }
