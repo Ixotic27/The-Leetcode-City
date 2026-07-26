@@ -81,11 +81,17 @@ export async function getPushTokens(devId: number): Promise<{ token: string; pla
  * Update last_active_at for a developer. Fire-and-forget.
  */
 export function touchLastActive(devId: number): void {
-  const sb = getSupabaseAdmin();
-  sb.from("developers")
-    .update({ last_active_at: new Date().toISOString() })
-    .eq("id", devId)
-    .then();
+  void (async () => {
+    try {
+      const sb = getSupabaseAdmin();
+      await sb
+        .from("developers")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("id", devId);
+    } catch (err: unknown) {
+      console.error(`Error updating last active time for developer ${devId}:`, err);
+    }
+  })();
 }
 
 /**

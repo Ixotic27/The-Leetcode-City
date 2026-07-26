@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
+import { EntitlementService } from "@/services/entitlementService";
 
 // Hex color validation
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -50,12 +51,16 @@ export async function GET() {
 
   const admin = getSupabaseAdmin();
   const dev = auth.developer;
-  if (!dev) {
-    return NextResponse.json({ error: "Developer not found" }, { status: 404 });
+
+  if (!dev || dev.id == null) {
+    return NextResponse.json(
+      { error: "Developer not found" },
+      { status: 404 },
+    );
   }
 
   // Try new loadout first
-  const { data: loadout, error: loadoutError } = await admin
+  const { data: loadout } = await admin
     .from("arcade_avatar_loadouts")
     .select("*")
     .eq("developer_id", dev.id)
@@ -129,9 +134,16 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
+  const entitlementService = new EntitlementService();
+
   const dev = auth.developer;
-  if (!dev) {
-    return NextResponse.json({ error: "Developer not found" }, { status: 404 });
+
+  
+  if (!dev || dev.id == null) {
+    return NextResponse.json(
+      { error: "Developer not found" },
+      { status: 404 },
+    );
   }
 
   // Backwards compat: if old-style { sprite_id } is sent, map it
@@ -174,19 +186,16 @@ export async function POST(request: Request) {
 
   if (equippedIds.length > 0) {
     try {
-      // Check ownership (free items + purchased items)
-      const { data: owned, error } = await admin
-        .from("arcade_inventory")
-        .select("item_id")
-        .eq("developer_id", dev.id)
-        .in("item_id", equippedIds);
-
-      if (error) {
-        console.warn("Could not verify item ownership from database:", error);
-        return NextResponse.json({ error: "Failed to verify item ownership" }, { status: 500 });
+      const ownedSet = new Set<string>();
+      for (const itemId of equippedIds) {
+        const isOwned = await entitlementService.ownsInventoryItem(dev.id, itemId, {
+          inventoryTable: "arcade_inventory",
+        });
+        if (isOwned) {
+          ownedSet.add(itemId);
+        }
       }
 
-      const ownedSet = new Set((owned ?? []).map((r) => r.item_id));
       const notOwned = equippedIds.filter((id) => !ownedSet.has(id));
 
       if (notOwned.length > 0) {

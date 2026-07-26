@@ -2935,7 +2935,7 @@ export default function CityCanvas({
           requestAnimationFrame(runner);
         } catch (e) {
           // Best-effort only — surface warnings to make issues diagnosable in dev
-          // eslint-disable-next-line no-console
+           
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
 

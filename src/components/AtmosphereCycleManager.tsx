@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability, react-hooks/purity, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/immutability, react-hooks/purity, @typescript-eslint/no-unused-vars */
 
 import * as THREE from "three";
 import { useRef, useMemo, useEffect } from "react";
