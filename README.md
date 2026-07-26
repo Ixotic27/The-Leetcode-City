@@ -19,22 +19,6 @@
   <a href="https://github.com/Ixotic27/The-Leetcode-City/blob/main/LICENSE"><img src="https://badgen.net/github/license/Ixotic27/The-Leetcode-City?color=ffa116" alt="License" /></a>
 </p>
 
----
-
-## 📸 Screenshots
-
-<p align="center">
-  <img src="public/screenshots/city-view.png" alt="3D pixel-art city skyline view" width="800" />
-  <br /><em>The 3D pixel-art city — every developer's LeetCode profile becomes a building</em>
-</p>
-
-<p align="center">
-  <img src="public/screenshots/developer-profile.png" alt="Developer profile card showing stats" width="400" />
-  <img src="public/screenshots/compare-dashboard.png" alt="Comparison dashboard between two developers" width="400" />
-  <br /><em>Developer profile cards (left) and head-to-head comparison (right)</em>
-</p>
-
----
 
 ## Table of Contents 
 
