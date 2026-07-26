@@ -8,11 +8,16 @@
  *   --one-shot                 Run one cycle and exit
  *   --limit <number>           Number of profiles to refresh (default: 75)
  *   --concurrency <number>     Concurrency limit (default: 5)
- *   --discover-pages <number>  Number of ranking pages to scan (default: 2)
+ *   --discover-pages <number>  Number of ranking pages to scan (default: 2, overridden by LC_FETCHER_DISCOVER_PAGES env)
+ *   --no-discover                Disable new user discovery (overridden by LC_FETCHER_DISCOVER_ENABLED=1)
  */
 
 import { createClient } from "@supabase/supabase-js";
 import { parseMaxStreak } from "../src/lib/leetcode";
+
+function envStr(name: string, fallback: string): string {
+    return process.env[name] ?? fallback;
+}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -38,7 +43,9 @@ function getArgValue(name: string): string | null {
 
 const LIMIT = parseInt(getArgValue("--limit") || "75", 10);
 const CONCURRENCY = parseInt(getArgValue("--concurrency") || "5", 10);
-const DISCOVER_PAGES = parseInt(getArgValue("--discover-pages") || "2", 10);
+// Discovery: enabled by default unless --no-discover or LC_FETCHER_DISCOVER_ENABLED=0
+const DISCOVER_ENABLED = !args.includes("--no-discover") && envStr("LC_FETCHER_DISCOVER_ENABLED") !== "0";
+const DISCOVER_PAGES = parseInt(envStr("LC_FETCHER_DISCOVER_PAGES", getArgValue("--discover-pages") || "2"), 10);
 
 const HOUR_MS = 60 * 60 * 1000;
 const CHUNK_DELAY_MS = 3000; // 3 seconds delay between concurrent chunks
@@ -352,8 +359,10 @@ async function runHourlyCycle(cycleNum: number) {
     console.log(`  🔄  Hourly Cycle #${cycleNum} — ${now}`);
     console.log(`${"═".repeat(60)}\n`);
 
-    const discovered = await discoverNewUsers(DISCOVER_PAGES);
-    console.log(` Discovered & stubbed ${discovered} new user(s)\n`);
+    const discovered = DISCOVER_ENABLED ? await discoverNewUsers(DISCOVER_PAGES) : 0;
+    if (DISCOVER_ENABLED) {
+        console.log(` Discovered & stubbed ${discovered} new user(s)\n`);
+    }
 
     const logins = await pickStalestDevs(LIMIT);
 
@@ -402,7 +411,7 @@ async function main() {
     console.log("\n🏙️  LC City Pipeline Fetcher");
     console.log(`   Target:       ~${LIMIT} users/run`);
     console.log(`   Concurrency:  ${CONCURRENCY}`);
-    console.log(`   Discovery:    ${DISCOVER_PAGES} random pages`);
+    console.log(`   Discovery:    ${!DISCOVER_ENABLED ? "disabled" : DISCOVER_PAGES + " random pages"}`);
     console.log(`   One-shot:     ${ONE_SHOT}`);
     console.log(`   Claimed users refreshed if stale > 6h`);
     console.log(`   Seeded users refreshed if stale > 24h`);
