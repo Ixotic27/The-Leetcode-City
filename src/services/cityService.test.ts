@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CityService } from "./cityService";
+import { CityService, type CityLoadSuccessBody } from "./cityService";
 
 type QueryResult<T> = { data: T | null; error?: Error | null };
 
@@ -17,19 +17,27 @@ type FakeTable = {
 
 type FakeQueryBuilder = FakeTable & {
   data: Record<string, unknown> | Array<Record<string, unknown>> | null;
+  error: Error | null;
 };
 
 class FakeSupabaseClient {
   private readonly rows: Record<string, Array<Record<string, unknown>>>;
+  private readonly errors: Record<string, Error | null | undefined>;
 
-  constructor(rows: Record<string, Array<Record<string, unknown>>>) {
+  constructor(
+    rows: Record<string, Array<Record<string, unknown>>>,
+    errors: Record<string, Error | null | undefined> = {},
+  ) {
     this.rows = rows;
+    this.errors = errors;
   }
 
   from(table: string): FakeQueryBuilder {
     const data = this.rows[table] ?? [];
+    const error = this.errors[table] ?? null;
     const builder: FakeQueryBuilder = {
       data,
+      error,
       select: () => builder,
       eq: () => builder,
       in: () => builder,
@@ -37,8 +45,8 @@ class FakeSupabaseClient {
       not: () => builder,
       order: () => builder,
       range: () => builder,
-      maybeSingle: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data }),
-      single: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data }),
+      maybeSingle: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
+      single: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
     };
     return builder;
   }
@@ -83,8 +91,11 @@ describe("CityService", () => {
     const service = new CityService(admin as never);
     const result = await service.loadCityData({ from: 0, to: 50 });
 
-    expect(result.body.developers).toHaveLength(1);
-    expect(result.body.developers[0]).toEqual({
+    expect(result.status).toBe(200);
+    const body = result.body as CityLoadSuccessBody;
+
+    expect(body.developers).toHaveLength(1);
+    expect(body.developers[0]).toEqual({
       id: 1,
       github_login: "octocat",
       name: "Octo",
@@ -92,11 +103,68 @@ describe("CityService", () => {
       total_stars: 2,
       public_repos: 3,
     });
-    expect(result.body.stats).toMatchObject({
+    expect(body.stats).toMatchObject({
       total_developers: 1,
       total_contributions: 10,
       renewal_raised_inr: 1200,
       renewal_target_inr: 2900,
     });
+  });
+});
+
+
+describe("CityService query failures", () => {
+  const emptyRows = {
+    developers: [],
+    city_stats: [{ total_developers: 0, total_contributions: 0 }],
+    items: [],
+    purchases: [],
+    developer_customizations: [],
+    developer_achievements: [],
+    raid_tags: [],
+  };
+
+  it("returns a non-cacheable failure when a primary query fails", async () => {
+    const service = new CityService(new FakeSupabaseClient(emptyRows, {
+      developers: new Error("permission denied"),
+    }) as never);
+
+    const result = await service.loadCityData({ from: 0, to: 50 });
+
+    expect(result).toEqual({
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+      body: { error: "Failed to load city data" },
+    });
+  });
+
+  it("returns a non-cacheable failure when an enrichment query fails", async () => {
+    const service = new CityService(new FakeSupabaseClient({
+      ...emptyRows,
+      developers: [{ id: 1, easy_solved: 0 }],
+    }, {
+      developer_customizations: new Error("permission denied"),
+    }) as never);
+
+    const result = await service.loadCityData({ from: 0, to: 50 });
+
+    expect(result).toEqual({
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+      body: { error: "Failed to load city data" },
+    });
+  });
+
+  it("keeps an empty successful city response cacheable", async () => {
+    const service = new CityService(new FakeSupabaseClient(emptyRows) as never);
+
+    const result = await service.loadCityData({ from: 0, to: 50 });
+
+    expect(result.status).toBe(200);
+    expect(result.headers).toEqual({
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    });
+    const body = result.body as CityLoadSuccessBody;
+    expect(body).toMatchObject({ developers: [] });
   });
 });
