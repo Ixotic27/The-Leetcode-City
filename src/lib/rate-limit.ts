@@ -10,6 +10,7 @@
 
 // ─── Upstash imports (tree-shaken away when unused) ─────────────────────────
 import { Redis } from "@upstash/redis";
+import { envInt } from "./env";
 import { Ratelimit } from "@upstash/ratelimit";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -30,7 +31,7 @@ interface Entry {
 const store = new Map<string, Entry>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 60_000;
-export let MAX_STORE_SIZE = 10_000;
+export let MAX_STORE_SIZE = envInt("RATE_LIMIT_LOCAL_MAX_SIZE", 10_000);
 
 export function _setMaxStoreSizeForTesting(size: number): void {
   MAX_STORE_SIZE = size;
