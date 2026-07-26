@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ZONE_ITEMS } from "@/lib/zones";
 import { parseDeveloperId } from "./developer-id";
-import { getOwnedItems } from "@/lib/items";
+import { EntitlementService } from "@/services/entitlementService";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
   const user = auth.user;
 
   const admin = getSupabaseAdmin();
+  const entitlementService = new EntitlementService();
 
   const { data: dev } = await admin
     .from("developers")
@@ -75,7 +76,7 @@ export async function POST(request: Request) {
   const isDev = isDeveloper && dev_mode === true;
 
   // Fetch owned items (direct purchases + received gifts)
-  const ownedItems = await getOwnedItems(dev.id);
+  const ownedItems = await entitlementService.listOwnedItems(dev.id);
   const ownedSet = new Set(ownedItems);
 
   // Validate each equipped item is owned and belongs to the correct zone

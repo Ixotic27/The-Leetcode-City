@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sanitizeLedBannerText } from "@/lib/sanitize-led-banner";
+import { EntitlementService } from "@/services/entitlementService";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const entitlementService = new EntitlementService();
 
   const { data: dev } = await sb
     .from("developers")
@@ -108,15 +110,7 @@ export async function POST(request: Request) {
 
   if (item_id !== "selected_title") {
     if (!isDev) {
-      const { data: purchase } = await sb
-        .from("purchases")
-        .select("id, provider, amount_cents")
-        .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
-        .eq("item_id", item_id)
-        .eq("status", "completed")
-        .maybeSingle();
-
-      const ownsReal = purchase && !(purchase.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(purchase.provider));
+      const ownsReal = await entitlementService.ownsItem(dev.id, item_id);
 
       if (!ownsReal) {
         return NextResponse.json(
@@ -151,31 +145,19 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (itemData) {
-          // Verify they own the item in arena_inventory
-          const { data: ownsItem } = await sb
-            .from("arena_inventory")
-            .select("id")
-            .eq("user_id", dev.id)
-            .eq("item_id", itemData.id)
-            .maybeSingle();
+          const ownsArenaItem = await entitlementService.ownsInventoryItem(dev.id, itemData.id, {
+            inventoryTable: "arena_inventory",
+            ownerColumn: "user_id",
+          });
 
-          if (!ownsItem) {
+          if (!ownsArenaItem) {
             return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
           }
         } else {
-          // It might be a shop-purchased title (like crown_of_code)
-          const { data: ownsShopItem } = await sb
-            .from("purchases")
-            .select("id, provider, amount_cents")
-            .or(`developer_id.eq.${dev.id},gifted_to.eq.${dev.id}`)
-            .eq("item_id", slug)
-            .eq("status", "completed")
-            .maybeSingle();
-            
-          const ownsReal = ownsShopItem && !(ownsShopItem.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(ownsShopItem.provider));
+          const ownsShopItem = await entitlementService.ownsItem(dev.id, slug);
 
-          if (!ownsReal) {
-             return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
+          if (!ownsShopItem) {
+            return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
           }
         }
       }

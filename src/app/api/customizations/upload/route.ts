@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import sharp from "sharp";
+import { EntitlementService } from "@/services/entitlementService";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_TYPES = new Set([
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const entitlementService = new EntitlementService();
 
   // Validate developer
   const { data: dev } = await sb
@@ -67,6 +69,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const ownsBillboard = await entitlementService.ownsItem(dev.id, "billboard");
+
   // Count completed billboard purchases
   const { count: billboardCount } = await sb
     .from("purchases")
@@ -75,7 +79,7 @@ export async function POST(request: Request) {
     .eq("item_id", "billboard")
     .eq("status", "completed");
 
-  if (!billboardCount || billboardCount === 0) {
+  if (!ownsBillboard || !billboardCount || billboardCount === 0) {
     return NextResponse.json(
       { error: "You don't own the billboard item" },
       { status: 403 }
