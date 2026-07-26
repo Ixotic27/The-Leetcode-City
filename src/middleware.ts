@@ -83,6 +83,9 @@ function getClientIp(request: NextRequest): string {
 // Middleware
 // ---------------------------------------------------------------------------
 export async function middleware(request: NextRequest) {
+  // ── 0. Request ID for tracing ───────────────────────────────────────
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID(); (void) requestId;
+
   const { pathname } = request.nextUrl;
 
   // ── 1. Rate Limit ────────────────────────────────────────────────────
@@ -102,6 +105,7 @@ export async function middleware(request: NextRequest) {
           "X-RateLimit-Limit": String(limit),
           "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": String(Math.ceil(reset / 1000)),
+          "X-Request-ID": requestId,
         },
       },
     );
@@ -233,6 +237,9 @@ export async function middleware(request: NextRequest) {
     "X-RateLimit-Reset",
     String(Math.ceil(reset / 1000)),
   );
+
+  // ── 5. Attach request ID for distributed tracing ────────────────────
+  supabaseResponse.headers.set("X-Request-ID", requestId);
 
   return supabaseResponse;
 }
