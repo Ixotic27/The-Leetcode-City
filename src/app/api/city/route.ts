@@ -20,10 +20,18 @@ export async function GET(request: Request) {
   const from = Math.max(0, rawFrom);
   const to = Math.min(from + 1000, rawTo);
 
+  if (to <= from) {
+    return NextResponse.json(
+      { error: "Invalid pagination parameters: 'to' must be greater than 'from'." },
+      { status: 400 },
+    );
+  }
+
   const service = new CityService();
   const result = await service.loadCityData({ from, to });
 
   return NextResponse.json(result.body, {
+    status: result.status,
     headers: result.headers,
   });
 }
