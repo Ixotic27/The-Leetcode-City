@@ -49,7 +49,8 @@ export function sendAchievementNotification(
     })
     .join("");
 
-  sendNotificationAsync({
+  try {
+    sendNotificationAsync({
     type: "achievement_unlocked",
     category: "social",
     developerId: devId,
@@ -75,4 +76,7 @@ export function sendAchievementNotification(
       achievements: notable.map((a) => ({ id: a.id, name: a.name, tier: a.tier })),
     },
   });
+  } catch (err: unknown) {
+    console.error("[achievement] sendAchievementNotification failed:", err);
+  }
 }
