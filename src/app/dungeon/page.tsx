@@ -526,7 +526,7 @@ export default function DungeonPage() {
     const bossStats = BOSS_MAP[problem.difficulty] ?? BOSS_MAP["Medium"];
     
     let playerDamage = 0;
-    let bossDamage = Math.floor(Math.random() * 5) + bossStats.baseDmg;
+    const bossDamage = Math.floor(Math.random() * 5) + bossStats.baseDmg;
     
     // Player's turn
     if (action === "attack") {
