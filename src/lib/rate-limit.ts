@@ -29,8 +29,8 @@ interface Entry {
 
 const store = new Map<string, Entry>();
 let lastCleanup = Date.now();
-const CLEANUP_INTERVAL = 60_000;
-export let MAX_STORE_SIZE = 10_000;
+const CLEANUP_INTERVAL = parseInt(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS ?? "60000", 10);
+export let MAX_STORE_SIZE = parseInt(process.env.RATE_LIMIT_MAX_STORE_SIZE ?? "10000", 10);
 
 export function _setMaxStoreSizeForTesting(size: number): void {
   MAX_STORE_SIZE = size;
