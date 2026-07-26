@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { validateQuery } from "@/lib/validation";
+import { arcadeRoomsQuerySchema } from "@/lib/validation/schemas";
 
 // GET /api/arcade/rooms — list rooms with search, category, pagination
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const search = url.searchParams.get("q")?.trim();
-  const category = url.searchParams.get("category");
-  const featured = url.searchParams.get("featured");
-  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
+  const queryValidation = validateQuery(arcadeRoomsQuerySchema, url.searchParams);
+  if (!queryValidation.success) {
+    return queryValidation.response;
+  }
+
+  const { q: search, category, featured, page, limit } = queryValidation.data;
   const offset = (page - 1) * limit;
 
   const sb = getSupabaseAdmin();
@@ -41,7 +44,7 @@ export async function GET(req: NextRequest) {
     query = query.eq("category", category);
   }
 
-  if (featured === "true") {
+  if (featured === true) {
     query = query.eq("is_featured", true);
   }
 

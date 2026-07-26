@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { validateParams } from "@/lib/validation";
+import { usernameParamSchema } from "@/lib/validation/schemas";
 
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
@@ -16,8 +18,12 @@ export async function GET(
   request: NextRequest,
   props: { params: Promise<{ username: string }> }
 ) {
-  const params = await props.params;
-  const username = params.username.toLowerCase();
+  const paramValidation = validateParams(usernameParamSchema, await props.params);
+  if (!paramValidation.success) {
+    return paramValidation.response;
+  }
+
+  const username = paramValidation.data.username.toLowerCase();
   const sb = getSupabaseAdmin();
 
   // 1. Fetch developer by username
