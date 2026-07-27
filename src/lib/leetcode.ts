@@ -40,7 +40,9 @@ export function parseMaxStreak(
 ): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
-    for (let y = 2015; y <= currentYear; y++) {
+    // Only check the last 3 years — historical data before that has no impact on current streak
+    const startYear = Math.max(2015, currentYear - 2);
+    for (let y = startYear; y <= currentYear; y++) {
         const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
