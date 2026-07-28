@@ -32,6 +32,9 @@ export async function GET(request: Request) {
 
   return NextResponse.json(result.body, {
     status: result.status,
-    headers: result.headers,
+    headers: {
+      ...result.headers,
+      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+    },
   });
 }
