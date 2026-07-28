@@ -2,9 +2,6 @@ import { NextResponse } from "next/server";
 import { validateParams } from "@/lib/validation";
 import { usernameParamSchema } from "@/lib/validation/schemas";
 
-/**
- * @param {{ params: any }} context
- */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ username: string }> }

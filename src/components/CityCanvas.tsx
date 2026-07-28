@@ -50,6 +50,7 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import CodeForgeModal from "@/components/CodeForgeModal";
+import { WaterPlane, CanalWater } from "./WaterShader";
 
 
 // ─── Theme Definitions ───────────────────────────────────────
@@ -1202,19 +1203,18 @@ function Ground({ color, grid1, grid2, showNeonGrid, accentColor }: { color: str
       ) : (
         <gridHelper args={[4000, 200, grid1, grid2]} position={[0, -0.5, 0]} />
       )}
-      {/* Ocean — flat infinite water plane surrounding the city */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} renderOrder={-1}>
-        <planeGeometry args={[80000, 80000]} />
-        <meshStandardMaterial
-          color="#0a2a4a"
-          emissive="#0a3060"
-          emissiveIntensity={0.4}
-          roughness={0.3}
-          metalness={0.2}
-          transparent
-          opacity={0.92}
-        />
-      </mesh>
+      {/* Ocean — animated water plane surrounding the city */}
+      <WaterPlane
+        position={[0, -2, 0]}
+        size={[80000, 80000]}
+        deepColor="#0a2a4a"
+        shallowColor="#0c3860"
+        skyColor="#1a3050"
+        specularColor="#90b0d0"
+        nightFactor={0.8}
+        segments={128}
+        renderOrder={-1}
+      />
     </group>
   );
 }
@@ -1427,66 +1427,39 @@ function AutoRickshaw({ position, rotation }: { position: [number, number, numbe
 // ─── River, Waterfront and Bridge Rendering ──────────────────
 
 function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterColor: string; waterEmissive: string }) {
-  const matRef = useRef<THREE.MeshBasicMaterial>(null);
-
-  useFrame(({ clock }) => {
-    if (matRef.current) {
-      matRef.current.opacity = 0.82 + Math.sin(clock.elapsedTime * 0.5) * 0.05;
-    }
-  });
-
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
+    <WaterPlane
       position={[river.x + river.width / 2, 0.5, river.centerZ]}
+      size={[river.width, river.length]}
+      deepColor={waterColor}
+      shallowColor={waterEmissive}
+      skyColor="#1a3050"
+      specularColor="#90b0d0"
+      nightFactor={0.7}
+      segments={32}
       renderOrder={1}
-    >
-      <planeGeometry args={[river.width, river.length]} />
-      <meshBasicMaterial
-        ref={matRef}
-        color={waterEmissive}
-        transparent
-        opacity={0.82}
-        depthWrite={false}
-      />
-    </mesh>
+    />
   );
 }
 
 function CityCanals({ canals, waterColor, waterEmissive }: { canals: CityCanal[]; waterColor: string; waterEmissive: string }) {
-  const matsRef = useRef<THREE.MeshBasicMaterial[]>([]);
-
-  useFrame(({ clock }) => {
-    const opacity = 0.72 + Math.sin(clock.elapsedTime * 0.6) * 0.06;
-    for (const mat of matsRef.current) {
-      mat.opacity = opacity;
-    }
-  });
-
   if (canals.length === 0) return null;
 
   return (
     <>
       {canals.map((canal, i) => (
-        <mesh
+        <CanalWater
           key={`canal-${i}`}
-          rotation={[-Math.PI / 2, 0, canal.rotation]}
           position={canal.position}
-          renderOrder={1}
-        >
-          <planeGeometry args={[canal.length, canal.width]} />
-          <meshBasicMaterial
-            ref={(el: THREE.MeshBasicMaterial | null) => {
-              if (el) {
-                if (!matsRef.current.includes(el)) matsRef.current.push(el);
-              }
-            }}
-            color={waterEmissive}
-            transparent
-            opacity={0.72}
-            depthWrite={false}
-          />
-        </mesh>
+          length={canal.length}
+          width={canal.width}
+          rotation={canal.rotation}
+          deepColor={waterColor}
+          shallowColor={waterEmissive}
+          skyColor="#1a3050"
+          specularColor="#90b0d0"
+          nightFactor={0.7}
+        />
       ))}
     </>
   );
@@ -1831,11 +1804,12 @@ const _dLocalPos = new THREE.Vector3();
 const _dPartQuat = new THREE.Quaternion();
 
 function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { items: CityDecoration[]; roadMarkingColor: string; sidewalkColor: string }) {
-  const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'roadMarking', 'bench', 'fountain', 'sidewalk']);
+  const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'roadMarking', 'roadSurface', 'bench', 'fountain', 'sidewalk']);
   const trees = useMemo(() => items.filter(d => d.type === 'tree'), [items]);
   const lamps = useMemo(() => items.filter(d => d.type === 'streetLamp'), [items]);
   const cars = useMemo(() => items.filter(d => d.type === 'car'), [items]);
   const roadMarkings = useMemo(() => items.filter(d => d.type === 'roadMarking'), [items]);
+  const roadSurfaces = useMemo(() => items.filter(d => d.type === 'roadSurface'), [items]);
   const benches = useMemo(() => items.filter(d => d.type === 'bench'), [items]);
   const fountains = useMemo(() => items.filter(d => d.type === 'fountain'), [items]);
   const sidewalks = useMemo(() => items.filter(d => d.type === 'sidewalk'), [items]);
@@ -1858,6 +1832,7 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
   const fountainUpperRef = useRef<THREE.InstancedMesh>(null);
   const fountainWaterRef = useRef<THREE.InstancedMesh>(null);
   const sidewalkRef = useRef<THREE.InstancedMesh>(null);
+  const roadSurfaceRef = useRef<THREE.InstancedMesh>(null);
 
   // Shared geometries
   const geos = useMemo(() => ({
@@ -1880,12 +1855,15 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
     treeCanopy: new THREE.MeshStandardMaterial({ color: "#2d5a1e", emissive: "#2d5a1e", emissiveIntensity: 0.45 }),
     lampPole: new THREE.MeshStandardMaterial({ color: "#4a4a4a", emissive: "#4a4a4a", emissiveIntensity: 0.3 }),
     lampLight: new THREE.MeshStandardMaterial({
-      color: "#f0d870", emissive: "#f0d870", emissiveIntensity: 2.0, toneMapped: false,
+      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 2.0, toneMapped: false,
     }),
     carBody: new THREE.MeshStandardMaterial({ color: "#808080", emissive: "#808080", emissiveIntensity: 0.2 }),
     carCabin: new THREE.MeshStandardMaterial({ color: "#808080", emissive: "#808080", emissiveIntensity: 0.2 }),
     roadMarking: new THREE.MeshStandardMaterial({
-      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 0.8,
+      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 0.8, toneMapped: false,
+    }),
+    roadSurface: new THREE.MeshStandardMaterial({
+      color: "#1a1c22", emissive: "#1a1c22", emissiveIntensity: 0.1, roughness: 0.9,
     }),
     benchWood: new THREE.MeshStandardMaterial({ color: "#6b4226", emissive: "#6b4226", emissiveIntensity: 0.3 }),
     benchMetal: new THREE.MeshStandardMaterial({ color: "#3a3a3a", emissive: "#3a3a3a", emissiveIntensity: 0.3 }),
@@ -2148,6 +2126,30 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
     sidewalkRef.current.computeBoundingSphere();
   }, [sidewalks]);
 
+  // Set up road surface instances
+  useEffect(() => {
+    if (!roadSurfaceRef.current || roadSurfaces.length === 0) return;
+
+    for (let i = 0; i < roadSurfaces.length; i++) {
+      const d = roadSurfaces[i];
+      const w = d.size?.[0] ?? 12;
+      const h = d.size?.[1] ?? 12;
+
+      _dEuler.set(-Math.PI / 2, d.rotation, 0);
+      _dQuat.setFromEuler(_dEuler);
+      _dPos.set(d.position[0], d.position[1], d.position[2]);
+      _dScale.set(w, h, 1);
+      _dMatrix.compose(_dPos, _dQuat, _dScale);
+      roadSurfaceRef.current.setMatrixAt(i, _dMatrix);
+    }
+
+    roadSurfaceRef.current.instanceMatrix.needsUpdate = true;
+
+    // Compute bounds for frustum culling
+    roadSurfaceRef.current.computeBoundingBox();
+    roadSurfaceRef.current.computeBoundingSphere();
+  }, [roadSurfaces]);
+
   // Dispose
   useEffect(() => {
     return () => {
@@ -2175,6 +2177,9 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
           <instancedMesh ref={carBodyRef} args={[geos.carBody, mats.carBody, cars.length]} frustumCulled={true} />
           <instancedMesh ref={carCabinRef} args={[geos.carCabin, mats.carCabin, cars.length]} frustumCulled={true} />
         </>
+      )}
+      {roadSurfaces.length > 0 && (
+        <instancedMesh ref={roadSurfaceRef} args={[_dPlane, mats.roadSurface, roadSurfaces.length]} frustumCulled={true} />
       )}
       {roadMarkings.length > 0 && (
         <instancedMesh ref={roadMarkingRef} args={[geos.roadMarking, mats.roadMarking, roadMarkings.length]} frustumCulled={true} />

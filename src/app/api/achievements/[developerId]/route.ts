@@ -3,9 +3,6 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { validateParams } from "@/lib/validation";
 import { developerIdParamSchema } from "@/lib/validation/schemas";
 
-/**
- * @param {{ params: any }} context
- */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ developerId: string }> }
@@ -15,6 +12,8 @@ export async function GET(
     return paramValidation.response;
   }
   const { developerId } = paramValidation.data;
+
+  const { developerId } = validation.data;
 
   const sb = getSupabaseAdmin();
 
