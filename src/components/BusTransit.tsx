@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Billboard } from "@react-three/drei";
+import { Billboard, Text } from "@react-three/drei";
 import * as THREE from "three";
 import type { CityPlaza, CityBridge } from "@/lib/github";
 import { DISTRICT_COLORS } from "@/lib/github";
@@ -23,12 +23,10 @@ interface BusTransitProps {
 export function BusStop({
   position,
   rotation,
-  districtName,
   onClick,
 }: {
   position: [number, number, number];
   rotation: number;
-  districtName: string;
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -84,7 +82,7 @@ export function BusStop({
       </mesh>
 
       {/* Blue Roof */}
-      <mesh position={[0, 5.5, 0]}>
+      <mesh position={[0, 5.1, 0]}>
         <boxGeometry args={[15, 0.6, 9]} />
         <meshStandardMaterial color="#0055a5" emissive="#002255" emissiveIntensity={0.25} roughness={0.5} />
       </mesh>
@@ -111,6 +109,17 @@ export function BusStop({
           <boxGeometry args={[1.8, 1.0, 0.05]} />
           <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={hovered ? 3.0 : 1.5} toneMapped={false} />
         </mesh>
+        <Billboard position={[0, 6.5, 0.22]}>
+          <Text
+            fontSize={0.3}
+            color="black"
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={1.7}
+          >
+            Bus Stop
+          </Text>
+        </Billboard>
       </group>
 
       {/* Pulsing indicator when hovered */}
@@ -135,7 +144,6 @@ export function SkyTransitBoard({
   const meshRef = useRef<THREE.Group>(null);
   const laserRef = useRef<THREE.Mesh>(null);
   const [fontReady, setFontReady] = useState(false);
-  const texRef = useRef<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
     document.fonts.ready.then(() => setFontReady(true));
@@ -186,15 +194,16 @@ export function SkyTransitBoard({
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    texRef.current = tex;
     return tex;
   }, [fontReady, district, color]);
 
   useEffect(() => {
-    return () => {
-      texRef.current?.dispose();
-    };
-  }, []);
+  if (!texture) return;
+
+  return () => {
+    texture.dispose();
+  };
+}, [texture]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -278,24 +287,42 @@ export function BusModel({
     <group position={position} rotation={rotation}>
       {/* Red Body */}
       <mesh position={[0, 3.2, 0]}>
-        <boxGeometry args={[7.2, 4.4, 16]} />
+        <boxGeometry args={[6.6, 4.0, 15.5]} />
         <meshStandardMaterial color="#cc2222" roughness={0.4} />
       </mesh>
 
+      {/* Rounded Body Corners */}
+      {[-2.95, 2.95].map((x) =>
+        [-7.15, 7.15].map((z) => (
+          <mesh key={`${x}-${z}`} position={[x, 3.2, z]}>
+            <sphereGeometry args={[0.28, 16, 16]} />
+            <meshStandardMaterial color="#cc2222" roughness={0.4} />
+          </mesh>
+        ))
+      )}
+
       {/* White Accent Stripe */}
-      <mesh position={[0, 2.2, 0]}>
-        <boxGeometry args={[7.25, 0.5, 16.05]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.5} />
+      <mesh position={[0, 2.35, 0]}>
+        <boxGeometry args={[6.65, 0.45, 15.55]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.35} />
       </mesh>
 
       {/* Windshields (Front & Rear) */}
-      <mesh position={[0, 3.8, 8.02]}>
+      <mesh position={[0, 3.7, 8.15]}>
         <boxGeometry args={[6.2, 2.0, 0.1]} />
-        <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color="#111111"
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
-      <mesh position={[0, 3.8, -8.02]}>
+      <mesh position={[0, 3.7, -8.15]} rotation={[0, Math.PI, 0]}>
         <boxGeometry args={[6.2, 2.0, 0.1]} />
-        <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color="#111111"
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
 
       {/* Side Windows */}
@@ -328,7 +355,7 @@ export function BusModel({
         <meshStandardMaterial color="#151515" />
       </mesh>
       <mesh position={[0, 4.6, 8.05]}>
-        <boxGeometry args={[3.6, 0.35, 0.01]} />
+        <boxGeometry args={[3.8,0.45,0.01]} />
         <meshStandardMaterial color="#ff9000" emissive="#ff9000" emissiveIntensity={2.5} toneMapped={false} />
       </mesh>
 
@@ -336,7 +363,7 @@ export function BusModel({
       {[-2.0, 2.0].map((x) =>
         [-4.5, 4.5].map((z) => (
           <mesh key={`${x}-${z}`} position={[x * 1.5, 0.7, z]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[1.0, 1.0, 1.2, 8]} />
+            <cylinderGeometry args={[1,1,1.2,16]} />
             <meshStandardMaterial color="#1f1f1f" roughness={0.9} />
           </mesh>
         ))
@@ -354,7 +381,7 @@ export default function BusTransit({
   onOpenTransitMenu,
 }: BusTransitProps) {
   const { camera } = useThree();
-  const [progress, setProgress] = useState(0);
+  const progressRef = useRef(0);
   const busPos = useMemo(() => new THREE.Vector3(), []);
   const busRot = useMemo(() => new THREE.Euler(), []);
 
@@ -422,9 +449,7 @@ export default function BusTransit({
 
   // Reset transit progress when state becomes active
   useEffect(() => {
-    if (transitState?.active) {
-      setProgress(0);
-    }
+    progressRef.current = 0;
   }, [transitState]);
 
   // Update bus position and snap camera behind it
@@ -433,8 +458,8 @@ export default function BusTransit({
 
     // Travel duration is roughly 5 seconds
     const speed = 0.2;
-    const nextProg = Math.min(progress + delta * speed, 1);
-    setProgress(nextProg);
+    const nextProg = Math.min(progressRef.current + delta * speed, 1);
+    progressRef.current = nextProg;
 
     const pos = curve.getPointAt(nextProg);
     const tangent = curve.getTangentAt(nextProg);
@@ -472,7 +497,6 @@ export default function BusTransit({
               <BusStop
                 position={[0, 0, 0]}
                 rotation={rotY}
-                districtName={p.district}
                 onClick={() => onOpenTransitMenu(p.district!)}
               />
             </group>
