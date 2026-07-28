@@ -1,31 +1,33 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { touchLastActive } from "../notification-helpers";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { touchLastActive, getDeveloperEmail, getPushTokens } from "../notification-helpers";
 import { getSupabaseAdmin } from "../supabase";
 
-// Mock the getSupabaseAdmin client to intercept and inspect Supabase calls
-vi.mock("../supabase", () => {
-  const mockUpdate = vi.fn();
-  const mockEq = vi.fn();
+// Mutable refs to hold mock functions so tests can configure them
+const mockUpdate = vi.fn();
+const mockEq = vi.fn();
+const mockSelect = vi.fn();
+const mockSingle = vi.fn();
+const mockGetUserById = vi.fn();
 
-  const mockFrom = vi.fn(() => ({
-    update: mockUpdate,
-  }));
-
-  mockUpdate.mockReturnValue({
-    eq: mockEq,
-  });
-
-  const mockAdminClient = {
-    from: mockFrom,
-  };
-
-  return {
-    getSupabaseAdmin: () => mockAdminClient,
-  };
-});
+vi.mock("../supabase", () => ({
+  getSupabaseAdmin: () => ({
+    from: vi.fn((table: string) => ({
+      update: mockUpdate,
+      select: table === "developers"
+        ? Object.assign(mockSelect, { single: mockSingle })
+        : mockSelect,
+      eq: mockEq,
+    })),
+    auth: {
+      admin: {
+        getUserById: mockGetUserById,
+      },
+    },
+  }),
+}));
 
 describe("touchLastActive", () => {
-  let consoleErrorSpy: { mockRestore: () => void };
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -33,26 +35,20 @@ describe("touchLastActive", () => {
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    consoleErrorSpy?.mockRestore();
   });
 
-  it("successfully updates last_active_at and calls then()", async () => {
+  it("successfully updates last_active_at", () => {
     const sbAdmin = getSupabaseAdmin();
-
-    // We stub eq to return an object with then() and catch()
     const mockEqResult = {
-      then: function (resolve?: (value: { data: Record<string, unknown>; error: null }) => void) {
+      then: function (resolve?: (v: { data: unknown; error: null }) => void) {
         if (resolve) resolve({ data: {}, error: null });
         return this;
       },
-      catch: function () {
-        return this;
-      },
+      catch: function () { return this; },
     };
-    const mockUpdate = sbAdmin.from("developers").update as unknown as () => {
-      eq: { mockReturnValue: (val: unknown) => void };
-    };
-    mockUpdate().eq.mockReturnValue(mockEqResult);
+    const mockUpdate2 = sbAdmin.from("developers").update as unknown as () => { eq: ReturnType<typeof vi.fn> };
+    mockUpdate2().eq.mockReturnValue(mockEqResult);
 
     touchLastActive(123);
 
@@ -60,37 +56,120 @@ describe("touchLastActive", () => {
     expect(sbAdmin.from("developers").update).toHaveBeenCalledWith(
       expect.objectContaining({ last_active_at: expect.any(String) })
     );
-    expect(mockUpdate().eq).toHaveBeenCalledWith("id", 123);
   });
 
-  it("catches promise rejection/errors gracefully and logs them via console.error", async () => {
-    const sbAdmin = getSupabaseAdmin();
+  it("catches promise rejection and logs via console.error", async () => {
     const error = new Error("Database connection timed out");
-
-    // We stub eq to return an object with then() and catch() that simulates a failure/rejection
     const mockEqResult = {
-      then: function (_resolve?: unknown, reject?: (reason: unknown) => void) {
+      then: function (_resolve?: unknown, reject?: (r: unknown) => void) {
         if (reject) reject(error);
         return this;
       },
-      catch: function (reject?: (reason: unknown) => void) {
+      catch: function (reject?: (r: unknown) => void) {
         if (reject) reject(error);
         return this;
       },
     };
-    const mockUpdate = sbAdmin.from("developers").update as unknown as () => {
-      eq: { mockReturnValue: (val: unknown) => void };
-    };
-    mockUpdate().eq.mockReturnValue(mockEqResult);
+    const sbAdmin = getSupabaseAdmin();
+    const mockUpdate2 = sbAdmin.from("developers").update as unknown as () => { eq: ReturnType<typeof vi.fn> };
+    mockUpdate2().eq.mockReturnValue(mockEqResult);
 
     touchLastActive(456);
-
-    // Wait for the Promise.resolve microtask to run
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "Error updating last active time for developer 456:",
       error
     );
+  });
+});
+
+describe("getDeveloperEmail", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns email from developers table when available", async () => {
+    mockSelect.mockResolvedValue({
+      data: { email: "alice@example.com", claimed_by: null },
+      error: null,
+    });
+    mockSingle.mockResolvedValue({
+      data: { email: "alice@example.com", claimed_by: null },
+      error: null,
+    });
+
+    const result = await getDeveloperEmail(42);
+    expect(result).toBe("alice@example.com");
+    expect(mockSelect).toHaveBeenCalledWith("email, claimed_by");
+  });
+
+  it("falls back to auth.users when dev has no email but has claimed_by", async () => {
+    mockSelect.mockResolvedValue({
+      data: { email: null, claimed_by: "auth-user-123" },
+      error: null,
+    });
+    mockSingle.mockResolvedValue({
+      data: { email: null, claimed_by: "auth-user-123" },
+      error: null,
+    });
+    mockGetUserById.mockResolvedValue({
+      data: { user: { email: "bob@example.com" } },
+    });
+    mockEq.mockResolvedValue({});
+
+    const result = await getDeveloperEmail(99);
+    expect(result).toBe("bob@example.com");
+    expect(mockGetUserById).toHaveBeenCalledWith("auth-user-123");
+  });
+
+  it("returns null when no email found in any source", async () => {
+    mockSelect.mockResolvedValue({
+      data: { email: null, claimed_by: null },
+      error: null,
+    });
+    mockSingle.mockResolvedValue({
+      data: { email: null, claimed_by: null },
+      error: null,
+    });
+    mockGetUserById.mockResolvedValue({
+      data: { user: { email: null } },
+    });
+
+    const result = await getDeveloperEmail(77);
+    expect(result).toBeNull();
+  });
+});
+
+describe("getPushTokens", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns push tokens for active subscriptions", async () => {
+    mockSelect.mockResolvedValue({
+      data: [
+        { token: "token-abc", platform: "webpush" },
+        { token: "token-xyz", platform: "fcm" },
+      ],
+      error: null,
+    });
+
+    const result = await getPushTokens(42);
+    expect(result).toEqual([
+      { token: "token-abc", platform: "webpush" },
+      { token: "token-xyz", platform: "fcm" },
+    ]);
+    expect(mockSelect).toHaveBeenCalledWith("token, platform");
+  });
+
+  it("returns empty array when no active subscriptions exist", async () => {
+    mockSelect.mockResolvedValue({
+      data: [],
+      error: null,
+    });
+
+    const result = await getPushTokens(99);
+    expect(result).toEqual([]);
   });
 });

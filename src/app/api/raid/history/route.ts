@@ -1,26 +1,24 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { parsePagination } from "@/lib/parse-pagination";
+import { z } from "zod";
+import { validateQuery } from "@/lib/validation";
 
-/**
- * @param {import('next/server').NextRequest} request
- */
+const querySchema = z.object({
+  developer_id: z.coerce.number({ message: "Invalid developer_id" }).int().positive("Invalid developer_id"),
+  limit: z.string().optional(),
+  offset: z.string().optional(),
+});
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const developerId = searchParams.get("developer_id");
-  const { limit, offset } = parsePagination(
-    searchParams.get("limit"),
-    searchParams.get("offset")
-  );
-
-  if (!developerId) {
-    return NextResponse.json({ error: "Missing developer_id" }, { status: 400 });
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
   }
 
-  const devId = parseInt(developerId, 10);
-  if (isNaN(devId)) {
-    return NextResponse.json({ error: "Invalid developer_id" }, { status: 400 });
-  }
+  const { developer_id: devId, limit: rawLimit, offset: rawOffset } = queryVal.data;
+  const { limit, offset } = parsePagination(rawLimit ?? null, rawOffset ?? null);
 
   const admin = getSupabaseAdmin();
 

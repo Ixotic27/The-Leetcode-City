@@ -1,24 +1,20 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { validateQuery } from '@/lib/validation';
+
+const querySchema = z.object({
+  lat: z.coerce.number({ message: "lat must be a number" }).min(-90, "lat must be -90..90").max(90, "lat must be -90..90"),
+  lon: z.coerce.number({ message: "lon must be a number" }).min(-180, "lon must be -180..180").max(180, "lon must be -180..180"),
+});
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const latStr = searchParams.get('lat');
-  const lonStr = searchParams.get('lon');
-  
-  if (!latStr || !lonStr) {
-    return NextResponse.json({ error: "Missing coordinates" }, { status: 400 });
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
   }
 
-  const lat = parseFloat(latStr);
-  const lon = parseFloat(lonStr);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return NextResponse.json({ error: "Invalid coordinates: lat and lon must be numbers." }, { status: 400 });
-  }
-
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    return NextResponse.json({ error: "Invalid coordinates: lat must be -90..90, lon must be -180..180." }, { status: 400 });
-  }
+  const { lat, lon } = queryVal.data;
 
   const apiKey = process.env.OPENWEATHER_API_KEY; 
   if (!apiKey) {
@@ -31,7 +27,8 @@ export async function GET(request: Request) {
     
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : "An error occurred";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
