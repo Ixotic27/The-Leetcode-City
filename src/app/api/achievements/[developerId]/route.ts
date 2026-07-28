@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { validateParams } from "@/lib/validation";
 
-/**
- * @param {{ params: any }} context
- */
+const paramsSchema = z.object({
+  developerId: z.coerce.number().int().positive("Invalid developer ID"),
+});
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ developerId: string }> }
 ) {
-  const { developerId: devIdStr } = await params;
-  const developerId = parseInt(devIdStr, 10);
-  if (isNaN(developerId)) {
-    return NextResponse.json({ error: "Invalid developer ID" }, { status: 400 });
+  const resolvedParams = await params;
+  const validation = validateParams(resolvedParams, paramsSchema);
+  if (!validation.success) {
+    return validation.response;
   }
+
+  const { developerId } = validation.data;
 
   const sb = getSupabaseAdmin();
 

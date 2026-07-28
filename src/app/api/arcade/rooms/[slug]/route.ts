@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { validateParams } from "@/lib/validation";
 
 import fs from "fs/promises";
 import path from "path";
+
+const paramsSchema = z.object({
+  slug: z.string().trim().min(1, "Slug is required"),
+});
 
 // GET /api/arcade/rooms/[slug] — get room with full map_json + track visit
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const validation = validateParams(resolvedParams, paramsSchema);
+  if (!validation.success) {
+    return validation.response;
+  }
+  const { slug } = validation.data;
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("arcade_rooms")
@@ -188,7 +199,12 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const validation = validateParams(resolvedParams, paramsSchema);
+  if (!validation.success) {
+    return validation.response;
+  }
+  const { slug } = validation.data;
 
   // Auth check — must be logged in
   const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
