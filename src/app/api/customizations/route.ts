@@ -2,22 +2,26 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sanitizeLedBannerText } from "@/lib/sanitize-led-banner";
 import { EntitlementService } from "@/services/entitlementService";
+import { z } from "zod";
+import { validateQuery } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
+
+const getQuerySchema = z.object({
+  developer_id: z.coerce.number({ message: "developer_id is required" }).int().positive("developer_id is required"),
+});
 
 /**
  * @param {import('next/server').NextRequest} request
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const developerId = parseInt(searchParams.get("developer_id") ?? "", 10);
-
-  if (!developerId || isNaN(developerId)) {
-    return NextResponse.json(
-      { error: "developer_id is required" },
-      { status: 400 }
-    );
+  const queryVal = validateQuery(searchParams, getQuerySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
   }
+
+  const { developer_id: developerId } = queryVal.data;
 
   const sb = getSupabaseAdmin();
 
