@@ -16,11 +16,17 @@ type MockSb = {
   auth: { getUser: ReturnType<typeof vi.fn> };
 };
 
-// Create a stable mock Supabase admin object shared by route and test
 const mockSb = {
-  from: vi.fn().mockImplementation(() => ({
-    select: () => ({ eq: () => ({ limit: () => ({ data: [] as DevRow[] }) }) }),
-  })),
+  from: vi.fn().mockImplementation(() => {
+    const chain: any = {
+      select: () => chain,
+      eq: () => chain,
+      limit: () => chain,
+      then: (cb: any) => Promise.resolve({ data: [] }).then(cb),
+      data: [],
+    };
+    return chain;
+  }),
   rpc: vi.fn() as unknown as ReturnType<typeof vi.fn>,
   auth: { getUser: vi.fn() } as { getUser: ReturnType<typeof vi.fn> },
 } as unknown as MockSb;
@@ -52,13 +58,14 @@ describe('arcade game route', () => {
 
   it('passes a null developer id through when no developer profile is linked', async () => {
     (mockSb.from as ReturnType<typeof vi.fn>).mockImplementation(() => {
-      return {
-        select: () => ({
-          eq: () => ({
-            limit: () => ({ data: [] as DevRow[] }),
-          }),
-        }),
-      } as unknown as ReturnType<typeof vi.fn>;
+      const chain: any = {
+        select: () => chain,
+        eq: () => chain,
+        limit: () => chain,
+        then: (cb: any) => Promise.resolve({ data: [] }).then(cb),
+        data: [],
+      };
+      return chain;
     });
 
     (mockSb.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -95,15 +102,15 @@ describe('arcade game route', () => {
   });
 
   it('processes concurrent submits with one winning RPC', async () => {
-    // Mock developer lookup returning id. Support chain .select(...).eq(...).limit(...)
     (mockSb.from as ReturnType<typeof vi.fn>).mockImplementation((_table: string) => {
-      return {
-        select: () => ({
-          eq: () => ({
-            limit: () => ({ data: _table === 'developers' ? [{ id: 123 }] : [] as DevRow[] }),
-          }),
-        }),
-      } as unknown as ReturnType<typeof vi.fn>;
+      const chain: any = {
+        select: () => chain,
+        eq: () => chain,
+        limit: () => chain,
+        then: (cb: any) => Promise.resolve({ data: _table === 'developers' ? [{ id: 123 }] : [] }).then(cb),
+        data: _table === 'developers' ? [{ id: 123 }] : [],
+      };
+      return chain;
     });
 
     // Simulate RPC: first call returns success, second call returns subsequent response
