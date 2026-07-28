@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { validateQuery } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
+const querySchema = z.object({
+  q: z.string().optional(),
+});
+
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get("q")?.trim();
+  const queryVal = validateQuery(req.nextUrl.searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
+  }
+
+  const q = queryVal.data.q?.trim();
   if (!q || q.length < 2) {
     return NextResponse.json([]);
   }
