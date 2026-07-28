@@ -13,7 +13,9 @@ export async function GET(
   const sb = getSupabaseAdmin();
   const { data, error } = await sb
     .from("arcade_rooms")
-    .select("id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, created_at, updated_at")
+    .select(
+      "id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, created_at, updated_at",
+    )
     .eq("slug", slug)
     .single();
 
@@ -35,12 +37,26 @@ export async function GET(
           description: "Welcome to LeetCode City E.Arcade! Hangout and chat.",
           is_featured: true,
           portals: [
-            { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-            { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+            {
+              x: 14,
+              y: 0,
+              width: 4,
+              type: "elevator",
+              destination: "lobby",
+              label: "Lobby",
+            },
+            {
+              x: 13,
+              y: 21,
+              width: 4,
+              type: "exit",
+              destination: "ixotopia",
+              label: "Exit to Outside World",
+            },
           ],
           map_json: mapJson,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
         return NextResponse.json({ room: fallbackRoom });
       } catch (err: unknown) {
@@ -63,12 +79,26 @@ export async function GET(
           description: "Clearance level 1. fsociety headquarters.",
           is_featured: true,
           portals: [
-            { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-            { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+            {
+              x: 14,
+              y: 0,
+              width: 4,
+              type: "elevator",
+              destination: "lobby",
+              label: "Lobby",
+            },
+            {
+              x: 13,
+              y: 21,
+              width: 4,
+              type: "exit",
+              destination: "ixotopia",
+              label: "Exit to Outside World",
+            },
           ],
           map_json: mapJson,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
         return NextResponse.json({ room: fallbackRoom });
       } catch (err: unknown) {
@@ -91,21 +121,37 @@ export async function GET(
           description: "Clearance level 2. High-frequency algorithmic trading.",
           is_featured: true,
           portals: [
-            { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-            { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+            {
+              x: 14,
+              y: 0,
+              width: 4,
+              type: "elevator",
+              destination: "lobby",
+              label: "Lobby",
+            },
+            {
+              x: 13,
+              y: 21,
+              width: 4,
+              type: "exit",
+              destination: "ixotopia",
+              label: "Exit to Outside World",
+            },
           ],
           map_json: mapJson,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
         return NextResponse.json({ room: fallbackRoom });
       } catch (err: unknown) {
         console.error("Failed to read fallback trading_floor map:", err);
       }
-
     } else if (slug === "ixotopia") {
       try {
-        const filePath = path.join(process.cwd(), "public/pokemon_resources/ixotopia-converted.json");
+        const filePath = path.join(
+          process.cwd(),
+          "public/pokemon_resources/ixotopia-converted.json",
+        );
         const fileContent = await fs.readFile(filePath, "utf-8");
         const mapJson = JSON.parse(fileContent);
         const fallbackRoom = {
@@ -120,11 +166,18 @@ export async function GET(
           description: "Explore the Pokémon-style Ixotopia Overworld Town!",
           is_featured: true,
           portals: [
-            { x: 20, y: 16, width: 1, type: "door", destination: "lobby", label: "Enter E.Arcade Lobby" }
+            {
+              x: 20,
+              y: 16,
+              width: 1,
+              type: "door",
+              destination: "lobby",
+              label: "Enter E.Arcade Lobby",
+            },
           ],
           map_json: mapJson,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
         return NextResponse.json({ room: fallbackRoom });
       } catch (err: unknown) {
@@ -135,52 +188,61 @@ export async function GET(
   }
 
   if (data.visibility === "private") {
-  return NextResponse.json(
-    { error: "This room is private." },
-    { status: 403 }
-  );
-}
+    return NextResponse.json(
+      { error: "This room is private." },
+      { status: 403 },
+    );
+  }
 
-if (data.visibility === "password") {
-  return NextResponse.json(
-    { error: "Password required." },
-    { status: 401 }
-  );
-}
+  if (data.visibility === "password") {
+    return NextResponse.json({ error: "Password required." }, { status: 401 });
+  }
 
-const { data: roomDetails, error: roomError } = await sb
-  .from("arcade_rooms")
-  .select("portals, map_json")
-  .eq("slug", slug)
-  .single();
+  const { data: roomDetails, error: roomError } = await sb
+    .from("arcade_rooms")
+    .select("portals, map_json")
+    .eq("slug", slug)
+    .single();
 
-if (roomError || !roomDetails) {
-  return NextResponse.json(
-    { error: "Failed to load room details" },
-    { status: 500 }
-  );
-}
+  if (roomError || !roomDetails) {
+    return NextResponse.json(
+      { error: "Failed to load room details" },
+      { status: 500 },
+    );
+  }
 
   const room = {
-  ...data,
-  portals: roomDetails?.portals,
-  map_json: roomDetails?.map_json,
-};
+    ...data,
+    portals: roomDetails?.portals,
+    map_json: roomDetails?.map_json,
+  };
 
   // Track visit (best-effort, don't block response)
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     if (auth.ok && auth.user) {
-      void sb.rpc("upsert_arcade_visit", { p_user_id: auth.user.id, p_room_id: data.id });
+      void sb.rpc("upsert_arcade_visit", {
+        p_user_id: auth.user.id,
+        p_room_id: data.id,
+      });
     }
   } catch (err) {
-    console.error("[app/api/arcade/rooms/[slug]/route.ts] visit tracking failed:", err);
+    console.error(
+      "[app/api/arcade/rooms/[slug]/route.ts] visit tracking failed:",
+      err,
+    );
   }
 
-  return NextResponse.json({ room }, {
-    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
-  });
+  return NextResponse.json(
+    { room },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    },
+  );
 }
 
 // PUT /api/arcade/rooms/[slug] — update map_json (admin only)
@@ -191,7 +253,8 @@ export async function PUT(
   const { slug } = await params;
 
   // Auth check — must be logged in
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

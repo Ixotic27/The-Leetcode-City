@@ -3,7 +3,6 @@ import { createServerClient } from "@supabase/ssr";
 import { rateLimit } from "@/lib/rate-limit";
 import { isValidUrl, createDummyClient } from "./lib/supabase";
 
-
 // ---------------------------------------------------------------------------
 // Route-specific rate limits: [maxRequests, windowMs]
 // ---------------------------------------------------------------------------
@@ -73,7 +72,10 @@ function getLimitForPath(pathname: string): {
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const ips = forwarded
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (ips.length > 0) return ips[ips.length - 1];
   }
   return request.headers.get("x-real-ip") ?? "unknown";
@@ -115,14 +117,14 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   if (hasSession) {
-    const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
-    const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
-    const supabase = (!isValidUrl(url) || !key)
-      ? createDummyClient() as unknown as ReturnType<typeof createServerClient>
-      : createServerClient(
-          url!,
-          key,
-          {
+    const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+    const key = process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
+    const supabase =
+      !isValidUrl(url) || !key
+        ? (createDummyClient() as unknown as ReturnType<
+            typeof createServerClient
+          >)
+        : createServerClient(url!, key, {
             cookies: {
               getAll() {
                 return request.cookies.getAll();
@@ -137,22 +139,21 @@ export async function middleware(request: NextRequest) {
                 );
               },
             },
-          },
-        );
+          });
 
     try {
       // Timeout auth validation to prevent slow Supabase responses from
       // blocking the entire request (seen up to 28s in prod logs).
       const authTimeout = 5_000; // 5 seconds
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("AuthTimeout")), authTimeout)
+        setTimeout(() => reject(new Error("AuthTimeout")), authTimeout),
       );
 
       try {
-        const { data: { user }, error } = await Promise.race([
-          supabase.auth.getUser(),
-          timeoutPromise
-        ]);
+        const {
+          data: { user },
+          error,
+        } = await Promise.race([supabase.auth.getUser(), timeoutPromise]);
 
         if (error) {
           console.warn(
@@ -163,8 +164,13 @@ export async function middleware(request: NextRequest) {
           void user; // session refreshed; user object not needed here
         }
       } catch (innerError) {
-        if (innerError instanceof Error && innerError.message === "AuthTimeout") {
-          console.warn("Supabase auth.getUser() timed out after 5s — continuing without session refresh");
+        if (
+          innerError instanceof Error &&
+          innerError.message === "AuthTimeout"
+        ) {
+          console.warn(
+            "Supabase auth.getUser() timed out after 5s — continuing without session refresh",
+          );
         } else {
           throw innerError; // re-throw non-timeout errors to outer catch
         }
@@ -180,8 +186,14 @@ export async function middleware(request: NextRequest) {
   // ── 3. Security headers ───────────────────────────────────────────────
   supabaseResponse.headers.set("X-Frame-Options", "DENY");
   supabaseResponse.headers.set("X-Content-Type-Options", "nosniff");
-  supabaseResponse.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  supabaseResponse.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  supabaseResponse.headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
+  );
+  supabaseResponse.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
 
   // CSP notes:
   // - Three.js/WebGL requires 'unsafe-eval' for shader compilation.
@@ -238,7 +250,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|models|fonts).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon\\.ico|models|fonts).*)"],
 };

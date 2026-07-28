@@ -21,7 +21,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;
-            
+
             // Ignore bot closures to prevent redundant runs or API calls
             if (pr.user.login.includes('[bot]') || context.actor === 'github-actions[bot]') {
               core.info('PR closed by a bot, skipping duplicate cleanup in this workflow.');

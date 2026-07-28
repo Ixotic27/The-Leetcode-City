@@ -121,7 +121,9 @@
         "output": "4\n"
       }
     ],
-    "hints": ["Count the number of 1s in each line. If sum >= 2, increment answer."]
+    "hints": [
+      "Count the number of 1s in each line. If sum >= 2, increment answer."
+    ]
   },
   {
     "source": "codeforces",
@@ -157,7 +159,9 @@
         "output": "1\n"
       }
     ],
-    "hints": ["Look at the middle character of each statement. If it is '+', add 1, else subtract 1."]
+    "hints": [
+      "Look at the middle character of each statement. If it is '+', add 1, else subtract 1."
+    ]
   },
   {
     "source": "codeforces",
@@ -233,7 +237,9 @@
         "output": "3\n"
       }
     ],
-    "hints": ["Count groups of size 4, 3, 2, 1. Pair 3s with 1s, combine 2s, and place remaining in taxis."]
+    "hints": [
+      "Count groups of size 4, 3, 2, 1. Pair 3s with 1s, combine 2s, and place remaining in taxis."
+    ]
   },
   {
     "source": "codeforces",
@@ -273,7 +279,9 @@
         "output": "4000\n"
       }
     ],
-    "hints": ["Use Dynamic Programming: dp[i] is the max pieces of length i. dp[i] = max(dp[i-a], dp[i-b], dp[i-c]) + 1."]
+    "hints": [
+      "Use Dynamic Programming: dp[i] is the max pieces of length i. dp[i] = max(dp[i-a], dp[i-b], dp[i-c]) + 1."
+    ]
   },
   {
     "source": "codeforces",
@@ -309,7 +317,9 @@
         "output": "YES\n"
       }
     ],
-    "hints": ["A number is a T-prime if and only if it is the square of a prime number. Use a sieve to precompute primes up to 10^6."]
+    "hints": [
+      "A number is a T-prime if and only if it is the square of a prime number. Use a sieve to precompute primes up to 10^6."
+    ]
   },
   {
     "source": "codeforces",
@@ -345,7 +355,9 @@
         "output": "2\n"
       }
     ],
-    "hints": ["Kadane's algorithm can be modified. Treat 0 as +1 and 1 as -1, and find the maximum sum subarray."]
+    "hints": [
+      "Kadane's algorithm can be modified. Treat 0 as +1 and 1 as -1, and find the maximum sum subarray."
+    ]
   },
   {
     "source": "codeforces",
@@ -385,7 +397,9 @@
         "output": "1\n"
       }
     ],
-    "hints": ["The sum of the whole array must be divisible by 3. Let S = sum / 3. Traverse the array keeping track of how many prefixes have sum S, and when we find a prefix of sum 2*S, add the count of S prefixes to the answer."]
+    "hints": [
+      "The sum of the whole array must be divisible by 3. Let S = sum / 3. Traverse the array keeping track of how many prefixes have sum S, and when we find a prefix of sum 2*S, add the count of S prefixes to the answer."
+    ]
   },
   {
     "source": "codeforces",
@@ -429,7 +443,9 @@
         "output": "100000\n"
       }
     ],
-    "hints": ["Count occurrences of each number. Use DP: dp[i] is the max points using numbers up to i. dp[i] = max(dp[i-1], dp[i-2] + count[i] * i)."]
+    "hints": [
+      "Count occurrences of each number. Use DP: dp[i] is the max points using numbers up to i. dp[i] = max(dp[i-1], dp[i-2] + count[i] * i)."
+    ]
   },
   {
     "source": "codeforces",
@@ -453,7 +469,9 @@
         "output": "1\n3\n3\n3\n"
       }
     ],
-    "hints": ["Use a Segment Tree. Store the operation type at each level (alternating between OR and XOR) and execute it during updates."]
+    "hints": [
+      "Use a Segment Tree. Store the operation type at each level (alternating between OR and XOR) and execute it during updates."
+    ]
   },
   {
     "source": "codeforces",
@@ -497,7 +515,9 @@
         "output": "71365440\n"
       }
     ],
-    "hints": ["Use DP: dp[i][j][x][y] is the number of arrangements with i footmen, j horsemen, ending with x consecutive footmen or y consecutive horsemen."]
+    "hints": [
+      "Use DP: dp[i][j][x][y] is the number of arrangements with i footmen, j horsemen, ending with x consecutive footmen or y consecutive horsemen."
+    ]
   },
   {
     "source": "codeforces",
@@ -529,7 +549,9 @@
         "output": "12\n"
       }
     ],
-    "hints": ["Use Bitmask DP: dp[mask][last] is the max satisfaction obtained by eating the set of dishes represented by mask, ending with dish 'last'."]
+    "hints": [
+      "Use Bitmask DP: dp[mask][last] is the max satisfaction obtained by eating the set of dishes represented by mask, ending with dish 'last'."
+    ]
   },
   {
     "source": "codeforces",
@@ -565,6 +587,8 @@
         "output": "6 1"
       }
     ],
-    "hints": ["Use a stack or DP to track the match length ending at each character. Combine consecutive valid segments to find the maximum substring length."]
+    "hints": [
+      "Use a stack or DP to track the match length ending at each character. Combine consecutive valid segments to find the maximum substring length."
+    ]
   }
 ]

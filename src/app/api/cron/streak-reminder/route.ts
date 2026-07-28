@@ -20,10 +20,16 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization") ?? "";
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   const expected = `Bearer ${secret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(authHeader, expected)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -38,7 +44,9 @@ export async function GET(request: NextRequest) {
     // Find developers with streak >= 3 who haven't checked in today
     const { data: devs } = await sb
       .from("developers")
-      .select("id, github_login, app_streak, streak_freezes_available, last_checkin_date")
+      .select(
+        "id, github_login, app_streak, streak_freezes_available, last_checkin_date",
+      )
       .eq("claimed", true)
       .not("email", "is", null)
       .gte("app_streak", 3)
@@ -54,9 +62,7 @@ export async function GET(request: NextRequest) {
       .select("developer_id, streak_reminders")
       .in("developer_id", devIds);
 
-    const prefsMap = new Map(
-      (prefs ?? []).map((p) => [p.developer_id, p]),
-    );
+    const prefsMap = new Map((prefs ?? []).map((p) => [p.developer_id, p]));
 
     for (const dev of devs) {
       try {
@@ -128,7 +134,12 @@ export async function GET(request: NextRequest) {
     for (const dev of devs ?? []) {
       try {
         const completedCount = countMap.get(dev.id) ?? 0;
-        sendDailiesReminderNotification(dev.id, dev.github_login, completedCount, today);
+        sendDailiesReminderNotification(
+          dev.id,
+          dev.github_login,
+          completedCount,
+          today,
+        );
         dailiesResults.reminded++;
       } catch (err) {
         console.warn("[app/api/cron/streak-reminder/route.ts] error:", err);

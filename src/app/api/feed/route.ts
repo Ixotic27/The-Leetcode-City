@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const MIN_EVENTS = 8;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   if (!Number.isFinite(rawLimit)) {
     return NextResponse.json(
       { error: "Invalid limit parameter: must be a number." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   if (before && !UUID_RE.test(before)) {
     return NextResponse.json(
       { error: "Invalid cursor: must be a valid UUID." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -31,14 +32,16 @@ export async function GET(request: Request) {
 
   let query = sb
     .from("activity_feed")
-    .select(`
+    .select(
+      `
       id,
       event_type,
       actor_id,
       target_id,
       metadata,
       created_at
-    `)
+    `,
+    )
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(limit + 1);
@@ -56,10 +59,7 @@ export async function GET(request: Request) {
       .maybeSingle();
 
     if (!cursor) {
-      return NextResponse.json(
-        { error: "Cursor not found." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Cursor not found." }, { status: 404 });
     }
 
     query = query.or(
@@ -85,7 +85,10 @@ export async function GET(request: Request) {
   }
 
   if (todayOnly && events.length < MIN_EVENTS && !before) {
-    const synthetic = await generateSyntheticEvents(sb, MIN_EVENTS - events.length);
+    const synthetic = await generateSyntheticEvents(
+      sb,
+      MIN_EVENTS - events.length,
+    );
     events = [...events, ...synthetic];
   }
 
@@ -95,7 +98,11 @@ export async function GET(request: Request) {
   if (events.length === 0) {
     return NextResponse.json(
       { events: [], has_more: false },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      },
     );
   }
 
@@ -105,7 +112,8 @@ export async function GET(request: Request) {
     if (e.target_id) devIds.add(e.target_id);
   }
 
-  const devMap: Record<number, { login: string; avatar_url: string | null }> = {};
+  const devMap: Record<number, { login: string; avatar_url: string | null }> =
+    {};
   if (devIds.size > 0) {
     const { data: devs } = await sb
       .from("developers")
@@ -119,8 +127,8 @@ export async function GET(request: Request) {
 
   const enriched = events.map((e) => ({
     ...e,
-    actor: e.actor_id ? devMap[e.actor_id] ?? null : null,
-    target: e.target_id ? devMap[e.target_id] ?? null : null,
+    actor: e.actor_id ? (devMap[e.actor_id] ?? null) : null,
+    target: e.target_id ? (devMap[e.target_id] ?? null) : null,
   }));
 
   return NextResponse.json(
@@ -132,11 +140,14 @@ export async function GET(request: Request) {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
       },
-    }
+    },
   );
 }
 
-async function generateSyntheticEvents(sb: ReturnType<typeof getSupabaseAdmin>, count: number) {
+async function generateSyntheticEvents(
+  sb: ReturnType<typeof getSupabaseAdmin>,
+  count: number,
+) {
   const { data: devs } = await sb
     .from("developers")
     .select("id, github_login, contributions, total_stars, rank, lc_streak")

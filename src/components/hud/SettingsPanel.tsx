@@ -45,9 +45,15 @@ export default function SettingsPanel() {
             setDayNightCycleActive((prev: boolean) => {
               const next = !prev;
               try {
-                localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
+                localStorage.setItem(
+                  "leetcodecity_daynight_cycle",
+                  next ? "1" : "0",
+                );
               } catch (err) {
-                console.warn("[dayNightToggle] Failed to persist cycle preference:", err);
+                console.warn(
+                  "[dayNightToggle] Failed to persist cycle preference:",
+                  err,
+                );
               }
               return next;
             });
@@ -66,9 +72,15 @@ export default function SettingsPanel() {
             setNeonGridActive((prev: boolean) => {
               const next = !prev;
               try {
-                localStorage.setItem("leetcodecity_neongrid_enabled", next ? "1" : "0");
+                localStorage.setItem(
+                  "leetcodecity_neongrid_enabled",
+                  next ? "1" : "0",
+                );
               } catch (err) {
-                console.warn("[neonGridToggle] Failed to persist grid preference:", err);
+                console.warn(
+                  "[neonGridToggle] Failed to persist grid preference:",
+                  err,
+                );
               }
               return next;
             });

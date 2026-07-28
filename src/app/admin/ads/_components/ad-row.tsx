@@ -37,10 +37,7 @@ export function AdRow({
         onClick={onToggleExpand}
       >
         {/* Checkbox */}
-        <div
-          className="hidden md:block"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="hidden md:block" onClick={(e) => e.stopPropagation()}>
           <input
             type="checkbox"
             checked={isSelected}
@@ -56,7 +53,9 @@ export function AdRow({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="truncate text-xs text-cream font-medium">{ad.brand || ad.id}</span>
+              <span className="truncate text-xs text-cream font-medium">
+                {ad.brand || ad.id}
+              </span>
               {isPaid && (
                 <span className="shrink-0 border border-blue-600/30 bg-blue-900/20 px-1 py-px text-[9px] text-blue-400 leading-none">
                   PAID
@@ -77,7 +76,9 @@ export function AdRow({
         <p className="hidden text-right text-xs tabular-nums text-cream md:block">
           {ad.cta_clicks.toLocaleString()}
         </p>
-        <p className="hidden text-right text-xs tabular-nums text-lime md:block">{ad.ctr}</p>
+        <p className="hidden text-right text-xs tabular-nums text-lime md:block">
+          {ad.ctr}
+        </p>
         <div className="hidden md:block">
           <StatusBadge status={status} />
         </div>
@@ -182,11 +183,15 @@ export function AdRow({
             </div>
             <div>
               <span className="text-[10px] text-dim">Start</span>
-              <p className="mt-0.5 text-[11px] text-cream">{fmtDate(ad.starts_at)}</p>
+              <p className="mt-0.5 text-[11px] text-cream">
+                {fmtDate(ad.starts_at)}
+              </p>
             </div>
             <div>
               <span className="text-[10px] text-dim">End</span>
-              <p className="mt-0.5 text-[11px] text-cream">{fmtDate(ad.ends_at)}</p>
+              <p className="mt-0.5 text-[11px] text-cream">
+                {fmtDate(ad.ends_at)}
+              </p>
             </div>
             <div>
               <span className="text-[10px] text-dim">Email</span>
@@ -196,7 +201,9 @@ export function AdRow({
             </div>
             <div>
               <span className="text-[10px] text-dim">Created</span>
-              <p className="mt-0.5 text-[11px] text-cream">{fmtDate(ad.created_at)}</p>
+              <p className="mt-0.5 text-[11px] text-cream">
+                {fmtDate(ad.created_at)}
+              </p>
             </div>
           </div>
 

@@ -10,9 +10,10 @@ import { describe, it, expect } from "vitest";
 // 1. Optimistic lock — simulates the WHERE rabbit_completed = false UPDATE
 // ---------------------------------------------------------------------------
 
-function optimisticCompleteQuest(
-  dev: { rabbit_completed: boolean; rabbit_progress: number },
-): { rowsAffected: number; newState: typeof dev } {
+function optimisticCompleteQuest(dev: {
+  rabbit_completed: boolean;
+  rabbit_progress: number;
+}): { rowsAffected: number; newState: typeof dev } {
   if (dev.rabbit_completed) {
     // DB rejects update: WHERE rabbit_completed = false not satisfied
     return { rowsAffected: 0, newState: dev };
@@ -56,11 +57,22 @@ describe("sighting-5 optimistic lock", () => {
 
 // Simulates a partial unique index on (developer_id, item_id) WHERE status='completed'
 class PurchaseTable {
-  private rows: Array<{ developer_id: number; item_id: string; status: string }> = [];
+  private rows: Array<{
+    developer_id: number;
+    item_id: string;
+    status: string;
+  }> = [];
 
-  insertIgnoreDuplicate(row: { developer_id: number; item_id: string; status: string }): { inserted: boolean } {
+  insertIgnoreDuplicate(row: {
+    developer_id: number;
+    item_id: string;
+    status: string;
+  }): { inserted: boolean } {
     const exists = this.rows.some(
-      (r) => r.developer_id === row.developer_id && r.item_id === row.item_id && r.status === row.status,
+      (r) =>
+        r.developer_id === row.developer_id &&
+        r.item_id === row.item_id &&
+        r.status === row.status,
     );
     if (exists) return { inserted: false };
     this.rows.push(row);
@@ -69,7 +81,10 @@ class PurchaseTable {
 
   countAll(developer_id: number, item_id: string, status: string): number {
     return this.rows.filter(
-      (r) => r.developer_id === developer_id && r.item_id === item_id && r.status === status,
+      (r) =>
+        r.developer_id === developer_id &&
+        r.item_id === item_id &&
+        r.status === status,
     ).length;
   }
 }
@@ -77,22 +92,38 @@ class PurchaseTable {
 describe("white_rabbit purchase ON CONFLICT DO NOTHING", () => {
   it("single insert succeeds", () => {
     const table = new PurchaseTable();
-    const r = table.insertIgnoreDuplicate({ developer_id: 1, item_id: "white_rabbit", status: "completed" });
+    const r = table.insertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "white_rabbit",
+      status: "completed",
+    });
     expect(r.inserted).toBe(true);
     expect(table.countAll(1, "white_rabbit", "completed")).toBe(1);
   });
 
   it("duplicate insert is silently ignored", () => {
     const table = new PurchaseTable();
-    table.insertIgnoreDuplicate({ developer_id: 1, item_id: "white_rabbit", status: "completed" });
-    const r = table.insertIgnoreDuplicate({ developer_id: 1, item_id: "white_rabbit", status: "completed" });
+    table.insertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "white_rabbit",
+      status: "completed",
+    });
+    const r = table.insertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "white_rabbit",
+      status: "completed",
+    });
     expect(r.inserted).toBe(false);
     expect(table.countAll(1, "white_rabbit", "completed")).toBe(1); // still only 1 row
   });
 
   it("two concurrent requests — only one row is inserted", () => {
     const table = new PurchaseTable();
-    const purchase = { developer_id: 1, item_id: "white_rabbit", status: "completed" };
+    const purchase = {
+      developer_id: 1,
+      item_id: "white_rabbit",
+      status: "completed",
+    };
 
     const rA = table.insertIgnoreDuplicate({ ...purchase });
     const rB = table.insertIgnoreDuplicate({ ...purchase });
@@ -103,8 +134,16 @@ describe("white_rabbit purchase ON CONFLICT DO NOTHING", () => {
 
   it("different developer_id gets its own row", () => {
     const table = new PurchaseTable();
-    table.insertIgnoreDuplicate({ developer_id: 1, item_id: "white_rabbit", status: "completed" });
-    const r = table.insertIgnoreDuplicate({ developer_id: 2, item_id: "white_rabbit", status: "completed" });
+    table.insertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "white_rabbit",
+      status: "completed",
+    });
+    const r = table.insertIgnoreDuplicate({
+      developer_id: 2,
+      item_id: "white_rabbit",
+      status: "completed",
+    });
     expect(r.inserted).toBe(true);
     expect(table.countAll(1, "white_rabbit", "completed")).toBe(1);
     expect(table.countAll(2, "white_rabbit", "completed")).toBe(1);
@@ -155,7 +194,7 @@ describe("sightings 1-4 progress guard (.lt)", () => {
     let progress = 0;
 
     const rA = advanceProgress(progress, 1);
-    progress = rA.newProgress;           // A commits first
+    progress = rA.newProgress; // A commits first
     const rB = advanceProgress(progress, 1); // B runs against committed state
 
     expect(rA.rowsAffected).toBe(1);

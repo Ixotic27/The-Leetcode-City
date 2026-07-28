@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import { getSupabaseAdmin } from "./supabase";
 
-const NOWPAYMENTS_API = process.env.NOWPAYMENTS_SANDBOX === "true"
-  ? "https://api-sandbox.nowpayments.io/v1"
-  : "https://api.nowpayments.io/v1";
+const NOWPAYMENTS_API =
+  process.env.NOWPAYMENTS_SANDBOX === "true"
+    ? "https://api-sandbox.nowpayments.io/v1"
+    : "https://api.nowpayments.io/v1";
 
 interface InvoiceResponse {
   id: string;
@@ -45,7 +46,9 @@ export async function createCryptoInvoice(
   }
 
   const priceUsd = item.price_usd_cents / 100;
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.theleetcodecity.tech").replace(/\/+$/, "");
+  const siteUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.theleetcodecity.tech"
+  ).replace(/\/+$/, "");
 
   const successUrl = `${siteUrl}/shop/${githubLogin}?purchased=${itemId}`;
   const cancelUrl = `${siteUrl}/shop/${githubLogin}`;
@@ -75,7 +78,9 @@ export async function createCryptoInvoice(
   const data: InvoiceResponse = await res.json();
 
   if (!data?.invoice_url || !data?.id) {
-    throw new Error(`NOWPayments: unexpected response: ${JSON.stringify(data)}`);
+    throw new Error(
+      `NOWPayments: unexpected response: ${JSON.stringify(data)}`,
+    );
   }
 
   return {
@@ -103,7 +108,9 @@ export async function createCryptoInvoiceRaw({
     throw new Error("NOWPAYMENTS_API_KEY is not set");
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.theleetcodecity.tech").replace(/\/+$/, "");
+  const siteUrl = (
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.theleetcodecity.tech"
+  ).replace(/\/+$/, "");
 
   const res = await fetch(`${NOWPAYMENTS_API}/invoice`, {
     method: "POST",
@@ -130,7 +137,9 @@ export async function createCryptoInvoiceRaw({
   const data: InvoiceResponse = await res.json();
 
   if (!data?.invoice_url || !data?.id) {
-    throw new Error(`NOWPayments: unexpected response: ${JSON.stringify(data)}`);
+    throw new Error(
+      `NOWPayments: unexpected response: ${JSON.stringify(data)}`,
+    );
   }
 
   return {
@@ -169,4 +178,3 @@ function sortObject(obj: Record<string, unknown>): Record<string, unknown> {
       return result;
     }, {});
 }
-

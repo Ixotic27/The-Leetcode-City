@@ -3,13 +3,14 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getBalance } from "@/lib/pixels";
 
 export async function GET() {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-    if (!auth.ok || !auth.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    const user = auth.user;
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  const user = auth.user;
 
   const githubLogin = (
     user.user_metadata?.user_name ??

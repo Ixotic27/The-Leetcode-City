@@ -11,15 +11,33 @@ import { trackSkyAdCtaClick } from "@/lib/himetrica";
 import { track } from "@vercel/analytics";
 
 // Lazy-load heavier overlays to optimize load performance and bypass SSR errors
-const CodexModal = dynamic(() => import("@/components/CodexModal"), { ssr: false });
-const RelicModal = dynamic(() => import("@/components/RelicModal"), { ssr: false });
-const PillModal = dynamic(() => import("@/components/PillModal"), { ssr: false });
-const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), { ssr: false });
-const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), { ssr: false });
-const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), { ssr: false });
-const SolanaModal = dynamic(() => import("@/components/SolanaModal"), { ssr: false });
-const FounderMessage = dynamic(() => import("@/components/FounderMessage"), { ssr: false });
-const TransitScreen = dynamic(() => import("@/components/TransitScreen"), { ssr: false });
+const CodexModal = dynamic(() => import("@/components/CodexModal"), {
+  ssr: false,
+});
+const RelicModal = dynamic(() => import("@/components/RelicModal"), {
+  ssr: false,
+});
+const PillModal = dynamic(() => import("@/components/PillModal"), {
+  ssr: false,
+});
+const EArcadeCard = dynamic(() => import("@/components/EArcadeCard"), {
+  ssr: false,
+});
+const ZenCodingModal = dynamic(() => import("@/components/ZenCodingModal"), {
+  ssr: false,
+});
+const CodeForgeModal = dynamic(() => import("@/components/CodeForgeModal"), {
+  ssr: false,
+});
+const SolanaModal = dynamic(() => import("@/components/SolanaModal"), {
+  ssr: false,
+});
+const FounderMessage = dynamic(() => import("@/components/FounderMessage"), {
+  ssr: false,
+});
+const TransitScreen = dynamic(() => import("@/components/TransitScreen"), {
+  ssr: false,
+});
 
 /* ─── Free Gift Celebration Modal Helper ─── */
 function GiftClaimModal({
@@ -172,7 +190,7 @@ function ShareCardModal({
           <button
             onClick={() => {
               const b = buildings.find(
-                (x) => x.login.toLowerCase() === shareData.login.toLowerCase()
+                (x) => x.login.toLowerCase() === shareData.login.toLowerCase(),
               );
               if (b) {
                 setSelectedBuilding(b);
@@ -191,9 +209,9 @@ function ShareCardModal({
           </button>
           <a
             href={`https://x.com/intent/tweet?text=${encodeURIComponent(
-              `My LeetCode just turned into a city building! ${shareData.contributions.toLocaleString()} LeetCode algorithms solved, Rank #${shareData.rank ?? "?"}. What does yours look like?`
+              `My LeetCode just turned into a city building! ${shareData.contributions.toLocaleString()} LeetCode algorithms solved, Rank #${shareData.rank ?? "?"}. What does yours look like?`,
             )}&url=${encodeURIComponent(
-              `${window.location.origin}/dev/${shareData.login}`
+              `${window.location.origin}/dev/${shareData.login}`,
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -204,7 +222,7 @@ function ShareCardModal({
           <button
             onClick={() => {
               navigator.clipboard.writeText(
-                `${window.location.origin}/dev/${shareData.login}`
+                `${window.location.origin}/dev/${shareData.login}`,
               );
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
@@ -291,9 +309,7 @@ function AdDetailModal({
             </div>
             <div className="min-w-0 flex-1">
               {clickedAd.brand && (
-                <p className="truncate text-sm text-cream">
-                  {clickedAd.brand}
-                </p>
+                <p className="truncate text-sm text-cream">{clickedAd.brand}</p>
               )}
               <p className="text-[9px] text-dim">Sponsored</p>
             </div>
@@ -328,7 +344,7 @@ function AdDetailModal({
                       trackAdEvents(
                         clickedAd.id,
                         ["cta_click"],
-                        authLogin || undefined
+                        authLogin || undefined,
                       );
                       trackSkyAdCtaClick(clickedAd.id, clickedAd.vehicle);
                     }}
@@ -513,9 +529,7 @@ export default function ModalsOverlay() {
       )}
 
       {/* Solana Wallet Modal */}
-      {solanaOpen && (
-        <SolanaModal onClose={() => setSolanaOpen(false)} />
-      )}
+      {solanaOpen && <SolanaModal onClose={() => setSolanaOpen(false)} />}
 
       {/* Sky/Billboard Ad Modal */}
       {clickedAd && (
@@ -548,11 +562,15 @@ export default function ModalsOverlay() {
                 [X]
               </button>
             </div>
-            
+
             <p className="text-[9px] text-muted normal-case mb-3">
-              You are at <span className="text-cream font-bold uppercase">{transitFrom.replace('_', ' ')}</span> Bus Stop. Select your destination:
+              You are at{" "}
+              <span className="text-cream font-bold uppercase">
+                {transitFrom.replace("_", " ")}
+              </span>{" "}
+              Bus Stop. Select your destination:
             </p>
-            
+
             <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto pr-1">
               {plazas
                 .map((p: any) => p.district)
@@ -563,8 +581,10 @@ export default function ModalsOverlay() {
                     onClick={() => handleSelectTransitDestination(d)}
                     className="w-full text-left text-[10px] border-[2px] border-border bg-bg-card hover:bg-bg-raised p-2 transition-colors cursor-pointer flex items-center justify-between"
                   >
-                    <span>{d.replace('_', ' ')}</span>
-                    <span className="text-[8px] text-muted font-normal">ROUTE 500C</span>
+                    <span>{d.replace("_", " ")}</span>
+                    <span className="text-[8px] text-muted font-normal">
+                      ROUTE 500C
+                    </span>
                   </button>
                 ))}
             </div>

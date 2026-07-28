@@ -15,6 +15,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ isPaid, orderStatus });
   } catch (err) {
     console.error("[api/support/status] Error fetching order status:", err);
-    return NextResponse.json({ error: "Failed to fetch order status" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch order status" },
+      { status: 500 },
+    );
   }
 }

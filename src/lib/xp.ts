@@ -36,11 +36,41 @@ export type XpSourceType =
 
 export const XP_TIERS: XpTier[] = [
   { id: "novice", name: "Novice", color: "#4ade80", minLevel: 1, maxLevel: 4 },
-  { id: "apprentice", name: "Apprentice", color: "#60a5fa", minLevel: 5, maxLevel: 8 },
-  { id: "specialist", name: "Specialist", color: "#a78bfa", minLevel: 9, maxLevel: 13 },
-  { id: "expert", name: "Expert", color: "#fbbf24", minLevel: 14, maxLevel: 18 },
-  { id: "knight", name: "Knight", color: "#22d3ee", minLevel: 19, maxLevel: 23 },
-  { id: "guardian", name: "Guardian", color: "#ffffff", minLevel: 24, maxLevel: 999 },
+  {
+    id: "apprentice",
+    name: "Apprentice",
+    color: "#60a5fa",
+    minLevel: 5,
+    maxLevel: 8,
+  },
+  {
+    id: "specialist",
+    name: "Specialist",
+    color: "#a78bfa",
+    minLevel: 9,
+    maxLevel: 13,
+  },
+  {
+    id: "expert",
+    name: "Expert",
+    color: "#fbbf24",
+    minLevel: 14,
+    maxLevel: 18,
+  },
+  {
+    id: "knight",
+    name: "Knight",
+    color: "#22d3ee",
+    minLevel: 19,
+    maxLevel: 23,
+  },
+  {
+    id: "guardian",
+    name: "Guardian",
+    color: "#ffffff",
+    minLevel: 24,
+    maxLevel: 999,
+  },
 ];
 
 const RANK_TITLES: [number, string][] = [
@@ -154,12 +184,13 @@ export function calculateLeetcodeXp(dev: {
     Math.floor(Math.log2(easySolved + 1) * 3) +
     Math.floor(Math.log2(mediumSolved + 1) * 6) +
     Math.floor(Math.log2(hardSolved + 1) * 12);
-  
+
   // High contest ratings exponentially scale better, but bounded realistically
-  const ratingXp = dev.contest_rating > 1400 
-    ? Math.floor(Math.pow((dev.contest_rating - 1400) / 100, 1.5) * 5) 
-    : 0;
-  
+  const ratingXp =
+    dev.contest_rating > 1400
+      ? Math.floor(Math.pow((dev.contest_rating - 1400) / 100, 1.5) * 5)
+      : 0;
+
   // Streak directly gives flat scaling points
   const streakXp = Math.floor(dev.lc_streak * 1.5);
 

@@ -11,9 +11,9 @@ const DEFAULT_POS: [number, number, number] = [0, 0, 380];
 
 // Building: wide low base + mid tower + slim top (arcade cabinet silhouette)
 const SECTIONS = [
-  { w: 110, d: 90,  h: 120, y: 60  }, // base — wide arcade cabinet base
-  { w: 80,  d: 65,  h: 160, y: 260 }, // mid tower
-  { w: 55,  d: 45,  h: 120, y: 450 }, // slim top
+  { w: 110, d: 90, h: 120, y: 60 }, // base — wide arcade cabinet base
+  { w: 80, d: 65, h: 160, y: 260 }, // mid tower
+  { w: 55, d: 45, h: 120, y: 450 }, // slim top
 ];
 const TOTAL_H = 520;
 
@@ -42,7 +42,8 @@ function createLogoTexture(color: string): THREE.CanvasTexture {
 
 // ─── Sign texture: "DAILY QUESTIONS" ────────────────────────
 function createSignTexture(accent: string): THREE.CanvasTexture {
-  const cw = 320, ch = 48;
+  const cw = 320,
+    ch = 48;
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -69,7 +70,8 @@ function createSignTexture(accent: string): THREE.CanvasTexture {
 
 // ─── Ticker tape texture: scrolling "SOLVE · STREAK · REPEAT" ─
 function createTickerTexture(accent: string): THREE.CanvasTexture {
-  const cw = 512, ch = 32;
+  const cw = 512,
+    ch = 32;
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -82,7 +84,8 @@ function createTickerTexture(accent: string): THREE.CanvasTexture {
   ctx.fillStyle = accent;
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
-  const msg = "SOLVE  ·  STREAK  ·  REPEAT  ·  SOLVE  ·  STREAK  ·  REPEAT  ·  ";
+  const msg =
+    "SOLVE  ·  STREAK  ·  REPEAT  ·  SOLVE  ·  STREAK  ·  REPEAT  ·  ";
   ctx.fillText(msg, 8, ch / 2);
 
   const tex = new THREE.CanvasTexture(canvas);
@@ -93,11 +96,17 @@ function createTickerTexture(accent: string): THREE.CanvasTexture {
 
 // ─── Glass facade texture ─────────────────────────────────────
 function createGlassTex(
-  cols: number, rows: number, seed: number,
-  litColors: string[], offColor: string, faceColor: string,
+  cols: number,
+  rows: number,
+  seed: number,
+  litColors: string[],
+  offColor: string,
+  faceColor: string,
 ): THREE.CanvasTexture {
-  const cellW = 10, cellH = 12;
-  const cw = cols * cellW, ch = rows * cellH;
+  const cellW = 10,
+    cellH = 12;
+  const cw = cols * cellW,
+    ch = rows * cellH;
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -114,7 +123,7 @@ function createGlassTex(
       const y = r * cellH + 1;
       const ww = cellW - 2;
       const hh = cellH - 2;
-      const lit = (hash % 100) < 40;
+      const lit = hash % 100 < 40;
       if (lit) {
         ctx.fillStyle = litColors[hash % litColors.length];
         ctx.globalAlpha = 0.4 + (hash % 30) / 100;
@@ -171,9 +180,12 @@ export default function DailyQuestionsLandmark({
   }, [onClick]);
 
   // ── Textures ──
-  const logoTex   = useMemo(() => createLogoTexture(themeAccent), [themeAccent]);
-  const signTex   = useMemo(() => createSignTexture(themeAccent), [themeAccent]);
-  const tickerTex = useMemo(() => createTickerTexture(themeAccent), [themeAccent]);
+  const logoTex = useMemo(() => createLogoTexture(themeAccent), [themeAccent]);
+  const signTex = useMemo(() => createSignTexture(themeAccent), [themeAccent]);
+  const tickerTex = useMemo(
+    () => createTickerTexture(themeAccent),
+    [themeAccent],
+  );
 
   const windowOff = useMemo(() => {
     const c = new THREE.Color(themeFace);
@@ -224,10 +236,17 @@ export default function DailyQuestionsLandmark({
       if (dqHits.length === 0) return false;
 
       const dqDistance = dqHits[0].distance;
-      const sceneHits = raycaster.current.intersectObjects(scene.children, true);
+      const sceneHits = raycaster.current.intersectObjects(
+        scene.children,
+        true,
+      );
       for (const hit of sceneHits) {
         if (hit.distance >= dqDistance) break;
-        if ((hit.object as THREE.Object3D & { isInstancedMesh?: boolean }).isInstancedMesh) return false;
+        if (
+          (hit.object as THREE.Object3D & { isInstancedMesh?: boolean })
+            .isInstancedMesh
+        )
+          return false;
         let obj: THREE.Object3D | null = hit.object;
         while (obj) {
           if (obj === group) break;
@@ -300,8 +319,9 @@ export default function DailyQuestionsLandmark({
     if (beaconRef.current) {
       const s = 1 + Math.sin(t * 2.5) * 0.25;
       beaconRef.current.scale.setScalar(s);
-      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        2.5 + Math.sin(t * 2.5) * 1;
+      (
+        beaconRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 2.5 + Math.sin(t * 2.5) * 1;
     }
 
     // Ticker scroll — shift UV offset to simulate scrolling text
@@ -324,7 +344,11 @@ export default function DailyQuestionsLandmark({
       {/* ── Ground plaza ── */}
       <mesh position={[0, 1, 0]}>
         <boxGeometry args={[base.w + 40, 2, base.d + 40]} />
-        <meshStandardMaterial color={shellColor} roughness={0.5} metalness={0.4} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.5}
+          metalness={0.4}
+        />
       </mesh>
 
       {/* ── Stepped tower sections (same pattern as E.Arcade) ── */}
@@ -369,7 +393,10 @@ export default function DailyQuestionsLandmark({
               />
             </mesh>
             {/* Glass facade — right */}
-            <mesh position={[hw + 0.3, sec.y, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <mesh
+              position={[hw + 0.3, sec.y, 0]}
+              rotation={[0, Math.PI / 2, 0]}
+            >
               <planeGeometry args={[sec.d - 4, sec.h - 4]} />
               <meshStandardMaterial
                 map={glassSide}
@@ -381,7 +408,10 @@ export default function DailyQuestionsLandmark({
               />
             </mesh>
             {/* Glass facade — left */}
-            <mesh position={[-hw - 0.3, sec.y, 0]} rotation={[0, -Math.PI / 2, 0]}>
+            <mesh
+              position={[-hw - 0.3, sec.y, 0]}
+              rotation={[0, -Math.PI / 2, 0]}
+            >
               <planeGeometry args={[sec.d - 4, sec.h - 4]} />
               <meshStandardMaterial
                 map={glassSide}
@@ -396,7 +426,11 @@ export default function DailyQuestionsLandmark({
             {/* Ledge at top of each section */}
             <mesh position={[0, sec.y + sec.h / 2 + 1, 0]}>
               <boxGeometry args={[sec.w + 3, 2, sec.d + 3]} />
-              <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
+              <meshStandardMaterial
+                color={shellColor}
+                roughness={0.3}
+                metalness={0.7}
+              />
             </mesh>
 
             {/* Accent trim at ledge — matches E.Arcade style */}
@@ -467,7 +501,10 @@ export default function DailyQuestionsLandmark({
       </mesh>
 
       {/* ── Scrolling ticker tape on mid section ── */}
-      <mesh ref={tickerRef} position={[0, SECTIONS[1].y - 20, SECTIONS[1].d / 2 + 0.5]}>
+      <mesh
+        ref={tickerRef}
+        position={[0, SECTIONS[1].y - 20, SECTIONS[1].d / 2 + 0.5]}
+      >
         <planeGeometry args={[SECTIONS[1].w - 6, 7]} />
         <meshStandardMaterial
           ref={tickerMatRef}
@@ -517,7 +554,11 @@ export default function DailyQuestionsLandmark({
       {/* ── Arcade cabinet crown (flat top instead of spire) ── */}
       <mesh position={[0, TOTAL_H + 4, 0]}>
         <boxGeometry args={[36, 10, 28]} />
-        <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.3}
+          metalness={0.7}
+        />
       </mesh>
       {/* Crown accent glow strip */}
       <mesh position={[0, TOTAL_H + 10, 0]}>
@@ -533,7 +574,11 @@ export default function DailyQuestionsLandmark({
       {/* ── Antenna ── */}
       <mesh position={[0, TOTAL_H + 32, 0]}>
         <cylinderGeometry args={[0.5, 2, 44, 6]} />
-        <meshStandardMaterial color={shellColor} roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
 
       {/* ── Top beacon ── */}

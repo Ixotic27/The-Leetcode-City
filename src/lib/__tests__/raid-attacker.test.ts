@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { findRaidAttackerForUser, getAuthLoginCandidates } from "../raid-attacker";
+import {
+  findRaidAttackerForUser,
+  getAuthLoginCandidates,
+} from "../raid-attacker";
 
 type DeveloperRow = {
   id: number;
@@ -35,7 +38,11 @@ function makeAdmin(rows: DeveloperRow[]) {
               return query;
             },
             async maybeSingle() {
-              return { data: rows.find((row) => filters.every((filter) => filter(row))) ?? null };
+              return {
+                data:
+                  rows.find((row) => filters.every((filter) => filter(row))) ??
+                  null,
+              };
             },
           };
 
@@ -85,14 +92,22 @@ describe("raid attacker lookup", () => {
       },
     ];
 
-    const attacker = await findRaidAttackerForUser(makeAdmin(rows) as never, {
-      id: "user-1",
-      user_metadata: {},
-      identities: [],
-    }, "id, claimed, claimed_by, github_login");
+    const attacker = await findRaidAttackerForUser(
+      makeAdmin(rows) as never,
+      {
+        id: "user-1",
+        user_metadata: {},
+        identities: [],
+      },
+      "id, claimed, claimed_by, github_login",
+    );
 
     expect(attacker?.claimed).toBe(true);
-    expect(rows[0]).toMatchObject({ claimed: true, claimed_by: "user-1", fetch_priority: 1 });
+    expect(rows[0]).toMatchObject({
+      claimed: true,
+      claimed_by: "user-1",
+      fetch_priority: 1,
+    });
   });
 
   it("restores a stale LeetCode claim when the profile links to the signed-in GitHub account", async () => {
@@ -107,14 +122,21 @@ describe("raid attacker lookup", () => {
       },
     ];
 
-    const attacker = await findRaidAttackerForUser(makeAdmin(rows) as never, {
-      id: "new-session-id",
-      user_metadata: { user_name: "saurabhhhcodes" },
-      identities: [],
-    }, "id, claimed, claimed_by, github_login, lc_github");
+    const attacker = await findRaidAttackerForUser(
+      makeAdmin(rows) as never,
+      {
+        id: "new-session-id",
+        user_metadata: { user_name: "saurabhhhcodes" },
+        identities: [],
+      },
+      "id, claimed, claimed_by, github_login, lc_github",
+    );
 
     expect(attacker?.id).toBe(12);
-    expect(rows[0]).toMatchObject({ claimed: true, claimed_by: "new-session-id" });
+    expect(rows[0]).toMatchObject({
+      claimed: true,
+      claimed_by: "new-session-id",
+    });
   });
 
   it("does not take over a row claimed by another user from a plain username match", async () => {
@@ -127,11 +149,15 @@ describe("raid attacker lookup", () => {
       },
     ];
 
-    const attacker = await findRaidAttackerForUser(makeAdmin(rows) as never, {
-      id: "user-1",
-      user_metadata: { user_name: "saurabhhhcodes" },
-      identities: [],
-    }, "id, claimed, claimed_by, github_login");
+    const attacker = await findRaidAttackerForUser(
+      makeAdmin(rows) as never,
+      {
+        id: "user-1",
+        user_metadata: { user_name: "saurabhhhcodes" },
+        identities: [],
+      },
+      "id, claimed, claimed_by, github_login",
+    );
 
     expect(attacker).toBeNull();
     expect(rows[0].claimed_by).toBe("other-user");

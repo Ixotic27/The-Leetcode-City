@@ -24,7 +24,7 @@ self.addEventListener("push", (event) => {
       // `tag` collapses duplicate notifications (same tag = replace, not stack)
       tag: data?.tag || "default",
       renotify: true, // vibrate/sound even when replacing a same-tag notification
-    })
+    }),
   );
 });
 
@@ -52,6 +52,6 @@ self.addEventListener("notificationclick", (event) => {
         if (clients.openWindow) {
           return clients.openWindow(url);
         }
-      })
+      }),
   );
 });

@@ -1,9 +1,24 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { fetchChallenge, fetchTodayChallenges, setupChallengeWorkspace, slugifyTitle, pascalCaseTitle, ChallengeData, fetchArenaStats, fetchArenaLeaderboard, fetchRabbitProgress, fetchDungeonBoss } from "./problemManager";
+import {
+  fetchChallenge,
+  fetchTodayChallenges,
+  setupChallengeWorkspace,
+  slugifyTitle,
+  pascalCaseTitle,
+  ChallengeData,
+  fetchArenaStats,
+  fetchArenaLeaderboard,
+  fetchRabbitProgress,
+  fetchDungeonBoss,
+} from "./problemManager";
 import { TimerManager, TimerState } from "./timerManager";
-import { getAvailableLanguages, getLanguageConfigByExtension, LANGUAGES } from "./languageDetector";
+import {
+  getAvailableLanguages,
+  getLanguageConfigByExtension,
+  LANGUAGES,
+} from "./languageDetector";
 import { runTests, RunResult } from "./testRunner";
 import { decryptHiddenTests } from "./cryptoUtils";
 import { submitSolution } from "./submitter";
@@ -14,7 +29,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _context: vscode.ExtensionContext;
   private _timerManager: TimerManager;
-  
+
   private _activeChallenge?: ChallengeData;
   private _activeSolutionPath?: string;
   private _activeLanguageExt?: string;
@@ -28,19 +43,22 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
   constructor(context: vscode.ExtensionContext) {
     this._context = context;
     this._timerManager = new TimerManager(context);
-    this._timerEnabled = context.globalState.get<boolean>("leetcodecity.timerEnabled", true);
+    this._timerEnabled = context.globalState.get<boolean>(
+      "leetcodecity.timerEnabled",
+      true,
+    );
   }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ) {
     this._view = webviewView;
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this._context.extensionUri]
+      localResourceRoots: [this._context.extensionUri],
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -76,9 +94,18 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           if (this._activeChallenge) {
             try {
               const ext = this._activeLanguageExt || "py";
-              this._activeSolutionPath = await setupChallengeWorkspace(this._activeChallenge, ext);
-              this._context.workspaceState.update(`leetcodecity.activeSolutionPath.${this._activeChallenge.id}`, this._activeSolutionPath);
-              this._context.workspaceState.update(`leetcodecity.activeLanguage.${this._activeChallenge.id}`, ext);
+              this._activeSolutionPath = await setupChallengeWorkspace(
+                this._activeChallenge,
+                ext,
+              );
+              this._context.workspaceState.update(
+                `leetcodecity.activeSolutionPath.${this._activeChallenge.id}`,
+                this._activeSolutionPath,
+              );
+              this._context.workspaceState.update(
+                `leetcodecity.activeLanguage.${this._activeChallenge.id}`,
+                ext,
+              );
             } catch (err: any) {
               vscode.window.showErrorMessage(err.message);
             }
@@ -88,21 +115,34 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         case "selectLanguage": {
           this._activeLanguageExt = data.ext;
           if (this._activeChallenge) {
-            this._context.workspaceState.update(`leetcodecity.activeLanguage.${this._activeChallenge.id}`, data.ext);
+            this._context.workspaceState.update(
+              `leetcodecity.activeLanguage.${this._activeChallenge.id}`,
+              data.ext,
+            );
           }
           this._sendState();
           break;
         }
         case "toggleTimer": {
           this._timerEnabled = data.enabled;
-          this._context.globalState.update("leetcodecity.timerEnabled", this._timerEnabled);
+          this._context.globalState.update(
+            "leetcodecity.timerEnabled",
+            this._timerEnabled,
+          );
           if (!this._timerEnabled) {
             this._timerManager.clearTimer();
           } else {
             if (this._activeChallenge) {
-              this._timerManager.startTimer(this._activeChallenge.id, this._activeChallenge.difficulty, (timeLeftMs) => {
-                this._view?.webview.postMessage({ type: "timerTick", timeLeftMs });
-              });
+              this._timerManager.startTimer(
+                this._activeChallenge.id,
+                this._activeChallenge.difficulty,
+                (timeLeftMs) => {
+                  this._view?.webview.postMessage({
+                    type: "timerTick",
+                    timeLeftMs,
+                  });
+                },
+              );
             }
           }
           this._sendState();
@@ -135,7 +175,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       this._todayChallenges = await fetchTodayChallenges();
       this._view.webview.postMessage({
         type: "dailyChallenges",
-        challenges: this._todayChallenges.map(ch => ({
+        challenges: this._todayChallenges.map((ch) => ({
           id: ch.id,
           difficulty: ch.difficulty,
           reward_points: ch.reward_points,
@@ -144,12 +184,15 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           tags: ch.problem.tags,
           difficulty_rating: ch.problem.difficulty_rating,
           status: (ch as any).status,
-        }))
+        })),
       });
     } catch (err: any) {
       // Check if we are pointing to production but local dev server is active
       const config = getConfig();
-      if (config.apiUrl.includes("vercel.app") || config.apiUrl.includes("the-leetcode-city")) {
+      if (
+        config.apiUrl.includes("vercel.app") ||
+        config.apiUrl.includes("the-leetcode-city")
+      ) {
         const localPorts = [3001, 3000];
         let foundLocal = false;
         for (const port of localPorts) {
@@ -157,20 +200,35 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
             const testUrl = `http://localhost:${port}/api/arena/challenge/today`;
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 800);
-            const testRes = await (globalThis as any).fetch(testUrl, { signal: controller.signal });
+            const testRes = await (globalThis as any).fetch(testUrl, {
+              signal: controller.signal,
+            });
             clearTimeout(timeoutId);
-            if (testRes.status === 200 || testRes.status === 401 || testRes.status === 404) {
+            if (
+              testRes.status === 200 ||
+              testRes.status === 401 ||
+              testRes.status === 404
+            ) {
               // Any response (even error but not connection refused) means a server is running there
               const switchMsg = `Your local dev server is running on port ${port}. Would you like to update the extension API URL to use it?`;
               const updateBtn = `Switch to port ${port}`;
-              vscode.window.showInformationMessage(switchMsg, updateBtn).then(async (selection) => {
-                if (selection === updateBtn) {
-                  const cfg = vscode.workspace.getConfiguration("leetcodecity");
-                  await cfg.update("apiUrl", `http://localhost:${port}`, vscode.ConfigurationTarget.Global);
-                  vscode.window.showInformationMessage(`API URL updated to http://localhost:${port}. Retrying...`);
-                  this._handleFetchDaily();
-                }
-              });
+              vscode.window
+                .showInformationMessage(switchMsg, updateBtn)
+                .then(async (selection) => {
+                  if (selection === updateBtn) {
+                    const cfg =
+                      vscode.workspace.getConfiguration("leetcodecity");
+                    await cfg.update(
+                      "apiUrl",
+                      `http://localhost:${port}`,
+                      vscode.ConfigurationTarget.Global,
+                    );
+                    vscode.window.showInformationMessage(
+                      `API URL updated to http://localhost:${port}. Retrying...`,
+                    );
+                    this._handleFetchDaily();
+                  }
+                });
               foundLocal = true;
               break;
             }
@@ -179,11 +237,17 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           }
         }
         if (foundLocal) {
-          this._view.webview.postMessage({ type: "dailyError", message: `${err.message} (Local server detected on active port)` });
+          this._view.webview.postMessage({
+            type: "dailyError",
+            message: `${err.message} (Local server detected on active port)`,
+          });
           return;
         }
       }
-      this._view.webview.postMessage({ type: "dailyError", message: err.message });
+      this._view.webview.postMessage({
+        type: "dailyError",
+        message: err.message,
+      });
     }
   }
 
@@ -202,21 +266,33 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         stats: stats,
         leaderboard: leaderboardData?.leaderboard || [],
         rabbit: rabbit,
-        boss: boss
+        boss: boss,
       });
     } catch (err: any) {
-      this._view.webview.postMessage({ type: "statsError", message: err.message });
+      this._view.webview.postMessage({
+        type: "statsError",
+        message: err.message,
+      });
     }
   }
 
   private async _handleStartCoding(ext: string) {
     if (!this._activeChallenge) return;
     this._activeLanguageExt = ext;
-    this._context.workspaceState.update(`leetcodecity.activeLanguage.${this._activeChallenge.id}`, ext);
+    this._context.workspaceState.update(
+      `leetcodecity.activeLanguage.${this._activeChallenge.id}`,
+      ext,
+    );
 
     try {
-      this._activeSolutionPath = await setupChallengeWorkspace(this._activeChallenge, ext);
-      this._context.workspaceState.update(`leetcodecity.activeSolutionPath.${this._activeChallenge.id}`, this._activeSolutionPath);
+      this._activeSolutionPath = await setupChallengeWorkspace(
+        this._activeChallenge,
+        ext,
+      );
+      this._context.workspaceState.update(
+        `leetcodecity.activeSolutionPath.${this._activeChallenge.id}`,
+        this._activeSolutionPath,
+      );
       this._sendState();
     } catch (err: any) {
       vscode.window.showErrorMessage(err.message);
@@ -225,7 +301,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
   public async loadChallengeById(challengeId: string, origin?: string) {
     if (!this._view) return;
-    
+
     this._view.show(true);
     this._view.webview.postMessage({ type: "loading", challengeId });
 
@@ -244,7 +320,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         const rootPath = folders[0].uri.fsPath;
         // Check for Java first
         const javaFileName = `${pascalCaseTitle(challenge.problem.title)}.java`;
-        const javaPath = path.join(rootPath, ".leetcode-city-arena", javaFileName);
+        const javaPath = path.join(
+          rootPath,
+          ".leetcode-city-arena",
+          javaFileName,
+        );
         if (fs.existsSync(javaPath)) {
           foundPath = javaPath;
           foundExt = "java";
@@ -253,7 +333,11 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
           for (const lang of Object.values(LANGUAGES)) {
             if (lang.extension === "java") continue;
             const fileName = `${slugifyTitle(challenge.problem.title)}.${lang.extension}`;
-            const checkPath = path.join(rootPath, ".leetcode-city-arena", fileName);
+            const checkPath = path.join(
+              rootPath,
+              ".leetcode-city-arena",
+              fileName,
+            );
             if (fs.existsSync(checkPath)) {
               foundPath = checkPath;
               foundExt = lang.extension;
@@ -268,13 +352,18 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         this._activeLanguageExt = foundExt;
       } else {
         // Fallback to workspaceState or default
-        const savedLang = this._context.workspaceState.get<string>(`leetcodecity.activeLanguage.${challengeId}`);
-        const savedPath = this._context.workspaceState.get<string>(`leetcodecity.activeSolutionPath.${challengeId}`);
+        const savedLang = this._context.workspaceState.get<string>(
+          `leetcodecity.activeLanguage.${challengeId}`,
+        );
+        const savedPath = this._context.workspaceState.get<string>(
+          `leetcodecity.activeSolutionPath.${challengeId}`,
+        );
         if (savedLang && savedPath && fs.existsSync(savedPath)) {
           this._activeLanguageExt = savedLang;
           this._activeSolutionPath = savedPath;
         } else {
-          this._activeLanguageExt = this._activeLanguageExt || availableLangs[0]?.extension || "py";
+          this._activeLanguageExt =
+            this._activeLanguageExt || availableLangs[0]?.extension || "py";
           this._activeSolutionPath = undefined;
         }
       }
@@ -284,13 +373,19 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       // Start timer if not already active
       const activeTimer = this._timerManager.getActiveTimer();
       if (!activeTimer || activeTimer.challengeId !== challengeId) {
-        this._timerManager.startTimer(challengeId, challenge.difficulty, (timeLeftMs) => {
-          this._view?.webview.postMessage({ type: "timerTick", timeLeftMs });
-          if (timeLeftMs <= 0) {
-            vscode.window.showWarningMessage(`Coding Arena: Time has expired for today's ${challenge.difficulty} challenge!`);
-            this._sendState();
-          }
-        });
+        this._timerManager.startTimer(
+          challengeId,
+          challenge.difficulty,
+          (timeLeftMs) => {
+            this._view?.webview.postMessage({ type: "timerTick", timeLeftMs });
+            if (timeLeftMs <= 0) {
+              vscode.window.showWarningMessage(
+                `Coding Arena: Time has expired for today's ${challenge.difficulty} challenge!`,
+              );
+              this._sendState();
+            }
+          },
+        );
       }
 
       this._sendState();
@@ -298,7 +393,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
       // Also tell the webview to navigate to the detail view
       this._view.webview.postMessage({ type: "navigateToDetail" });
     } catch (err: any) {
-      vscode.window.showErrorMessage(`Failed to load challenge: ${err.message}`);
+      vscode.window.showErrorMessage(
+        `Failed to load challenge: ${err.message}`,
+      );
       this._view.webview.postMessage({ type: "error", message: err.message });
     }
   }
@@ -306,9 +403,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
   private _sendState() {
     if (!this._view) return;
 
-    const availableLangs = Object.values(LANGUAGES).map(l => ({
+    const availableLangs = Object.values(LANGUAGES).map((l) => ({
       name: l.name,
-      extension: l.extension
+      extension: l.extension,
     }));
 
     const timerState = this._timerManager.getActiveTimer();
@@ -316,29 +413,34 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
     this._view.webview.postMessage({
       type: "state",
-      challenge: this._activeChallenge ? {
-        id: this._activeChallenge.id,
-        difficulty: this._activeChallenge.difficulty,
-        reward_points: this._activeChallenge.reward_points,
-        reward_xp: this._activeChallenge.reward_xp,
-        problem: {
-          id: this._activeChallenge.problem.id,
-          title: this._activeChallenge.problem.title,
-          description: this._activeChallenge.problem.description,
-          tags: this._activeChallenge.problem.tags,
-          difficulty_rating: this._activeChallenge.problem.difficulty_rating,
-          time_limit_ms: this._activeChallenge.problem.time_limit_ms,
-          memory_limit_mb: this._activeChallenge.problem.memory_limit_mb,
-          sample_tests: this._activeChallenge.problem.sample_tests
-        }
-      } : null,
+      challenge: this._activeChallenge
+        ? {
+            id: this._activeChallenge.id,
+            difficulty: this._activeChallenge.difficulty,
+            reward_points: this._activeChallenge.reward_points,
+            reward_xp: this._activeChallenge.reward_xp,
+            problem: {
+              id: this._activeChallenge.problem.id,
+              title: this._activeChallenge.problem.title,
+              description: this._activeChallenge.problem.description,
+              tags: this._activeChallenge.problem.tags,
+              difficulty_rating:
+                this._activeChallenge.problem.difficulty_rating,
+              time_limit_ms: this._activeChallenge.problem.time_limit_ms,
+              memory_limit_mb: this._activeChallenge.problem.memory_limit_mb,
+              sample_tests: this._activeChallenge.problem.sample_tests,
+            },
+          }
+        : null,
       selectedLanguage: this._activeLanguageExt,
       availableLanguages: availableLangs,
-      timerActive: !this._timerEnabled ? true : (!!timerState && remainingTime > 0),
+      timerActive: !this._timerEnabled
+        ? true
+        : !!timerState && remainingTime > 0,
       timerEnabled: this._timerEnabled,
       timeLeftMs: remainingTime,
       isRunningTests: this._isRunningTests,
-      isSubmitting: this._isSubmitting
+      isSubmitting: this._isSubmitting,
     });
   }
 
@@ -355,12 +457,18 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         const solutionFileName = isJava
           ? `${pascalCaseTitle(this._activeChallenge.problem.title)}.java`
           : `${slugifyTitle(this._activeChallenge.problem.title)}.${this._activeLanguageExt}`;
-        filePath = path.join(rootPath, ".leetcode-city-arena", solutionFileName);
+        filePath = path.join(
+          rootPath,
+          ".leetcode-city-arena",
+          solutionFileName,
+        );
       }
     }
 
     if (!filePath || !fs.existsSync(filePath)) {
-      vscode.window.showErrorMessage("Active solution file not found. Click 'Start Coding' to create it.");
+      vscode.window.showErrorMessage(
+        "Active solution file not found. Click 'Start Coding' to create it.",
+      );
       return;
     }
 
@@ -372,7 +480,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
     const langConfig = getLanguageConfigByExtension(this._activeLanguageExt);
     if (!langConfig) {
-      vscode.window.showErrorMessage(`Unsupported language extension: ${this._activeLanguageExt}`);
+      vscode.window.showErrorMessage(
+        `Unsupported language extension: ${this._activeLanguageExt}`,
+      );
       return;
     }
 
@@ -385,12 +495,18 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         filePath,
         langConfig,
         this._activeChallenge.problem.sample_tests,
-        this._activeChallenge.problem.time_limit_ms
+        this._activeChallenge.problem.time_limit_ms,
       );
 
-      this._view?.webview.postMessage({ type: "testResults", results: runResult });
+      this._view?.webview.postMessage({
+        type: "testResults",
+        results: runResult,
+      });
     } catch (err: any) {
-      this._view?.webview.postMessage({ type: "testResultsError", message: err.message });
+      this._view?.webview.postMessage({
+        type: "testResultsError",
+        message: err.message,
+      });
     } finally {
       this._isRunningTests = false;
       this._sendState();
@@ -402,7 +518,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
     // Verify time remaining if timer is enabled
     if (this._timerEnabled && this._timerManager.getRemainingTimeMs() <= 0) {
-      vscode.window.showErrorMessage("Challenge time has expired! You cannot submit anymore.");
+      vscode.window.showErrorMessage(
+        "Challenge time has expired! You cannot submit anymore.",
+      );
       return;
     }
 
@@ -416,12 +534,18 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         const solutionFileName = isJava
           ? `${pascalCaseTitle(this._activeChallenge.problem.title)}.java`
           : `${slugifyTitle(this._activeChallenge.problem.title)}.${this._activeLanguageExt}`;
-        filePath = path.join(rootPath, ".leetcode-city-arena", solutionFileName);
+        filePath = path.join(
+          rootPath,
+          ".leetcode-city-arena",
+          solutionFileName,
+        );
       }
     }
 
     if (!filePath || !fs.existsSync(filePath)) {
-      vscode.window.showErrorMessage("Active solution file not found. Click 'Start Coding' to create it.");
+      vscode.window.showErrorMessage(
+        "Active solution file not found. Click 'Start Coding' to create it.",
+      );
       return;
     }
 
@@ -433,7 +557,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
 
     const langConfig = getLanguageConfigByExtension(this._activeLanguageExt);
     if (!langConfig) {
-      vscode.window.showErrorMessage(`Unsupported language: ${this._activeLanguageExt}`);
+      vscode.window.showErrorMessage(
+        `Unsupported language: ${this._activeLanguageExt}`,
+      );
       return;
     }
 
@@ -444,9 +570,14 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
     try {
       // 1. Decrypt hidden tests
       const prob = this._activeChallenge.problem;
-      const hiddenTests = decryptHiddenTests(prob.encrypted_hidden_tests, prob.iv);
+      const hiddenTests = decryptHiddenTests(
+        prob.encrypted_hidden_tests,
+        prob.iv,
+      );
       if (!hiddenTests || hiddenTests.length === 0) {
-        throw new Error("Failed to decrypt hidden test suite. Please check your network.");
+        throw new Error(
+          "Failed to decrypt hidden test suite. Please check your network.",
+        );
       }
 
       // 2. Run locally against ALL tests
@@ -454,7 +585,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         filePath,
         langConfig,
         hiddenTests,
-        prob.time_limit_ms
+        prob.time_limit_ms,
       );
 
       // 3. Post results to server
@@ -467,7 +598,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         status: runResult.status,
         tests_passed: runResult.testsPassed,
         tests_total: runResult.testsTotal,
-        execution_time_ms: runResult.executionTimeMs
+        execution_time_ms: runResult.executionTimeMs,
       });
 
       // 4. Update timer if fully accepted
@@ -475,21 +606,28 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
         this._timerManager.clearTimer();
       }
 
-      this._view?.webview.postMessage({ 
-        type: "submitResults", 
+      this._view?.webview.postMessage({
+        type: "submitResults",
         results: runResult,
         rewards: submitResponse.rewards,
         isFirstSolve: submitResponse.is_first_solve,
-        droppedItems: submitResponse.dropped_items
+        droppedItems: submitResponse.dropped_items,
       });
 
       if (runResult.status === "accepted") {
-        vscode.window.showInformationMessage(`Accepted! You earned ${submitResponse.rewards.points} Points and ${submitResponse.rewards.xp} XP!`);
+        vscode.window.showInformationMessage(
+          `Accepted! You earned ${submitResponse.rewards.points} Points and ${submitResponse.rewards.xp} XP!`,
+        );
       } else {
-        vscode.window.showWarningMessage(`Submission status: ${runResult.status.toUpperCase()} (${runResult.testsPassed}/${runResult.testsTotal} passed)`);
+        vscode.window.showWarningMessage(
+          `Submission status: ${runResult.status.toUpperCase()} (${runResult.testsPassed}/${runResult.testsTotal} passed)`,
+        );
       }
     } catch (err: any) {
-      this._view?.webview.postMessage({ type: "submitError", message: err.message });
+      this._view?.webview.postMessage({
+        type: "submitError",
+        message: err.message,
+      });
     } finally {
       this._isSubmitting = false;
       this._sendState();
@@ -497,8 +635,9 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
   }
 
   private _getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let text = "";
+    const possible =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 32; i++) {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }

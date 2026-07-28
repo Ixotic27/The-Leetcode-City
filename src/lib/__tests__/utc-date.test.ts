@@ -93,8 +93,7 @@ describe("getUtcDateStrings", () => {
   it("today and yesterday always differ by exactly one calendar day", () => {
     mockUtcDate("2025-06-04T23:59:59.999Z");
     const { today, yesterday } = getUtcDateStrings();
-    const diff =
-      new Date(today).getTime() - new Date(yesterday).getTime();
+    const diff = new Date(today).getTime() - new Date(yesterday).getTime();
     // Exactly 86_400_000 ms (one UTC day)
     expect(diff).toBe(86_400_000);
   });

@@ -12,7 +12,13 @@ const MAX_STRING = 64;
 const MAX_PROJECT = 128;
 const MAX_SESSION_ID = 128;
 const MAX_ACTIVE_SECONDS = 3600;
-const ALLOWED_EDITORS = new Set(["vscode", "cursor", "vscodium", "windsurf", "positron"]);
+const ALLOWED_EDITORS = new Set([
+  "vscode",
+  "cursor",
+  "vscodium",
+  "windsurf",
+  "positron",
+]);
 const ALLOWED_OS = new Set(["darwin", "linux", "win32", "freebsd", "openbsd"]);
 const ALLOWED_STATUS = new Set(["active", "offline"]);
 
@@ -32,28 +38,51 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
   const hb = raw as Record<string, unknown>;
 
   // sessionId is required
-  if (typeof hb.sessionId !== "string" || hb.sessionId.length === 0 || hb.sessionId.length > MAX_SESSION_ID) {
+  if (
+    typeof hb.sessionId !== "string" ||
+    hb.sessionId.length === 0 ||
+    hb.sessionId.length > MAX_SESSION_ID
+  ) {
     return null;
   }
 
-  const language = typeof hb.language === "string" ? hb.language.slice(0, MAX_STRING) : undefined;
-  const project = typeof hb.project === "string" ? hb.project.slice(0, MAX_PROJECT) : undefined;
+  const language =
+    typeof hb.language === "string"
+      ? hb.language.slice(0, MAX_STRING)
+      : undefined;
+  const project =
+    typeof hb.project === "string"
+      ? hb.project.slice(0, MAX_PROJECT)
+      : undefined;
   const isWrite = hb.isWrite === true;
 
-  let activeSeconds = typeof hb.activeSeconds === "number" ? Math.floor(hb.activeSeconds) : 0;
+  let activeSeconds =
+    typeof hb.activeSeconds === "number" ? Math.floor(hb.activeSeconds) : 0;
   activeSeconds = Math.max(0, Math.min(activeSeconds, MAX_ACTIVE_SECONDS));
 
-  const editorName = typeof hb.editorName === "string" && ALLOWED_EDITORS.has(hb.editorName)
-    ? hb.editorName
-    : "vscode";
+  const editorName =
+    typeof hb.editorName === "string" && ALLOWED_EDITORS.has(hb.editorName)
+      ? hb.editorName
+      : "vscode";
 
-  const os = typeof hb.os === "string" && ALLOWED_OS.has(hb.os) ? hb.os : undefined;
+  const os =
+    typeof hb.os === "string" && ALLOWED_OS.has(hb.os) ? hb.os : undefined;
 
-  const status = typeof hb.status === "string" && ALLOWED_STATUS.has(hb.status)
-    ? (hb.status as "active" | "offline")
-    : undefined;
+  const status =
+    typeof hb.status === "string" && ALLOWED_STATUS.has(hb.status)
+      ? (hb.status as "active" | "offline")
+      : undefined;
 
-  return { language, project, isWrite, activeSeconds, sessionId: hb.sessionId, editorName, os, status };
+  return {
+    language,
+    project,
+    isWrite,
+    activeSeconds,
+    sessionId: hb.sessionId,
+    editorName,
+    os,
+    status,
+  };
 }
 
 // ── Route ───────────────────────────────────────────────────────────────────
@@ -64,7 +93,10 @@ function validateHeartbeat(raw: unknown): ValidHeartbeat | null {
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
   if (!apiKey) {
-    return NextResponse.json({ error: "Missing X-API-Key header" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Missing X-API-Key header" },
+      { status: 401 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -83,8 +115,10 @@ export async function POST(request: NextRequest) {
   let rawBody: unknown;
   try {
     rawBody = await request.json();
-  } catch (err) { console.warn("[app/api/heartbeats/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/heartbeats/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const rawList = Array.isArray(rawBody) ? rawBody : [rawBody];
   if (rawList.length === 0) {
     return NextResponse.json({ accepted: 0, rejected: 0 });

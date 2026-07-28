@@ -2,8 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAddress } from "viem";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { quoteGitcWeiForUsdCents, getCurrentBaseBlock } from "@/lib/gitc-server";
-import { GITC_QUOTE_TTL_SECONDS, GITC_TREASURY_ADDRESS, isGitcEnabled } from "@/lib/gitc";
+import {
+  quoteGitcWeiForUsdCents,
+  getCurrentBaseBlock,
+} from "@/lib/gitc-server";
+import {
+  GITC_QUOTE_TTL_SECONDS,
+  GITC_TREASURY_ADDRESS,
+  isGitcEnabled,
+} from "@/lib/gitc";
 
 const WALLET_RE = /^0x[a-fA-F0-9]{40}$/;
 
@@ -30,7 +37,8 @@ interface DevRow {
 }
 
 export async function POST(request: NextRequest) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -43,7 +51,11 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const { ok } = await rateLimit(`pixels-gitc-quote:${user.id}:${ip}`, 3, 10_000);
+  const { ok } = await rateLimit(
+    `pixels-gitc-quote:${user.id}:${ip}`,
+    3,
+    10_000,
+  );
   if (!ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -60,7 +72,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "package_id required" }, { status: 400 });
   }
   if (!wallet || !WALLET_RE.test(wallet)) {
-    return NextResponse.json({ error: "Connect a wallet first" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Connect a wallet first" },
+      { status: 400 },
+    );
   }
 
   const githubLogin = (
@@ -70,7 +85,10 @@ export async function POST(request: NextRequest) {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No GitHub login found" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No GitHub login found" },
+      { status: 400 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -82,7 +100,10 @@ export async function POST(request: NextRequest) {
     .single<DevRow>();
 
   if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
-    return NextResponse.json({ error: "You must claim your building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "You must claim your building first" },
+      { status: 403 },
+    );
   }
   if (dev.suspended) {
     return NextResponse.json({ error: "Account suspended" }, { status: 403 });
@@ -100,7 +121,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (!isGitcEnabled()) {
-    return NextResponse.json({ error: "GITC payments are not configured" }, { status: 503 });
+    return NextResponse.json(
+      { error: "GITC payments are not configured" },
+      { status: 503 },
+    );
   }
 
   let quote;
@@ -112,7 +136,10 @@ export async function POST(request: NextRequest) {
     ]);
   } catch (err) {
     console.error("Failed to quote GITC:", err);
-    return NextResponse.json({ error: "Could not fetch GITC price right now" }, { status: 503 });
+    return NextResponse.json(
+      { error: "Could not fetch GITC price right now" },
+      { status: 503 },
+    );
   }
 
   const checksumWallet = getAddress(wallet).toLowerCase();
@@ -138,29 +165,37 @@ export async function POST(request: NextRequest) {
 
   if (purchaseErr || !purchase) {
     console.error("Failed to create pixel_purchase for GITC:", purchaseErr);
-    return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create purchase" },
+      { status: 500 },
+    );
   }
 
-  const { error: insertQuoteError } = await sb.from("pixel_gitc_payments").insert({
-    pixel_purchase_id: purchase.id,
-    developer_id: dev.id,
-    package_id: pkg.id,
-    quote_id: quoteId,
-    quote_block_number: Number(quoteBlock),
-    wallet_address: checksumWallet,
-    treasury_address: treasury,
-    gitc_amount_wei: quote.gitcAmountWei.toString(),
-    usd_quote_cents: pkg.price_usd_cents,
-    gitc_price_usd_at_quote: quote.gitcPriceUsd,
-    discount_bps: quote.discountBps,
-    status: "pending",
-    expires_at: expiresAt.toISOString(),
-  });
+  const { error: insertQuoteError } = await sb
+    .from("pixel_gitc_payments")
+    .insert({
+      pixel_purchase_id: purchase.id,
+      developer_id: dev.id,
+      package_id: pkg.id,
+      quote_id: quoteId,
+      quote_block_number: Number(quoteBlock),
+      wallet_address: checksumWallet,
+      treasury_address: treasury,
+      gitc_amount_wei: quote.gitcAmountWei.toString(),
+      usd_quote_cents: pkg.price_usd_cents,
+      gitc_price_usd_at_quote: quote.gitcPriceUsd,
+      discount_bps: quote.discountBps,
+      status: "pending",
+      expires_at: expiresAt.toISOString(),
+    });
 
   if (insertQuoteError) {
     console.error("Failed to create GITC quote:", insertQuoteError);
     await sb.from("pixel_purchases").delete().eq("id", purchase.id);
-    return NextResponse.json({ error: "Failed to create quote" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create quote" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({

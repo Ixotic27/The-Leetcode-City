@@ -35,13 +35,15 @@ export function createDummyClient(): any {
       }
       if (prop === "auth") {
         return {
-          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          onAuthStateChange: () => ({
+            data: { subscription: { unsubscribe: () => {} } },
+          }),
           getSession: async () => ({ data: { session: null }, error: null }),
           getUser: async () => ({ data: { user: null }, error: null }),
         };
       }
       return dummy;
-    }
+    },
   });
 }
 
@@ -49,16 +51,23 @@ export function createDummyClient(): any {
  * Safely creates a Supabase client. If the URL is invalid or key is missing,
  * returns a chainable dummy client to prevent build/runtime crashes.
  */
-export function getSafeSupabaseClient(url?: string, key?: string): SupabaseClient {
-  const targetUrl = url || process.env['NEXT_PUBLIC_SUPABASE_URL'];
-  const targetKey = key || process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+export function getSafeSupabaseClient(
+  url?: string,
+  key?: string,
+): SupabaseClient {
+  const targetUrl = url || process.env["NEXT_PUBLIC_SUPABASE_URL"];
+  const targetKey = key || process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
 
   if (!isValidUrl(targetUrl) || !targetKey) {
-    console.warn(`[supabase.ts] Returning dummy client due to missing or invalid URL/Key. URL: "${targetUrl}"`);
+    console.warn(
+      `[supabase.ts] Returning dummy client due to missing or invalid URL/Key. URL: "${targetUrl}"`,
+    );
     return createDummyClient() as unknown as SupabaseClient;
   }
 
-  return createClient(targetUrl!, targetKey, { auth: { persistSession: false } });
+  return createClient(targetUrl!, targetKey, {
+    auth: { persistSession: false },
+  });
 }
 
 /**
@@ -73,12 +82,16 @@ export function isDevMode(): boolean {
 export function createBrowserSupabase() {
   if (browserClient) return browserClient;
 
-  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
-  const key = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+  const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+  const key = process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
 
   if (!isValidUrl(url) || !key) {
-    console.warn(`[supabase.ts] Returning dummy client for browser client due to missing or invalid URL/Key. URL: "${url}"`);
-    return createDummyClient() as unknown as ReturnType<typeof createBrowserClient>;
+    console.warn(
+      `[supabase.ts] Returning dummy client for browser client due to missing or invalid URL/Key. URL: "${url}"`,
+    );
+    return createDummyClient() as unknown as ReturnType<
+      typeof createBrowserClient
+    >;
   }
 
   browserClient = createBrowserClient(url!, key);
@@ -93,11 +106,15 @@ export function createBrowserSupabase() {
  */
 let adminClientWarned = false;
 export function getSupabaseAdmin(): SupabaseClient {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env["NEXT_PUBLIC_SUPABASE_URL"];
 
   if (!isValidUrl(url) || !key) {
-    console.warn(`[supabase.ts] Returning dummy admin client due to missing or invalid URL/Key. URL: "${url}"`);
+    console.warn(
+      `[supabase.ts] Returning dummy admin client due to missing or invalid URL/Key. URL: "${url}"`,
+    );
     return createDummyClient() as unknown as SupabaseClient;
   }
 
@@ -110,15 +127,11 @@ export function getSupabaseAdmin(): SupabaseClient {
     adminClientWarned = true;
     console.warn(
       "[supabase.ts] dev mode: SUPABASE_SERVICE_ROLE_KEY not set — using anon key. " +
-      "Reads work, writes are blocked by RLS. This is fine for frontend development."
+        "Reads work, writes are blocked by RLS. This is fine for frontend development.",
     );
   }
 
-  adminClient = createClient(
-    url!,
-    key,
-    { auth: { persistSession: false } }
-  );
+  adminClient = createClient(url!, key, { auth: { persistSession: false } });
   lastAdminKey = key ?? null;
   lastAdminUrl = url ?? null;
 
@@ -146,8 +159,8 @@ export async function broadcastToChannel(
     await fetch(url, {
       method: "POST",
       headers: {
-        "apikey": key,
-        "Authorization": `Bearer ${key}`,
+        apikey: key,
+        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -159,4 +172,3 @@ export async function broadcastToChannel(
     console.error("[supabase.ts] failed to broadcast realtime message:", err);
   }
 }
-

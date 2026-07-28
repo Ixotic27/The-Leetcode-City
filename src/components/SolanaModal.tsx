@@ -2,11 +2,7 @@
 
 const ACCENT = "#ffa116";
 
-export default function SolanaModal({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+export default function SolanaModal({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-bg/70 backdrop-blur-sm"
@@ -30,13 +26,9 @@ export default function SolanaModal({
           className="mb-5 border-[2px] border-border p-3"
           style={{ borderColor: `${ACCENT}60` }}
         >
-          <p className="font-bold text-cream">
-            🟢 Phantom Wallet Connected
-          </p>
+          <p className="font-bold text-cream">🟢 Phantom Wallet Connected</p>
 
-          <p className="mt-2 text-sm text-muted">
-            Wallet: 7xQm...A8K2
-          </p>
+          <p className="mt-2 text-sm text-muted">Wallet: 7xQm...A8K2</p>
         </div>
 
         {/* Programs */}

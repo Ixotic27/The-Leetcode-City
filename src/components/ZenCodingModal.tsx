@@ -104,13 +104,20 @@ export default function ZenCodingModal({ onClose }: { onClose: () => void }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: "#0a0818" }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
       <div className="flex flex-col items-center gap-8 font-pixel">
-        <h2 className="text-lg tracking-widest uppercase" style={{ color: ACCENT }}>
+        <h2
+          className="text-lg tracking-widest uppercase"
+          style={{ color: ACCENT }}
+        >
           Zen Coding Mode
         </h2>
-        <p className="text-[10px] text-gray-500 -mt-4">SkyTemple · Focus Timer</p>
+        <p className="text-[10px] text-gray-500 -mt-4">
+          SkyTemple · Focus Timer
+        </p>
 
         <div
           className="relative flex items-center justify-center w-56 h-56 rounded-full border-4"
@@ -151,17 +158,22 @@ export default function ZenCodingModal({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[9px] uppercase tracking-widest text-gray-500">Ambient</p>
+          <p className="text-[9px] uppercase tracking-widest text-gray-500">
+            Ambient
+          </p>
           <div className="flex items-center gap-3">
             {SOUNDS.map((s) => (
               <button
                 key={s.id}
-                onClick={() => setActiveSound(activeSound === s.id ? null : s.id)}
+                onClick={() =>
+                  setActiveSound(activeSound === s.id ? null : s.id)
+                }
                 className="px-3 py-1.5 text-[10px] uppercase tracking-wider border-2 transition-colors"
                 style={{
                   borderColor: activeSound === s.id ? ACCENT : "#333",
                   color: activeSound === s.id ? ACCENT : "#888",
-                  backgroundColor: activeSound === s.id ? `${ACCENT}11` : "transparent",
+                  backgroundColor:
+                    activeSound === s.id ? `${ACCENT}11` : "transparent",
                 }}
               >
                 {s.label}

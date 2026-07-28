@@ -116,10 +116,7 @@ function getInterpolatedSkyStops(t: number): [number, string][] {
   const stops: [number, string][] = [];
   const stopValues = [0.0, 0.25, 0.5, 0.75, 1.0];
   for (let j = 0; j < 5; j++) {
-    stops.push([
-      stopValues[j],
-      lerpColor(s1.skyStops[j], s2.skyStops[j], f),
-    ]);
+    stops.push([stopValues[j], lerpColor(s1.skyStops[j], s2.skyStops[j], f)]);
   }
   return stops;
 }
@@ -252,7 +249,10 @@ function SkyDome({
 interface CloudData {
   position: [number, number, number];
   speed: number;
-  parts: { offset: [number, number, number]; scale: [number, number, number] }[];
+  parts: {
+    offset: [number, number, number];
+    scale: [number, number, number];
+  }[];
 }
 
 // ─── Voxel Clouds Component ───────────────────────────────────
@@ -279,9 +279,18 @@ function VoxelClouds({
       const d = 60 + Math.random() * 40;
 
       const parts = [
-        { offset: [0, 0, 0] as [number, number, number], scale: [w, h, d] as [number, number, number] },
-        { offset: [-w * 0.35, -h * 0.15, d * 0.1] as [number, number, number], scale: [w * 0.6, h * 0.7, d * 0.8] as [number, number, number] },
-        { offset: [w * 0.35, -h * 0.1, -d * 0.1] as [number, number, number], scale: [w * 0.5, h * 0.8, d * 0.7] as [number, number, number] },
+        {
+          offset: [0, 0, 0] as [number, number, number],
+          scale: [w, h, d] as [number, number, number],
+        },
+        {
+          offset: [-w * 0.35, -h * 0.15, d * 0.1] as [number, number, number],
+          scale: [w * 0.6, h * 0.7, d * 0.8] as [number, number, number],
+        },
+        {
+          offset: [w * 0.35, -h * 0.1, -d * 0.1] as [number, number, number],
+          scale: [w * 0.5, h * 0.8, d * 0.7] as [number, number, number],
+        },
       ];
 
       list.push({ position: [x, y, z], speed, parts });
@@ -340,7 +349,13 @@ function VoxelClouds({
       {clouds.map((c, idx) => (
         <group key={idx} position={c.position}>
           {c.parts.map((p, pIdx) => (
-            <mesh key={pIdx} position={p.offset} scale={p.scale} geometry={boxGeo} material={material} />
+            <mesh
+              key={pIdx}
+              position={p.offset}
+              scale={p.scale}
+              geometry={boxGeo}
+              material={material}
+            />
           ))}
         </group>
       ))}
@@ -349,7 +364,6 @@ function VoxelClouds({
 }
 
 // ─── Horizon Mist (Volumetric Ocean Fog) ──────────────────────
-
 
 // ─── Ambient Ocean Ships Component ─────────────────────────────
 interface ShipData {
@@ -374,15 +388,26 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
       return (seed - 1) / 2147483646;
     };
 
-    const colors = ["#2b3846", "#1a2530", "#3d2c1e", "#1b2d1c", "#2c3b2e", "#202a35"];
-    const types: ("cargo" | "cruise" | "speedboat")[] = ["cargo", "cruise", "speedboat"];
+    const colors = [
+      "#2b3846",
+      "#1a2530",
+      "#3d2c1e",
+      "#1b2d1c",
+      "#2c3b2e",
+      "#202a35",
+    ];
+    const types: ("cargo" | "cruise" | "speedboat")[] = [
+      "cargo",
+      "cruise",
+      "speedboat",
+    ];
 
     for (let i = 0; i < 18; i++) {
       const type = types[i % types.length];
       // Cruise in the open water further away from the city boundary!
       const radius = cityRadius * 1.45 + rng() * (cityRadius * 0.4);
       const angle = (i / 18) * Math.PI * 2 + rng() * 0.4;
-      
+
       // Speedboats travel significantly faster!
       const speedMultiplier = type === "speedboat" ? 2.2 : 1.0;
       const speed = (0.008 + rng() * 0.012) * speedMultiplier;
@@ -393,17 +418,30 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
         scaleVal = 16 + rng() * 8; // compact sleek speedboats
       }
       const scale: [number, number, number] = [scaleVal, scaleVal, scaleVal];
-      
-      const hullColor = type === "cruise" ? "#0f172a" : colors[i % colors.length];
+
+      const hullColor =
+        type === "cruise" ? "#0f172a" : colors[i % colors.length];
       const cabinColor = "#f4ebd0";
 
-      list.push({ id: i, type, radius, angle, speed, scale, hullColor, cabinColor });
+      list.push({
+        id: i,
+        type,
+        radius,
+        angle,
+        speed,
+        scale,
+        hullColor,
+        cabinColor,
+      });
     }
     return list;
   }, [cityRadius]);
 
   const boxGeo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const cylinderGeo = useMemo(() => new THREE.CylinderGeometry(0.5, 0.5, 1, 8), []);
+  const cylinderGeo = useMemo(
+    () => new THREE.CylinderGeometry(0.5, 0.5, 1, 8),
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -433,10 +471,14 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
       // Rocking motions optimized for size and style
       const bobMultiplier = s.type === "speedboat" ? 1.8 : 1.0;
       const pitchMultiplier = s.type === "speedboat" ? 2.5 : 1.0;
-      
-      const bobbing = (s.type === "speedboat" ? -20.0 : -23.5) + Math.sin(time * 0.8 * bobMultiplier + idx) * 0.6 * bobMultiplier;
-      const pitch = Math.sin(time * 0.6 * pitchMultiplier + idx) * 0.02 * pitchMultiplier;
-      const roll = Math.cos(time * 0.8 * pitchMultiplier + idx) * 0.03 * pitchMultiplier;
+
+      const bobbing =
+        (s.type === "speedboat" ? -20.0 : -23.5) +
+        Math.sin(time * 0.8 * bobMultiplier + idx) * 0.6 * bobMultiplier;
+      const pitch =
+        Math.sin(time * 0.6 * pitchMultiplier + idx) * 0.02 * pitchMultiplier;
+      const roll =
+        Math.cos(time * 0.8 * pitchMultiplier + idx) * 0.03 * pitchMultiplier;
 
       shipGroup.position.set(x, bobbing, z);
       shipGroup.rotation.set(pitch, yaw, roll, "YXZ");
@@ -450,112 +492,282 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "cargo" && (
             <>
               {/* Hull - main ship body */}
-              <mesh geometry={boxGeo} position={[0, 0.4, 0]} scale={[1.6, 0.8, 4.8]}>
-                <meshStandardMaterial color={s.hullColor} roughness={0.8} metalness={0.1} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.4, 0]}
+                scale={[1.6, 0.8, 4.8]}
+              >
+                <meshStandardMaterial
+                  color={s.hullColor}
+                  roughness={0.8}
+                  metalness={0.1}
+                />
               </mesh>
               {/* Stepped Voxel Bow - sharp, angled feel */}
-              <mesh geometry={boxGeo} position={[0, 0.4, 2.7]} scale={[1.4, 0.8, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.4, 2.7]}
+                scale={[1.4, 0.8, 0.6]}
+              >
                 <meshStandardMaterial color={s.hullColor} roughness={0.8} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.4, 3.3]} scale={[1.0, 0.8, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.4, 3.3]}
+                scale={[1.0, 0.8, 0.6]}
+              >
                 <meshStandardMaterial color={s.hullColor} roughness={0.8} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.4, 3.9]} scale={[0.5, 0.8, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.4, 3.9]}
+                scale={[0.5, 0.8, 0.6]}
+              >
                 <meshStandardMaterial color={s.hullColor} roughness={0.8} />
               </mesh>
               {/* Stern / Transom step */}
-              <mesh geometry={boxGeo} position={[0, 0.5, -2.5]} scale={[1.4, 0.6, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.5, -2.5]}
+                scale={[1.4, 0.6, 0.2]}
+              >
                 <meshStandardMaterial color="#1a2530" />
               </mesh>
 
               {/* White Cabin Tower at the back (Bridge) */}
-              <mesh geometry={boxGeo} position={[0, 1.2, -1.2]} scale={[1.2, 0.8, 1.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.2, -1.2]}
+                scale={[1.2, 0.8, 1.4]}
+              >
                 <meshStandardMaterial color="#f8fafc" roughness={0.5} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 1.8, -1.2]} scale={[1.2, 0.4, 1.0]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.8, -1.2]}
+                scale={[1.2, 0.4, 1.0]}
+              >
                 <meshStandardMaterial color="#f8fafc" roughness={0.5} />
               </mesh>
               {/* Panoramic bridge window (glowing cyan or yellow) */}
-              <mesh geometry={boxGeo} position={[0, 1.85, -0.68]} scale={[1.0, 0.2, 0.05]}>
-                <meshStandardMaterial color="#38bdf8" emissive="#0ea5e9" emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.85, -0.68]}
+                scale={[1.0, 0.2, 0.05]}
+              >
+                <meshStandardMaterial
+                  color="#38bdf8"
+                  emissive="#0ea5e9"
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
-              
+
               {/* Mast / Radar Tower on top of cabin */}
-              <mesh geometry={cylinderGeo} position={[0, 2.3, -1.2]} scale={[0.08, 0.6, 0.08]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.3, -1.2]}
+                scale={[0.08, 0.6, 0.08]}
+              >
                 <meshStandardMaterial color="#475569" />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 2.6, -1.2]} scale={[0.6, 0.08, 0.08]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 2.6, -1.2]}
+                scale={[0.6, 0.08, 0.08]}
+              >
                 <meshStandardMaterial color="#475569" />
               </mesh>
               {/* Rotating-style Radar scanner bar */}
-              <mesh geometry={boxGeo} position={[0, 2.7, -1.2]} scale={[0.4, 0.06, 0.15]}>
-                <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.0} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 2.7, -1.2]}
+                scale={[0.4, 0.06, 0.15]}
+              >
+                <meshStandardMaterial
+                  color="#ef4444"
+                  emissive="#ef4444"
+                  emissiveIntensity={1.0}
+                />
               </mesh>
 
               {/* Smokestack Pipe */}
-              <mesh geometry={cylinderGeo} position={[0, 1.8, -1.7]} scale={[0.2, 0.8, 0.2]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 1.8, -1.7]}
+                scale={[0.2, 0.8, 0.2]}
+              >
                 <meshStandardMaterial color="#dc2626" roughness={0.5} />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[0, 2.22, -1.7]} scale={[0.23, 0.1, 0.23]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.22, -1.7]}
+                scale={[0.23, 0.1, 0.23]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
 
               {/* Main Deck Crane for Cargo */}
-              <mesh geometry={cylinderGeo} position={[0, 0.9, 0.8]} scale={[0.1, 0.4, 0.1]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 0.9, 0.8]}
+                scale={[0.1, 0.4, 0.1]}
+              >
                 <meshStandardMaterial color="#eab308" />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[0, 1.1, 1.1]} scale={[0.08, 0.8, 0.08]} rotation={[0.5, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 1.1, 1.1]}
+                scale={[0.08, 0.8, 0.08]}
+                rotation={[0.5, 0, 0]}
+              >
                 <meshStandardMaterial color="#eab308" />
               </mesh>
 
               {/* Glowing Side Portholes (left side of hull) */}
-              <mesh geometry={boxGeo} position={[0.81, 0.45, -1.8]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.81, 0.45, -1.8]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0.81, 0.45, -0.8]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.81, 0.45, -0.8]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0.81, 0.45, 0.2]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.81, 0.45, 0.2]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0.81, 0.45, 1.2]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.81, 0.45, 1.2]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Glowing Side Portholes (right side of hull) */}
-              <mesh geometry={boxGeo} position={[-0.81, 0.45, -1.8]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.81, 0.45, -1.8]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.81, 0.45, -0.8]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.81, 0.45, -0.8]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.81, 0.45, 0.2]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.81, 0.45, 0.2]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.81, 0.45, 1.2]} scale={[0.02, 0.12, 0.12]}>
-                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.81, 0.45, 1.2]}
+                scale={[0.02, 0.12, 0.12]}
+              >
+                <meshStandardMaterial
+                  color="#fbbf24"
+                  emissive="#d97706"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Detailed Cargo Containers on front/middle deck */}
               {/* Row 1 */}
-              <mesh geometry={boxGeo} position={[0.35, 1.05, 0.2]} scale={[0.55, 0.5, 1.1]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.35, 1.05, 0.2]}
+                scale={[0.55, 0.5, 1.1]}
+              >
                 <meshStandardMaterial color="#ef4444" roughness={0.6} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.35, 1.05, 0.2]} scale={[0.55, 0.5, 1.1]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.35, 1.05, 0.2]}
+                scale={[0.55, 0.5, 1.1]}
+              >
                 <meshStandardMaterial color="#3b82f6" roughness={0.6} />
               </mesh>
               {/* Row 2 */}
-              <mesh geometry={boxGeo} position={[0.35, 1.05, 1.4]} scale={[0.55, 0.5, 1.1]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.35, 1.05, 1.4]}
+                scale={[0.55, 0.5, 1.1]}
+              >
                 <meshStandardMaterial color="#10b981" roughness={0.6} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.35, 1.05, 1.4]} scale={[0.55, 0.5, 1.1]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.35, 1.05, 1.4]}
+                scale={[0.55, 0.5, 1.1]}
+              >
                 <meshStandardMaterial color="#f59e0b" roughness={0.6} />
               </mesh>
               {/* Stacking layer */}
-              <mesh geometry={boxGeo} position={[0.2, 1.55, 0.2]} scale={[0.5, 0.5, 0.9]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.2, 1.55, 0.2]}
+                scale={[0.5, 0.5, 0.9]}
+              >
                 <meshStandardMaterial color="#8b5cf6" roughness={0.6} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.2, 1.55, 1.4]} scale={[0.5, 0.5, 0.9]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.2, 1.55, 1.4]}
+                scale={[0.5, 0.5, 0.9]}
+              >
                 <meshStandardMaterial color="#ec4899" roughness={0.6} />
               </mesh>
             </>
@@ -564,107 +776,255 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "cruise" && (
             <>
               {/* Hull - main ship body (dark charcoal bottom, white top strip) */}
-              <mesh geometry={boxGeo} position={[0, 0.3, 0]} scale={[1.6, 0.6, 4.8]}>
-                <meshStandardMaterial color="#0f172a" roughness={0.7} metalness={0.3} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.3, 0]}
+                scale={[1.6, 0.6, 4.8]}
+              >
+                <meshStandardMaterial
+                  color="#0f172a"
+                  roughness={0.7}
+                  metalness={0.3}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.7, 0]} scale={[1.6, 0.2, 4.8]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.7, 0]}
+                scale={[1.6, 0.2, 4.8]}
+              >
                 <meshStandardMaterial color="#f8fafc" roughness={0.7} />
               </mesh>
-              
+
               {/* Stepped Voxel Bow (Pointy but retro blocky) */}
-              <mesh geometry={boxGeo} position={[0, 0.3, 2.7]} scale={[1.4, 0.6, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.3, 2.7]}
+                scale={[1.4, 0.6, 0.6]}
+              >
                 <meshStandardMaterial color="#0f172a" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.7, 2.7]} scale={[1.4, 0.2, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.7, 2.7]}
+                scale={[1.4, 0.2, 0.6]}
+              >
                 <meshStandardMaterial color="#f8fafc" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.3, 3.3]} scale={[1.0, 0.6, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.3, 3.3]}
+                scale={[1.0, 0.6, 0.6]}
+              >
                 <meshStandardMaterial color="#0f172a" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.7, 3.3]} scale={[1.0, 0.2, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.7, 3.3]}
+                scale={[1.0, 0.2, 0.6]}
+              >
                 <meshStandardMaterial color="#f8fafc" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.5, 3.9]} scale={[0.5, 0.8, 0.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.5, 3.9]}
+                scale={[0.5, 0.8, 0.6]}
+              >
                 <meshStandardMaterial color="#0f172a" roughness={0.7} />
               </mesh>
 
               {/* Cruise Superstructure - Deck 1 */}
-              <mesh geometry={boxGeo} position={[0, 1.0, -0.1]} scale={[1.4, 0.4, 3.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.0, -0.1]}
+                scale={[1.4, 0.4, 3.4]}
+              >
                 <meshStandardMaterial color="#f1f5f9" roughness={0.8} />
               </mesh>
               {/* Cruise Superstructure - Deck 2 */}
-              <mesh geometry={boxGeo} position={[0, 1.4, -0.4]} scale={[1.3, 0.4, 2.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.4, -0.4]}
+                scale={[1.3, 0.4, 2.6]}
+              >
                 <meshStandardMaterial color="#f1f5f9" roughness={0.8} />
               </mesh>
               {/* Cruise Superstructure - Deck 3 (Bridge & Top Deck) */}
-              <mesh geometry={boxGeo} position={[0, 1.8, -0.8]} scale={[1.1, 0.4, 1.6]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.8, -0.8]}
+                scale={[1.1, 0.4, 1.6]}
+              >
                 <meshStandardMaterial color="#e2e8f0" roughness={0.8} />
               </mesh>
 
               {/* Glowing passenger window bands on Deck 1 & 2 */}
               {/* Left Side */}
-              <mesh geometry={boxGeo} position={[0.71, 1.0, -0.1]} scale={[0.02, 0.15, 2.8]}>
-                <meshStandardMaterial color="#fef08a" emissive="#fbbf24" emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.71, 1.0, -0.1]}
+                scale={[0.02, 0.15, 2.8]}
+              >
+                <meshStandardMaterial
+                  color="#fef08a"
+                  emissive="#fbbf24"
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0.66, 1.4, -0.4]} scale={[0.02, 0.15, 2.0]}>
-                <meshStandardMaterial color="#fef08a" emissive="#fbbf24" emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.66, 1.4, -0.4]}
+                scale={[0.02, 0.15, 2.0]}
+              >
+                <meshStandardMaterial
+                  color="#fef08a"
+                  emissive="#fbbf24"
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
               {/* Right Side */}
-              <mesh geometry={boxGeo} position={[-0.71, 1.0, -0.1]} scale={[0.02, 0.15, 2.8]}>
-                <meshStandardMaterial color="#fef08a" emissive="#fbbf24" emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.71, 1.0, -0.1]}
+                scale={[0.02, 0.15, 2.8]}
+              >
+                <meshStandardMaterial
+                  color="#fef08a"
+                  emissive="#fbbf24"
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.66, 1.4, -0.4]} scale={[0.02, 0.15, 2.0]}>
-                <meshStandardMaterial color="#fef08a" emissive="#fbbf24" emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.66, 1.4, -0.4]}
+                scale={[0.02, 0.15, 2.0]}
+              >
+                <meshStandardMaterial
+                  color="#fef08a"
+                  emissive="#fbbf24"
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Panoramic Bridge Windows */}
-              <mesh geometry={boxGeo} position={[0, 1.85, 0.01]} scale={[0.8, 0.18, 0.05]}>
-                <meshStandardMaterial color="#0284c7" emissive="#0ea5e9" emissiveIntensity={2.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.85, 0.01]}
+                scale={[0.8, 0.18, 0.05]}
+              >
+                <meshStandardMaterial
+                  color="#0284c7"
+                  emissive="#0ea5e9"
+                  emissiveIntensity={2.0}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Swimming Pool on Top Deck (Deck 2 front open space) */}
-              <mesh geometry={boxGeo} position={[0, 1.21, 1.0]} scale={[0.6, 0.02, 0.8]}>
-                <meshStandardMaterial color="#22d3ee" emissive="#06b6d4" emissiveIntensity={1.5} roughness={0.1} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 1.21, 1.0]}
+                scale={[0.6, 0.02, 0.8]}
+              >
+                <meshStandardMaterial
+                  color="#22d3ee"
+                  emissive="#06b6d4"
+                  emissiveIntensity={1.5}
+                  roughness={0.1}
+                  toneMapped={false}
+                />
               </mesh>
               {/* Swimming Pool Rim/Deck Chairs representation */}
-              <mesh geometry={boxGeo} position={[0.4, 1.25, 1.0]} scale={[0.1, 0.08, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.4, 1.25, 1.0]}
+                scale={[0.1, 0.08, 0.2]}
+              >
                 <meshStandardMaterial color="#ffffff" />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.4, 1.25, 1.0]} scale={[0.1, 0.08, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.4, 1.25, 1.0]}
+                scale={[0.1, 0.08, 0.2]}
+              >
                 <meshStandardMaterial color="#ffffff" />
               </mesh>
 
               {/* Twin Red-and-Black Funnels (angled) */}
-              <mesh geometry={cylinderGeo} position={[0, 2.3, -1.3]} scale={[0.18, 0.6, 0.18]} rotation={[-0.15, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.3, -1.3]}
+                scale={[0.18, 0.6, 0.18]}
+                rotation={[-0.15, 0, 0]}
+              >
                 <meshStandardMaterial color="#ef4444" roughness={0.5} />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[0, 2.62, -1.35]} scale={[0.2, 0.1, 0.2]} rotation={[-0.15, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.62, -1.35]}
+                scale={[0.2, 0.1, 0.2]}
+                rotation={[-0.15, 0, 0]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
 
-              <mesh geometry={cylinderGeo} position={[0, 2.2, -0.8]} scale={[0.18, 0.5, 0.18]} rotation={[-0.15, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.2, -0.8]}
+                scale={[0.18, 0.5, 0.18]}
+                rotation={[-0.15, 0, 0]}
+              >
                 <meshStandardMaterial color="#ef4444" roughness={0.5} />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[0, 2.47, -0.84]} scale={[0.2, 0.1, 0.2]} rotation={[-0.15, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 2.47, -0.84]}
+                scale={[0.2, 0.1, 0.2]}
+                rotation={[-0.15, 0, 0]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
 
               {/* Orange Lifeboats hanging on sides */}
-              <mesh geometry={boxGeo} position={[0.73, 1.0, -1.0]} scale={[0.14, 0.14, 0.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.73, 1.0, -1.0]}
+                scale={[0.14, 0.14, 0.4]}
+              >
                 <meshStandardMaterial color="#f97316" roughness={0.5} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0.73, 1.0, 0.2]} scale={[0.14, 0.14, 0.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.73, 1.0, 0.2]}
+                scale={[0.14, 0.14, 0.4]}
+              >
                 <meshStandardMaterial color="#f97316" roughness={0.5} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.73, 1.0, -1.0]} scale={[0.14, 0.14, 0.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.73, 1.0, -1.0]}
+                scale={[0.14, 0.14, 0.4]}
+              >
                 <meshStandardMaterial color="#f97316" roughness={0.5} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.73, 1.0, 0.2]} scale={[0.14, 0.14, 0.4]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.73, 1.0, 0.2]}
+                scale={[0.14, 0.14, 0.4]}
+              >
                 <meshStandardMaterial color="#f97316" roughness={0.5} />
               </mesh>
 
               {/* Rear Mast / Flag pole */}
-              <mesh geometry={cylinderGeo} position={[0, 1.2, -1.7]} scale={[0.04, 0.8, 0.04]} rotation={[-0.3, 0, 0]}>
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 1.2, -1.7]}
+                scale={[0.04, 0.8, 0.04]}
+                rotation={[-0.3, 0, 0]}
+              >
                 <meshStandardMaterial color="#64748b" />
               </mesh>
             </>
@@ -673,90 +1033,243 @@ function AmbientOceanShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "speedboat" && (
             <>
               {/* Hull - main speedboat body (sporty V shape) */}
-              <mesh geometry={boxGeo} position={[0, 0.25, 0]} scale={[1.1, 0.5, 3.2]}>
-                <meshStandardMaterial color={s.hullColor} metalness={0.7} roughness={0.2} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.25, 0]}
+                scale={[1.1, 0.5, 3.2]}
+              >
+                <meshStandardMaterial
+                  color={s.hullColor}
+                  metalness={0.7}
+                  roughness={0.2}
+                />
               </mesh>
-              
+
               {/* Aggressive wedge pointed front */}
-              <mesh geometry={boxGeo} position={[0, 0.25, 1.8]} scale={[0.9, 0.5, 0.4]}>
-                <meshStandardMaterial color={s.hullColor} metalness={0.7} roughness={0.2} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.25, 1.8]}
+                scale={[0.9, 0.5, 0.4]}
+              >
+                <meshStandardMaterial
+                  color={s.hullColor}
+                  metalness={0.7}
+                  roughness={0.2}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.25, 2.1]} scale={[0.54, 0.5, 0.3]}>
-                <meshStandardMaterial color={s.hullColor} metalness={0.7} roughness={0.2} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.25, 2.1]}
+                scale={[0.54, 0.5, 0.3]}
+              >
+                <meshStandardMaterial
+                  color={s.hullColor}
+                  metalness={0.7}
+                  roughness={0.2}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.2, 2.35]} scale={[0.27, 0.4, 0.25]}>
-                <meshStandardMaterial color={s.hullColor} metalness={0.7} roughness={0.2} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.2, 2.35]}
+                scale={[0.27, 0.4, 0.25]}
+              >
+                <meshStandardMaterial
+                  color={s.hullColor}
+                  metalness={0.7}
+                  roughness={0.2}
+                />
               </mesh>
 
               {/* Colored sporty trim line along the side */}
-              <mesh geometry={boxGeo} position={[0.56, 0.35, 0]} scale={[0.02, 0.08, 3.0]}>
-                <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.8} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.56, 0.35, 0]}
+                scale={[0.02, 0.08, 3.0]}
+              >
+                <meshStandardMaterial
+                  color="#f43f5e"
+                  emissive="#f43f5e"
+                  emissiveIntensity={0.8}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.56, 0.35, 0]} scale={[0.02, 0.08, 3.0]}>
-                <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.8} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.56, 0.35, 0]}
+                scale={[0.02, 0.08, 3.0]}
+              >
+                <meshStandardMaterial
+                  color="#f43f5e"
+                  emissive="#f43f5e"
+                  emissiveIntensity={0.8}
+                />
               </mesh>
 
               {/* Open Cockpit with Brown Leather Seats */}
               {/* Floor cutout feel */}
-              <mesh geometry={boxGeo} position={[0, 0.51, -0.2]} scale={[0.8, 0.02, 1.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.51, -0.2]}
+                scale={[0.8, 0.02, 1.2]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
               {/* Seats */}
-              <mesh geometry={boxGeo} position={[0.22, 0.6, 0.1]} scale={[0.3, 0.25, 0.3]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.22, 0.6, 0.1]}
+                scale={[0.3, 0.25, 0.3]}
+              >
                 <meshStandardMaterial color="#7c2d12" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.22, 0.6, 0.1]} scale={[0.3, 0.25, 0.3]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.22, 0.6, 0.1]}
+                scale={[0.3, 0.25, 0.3]}
+              >
                 <meshStandardMaterial color="#7c2d12" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.55, -0.6]} scale={[0.74, 0.25, 0.3]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.55, -0.6]}
+                scale={[0.74, 0.25, 0.3]}
+              >
                 <meshStandardMaterial color="#7c2d12" roughness={0.7} />
               </mesh>
 
               {/* Curved/Slanted Sci-Fi Windshield */}
-              <mesh geometry={boxGeo} position={[0, 0.68, 0.38]} scale={[0.84, 0.3, 0.6]} rotation={[-0.35, 0, 0]}>
-                <meshStandardMaterial color="#22d3ee" emissive="#06b6d4" emissiveIntensity={2.5} transparent opacity={0.75} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.68, 0.38]}
+                scale={[0.84, 0.3, 0.6]}
+                rotation={[-0.35, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color="#22d3ee"
+                  emissive="#06b6d4"
+                  emissiveIntensity={2.5}
+                  transparent
+                  opacity={0.75}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Sporty Rear Spoiler Wing */}
-              <mesh geometry={boxGeo} position={[0.4, 0.6, -1.2]} scale={[0.06, 0.4, 0.12]} rotation={[0.2, 0, 0]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.4, 0.6, -1.2]}
+                scale={[0.06, 0.4, 0.12]}
+                rotation={[0.2, 0, 0]}
+              >
                 <meshStandardMaterial color="#0f172a" />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.4, 0.6, -1.2]} scale={[0.06, 0.4, 0.12]} rotation={[0.2, 0, 0]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.4, 0.6, -1.2]}
+                scale={[0.06, 0.4, 0.12]}
+                rotation={[0.2, 0, 0]}
+              >
                 <meshStandardMaterial color="#0f172a" />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.8, -1.2]} scale={[0.9, 0.06, 0.25]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.8, -1.2]}
+                scale={[0.9, 0.06, 0.25]}
+              >
                 <meshStandardMaterial color="#ef4444" />
               </mesh>
 
               {/* Outboard Engines at the back */}
-              <mesh geometry={boxGeo} position={[0.25, 0.2, -1.68]} scale={[0.2, 0.4, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.25, 0.2, -1.68]}
+                scale={[0.2, 0.4, 0.2]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.25, 0.2, -1.68]} scale={[0.2, 0.4, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.25, 0.2, -1.68]}
+                scale={[0.2, 0.4, 0.2]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
               {/* Dual Glowing Cyan Engine Exhaust / Thruster nozzle */}
-              <mesh geometry={boxGeo} position={[0.25, 0.15, -1.8]} scale={[0.12, 0.12, 0.05]}>
-                <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={3.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.25, 0.15, -1.8]}
+                scale={[0.12, 0.12, 0.05]}
+              >
+                <meshStandardMaterial
+                  color="#06b6d4"
+                  emissive="#06b6d4"
+                  emissiveIntensity={3.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.25, 0.15, -1.8]} scale={[0.12, 0.12, 0.05]}>
-                <meshStandardMaterial color="#06b6d4" emissive="#06b6d4" emissiveIntensity={3.0} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.25, 0.15, -1.8]}
+                scale={[0.12, 0.12, 0.05]}
+              >
+                <meshStandardMaterial
+                  color="#06b6d4"
+                  emissive="#06b6d4"
+                  emissiveIntensity={3.0}
+                  toneMapped={false}
+                />
               </mesh>
 
               {/* Sporty Chrome Flagpole with Neon Flag */}
-              <mesh geometry={cylinderGeo} position={[0, 0.6, -1.0]} scale={[0.02, 0.7, 0.02]} rotation={[0.2, 0, 0]}>
-                <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
+              <mesh
+                geometry={cylinderGeo}
+                position={[0, 0.6, -1.0]}
+                scale={[0.02, 0.7, 0.02]}
+                rotation={[0.2, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color="#cbd5e1"
+                  metalness={0.9}
+                  roughness={0.1}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.85, -1.1]} scale={[0.02, 0.12, 0.25]}>
-                <meshStandardMaterial color="#f43f5e" emissive="#f43f5e" emissiveIntensity={0.5} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.85, -1.1]}
+                scale={[0.02, 0.12, 0.25]}
+              >
+                <meshStandardMaterial
+                  color="#f43f5e"
+                  emissive="#f43f5e"
+                  emissiveIntensity={0.5}
+                />
               </mesh>
 
               {/* Dual Headlights on the Bow */}
-              <mesh geometry={cylinderGeo} position={[0.28, 0.35, 2.0]} scale={[0.08, 0.03, 0.08]} rotation={[Math.PI / 2, 0, 0.2]}>
-                <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={4.0} toneMapped={false} />
+              <mesh
+                geometry={cylinderGeo}
+                position={[0.28, 0.35, 2.0]}
+                scale={[0.08, 0.03, 0.08]}
+                rotation={[Math.PI / 2, 0, 0.2]}
+              >
+                <meshStandardMaterial
+                  color="#ffffff"
+                  emissive="#ffffff"
+                  emissiveIntensity={4.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[-0.28, 0.35, 2.0]} scale={[0.08, 0.03, 0.08]} rotation={[Math.PI / 2, 0, -0.2]}>
-                <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={4.0} toneMapped={false} />
+              <mesh
+                geometry={cylinderGeo}
+                position={[-0.28, 0.35, 2.0]}
+                scale={[0.08, 0.03, 0.08]}
+                rotation={[Math.PI / 2, 0, -0.2]}
+              >
+                <meshStandardMaterial
+                  color="#ffffff"
+                  emissive="#ffffff"
+                  emissiveIntensity={4.0}
+                  toneMapped={false}
+                />
               </mesh>
             </>
           )}
@@ -843,7 +1356,12 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
       return (seed - 1) / 2147483646;
     };
 
-    const types: ("cargo" | "yacht" | "patrol" | "taxi")[] = ["cargo", "yacht", "patrol", "taxi"];
+    const types: ("cargo" | "yacht" | "patrol" | "taxi")[] = [
+      "cargo",
+      "yacht",
+      "patrol",
+      "taxi",
+    ];
     const colors = ["#ef4444", "#e2e8f0", "#1d4ed8", "#facc15"];
     const glows = ["#ff5030", "#38bdf8", "#3b82f6", "#eab308"];
     const bannerTexts = [
@@ -854,30 +1372,34 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
       "HELLO WORLD!",
       "GIT PUSH ★",
       "DEV AT WORK",
-      "NEVER GIVE UP"
+      "NEVER GIVE UP",
     ];
 
     for (let i = 0; i < 16; i++) {
-      const hasBanner = (i % 4 === 0);
+      const hasBanner = i % 4 === 0;
       const type = hasBanner ? "airplane" : types[i % types.length];
       const pathType = rng() > 0.55 ? "circle" : "line";
       const radius = cityRadius * (0.22 + rng() * 0.65); // inside the circular city
       const angle = rng() * Math.PI * 2;
       const speed = 25 + rng() * 30; // cruising speed inside the city
-      const altitude = hasBanner ? (235 + rng() * 75) : (110 + rng() * 140); // fly gracefully above buildings for airplanes
+      const altitude = hasBanner ? 235 + rng() * 75 : 110 + rng() * 140; // fly gracefully above buildings for airplanes
       const direction = rng() > 0.5 ? 1 : -1;
 
       const lineStart = -cityRadius * 0.85;
       const lineEnd = cityRadius * 0.85;
       const lineOffset = (rng() - 0.5) * cityRadius * 1.4;
 
-      const scaleVal = hasBanner ? (6.5 + rng() * 2.5) : (2.4 + rng() * 1.6); // bigger/prominent for airplanes
+      const scaleVal = hasBanner ? 6.5 + rng() * 2.5 : 2.4 + rng() * 1.6; // bigger/prominent for airplanes
       const scale: [number, number, number] = [scaleVal, scaleVal, scaleVal];
 
       let bannerResources;
       if (hasBanner) {
         const text = bannerTexts[(i / 4) % bannerTexts.length];
-        bannerResources = createMiniLedTexture(text, glows[i % glows.length], "#100c14");
+        bannerResources = createMiniLedTexture(
+          text,
+          glows[i % glows.length],
+          "#100c14",
+        );
       }
 
       list.push({
@@ -904,7 +1426,10 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
 
   const boxGeo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
   const coneGeo = useMemo(() => new THREE.ConeGeometry(0.5, 1, 4), []);
-  const cylinderGeo = useMemo(() => new THREE.CylinderGeometry(0.5, 0.5, 1, 6), []);
+  const cylinderGeo = useMemo(
+    () => new THREE.CylinderGeometry(0.5, 0.5, 1, 6),
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -939,7 +1464,8 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
 
         const tx = -Math.sin(currentAngle) * s.direction;
         const tz = Math.cos(currentAngle) * s.direction;
-        const yaw = (s.type === "airplane") ? Math.atan2(-tx, -tz) : Math.atan2(tx, tz);
+        const yaw =
+          s.type === "airplane" ? Math.atan2(-tx, -tz) : Math.atan2(tx, tz);
 
         const bobbing = s.altitude + Math.sin(time * 1.5 + idx) * 1.5;
 
@@ -947,18 +1473,21 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
         shipGroup.rotation.set(0, yaw, 0);
       } else {
         const pathLength = s.lineEnd - s.lineStart;
-        const progress = ((time * s.speed + idx * 75) % pathLength) / pathLength;
+        const progress =
+          ((time * s.speed + idx * 75) % pathLength) / pathLength;
         const mainCoord = s.lineStart + progress * pathLength;
 
-        let x = 0, z = 0, yaw = 0;
+        let x = 0,
+          z = 0,
+          yaw = 0;
         if (idx % 2 === 0) {
           x = mainCoord;
           z = s.lineOffset;
-          yaw = (s.type === "airplane") ? -Math.PI / 2 : Math.PI / 2;
+          yaw = s.type === "airplane" ? -Math.PI / 2 : Math.PI / 2;
         } else {
           x = s.lineOffset;
           z = mainCoord;
-          yaw = (s.type === "airplane") ? Math.PI : 0;
+          yaw = s.type === "airplane" ? Math.PI : 0;
         }
 
         const bobbing = s.altitude + Math.sin(time * 1.2 + idx) * 1.0;
@@ -989,29 +1518,67 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "cargo" && (
             <>
               {/* Main Cargo Container Body */}
-              <mesh geometry={boxGeo} position={[0, 0, 0]} scale={[1.2, 0.8, 3.5]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0, 0]}
+                scale={[1.2, 0.8, 3.5]}
+              >
                 <meshStandardMaterial color={s.color} roughness={0.6} />
               </mesh>
               {/* Stacked Cargo Boxes on top */}
-              <mesh geometry={boxGeo} position={[0, 0.6, 0.3]} scale={[0.9, 0.5, 0.9]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.6, 0.3]}
+                scale={[0.9, 0.5, 0.9]}
+              >
                 <meshStandardMaterial color="#3b82f6" roughness={0.7} />
               </mesh>
-              <mesh geometry={boxGeo} position={[0, 0.6, -0.7]} scale={[0.8, 0.4, 0.8]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.6, -0.7]}
+                scale={[0.8, 0.4, 0.8]}
+              >
                 <meshStandardMaterial color="#10b981" roughness={0.7} />
               </mesh>
               {/* Thruster pods on sides */}
-              <mesh geometry={boxGeo} position={[0.75, -0.1, 0.5]} scale={[0.3, 0.4, 1.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.75, -0.1, 0.5]}
+                scale={[0.3, 0.4, 1.2]}
+              >
                 <meshStandardMaterial color="#4b5563" />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.75, -0.1, 0.5]} scale={[0.3, 0.4, 1.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.75, -0.1, 0.5]}
+                scale={[0.3, 0.4, 1.2]}
+              >
                 <meshStandardMaterial color="#4b5563" />
               </mesh>
               {/* Thruster exhaust glow */}
-              <mesh geometry={boxGeo} position={[0.75, -0.1, -0.15]} scale={[0.2, 0.2, 0.1]}>
-                <meshStandardMaterial color={s.glowColor} emissive={s.glowColor} emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0.75, -0.1, -0.15]}
+                scale={[0.2, 0.2, 0.1]}
+              >
+                <meshStandardMaterial
+                  color={s.glowColor}
+                  emissive={s.glowColor}
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.75, -0.1, -0.15]} scale={[0.2, 0.2, 0.1]}>
-                <meshStandardMaterial color={s.glowColor} emissive={s.glowColor} emissiveIntensity={2.5} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[-0.75, -0.1, -0.15]}
+                scale={[0.2, 0.2, 0.1]}
+              >
+                <meshStandardMaterial
+                  color={s.glowColor}
+                  emissive={s.glowColor}
+                  emissiveIntensity={2.5}
+                  toneMapped={false}
+                />
               </mesh>
             </>
           )}
@@ -1019,23 +1586,62 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "yacht" && (
             <>
               {/* Sleek Aerodynamic Yacht Nose */}
-              <mesh geometry={coneGeo} position={[0, 0, 1.0]} scale={[1.2, 3.0, 0.6]} rotation={[Math.PI / 2, 0, 0]}>
-                <meshStandardMaterial color={s.color} metalness={0.8} roughness={0.2} />
+              <mesh
+                geometry={coneGeo}
+                position={[0, 0, 1.0]}
+                scale={[1.2, 3.0, 0.6]}
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color={s.color}
+                  metalness={0.8}
+                  roughness={0.2}
+                />
               </mesh>
               {/* Main Yacht Cabin */}
-              <mesh geometry={boxGeo} position={[0, 0.1, -1.0]} scale={[1.2, 0.7, 2.0]}>
-                <meshStandardMaterial color={s.color} metalness={0.8} roughness={0.2} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.1, -1.0]}
+                scale={[1.2, 0.7, 2.0]}
+              >
+                <meshStandardMaterial
+                  color={s.color}
+                  metalness={0.8}
+                  roughness={0.2}
+                />
               </mesh>
               {/* Slanted Yacht Wing Fins */}
-              <mesh geometry={boxGeo} position={[0.9, -0.1, -1.2]} scale={[0.8, 0.1, 0.8]} rotation={[0, 0, 0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.9, -0.1, -1.2]}
+                scale={[0.8, 0.1, 0.8]}
+                rotation={[0, 0, 0.2]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.9, -0.1, -1.2]} scale={[0.8, 0.1, 0.8]} rotation={[0, 0, -0.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.9, -0.1, -1.2]}
+                scale={[0.8, 0.1, 0.8]}
+                rotation={[0, 0, -0.2]}
+              >
                 <meshStandardMaterial color="#1e293b" />
               </mesh>
               {/* Glowing Panoramic Yacht Windshield */}
-              <mesh geometry={boxGeo} position={[0, 0.35, 0.1]} scale={[0.9, 0.3, 0.6]} rotation={[-0.2, 0, 0]}>
-                <meshStandardMaterial color={s.glowColor} emissive={s.glowColor} emissiveIntensity={2.0} transparent opacity={0.85} toneMapped={false} />
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.35, 0.1]}
+                scale={[0.9, 0.3, 0.6]}
+                rotation={[-0.2, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color={s.glowColor}
+                  emissive={s.glowColor}
+                  emissiveIntensity={2.0}
+                  transparent
+                  opacity={0.85}
+                  toneMapped={false}
+                />
               </mesh>
             </>
           )}
@@ -1043,15 +1649,28 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "patrol" && (
             <>
               {/* Compact Heavy Patrol Body */}
-              <mesh geometry={boxGeo} position={[0, 0, 0]} scale={[1.3, 0.9, 2.2]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0, 0]}
+                scale={[1.3, 0.9, 2.2]}
+              >
                 <meshStandardMaterial color={s.color} roughness={0.4} />
               </mesh>
               {/* Upper Cockpit */}
-              <mesh geometry={boxGeo} position={[0, 0.6, 0.2]} scale={[0.8, 0.4, 1.0]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.6, 0.2]}
+                scale={[0.8, 0.4, 1.0]}
+              >
                 <meshStandardMaterial color="#0f172a" roughness={0.2} />
               </mesh>
               {/* Flashing Police Red and Blue Lightbars */}
-              <mesh name="light-red" geometry={cylinderGeo} position={[0.3, 0.85, 0.2]} scale={[0.15, 0.1, 0.15]}>
+              <mesh
+                name="light-red"
+                geometry={cylinderGeo}
+                position={[0.3, 0.85, 0.2]}
+                scale={[0.15, 0.1, 0.15]}
+              >
                 <meshStandardMaterial
                   color="#1e293b"
                   emissive="#000000"
@@ -1059,7 +1678,12 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
                   toneMapped={false}
                 />
               </mesh>
-              <mesh name="light-blue" geometry={cylinderGeo} position={[-0.3, 0.85, 0.2]} scale={[0.15, 0.1, 0.15]}>
+              <mesh
+                name="light-blue"
+                geometry={cylinderGeo}
+                position={[-0.3, 0.85, 0.2]}
+                scale={[0.15, 0.1, 0.15]}
+              >
                 <meshStandardMaterial
                   color="#1e293b"
                   emissive="#000000"
@@ -1074,38 +1698,78 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           {s.type === "taxi" && (
             <>
               {/* Dual-Pod Speeder Hull */}
-              <mesh geometry={boxGeo} position={[0.35, 0, 0]} scale={[0.45, 0.5, 1.8]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0.35, 0, 0]}
+                scale={[0.45, 0.5, 1.8]}
+              >
                 <meshStandardMaterial color={s.color} roughness={0.5} />
               </mesh>
-              <mesh geometry={boxGeo} position={[-0.35, 0, 0]} scale={[0.45, 0.5, 1.8]}>
+              <mesh
+                geometry={boxGeo}
+                position={[-0.35, 0, 0]}
+                scale={[0.45, 0.5, 1.8]}
+              >
                 <meshStandardMaterial color="#505050" roughness={0.5} />
               </mesh>
               {/* Connecting Central Wing bridge */}
-              <mesh geometry={boxGeo} position={[0, 0.05, -0.2]} scale={[0.4, 0.12, 1.0]}>
+              <mesh
+                geometry={boxGeo}
+                position={[0, 0.05, -0.2]}
+                scale={[0.4, 0.12, 1.0]}
+              >
                 <meshStandardMaterial color="#334155" />
               </mesh>
               {/* Dual Headlights */}
-              <mesh geometry={cylinderGeo} position={[0.35, 0, 0.95]} scale={[0.12, 0.05, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
-                <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={3.0} toneMapped={false} />
+              <mesh
+                geometry={cylinderGeo}
+                position={[0.35, 0, 0.95]}
+                scale={[0.12, 0.05, 0.12]}
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color="#ffffff"
+                  emissive="#ffffff"
+                  emissiveIntensity={3.0}
+                  toneMapped={false}
+                />
               </mesh>
-              <mesh geometry={cylinderGeo} position={[-0.35, 0, 0.95]} scale={[0.12, 0.05, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
-                <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={3.0} toneMapped={false} />
+              <mesh
+                geometry={cylinderGeo}
+                position={[-0.35, 0, 0.95]}
+                scale={[0.12, 0.05, 0.12]}
+                rotation={[Math.PI / 2, 0, 0]}
+              >
+                <meshStandardMaterial
+                  color="#ffffff"
+                  emissive="#ffffff"
+                  emissiveIntensity={3.0}
+                  toneMapped={false}
+                />
               </mesh>
             </>
           )}
 
-          {s.type === "airplane" && (
-            <FlyingAirplane s={s} />
-          )}
+          {s.type === "airplane" && <FlyingAirplane s={s} />}
 
           {/* Towable dynamic LED banner inside the city! */}
           {s.hasBanner && s.bannerResources && (
             <group position={[0, -0.25, 3.0]}>
               {/* Left & Right Tow Ropes */}
-              <mesh position={[0.3, 0.1, -0.7]} rotation={[-Math.PI / 2, 0, 0.1]} geometry={cylinderGeo} scale={[0.03, 1.4, 0.03]}>
+              <mesh
+                position={[0.3, 0.1, -0.7]}
+                rotation={[-Math.PI / 2, 0, 0.1]}
+                geometry={cylinderGeo}
+                scale={[0.03, 1.4, 0.03]}
+              >
                 <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
               </mesh>
-              <mesh position={[-0.3, 0.1, -0.7]} rotation={[-Math.PI / 2, 0, -0.1]} geometry={cylinderGeo} scale={[0.03, 1.4, 0.03]}>
+              <mesh
+                position={[-0.3, 0.1, -0.7]}
+                rotation={[-Math.PI / 2, 0, -0.1]}
+                geometry={cylinderGeo}
+                scale={[0.03, 1.4, 0.03]}
+              >
                 <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
               </mesh>
               {/* LED Banner Plane - Side 1 */}
@@ -1265,7 +1929,13 @@ const sunGlowFragmentShader = `
 `;
 
 // ─── Starfield Component ───────────────────────────────────────
-function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number>; active: boolean }) {
+function Starfield({
+  timeRef,
+  active,
+}: {
+  timeRef: React.MutableRefObject<number>;
+  active: boolean;
+}) {
   const pointsRef = useRef<THREE.Points>(null);
 
   const { positions, sizes, phases } = useMemo(() => {
@@ -1281,14 +1951,14 @@ function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       // Bias phi to keep stars in the upper sky (Y >= 0)
-      const phi = Math.acos(v) * 0.9; 
+      const phi = Math.acos(v) * 0.9;
 
       const x = radius * Math.sin(phi) * Math.cos(theta);
       const y = radius * Math.cos(phi);
       const z = radius * Math.sin(phi) * Math.sin(theta);
 
       pos[i * 3] = x;
-      pos[i * 3 + 1] = y; 
+      pos[i * 3 + 1] = y;
       pos[i * 3 + 2] = z;
 
       sz[i] = 2.0 + Math.random() * 3.0; // star sizes
@@ -1352,7 +2022,7 @@ function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number
     const t = active ? timeRef.current : 0.0;
     let nightFactor = 0;
     if (t < 0.25) {
-      nightFactor = 1.0 - (t / 0.25);
+      nightFactor = 1.0 - t / 0.25;
     } else if (t > 0.75) {
       nightFactor = (t - 0.75) / 0.25;
     }
@@ -1374,18 +2044,26 @@ function Starfield({ timeRef, active }: { timeRef: React.MutableRefObject<number
 }
 
 // ─── VolumetricMoonRays Component ─────────────────────────────
-function VolumetricMoonRays({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.Group | null> }) {
+function VolumetricMoonRays({
+  moonGroupRef,
+}: {
+  moonGroupRef: React.RefObject<THREE.Group | null>;
+}) {
   return null;
 }
 
 // ─── MoonLensFlare Component ──────────────────────────────────
-function MoonLensFlare({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.Group | null> }) {
+function MoonLensFlare({
+  moonGroupRef,
+}: {
+  moonGroupRef: React.RefObject<THREE.Group | null>;
+}) {
   const flareRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
 
   useFrame(() => {
     if (!flareRef.current || !moonGroupRef.current) return;
-    
+
     if (!moonGroupRef.current.visible) {
       flareRef.current.visible = false;
       return;
@@ -1401,13 +2079,17 @@ function MoonLensFlare({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.G
     }
 
     flareRef.current.visible = true;
-    
+
     // Position individual flare rings across the screen vector
     const children = flareRef.current.children;
     for (let i = 0; i < children.length; i++) {
       const child = children[i] as THREE.Mesh;
       const offsetFactor = (i - children.length / 2) * 0.25;
-      child.position.set(projPos.x * offsetFactor * 200, projPos.y * offsetFactor * 200, 0);
+      child.position.set(
+        projPos.x * offsetFactor * 200,
+        projPos.y * offsetFactor * 200,
+        0,
+      );
     }
   });
 
@@ -1416,16 +2098,34 @@ function MoonLensFlare({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.G
       {/* Primary Optic Element */}
       <mesh frustumCulled={false}>
         <ringGeometry args={[0, 9, 32]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.2} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={0.2}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
       {/* Secondary Diffused Halos */}
       <mesh scale={2.5} frustumCulled={false}>
         <ringGeometry args={[6, 8, 32]} />
-        <meshBasicMaterial color="#d0e5ff" transparent opacity={0.06} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#d0e5ff"
+          transparent
+          opacity={0.06}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
       <mesh scale={4.0} frustumCulled={false}>
         <ringGeometry args={[11, 12, 32]} />
-        <meshBasicMaterial color="#aaccff" transparent opacity={0.03} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#aaccff"
+          transparent
+          opacity={0.03}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
     </group>
   );
@@ -1538,7 +2238,7 @@ export default function AtmosphereCycleManager({
       if (lightningTimeRef.current >= nextLightningTimeRef.current) {
         lightningTimeRef.current = 0;
         nextLightningTimeRef.current = 5 + Math.random() * 8; // strike every 5-13 seconds
-        
+
         // Generate new procedural jagged lightning bolt path
         boltRef.current = {
           visible: true,
@@ -1550,7 +2250,7 @@ export default function AtmosphereCycleManager({
           dz2: (Math.random() - 0.5) * 140 + (Math.random() > 0.5 ? 60 : -60),
         };
       }
-      
+
       const elapsed = lightningTimeRef.current;
       // Real lightning double strike/flicker
       if (elapsed < 0.08) {
@@ -1578,15 +2278,27 @@ export default function AtmosphereCycleManager({
           // Segment 1 (Vertical top)
           children[0].position.set(b.startX, 290, b.startZ);
           // Segment 2 (Horizontal link 1)
-          children[1].position.set(b.startX + b.dx1/2, 260, b.startZ + b.dz1/2);
+          children[1].position.set(
+            b.startX + b.dx1 / 2,
+            260,
+            b.startZ + b.dz1 / 2,
+          );
           children[1].scale.set(Math.abs(b.dx1) + 8, 8, Math.abs(b.dz1) + 8);
           // Segment 3 (Vertical middle)
           children[2].position.set(b.startX + b.dx1, 190, b.startZ + b.dz1);
           // Segment 4 (Horizontal link 2)
-          children[3].position.set(b.startX + b.dx1 + b.dx2/2, 150, b.startZ + b.dz1 + b.dz2/2);
+          children[3].position.set(
+            b.startX + b.dx1 + b.dx2 / 2,
+            150,
+            b.startZ + b.dz1 + b.dz2 / 2,
+          );
           children[3].scale.set(Math.abs(b.dx2) + 8, 8, Math.abs(b.dz2) + 8);
           // Segment 5 (Vertical bottom)
-          children[4].position.set(b.startX + b.dx1 + b.dx2, 70, b.startZ + b.dz1 + b.dz2);
+          children[4].position.set(
+            b.startX + b.dx1 + b.dx2,
+            70,
+            b.startZ + b.dz1 + b.dz2,
+          );
         }
       }
     }
@@ -1596,15 +2308,15 @@ export default function AtmosphereCycleManager({
       const now = Date.now();
       const istOffset = 5.5 * 60 * 60 * 1000;
       const istTime = new Date(now + istOffset);
-      
+
       const hours = istTime.getUTCHours();
       const minutes = istTime.getUTCMinutes();
       const seconds = istTime.getUTCSeconds();
       const ms = istTime.getUTCMilliseconds();
-      
+
       const totalMs = 24 * 60 * 60 * 1000;
-      const elapsed = (hours * 3600000) + (minutes * 60000) + (seconds * 1000) + ms;
-      
+      const elapsed = hours * 3600000 + minutes * 60000 + seconds * 1000 + ms;
+
       // t goes linearly from 0.0 (midnight) -> 0.25 (6 AM) -> 0.5 (noon) -> 0.75 (6 PM) -> 1.0 (midnight)
       t = elapsed / totalMs;
 
@@ -1621,15 +2333,23 @@ export default function AtmosphereCycleManager({
       const s2 = ATMOSPHERE_STATES[idx2];
 
       const currentFog = lerpColor(s1.fogColor, s2.fogColor, f);
-      const currentAmbientColor = lerpColor(s1.ambientColor, s2.ambientColor, f);
-      const currentAmbientIntensity = s1.ambientIntensity + (s2.ambientIntensity - s1.ambientIntensity) * f;
+      const currentAmbientColor = lerpColor(
+        s1.ambientColor,
+        s2.ambientColor,
+        f,
+      );
+      const currentAmbientIntensity =
+        s1.ambientIntensity + (s2.ambientIntensity - s1.ambientIntensity) * f;
       const currentSunColor = lerpColor(s1.sunColor, s2.sunColor, f);
-      const currentSunIntensity = s1.sunIntensity + (s2.sunIntensity - s1.sunIntensity) * f;
+      const currentSunIntensity =
+        s1.sunIntensity + (s2.sunIntensity - s1.sunIntensity) * f;
       const currentFillColor = lerpColor(s1.fillColor, s2.fillColor, f);
-      const currentFillIntensity = s1.fillIntensity + (s2.fillIntensity - s1.fillIntensity) * f;
+      const currentFillIntensity =
+        s1.fillIntensity + (s2.fillIntensity - s1.fillIntensity) * f;
       const currentHemiSky = lerpColor(s1.hemiSky, s2.hemiSky, f);
       const currentHemiGround = lerpColor(s1.hemiGround, s2.hemiGround, f);
-      const currentHemiIntensity = s1.hemiIntensity + (s2.hemiIntensity - s1.hemiIntensity) * f;
+      const currentHemiIntensity =
+        s1.hemiIntensity + (s2.hemiIntensity - s1.hemiIntensity) * f;
 
       // 1. Update Fog (darken into stormy charcoal grey under stormy conditions, or a cozy cold winter grey under snowy conditions)
       let fogColorToUse = currentFog;
@@ -1652,23 +2372,30 @@ export default function AtmosphereCycleManager({
         fog.near = fogNearToUse;
         fog.far = fogFarToUse;
       }
-      scene.background = new THREE.Color(lightningIntensity > 0 ? "#cbd5e1" : fogColorToUse);
+      scene.background = new THREE.Color(
+        lightningIntensity > 0 ? "#cbd5e1" : fogColorToUse,
+      );
 
       // 2. Update Lights
       if (ambientLightRef.current) {
-        ambientLightRef.current.color.set(lightningIntensity > 0 ? "#cbd5e1" : currentAmbientColor);
-        ambientLightRef.current.intensity = (currentAmbientIntensity + lightningIntensity * 0.7) * 2.2;
+        ambientLightRef.current.color.set(
+          lightningIntensity > 0 ? "#cbd5e1" : currentAmbientColor,
+        );
+        ambientLightRef.current.intensity =
+          (currentAmbientIntensity + lightningIntensity * 0.7) * 2.2;
       }
 
       // Calculate dynamic positions for Sun and Moon
       const theta = 2.0 * Math.PI * t - Math.PI / 2.0;
 
       if (sunLightRef.current) {
-        sunLightRef.current.color.set(lightningIntensity > 0 ? "#e2f0ff" : currentSunColor);
+        sunLightRef.current.color.set(
+          lightningIntensity > 0 ? "#e2f0ff" : currentSunColor,
+        );
         sunLightRef.current.position.set(
           Math.cos(theta) * 600,
           Math.sin(theta) * 500,
-          -200
+          -200,
         );
         const isAboveHorizon = Math.sin(theta) > 0.0;
         let intensityFactor = 1.0;
@@ -1676,28 +2403,35 @@ export default function AtmosphereCycleManager({
           intensityFactor = 0.45; // Dim the sun for cozy snow clouds!
         }
         sunLightRef.current.intensity = isAboveHorizon
-          ? Math.sin(theta) * currentSunIntensity * 2.5 * intensityFactor + lightningIntensity * 1.5
+          ? Math.sin(theta) * currentSunIntensity * 2.5 * intensityFactor +
+            lightningIntensity * 1.5
           : lightningIntensity * 1.5;
       }
 
       if (fillLightRef.current) {
-        fillLightRef.current.color.set(lightningIntensity > 0 ? "#cbd5e1" : currentFillColor);
+        fillLightRef.current.color.set(
+          lightningIntensity > 0 ? "#cbd5e1" : currentFillColor,
+        );
         fillLightRef.current.position.set(
           -Math.cos(theta) * 600,
           -Math.sin(theta) * 500,
-          200
+          200,
         );
         const sunIsBelowHorizon = Math.sin(theta) <= 0.0;
         const baseIntensity = sunIsBelowHorizon
           ? -Math.sin(theta) * currentFillIntensity * 1.8
           : (1.0 - Math.sin(theta)) * currentFillIntensity * 1.1;
-        fillLightRef.current.intensity = baseIntensity + lightningIntensity * 1.2;
+        fillLightRef.current.intensity =
+          baseIntensity + lightningIntensity * 1.2;
       }
 
       if (hemiLightRef.current) {
-        hemiLightRef.current.color.set(lightningIntensity > 0 ? "#e2f0ff" : currentHemiSky);
+        hemiLightRef.current.color.set(
+          lightningIntensity > 0 ? "#e2f0ff" : currentHemiSky,
+        );
         hemiLightRef.current.groundColor.set(currentHemiGround);
-        hemiLightRef.current.intensity = (currentHemiIntensity + lightningIntensity * 0.6) * 2.4;
+        hemiLightRef.current.intensity =
+          (currentHemiIntensity + lightningIntensity * 0.6) * 2.4;
       }
 
       // 3. Move Physical Sun and Moon relative to camera (unreachable background elements)
@@ -1756,13 +2490,21 @@ export default function AtmosphereCycleManager({
 
       if (sunLightRef.current) {
         sunLightRef.current.color.set(theme.sunColor);
-        sunLightRef.current.position.set(theme.sunPos[0], theme.sunPos[1], theme.sunPos[2]);
+        sunLightRef.current.position.set(
+          theme.sunPos[0],
+          theme.sunPos[1],
+          theme.sunPos[2],
+        );
         sunLightRef.current.intensity = theme.sunIntensity * 2.5;
       }
 
       if (fillLightRef.current) {
         fillLightRef.current.color.set(theme.fillColor);
-        fillLightRef.current.position.set(theme.fillPos[0], theme.fillPos[1], theme.fillPos[2]);
+        fillLightRef.current.position.set(
+          theme.fillPos[0],
+          theme.fillPos[1],
+          theme.fillPos[2],
+        );
         fillLightRef.current.intensity = theme.fillIntensity * 2.2;
       }
 
@@ -1773,21 +2515,23 @@ export default function AtmosphereCycleManager({
       }
 
       // 3. Static Physical Sun and Moon Placement relative to camera
-      if (themeIndex === 1) { // Sunset
+      if (themeIndex === 1) {
+        // Sunset
         if (sunGroupRef.current) {
           const sunDir = new THREE.Vector3(...theme.sunPos).normalize();
           const targetPos = sunDir.multiplyScalar(2200);
           sunGroupRef.current.position.set(
             camera.position.x + targetPos.x,
             camera.position.y + targetPos.y,
-            camera.position.z + targetPos.z
+            camera.position.z + targetPos.z,
           );
           sunGroupRef.current.visible = true;
         }
         if (moonGroupRef.current) {
           moonGroupRef.current.visible = false;
         }
-      } else { // Midnight / Neon / Emerald
+      } else {
+        // Midnight / Neon / Emerald
         if (sunGroupRef.current) {
           sunGroupRef.current.visible = false;
         }
@@ -1797,7 +2541,7 @@ export default function AtmosphereCycleManager({
           moonGroupRef.current.position.set(
             camera.position.x + targetPos.x,
             camera.position.y + targetPos.y,
-            camera.position.z + targetPos.z
+            camera.position.z + targetPos.z,
           );
           moonGroupRef.current.visible = true;
         }
@@ -1818,10 +2562,29 @@ export default function AtmosphereCycleManager({
       />
       <SceneBackground color={isRaining ? "#3a404a" : theme.fogColor} />
 
-      <ambientLight ref={ambientLightRef} intensity={theme.ambientIntensity * 3} color={theme.ambientColor} />
-      <directionalLight ref={sunLightRef} position={theme.sunPos} intensity={theme.sunIntensity * 3.5} color={theme.sunColor} shadow-bias={-0.0005} shadow-normalBias={0.04} />
-      <directionalLight ref={fillLightRef} position={theme.fillPos} intensity={theme.fillIntensity * 3} color={theme.fillColor} />
-      <hemisphereLight ref={hemiLightRef} args={[theme.hemiSky, theme.hemiGround, theme.hemiIntensity * 3.5]} />
+      <ambientLight
+        ref={ambientLightRef}
+        intensity={theme.ambientIntensity * 3}
+        color={theme.ambientColor}
+      />
+      <directionalLight
+        ref={sunLightRef}
+        position={theme.sunPos}
+        intensity={theme.sunIntensity * 3.5}
+        color={theme.sunColor}
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.04}
+      />
+      <directionalLight
+        ref={fillLightRef}
+        position={theme.fillPos}
+        intensity={theme.fillIntensity * 3}
+        color={theme.fillColor}
+      />
+      <hemisphereLight
+        ref={hemiLightRef}
+        args={[theme.hemiSky, theme.hemiGround, theme.hemiIntensity * 3.5]}
+      />
 
       <SkyDome timeRef={timeRef} theme={theme} active={active} />
       <VoxelClouds active={active} timeRef={timeRef} />

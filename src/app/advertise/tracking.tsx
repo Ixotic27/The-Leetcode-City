@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { trackAdvertisePageView, trackAdvertiseCtaClick } from "@/lib/himetrica";
+import {
+  trackAdvertisePageView,
+  trackAdvertiseCtaClick,
+} from "@/lib/himetrica";
 
 export function AdvertisePageTracker() {
   useEffect(() => {

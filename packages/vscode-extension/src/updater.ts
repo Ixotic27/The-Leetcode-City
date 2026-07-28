@@ -30,7 +30,9 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for download
 
-  const res = await (globalThis as any).fetch(url, { signal: controller.signal });
+  const res = await (globalThis as any).fetch(url, {
+    signal: controller.signal,
+  });
   clearTimeout(timeoutId);
 
   if (!res.ok) {
@@ -50,7 +52,10 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
  */
 export async function checkForUpdates(context: vscode.ExtensionContext) {
   const DEBOUNCE_MS = 6 * 60 * 60 * 1000; // 6 hours
-  const lastCheck = context.globalState.get<number>("leetcodecity.lastUpdateCheck", 0);
+  const lastCheck = context.globalState.get<number>(
+    "leetcodecity.lastUpdateCheck",
+    0,
+  );
   if (Date.now() - lastCheck < DEBOUNCE_MS) return;
 
   try {
@@ -72,7 +77,9 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
     // Validate that the remote version exists and is a string
     if (typeof remoteVersion !== "string") return;
 
-    const ext = vscode.extensions.getExtension("leetcode-city.leetcode-city-pulse");
+    const ext = vscode.extensions.getExtension(
+      "leetcode-city.leetcode-city-pulse",
+    );
     if (!ext) return;
 
     const localVersion: string = ext.packageJSON.version;
@@ -86,7 +93,10 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
     // 2. Newer version available — download the .vsix
     const vsixUrl = `${GITHUB_RAW_BASE}/leetcode-city-pulse-${remoteVersion}.vsix`;
     const tmpDir = os.tmpdir();
-    const vsixPath = path.join(tmpDir, `leetcode-city-pulse-${remoteVersion}.vsix`);
+    const vsixPath = path.join(
+      tmpDir,
+      `leetcode-city-pulse-${remoteVersion}.vsix`,
+    );
 
     // Show a progress notification while downloading
     await vscode.window.withProgress(
@@ -103,12 +113,16 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
         progress.report({ message: "Installing..." });
         await vscode.commands.executeCommand(
           "workbench.extensions.installExtension",
-          vscode.Uri.file(vsixPath)
+          vscode.Uri.file(vsixPath),
         );
 
         // 4. Clean up the temp file
-        try { await fs.promises.unlink(vsixPath); } catch { /* best effort */ }
-      }
+        try {
+          await fs.promises.unlink(vsixPath);
+        } catch {
+          /* best effort */
+        }
+      },
     );
 
     // Update the last-check timestamp ONLY after successful update
@@ -118,7 +132,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext) {
     const action = await vscode.window.showInformationMessage(
       `🏙️ LeetCode City: Pulse has been updated to v${remoteVersion}! Please reload to activate.`,
       "Reload Now",
-      "Later"
+      "Later",
     );
 
     if (action === "Reload Now") {

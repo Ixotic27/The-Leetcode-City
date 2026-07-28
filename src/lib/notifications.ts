@@ -1,123 +1,137 @@
- import crypto from "node:crypto";
+import crypto from "node:crypto";
 import webpush from "web-push";
 import { getSupabaseAdmin } from "./supabase";
 import { getResend } from "./resend";
 import { getDeveloperEmail, isRecentlyActive } from "./notification-helpers";
 import { wrapInBaseTemplate } from "./email-template";
-import { DEFAULT_PREFS, evaluateNotificationPolicy, type NotificationPrefs } from "./notification-policy";
- 
+import {
+  DEFAULT_PREFS,
+  evaluateNotificationPolicy,
+  type NotificationPrefs,
+} from "./notification-policy";
+
 // ── Types ──
- 
+
 export type Channel = "email" | "push" | "in_app";
- 
+
 export type NotificationCategory =
-  | "transactional"
-  | "social"
-  | "digest"
-  | "marketing"
-  | "streak_reminders";
- 
+  "transactional" | "social" | "digest" | "marketing" | "streak_reminders";
+
 export type Priority = "high" | "normal" | "low";
- 
+
 export interface NotificationPayload {
-  type: string;                          // 'welcome', 'raid_alert', etc.
+  type: string; // 'welcome', 'raid_alert', etc.
   category: NotificationCategory;
   developerId: number;
   dedupKey: string;
- 
+
   // Content (adapts per channel)
-  title: string;                         // email subject, push title
-  body: string;                          // push body, email preview text
-  html?: string;                         // rich email body (wrapped in base template)
-  actionUrl?: string;                    // CTA link / deep link
-  iconUrl?: string;                      // push notification icon
-  data?: Record<string, unknown>;        // structured data for push/in_app deep links
- 
+  title: string; // email subject, push title
+  body: string; // push body, email preview text
+  html?: string; // rich email body (wrapped in base template)
+  actionUrl?: string; // CTA link / deep link
+  iconUrl?: string; // push notification icon
+  data?: Record<string, unknown>; // structured data for push/in_app deep links
+
   // Behavior
-  forceSend?: boolean;                   // bypass preferences (purchase receipts)
-  channels?: Channel[];                  // restrict to these channels (default: ["email"])
-  skipIfActive?: boolean;                // skip if user was active < 5 min ago
-  priority?: Priority;                   // high = never batch, low = batch eligible
- 
+  forceSend?: boolean; // bypass preferences (purchase receipts)
+  channels?: Channel[]; // restrict to these channels (default: ["email"])
+  skipIfActive?: boolean; // skip if user was active < 5 min ago
+  priority?: Priority; // high = never batch, low = batch eligible
+
   // Batching (for low/normal priority)
-  batchKey?: string;                     // group key: "raids:42", "social:42"
-  batchWindowMinutes?: number;           // how long to accumulate (default: 60)
+  batchKey?: string; // group key: "raids:42", "social:42"
+  batchWindowMinutes?: number; // how long to accumulate (default: 60)
   batchEventData?: Record<string, unknown>; // data for this individual event within a batch
 }
- 
+
 export interface SendResult {
   channel: Channel;
   success: boolean;
   providerId?: string;
   skipped?: string;
-  batched?: boolean;                     // true if added to batch instead of sent
+  batched?: boolean; // true if added to batch instead of sent
 }
- 
+
 // ── Config ──
- 
+
 const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
-const HMAC_SECRET = process.env.UNSUBSCRIBE_HMAC_SECRET || process.env.CRON_SECRET || "";
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
- 
+const HMAC_SECRET =
+  process.env.UNSUBSCRIBE_HMAC_SECRET || process.env.CRON_SECRET || "";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+
 const RATE_LIMITS: Record<Channel, { perHour: number; perDay: number }> = {
   email: { perHour: 5, perDay: 10 },
   push: { perHour: 10, perDay: 30 },
   in_app: { perHour: 100, perDay: 500 },
 };
- 
+
 // ── Public API ──
- 
+
 /**
  * Send a notification through the full pipeline.
  * Handles preferences, suppressions, dedup, rate limiting, batching, and dispatch.
  */
-export async function sendNotification(payload: NotificationPayload): Promise<SendResult[]> {
+export async function sendNotification(
+  payload: NotificationPayload,
+): Promise<SendResult[]> {
   const results: SendResult[] = [];
   const sb = getSupabaseAdmin();
-  const targetChannels = payload.channels ?? ["email"] as Channel[];
- 
+  const targetChannels = payload.channels ?? (["email"] as Channel[]);
+
   // Skip all channels if user is recently active
   if (payload.skipIfActive) {
     if (await isRecentlyActive(payload.developerId)) {
       for (const ch of targetChannels) {
-        results.push({ channel: ch, success: false, skipped: "user_recently_active" });
+        results.push({
+          channel: ch,
+          success: false,
+          skipped: "user_recently_active",
+        });
       }
       return results;
     }
   }
- 
+
   const prefs = await getPreferences(payload.developerId);
- 
+
   for (const channel of targetChannels) {
     try {
       const result = await processChannel(sb, channel, payload, prefs);
       results.push(result);
     } catch (err) {
-      console.error(`[notify] ${channel} error for dev ${payload.developerId}:`, err);
+      console.error(
+        `[notify] ${channel} error for dev ${payload.developerId}:`,
+        err,
+      );
       results.push({ channel, success: false, skipped: "send_error" });
     }
   }
- 
+
   return results;
 }
- 
+
 /**
  * Fire-and-forget wrapper. Use this in API routes so notifications
  * never block the response. Errors are logged, not thrown.
  */
 export function sendNotificationAsync(payload: NotificationPayload): void {
   sendNotification(payload).catch((err) => {
-    console.error(`[notify:async] Failed for ${payload.type} dev=${payload.developerId}:`, err);
+    console.error(
+      `[notify:async] Failed for ${payload.type} dev=${payload.developerId}:`,
+      err,
+    );
   });
 }
- 
+
 /**
  * Flush all closed batches. Called by cron job.
  * Returns number of batches flushed.
  */
 export async function flushPendingBatches(): Promise<number> {
   const sb = getSupabaseAdmin();
- 
+
   const { data: batches } = await sb
     .from("notification_batches")
     .select("id, batch_key, developer_id, notification_type, channel")
@@ -125,11 +139,11 @@ export async function flushPendingBatches(): Promise<number> {
     .lte("closes_at", new Date().toISOString())
     .order("closes_at", { ascending: true })
     .limit(100);
- 
+
   if (!batches || batches.length === 0) return 0;
- 
+
   let flushed = 0;
- 
+
   for (const batch of batches) {
     try {
       const { data: items } = await sb
@@ -137,7 +151,7 @@ export async function flushPendingBatches(): Promise<number> {
         .select("event_data, created_at")
         .eq("batch_id", batch.id)
         .order("created_at", { ascending: true });
- 
+
       if (!items || items.length === 0) {
         await sb
           .from("notification_batches")
@@ -145,35 +159,39 @@ export async function flushPendingBatches(): Promise<number> {
           .eq("id", batch.id);
         continue;
       }
- 
+
       const digestPayload = buildDigestFromBatch(batch, items);
       if (digestPayload) {
         await sendNotification(digestPayload);
       }
- 
+
       await sb
         .from("notification_batches")
         .update({ processed_at: new Date().toISOString() })
         .eq("id", batch.id);
- 
+
       flushed++;
     } catch (err) {
       console.error(`[notify:batch] Failed to flush batch ${batch.id}:`, err);
     }
   }
- 
+
   return flushed;
 }
- 
+
 // ── Channel Processing Pipeline ──
- 
+
 async function processChannel(
   sb: ReturnType<typeof getSupabaseAdmin>,
   channel: Channel,
   payload: NotificationPayload,
   prefs: NotificationPrefs,
 ): Promise<SendResult> {
-  const policyDecision = evaluateNotificationPolicy({ channel, payload, prefs });
+  const policyDecision = evaluateNotificationPolicy({
+    channel,
+    payload,
+    prefs,
+  });
   if (!policyDecision.allowed) {
     return { channel, success: false, skipped: policyDecision.skipReason };
   }
@@ -186,12 +204,12 @@ async function processChannel(
       .eq("dedup_key", payload.dedupKey)
       .eq("channel", channel)
       .maybeSingle();
- 
+
     if (existing) {
       return { channel, success: false, skipped: "duplicate" };
     }
   }
- 
+
   // 4. Rate limit check (if rate limited and batch eligible, route to batch)
   const rateLimited = await checkRateLimit(sb, payload.developerId, channel);
   if (rateLimited) {
@@ -200,12 +218,12 @@ async function processChannel(
     }
     return { channel, success: false, skipped: `rate_limited:${rateLimited}` };
   }
- 
+
   // 5. Batching: if low priority and user prefers digests, batch instead of sending
   if (policyDecision.shouldBatch) {
     return await addToBatch(sb, channel, payload);
   }
- 
+
   // 6. Dispatch to channel-specific sender
   switch (channel) {
     case "email":
@@ -216,7 +234,7 @@ async function processChannel(
       return await dispatchInApp(sb, payload);
   }
 }
- 
+
 // ── Batching ──
 
 async function addToBatch(
@@ -226,7 +244,7 @@ async function addToBatch(
 ): Promise<SendResult> {
   const batchKey = `${payload.batchKey}:${channel}`;
   const windowMinutes = payload.batchWindowMinutes ?? 60;
- 
+
   const { data: existingBatch } = await sb
     .from("notification_batches")
     .select("id")
@@ -235,13 +253,15 @@ async function addToBatch(
     .is("processed_at", null)
     .gt("closes_at", new Date().toISOString())
     .maybeSingle();
- 
+
   let batchId: number;
- 
+
   if (existingBatch) {
     batchId = existingBatch.id;
   } else {
-    const closesAt = new Date(Date.now() + windowMinutes * 60_000).toISOString();
+    const closesAt = new Date(
+      Date.now() + windowMinutes * 60_000,
+    ).toISOString();
     const { data: newBatch, error } = await sb
       .from("notification_batches")
       .insert({
@@ -253,7 +273,7 @@ async function addToBatch(
       })
       .select("id")
       .single();
- 
+
     if (error) {
       const { data: raceBatch } = await sb
         .from("notification_batches")
@@ -263,9 +283,12 @@ async function addToBatch(
         .is("processed_at", null)
         .gt("closes_at", new Date().toISOString())
         .maybeSingle();
- 
+
       if (!raceBatch) {
-        console.error(`[notify:batch] Failed to create/find batch for ${batchKey}:`, error);
+        console.error(
+          `[notify:batch] Failed to create/find batch for ${batchKey}:`,
+          error,
+        );
         return { channel, success: false, skipped: "batch_create_failed" };
       }
       batchId = raceBatch.id;
@@ -273,7 +296,7 @@ async function addToBatch(
       batchId = newBatch.id;
     }
   }
- 
+
   await sb.from("notification_batch_items").insert({
     batch_id: batchId,
     event_data: {
@@ -284,18 +307,26 @@ async function addToBatch(
       ...payload.batchEventData,
     },
   });
- 
+
   return { channel, success: true, batched: true };
 }
- 
+
 function buildDigestFromBatch(
-  batch: { id: number; developer_id: number; notification_type: string; channel: string },
+  batch: {
+    id: number;
+    developer_id: number;
+    notification_type: string;
+    channel: string;
+  },
   items: { event_data: Record<string, unknown>; created_at: string }[],
 ): NotificationPayload | null {
   const count = items.length;
   if (count === 0) return null;
- 
-  const typeMap: Record<string, { title: string; bodyFn: (n: number) => string }> = {
+
+  const typeMap: Record<
+    string,
+    { title: string; bodyFn: (n: number) => string }
+  > = {
     raid_alert: {
       title: `Your building was raided ${count} time${count > 1 ? "s" : ""}!`,
       bodyFn: (n) => `${n} raid${n > 1 ? "s" : ""} while you were away.`,
@@ -309,12 +340,12 @@ function buildDigestFromBatch(
       bodyFn: (n) => `${n} developer${n > 1 ? "s" : ""} gave you kudos.`,
     },
   };
- 
+
   const template = typeMap[batch.notification_type] ?? {
     title: `${count} new notification${count > 1 ? "s" : ""}`,
     bodyFn: (n: number) => `You have ${n} new notification${n > 1 ? "s" : ""}.`,
   };
- 
+
   const eventListHtml = items
     .slice(0, 10)
     .map((item) => {
@@ -322,9 +353,12 @@ function buildDigestFromBatch(
       return `<li style="margin-bottom: 4px; color: #f0f0f0;">${d.body || d.title || "New event"}</li>`;
     })
     .join("");
- 
-  const remainingText = count > 10 ? `<p style="color: #666; font-size: 13px;">...and ${count - 10} more</p>` : "";
- 
+
+  const remainingText =
+    count > 10
+      ? `<p style="color: #666; font-size: 13px;">...and ${count - 10} more</p>`
+      : "";
+
   return {
     type: `${batch.notification_type}_digest`,
     category: "digest",
@@ -342,9 +376,9 @@ function buildDigestFromBatch(
     channels: [batch.channel as Channel],
   };
 }
- 
+
 // ── Email Dispatch ──
- 
+
 async function dispatchEmail(
   sb: ReturnType<typeof getSupabaseAdmin>,
   payload: NotificationPayload,
@@ -353,24 +387,28 @@ async function dispatchEmail(
   if (!email) {
     return { channel: "email", success: false, skipped: "no_email" };
   }
- 
+
   const { data: suppressed } = await sb
     .from("notification_suppressions")
     .select("reason")
     .eq("identifier", email)
     .eq("channel", "email")
     .maybeSingle();
- 
+
   if (suppressed) {
-    return { channel: "email", success: false, skipped: `suppressed:${suppressed.reason}` };
+    return {
+      channel: "email",
+      success: false,
+      skipped: `suppressed:${suppressed.reason}`,
+    };
   }
- 
+
   const unsubCategory = payload.forceSend ? "all" : payload.category;
   const unsubUrl = buildUnsubscribeUrl(payload.developerId, unsubCategory);
- 
+
   const bodyHtml = payload.html || `<p>${escapeBasicHtml(payload.body)}</p>`;
   const fullHtml = wrapInBaseTemplate(bodyHtml, unsubUrl);
- 
+
   const resend = getResend();
   const { data: sent, error } = await resend.emails.send({
     from: FROM,
@@ -382,10 +420,10 @@ async function dispatchEmail(
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
   });
- 
+
   const status = error ? "failed" : "sent";
   const providerId = sent?.id;
- 
+
   await sb.from("notification_log").insert({
     developer_id: payload.developerId,
     channel: "email",
@@ -399,17 +437,21 @@ async function dispatchEmail(
     metadata: { body_preview: payload.body.slice(0, 200) },
     dedup_key: payload.dedupKey || null,
   });
- 
+
   if (error) {
     console.error(`[notify:email] Resend error for ${email}:`, error);
     return { channel: "email", success: false, skipped: "resend_error" };
   }
- 
-  return { channel: "email", success: true, providerId: providerId ?? undefined };
+
+  return {
+    channel: "email",
+    success: true,
+    providerId: providerId ?? undefined,
+  };
 }
- 
+
 // ── Push Dispatch ──
- 
+
 async function dispatchPush(
   sb: ReturnType<typeof getSupabaseAdmin>,
   payload: NotificationPayload,
@@ -419,11 +461,11 @@ async function dispatchPush(
     .select("id, token, platform")
     .eq("developer_id", payload.developerId)
     .eq("active", true);
- 
+
   if (!subs || subs.length === 0) {
     return { channel: "push", success: false, skipped: "no_push_token" };
   }
- 
+
   // Check quiet hours (forceSend bypasses)
   if (!payload.forceSend) {
     const inQuietHours = await isInQuietHours(sb, payload.developerId);
@@ -431,20 +473,21 @@ async function dispatchPush(
       return { channel: "push", success: false, skipped: "quiet_hours" };
     }
   }
- 
+
   // Validate VAPID keys are configured
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-  const vapidEmail = process.env.VAPID_EMAIL || "mailto:admin@theleetcodecity.tech";
- 
+  const vapidEmail =
+    process.env.VAPID_EMAIL || "mailto:admin@theleetcodecity.tech";
+
   if (!vapidPublicKey || !vapidPrivateKey) {
     console.error("[notify:push] VAPID keys not configured");
     return { channel: "push", success: false, skipped: "vapid_not_configured" };
   }
- 
+
   // Configure web-push with VAPID credentials
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
- 
+
   // Build the notification payload to send to the browser
   const notificationData = JSON.stringify({
     title: payload.title,
@@ -456,31 +499,34 @@ async function dispatchPush(
       ...payload.data,
     },
   });
- 
+
   let successCount = 0;
   let failCount = 0;
   const expiredIds: number[] = [];
- 
+
   // Send to each active subscription
   for (const sub of subs) {
     try {
       // token column stores the JSON Web Push subscription object
       const pushSubscription =
         typeof sub.token === "string" ? JSON.parse(sub.token) : sub.token;
- 
+
       await webpush.sendNotification(pushSubscription, notificationData);
       successCount++;
     } catch (err: unknown) {
       const webPushError = err as { statusCode?: number };
       // 404 or 410 = subscription expired or unsubscribed — mark inactive
-      if (webPushError?.statusCode === 404 || webPushError?.statusCode === 410) {
+      if (
+        webPushError?.statusCode === 404 ||
+        webPushError?.statusCode === 410
+      ) {
         expiredIds.push(sub.id);
       }
       failCount++;
       console.error(`[notify:push] Failed to send to sub ${sub.id}:`, err);
     }
   }
- 
+
   // Clean up expired/invalid subscriptions
   if (expiredIds.length > 0) {
     await sb
@@ -488,9 +534,9 @@ async function dispatchPush(
       .update({ active: false })
       .in("id", expiredIds);
   }
- 
+
   const status = successCount > 0 ? "sent" : "failed";
- 
+
   // Log result to notification_log
   await sb.from("notification_log").insert({
     developer_id: payload.developerId,
@@ -500,7 +546,8 @@ async function dispatchPush(
     title: payload.title,
     status,
     failed_at: status === "failed" ? new Date().toISOString() : null,
-    failure_reason: status === "failed" ? `All ${failCount} push(es) failed` : null,
+    failure_reason:
+      status === "failed" ? `All ${failCount} push(es) failed` : null,
     metadata: {
       body: payload.body,
       action_url: payload.actionUrl,
@@ -513,16 +560,16 @@ async function dispatchPush(
     },
     dedup_key: payload.dedupKey || null,
   });
- 
+
   if (successCount === 0) {
     return { channel: "push", success: false, skipped: "all_pushes_failed" };
   }
- 
+
   return { channel: "push", success: true };
 }
- 
+
 // ── In-App Dispatch ──
- 
+
 async function dispatchInApp(
   sb: ReturnType<typeof getSupabaseAdmin>,
   payload: NotificationPayload,
@@ -542,12 +589,12 @@ async function dispatchInApp(
     },
     dedup_key: payload.dedupKey || null,
   });
- 
+
   return { channel: "in_app", success: true };
 }
- 
+
 // ── Preferences ──
- 
+
 async function getPreferences(devId: number): Promise<NotificationPrefs> {
   const sb = getSupabaseAdmin();
   const { data } = await sb
@@ -555,9 +602,9 @@ async function getPreferences(devId: number): Promise<NotificationPrefs> {
     .select("*")
     .eq("developer_id", devId)
     .maybeSingle();
- 
+
   if (!data) return DEFAULT_PREFS;
- 
+
   return {
     email_enabled: data.email_enabled ?? true,
     push_enabled: data.push_enabled ?? true,
@@ -569,13 +616,13 @@ async function getPreferences(devId: number): Promise<NotificationPrefs> {
     digest_frequency: data.digest_frequency ?? "realtime",
     quiet_hours_start: data.quiet_hours_start ?? null,
     quiet_hours_end: data.quiet_hours_end ?? null,
-    channel_overrides: (data.channel_overrides as Record<string, Record<string, boolean>>) ?? {},
+    channel_overrides:
+      (data.channel_overrides as Record<string, Record<string, boolean>>) ?? {},
   };
 }
- 
 
 // ── Rate Limiting ──
- 
+
 async function checkRateLimit(
   sb: ReturnType<typeof getSupabaseAdmin>,
   devId: number,
@@ -583,7 +630,7 @@ async function checkRateLimit(
 ): Promise<string | null> {
   const limits = RATE_LIMITS[channel];
   const now = new Date();
- 
+
   const oneHourAgo = new Date(now.getTime() - 3_600_000).toISOString();
   const { count: hourCount } = await sb
     .from("notification_log")
@@ -592,9 +639,9 @@ async function checkRateLimit(
     .eq("channel", channel)
     .eq("status", "sent")
     .gte("created_at", oneHourAgo);
- 
+
   if ((hourCount ?? 0) >= limits.perHour) return "hourly";
- 
+
   const oneDayAgo = new Date(now.getTime() - 86_400_000).toISOString();
   const { count: dayCount } = await sb
     .from("notification_log")
@@ -603,14 +650,14 @@ async function checkRateLimit(
     .eq("channel", channel)
     .eq("status", "sent")
     .gte("created_at", oneDayAgo);
- 
+
   if ((dayCount ?? 0) >= limits.perDay) return "daily";
- 
+
   return null;
 }
- 
+
 // ── Quiet Hours ──
- 
+
 async function isInQuietHours(
   sb: ReturnType<typeof getSupabaseAdmin>,
   devId: number,
@@ -620,42 +667,50 @@ async function isInQuietHours(
     .select("quiet_hours_start, quiet_hours_end")
     .eq("developer_id", devId)
     .maybeSingle();
- 
-  if (data?.quiet_hours_start == null || data?.quiet_hours_end == null) return false;
- 
+
+  if (data?.quiet_hours_start == null || data?.quiet_hours_end == null)
+    return false;
+
   const { data: dev } = await sb
     .from("developers")
     .select("timezone")
     .eq("id", devId)
     .single();
- 
+
   const tz = dev?.timezone || "UTC";
   let currentHour: number;
   try {
-    const formatter = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hour12: false });
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      hour: "numeric",
+      hour12: false,
+    });
     currentHour = parseInt(formatter.format(new Date()), 10);
   } catch (err) {
     console.warn("[lib/notifications.ts] error:", err);
     currentHour = new Date().getUTCHours();
   }
- 
+
   const start = data.quiet_hours_start;
   const end = data.quiet_hours_end;
- 
+
   // Handle wrap-around (e.g., 22:00 - 07:00)
   if (start <= end) {
     return currentHour >= start && currentHour < end;
   }
   return currentHour >= start || currentHour < end;
 }
- 
+
 // ── Unsubscribe URL ──
- 
-export function buildUnsubscribeUrl(devId: number, category: NotificationCategory | "all"): string {
+
+export function buildUnsubscribeUrl(
+  devId: number,
+  category: NotificationCategory | "all",
+): string {
   const token = generateHmacToken(devId, category);
   return `${BASE_URL}/api/unsubscribe?dev=${devId}&cat=${category}&token=${token}`;
 }
- 
+
 export function generateHmacToken(devId: number, category: string): string {
   return crypto
     .createHmac("sha256", HMAC_SECRET)
@@ -663,18 +718,19 @@ export function generateHmacToken(devId: number, category: string): string {
     .digest("hex")
     .slice(0, 32);
 }
- 
-export function verifyHmacToken(devId: number, category: string, token: string): boolean {
+
+export function verifyHmacToken(
+  devId: number,
+  category: string,
+  token: string,
+): boolean {
   const expected = generateHmacToken(devId, category);
   if (expected.length !== token.length) return false;
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(token));
 }
- 
+
 // ── Helpers ──
- 
+
 function escapeBasicHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

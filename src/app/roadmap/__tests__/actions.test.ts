@@ -6,7 +6,11 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/supabase-server", () => ({
   createServerSupabase: vi.fn(() => ({
     auth: {
-      getUser: async () => ({ data: { user: { id: "user-1", user_metadata: { user_name: "testuser" } } } }),
+      getUser: async () => ({
+        data: {
+          user: { id: "user-1", user_metadata: { user_name: "testuser" } },
+        },
+      }),
     },
   })),
 }));
@@ -25,18 +29,36 @@ interface RoadmapFromWithExisting {
   select(): SelectEq;
   delete(): { eq(col: string, val: string | number): { error: null } };
   insert(row: Record<string, unknown>): { error: null };
-  upsert(row: Record<string, unknown>, opts?: Record<string, unknown>): { error: null };
+  upsert(
+    row: Record<string, unknown>,
+    opts?: Record<string, unknown>,
+  ): { error: null };
 }
 
 interface AdminClient {
-  from(table: "developers"): { select(): { eq(col: string, val?: string | number): { single(): Promise<{ data: { id: number } }>; }; }; };
+  from(table: "developers"): {
+    select(): {
+      eq(
+        col: string,
+        val?: string | number,
+      ): { single(): Promise<{ data: { id: number } }> };
+    };
+  };
   from(table: "roadmap_votes"): RoadmapFromWithExisting;
   from(table: string): unknown;
 }
 
-const upsertSpy = vi.fn(async (row: Record<string, unknown>, opts?: Record<string, unknown>) => ({ error: null }));
-const insertSpy = vi.fn(async (row: Record<string, unknown>) => ({ error: null }));
-const deleteSpy = vi.fn(async (col: string, val: string | number) => ({ error: null }));
+const upsertSpy = vi.fn(
+  async (row: Record<string, unknown>, opts?: Record<string, unknown>) => ({
+    error: null,
+  }),
+);
+const insertSpy = vi.fn(async (row: Record<string, unknown>) => ({
+  error: null,
+}));
+const deleteSpy = vi.fn(async (col: string, val: string | number) => ({
+  error: null,
+}));
 
 // Create a single admin object so tests can mutate its returned "from" instance
 // Shared roadmap_votes from-object so tests can mutate its __existing field
@@ -50,23 +72,38 @@ const roadmapFromObj: any = {
     };
     return obj;
   },
-  delete: () => ({ eq: (col: string, val: string | number) => { deleteSpy(col, val); return { error: null }; } }),
-  insert: (row: Record<string, unknown>) => { insertSpy(row); return { error: null }; },
-  upsert: (row: Record<string, unknown>, opts?: Record<string, unknown>) => { upsertSpy(row, opts); return { error: null }; },
+  delete: () => ({
+    eq: (col: string, val: string | number) => {
+      deleteSpy(col, val);
+      return { error: null };
+    },
+  }),
+  insert: (row: Record<string, unknown>) => {
+    insertSpy(row);
+    return { error: null };
+  },
+  upsert: (row: Record<string, unknown>, opts?: Record<string, unknown>) => {
+    upsertSpy(row, opts);
+    return { error: null };
+  },
 };
 
 const adminObj: any = {
   from(table: string) {
     if (table === "developers") {
       return {
-        select: () => ({ eq: (col: string, val?: string | number) => ({ single: async () => ({ data: { id: 42 } }) }) }),
+        select: () => ({
+          eq: (col: string, val?: string | number) => ({
+            single: async () => ({ data: { id: 42 } }),
+          }),
+        }),
       };
     }
     if (table === "roadmap_votes") {
       return roadmapFromObj;
     }
     return { select: () => ({ maybeSingle: async () => ({ data: null }) }) };
-  }
+  },
 };
 
 vi.mock("@/lib/supabase", () => ({

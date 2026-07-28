@@ -25,7 +25,12 @@ function blendColors(fg: number, bg: number, alpha: number): number {
 
 function getABGR(colorStr: string): number {
   const c = new THREE.Color(colorStr);
-  return (255 << 24) | (Math.round(c.b * 255) << 16) | (Math.round(c.g * 255) << 8) | Math.round(c.r * 255);
+  return (
+    (255 << 24) |
+    (Math.round(c.b * 255) << 16) |
+    (Math.round(c.g * 255) << 8) |
+    Math.round(c.r * 255)
+  );
 }
 
 export function createGlassTex(
@@ -47,19 +52,20 @@ export function createGlassTex(
     return textureCache.get(cacheKey)!;
   }
 
-  const w = cols * cellW, h = rows * cellH;
+  const w = cols * cellW,
+    h = rows * cellH;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
 
   const faceABGR = getABGR(faceColor);
-  
+
   const shellC = new THREE.Color(faceColor);
   shellC.multiplyScalar(1.8);
   const gridColorHex = "#" + shellC.getHexString();
   const gridABGR = getABGR(gridColorHex);
-  
+
   const offABGR = getABGR(offColor);
   const litABGRs = litColors.map(getABGR);
   const accentABGR = accentColor ? getABGR(accentColor) : 0;
@@ -91,10 +97,23 @@ export function createGlassTex(
       let isLogo = false;
       let nearLogo = false;
       if (logoBM && logoCol != null && logoRow != null) {
-        const lr = r - logoRow, lc = c - logoCol;
-        if (lr >= 0 && lr < logoBM.length && lc >= 0 && lc < logoBM[0].length && logoBM[lr][lc])
+        const lr = r - logoRow,
+          lc = c - logoCol;
+        if (
+          lr >= 0 &&
+          lr < logoBM.length &&
+          lc >= 0 &&
+          lc < logoBM[0].length &&
+          logoBM[lr][lc]
+        )
           isLogo = true;
-        if (!isLogo && lr >= -1 && lr <= logoBM.length && lc >= -1 && lc <= logoBM[0].length)
+        if (
+          !isLogo &&
+          lr >= -1 &&
+          lr <= logoBM.length &&
+          lc >= -1 &&
+          lc <= logoBM[0].length
+        )
           nearLogo = true;
       }
 
@@ -113,7 +132,7 @@ export function createGlassTex(
             buf32[rowOffset + x] = accentABGR;
           }
         }
-        
+
         const blendedAccent = blendColors(accentABGR, faceABGR, 0.3);
         const glowStartX = Math.max(0, c * cellW - 1);
         const glowStartY = Math.max(0, r * cellH - 1);
@@ -131,7 +150,7 @@ export function createGlassTex(
       } else if (nearLogo) {
         fillABGR = blendColors(offABGR, faceABGR, 0.25);
       } else {
-        const lit = (hash % 100) < 45;
+        const lit = hash % 100 < 45;
         if (lit) {
           const rawLit = litABGRs[hash % litABGRs.length];
           const opacity = 0.45 + (hash % 20) / 100;
@@ -166,16 +185,39 @@ export function createGlassTex(
 }
 
 // ─── Corner Accent Strips ───────────────────────────────────
-export function CornerStrips({ w, d, h, yC, accent }: {
-  w: number; d: number; h: number; yC: number; accent: string;
+export function CornerStrips({
+  w,
+  d,
+  h,
+  yC,
+  accent,
+}: {
+  w: number;
+  d: number;
+  h: number;
+  yC: number;
+  accent: string;
 }) {
-  const hw = w / 2, hd = d / 2;
+  const hw = w / 2,
+    hd = d / 2;
   return (
     <>
-      {([[hw, hd], [hw, -hd], [-hw, hd], [-hw, -hd]] as [number, number][]).map(([cx, cz], i) => (
+      {(
+        [
+          [hw, hd],
+          [hw, -hd],
+          [-hw, hd],
+          [-hw, -hd],
+        ] as [number, number][]
+      ).map(([cx, cz], i) => (
         <mesh key={i} position={[cx, yC, cz]}>
           <boxGeometry args={[0.6, h, 0.6]} />
-          <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={1.2} toneMapped={false} />
+          <meshStandardMaterial
+            color={accent}
+            emissive={accent}
+            emissiveIntensity={1.2}
+            toneMapped={false}
+          />
         </mesh>
       ))}
     </>
@@ -183,9 +225,20 @@ export function CornerStrips({ w, d, h, yC, accent }: {
 }
 
 // ─── Glass Facade Plane ─────────────────────────────────────
-export function GlassFacade({ tex, w, h, pos, rotY, emColor }: {
-  tex: THREE.Texture; w: number; h: number;
-  pos: [number, number, number]; rotY: number; emColor: string;
+export function GlassFacade({
+  tex,
+  w,
+  h,
+  pos,
+  rotY,
+  emColor,
+}: {
+  tex: THREE.Texture;
+  w: number;
+  h: number;
+  pos: [number, number, number];
+  rotY: number;
+  emColor: string;
 }) {
   return (
     <mesh position={pos} rotation={[0, rotY, 0]}>
@@ -203,66 +256,155 @@ export function GlassFacade({ tex, w, h, pos, rotY, emColor }: {
 }
 
 // ─── Complete Box Section with Facades ──────────────────────
-export function BoxSection({ w, h, d, y, shellColor, glassFront, glassSide, emColor, accent }: {
-  w: number; h: number; d: number; y: number;
-  shellColor: string; glassFront: THREE.Texture; glassSide: THREE.Texture;
-  emColor: string; accent: string;
+export function BoxSection({
+  w,
+  h,
+  d,
+  y,
+  shellColor,
+  glassFront,
+  glassSide,
+  emColor,
+  accent,
+}: {
+  w: number;
+  h: number;
+  d: number;
+  y: number;
+  shellColor: string;
+  glassFront: THREE.Texture;
+  glassSide: THREE.Texture;
+  emColor: string;
+  accent: string;
 }) {
   return (
     <group>
       <mesh position={[0, y, 0]}>
         <boxGeometry args={[w, h, d]} />
-        <meshStandardMaterial color={shellColor} roughness={0.25} metalness={0.8} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.25}
+          metalness={0.8}
+        />
       </mesh>
-      <GlassFacade tex={glassFront} w={w} h={h} pos={[0, y, d / 2 + 0.3]} rotY={0} emColor={emColor} />
-      <GlassFacade tex={glassFront} w={w} h={h} pos={[0, y, -d / 2 - 0.3]} rotY={Math.PI} emColor={emColor} />
-      <GlassFacade tex={glassSide} w={d} h={h} pos={[w / 2 + 0.3, y, 0]} rotY={Math.PI / 2} emColor={emColor} />
-      <GlassFacade tex={glassSide} w={d} h={h} pos={[-w / 2 - 0.3, y, 0]} rotY={-Math.PI / 2} emColor={emColor} />
+      <GlassFacade
+        tex={glassFront}
+        w={w}
+        h={h}
+        pos={[0, y, d / 2 + 0.3]}
+        rotY={0}
+        emColor={emColor}
+      />
+      <GlassFacade
+        tex={glassFront}
+        w={w}
+        h={h}
+        pos={[0, y, -d / 2 - 0.3]}
+        rotY={Math.PI}
+        emColor={emColor}
+      />
+      <GlassFacade
+        tex={glassSide}
+        w={d}
+        h={h}
+        pos={[w / 2 + 0.3, y, 0]}
+        rotY={Math.PI / 2}
+        emColor={emColor}
+      />
+      <GlassFacade
+        tex={glassSide}
+        w={d}
+        h={h}
+        pos={[-w / 2 - 0.3, y, 0]}
+        rotY={-Math.PI / 2}
+        emColor={emColor}
+      />
       <CornerStrips w={w} d={d} h={h} yC={y} accent={accent} />
     </group>
   );
 }
 
 // ─── Accent Separator Band ──────────────────────────────────
-export function AccentBand({ w, d, y, accent }: {
-  w: number; d: number; y: number; accent: string;
+export function AccentBand({
+  w,
+  d,
+  y,
+  accent,
+}: {
+  w: number;
+  d: number;
+  y: number;
+  accent: string;
 }) {
   return (
     <mesh position={[0, y, 0]}>
       <boxGeometry args={[w + 2, 1.5, d + 2]} />
-      <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.8} toneMapped={false} />
+      <meshStandardMaterial
+        color={accent}
+        emissive={accent}
+        emissiveIntensity={0.8}
+        toneMapped={false}
+      />
     </mesh>
   );
 }
 
 // ─── Platform Base ──────────────────────────────────────────
-export function PlatformBase({ w, d, accent, shellColor }: {
-  w: number; d: number; accent: string; shellColor: string;
+export function PlatformBase({
+  w,
+  d,
+  accent,
+  shellColor,
+}: {
+  w: number;
+  d: number;
+  accent: string;
+  shellColor: string;
 }) {
   return (
     <group>
       <mesh position={[0, 1.5, 0]}>
         <boxGeometry args={[w + 20, 3, d + 20]} />
-        <meshStandardMaterial color={shellColor} roughness={0.4} metalness={0.5} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.4}
+          metalness={0.5}
+        />
       </mesh>
       <mesh position={[0, 3.5, 0]}>
         <boxGeometry args={[w + 22, 1, d + 22]} />
-        <meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={0.5} toneMapped={false} />
+        <meshStandardMaterial
+          color={accent}
+          emissive={accent}
+          emissiveIntensity={0.5}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
 }
 
 // ─── Antenna + Beacon ───────────────────────────────────────
-export function AntennaBeacon({ y, accent, shellColor, beaconRef }: {
-  y: number; accent: string; shellColor: string;
+export function AntennaBeacon({
+  y,
+  accent,
+  shellColor,
+  beaconRef,
+}: {
+  y: number;
+  accent: string;
+  shellColor: string;
   beaconRef?: React.RefObject<THREE.Mesh | null>;
 }) {
   return (
     <group>
       <mesh position={[0, y, 0]}>
         <cylinderGeometry args={[0.5, 1.5, 42, 4]} />
-        <meshStandardMaterial color={shellColor} roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
       <mesh ref={beaconRef} position={[0, y + 28, 0]}>
         <sphereGeometry args={[2.5, 8, 8]} />
@@ -275,7 +417,13 @@ export function AntennaBeacon({ y, accent, shellColor, beaconRef }: {
           opacity={0.85}
         />
       </mesh>
-      <pointLight position={[0, y + 28, 0]} color={accent} intensity={20} distance={100} decay={2} />
+      <pointLight
+        position={[0, y + 28, 0]}
+        color={accent}
+        intensity={20}
+        distance={100}
+        decay={2}
+      />
     </group>
   );
 }

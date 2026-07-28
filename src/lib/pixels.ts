@@ -15,7 +15,14 @@ export async function getBalance(developerId: number): Promise<WalletBalance> {
     .eq("developer_id", developerId)
     .maybeSingle();
 
-  return data ?? { balance: 0, lifetime_earned: 0, lifetime_bought: 0, lifetime_spent: 0 };
+  return (
+    data ?? {
+      balance: 0,
+      lifetime_earned: 0,
+      lifetime_bought: 0,
+      lifetime_spent: 0,
+    }
+  );
 }
 
 export async function earnPixels(

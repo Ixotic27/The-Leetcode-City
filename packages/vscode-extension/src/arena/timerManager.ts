@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 
 const BASE_LIMITS: Record<string, number> = {
-  easy: 15 * 60 * 1000,    // 15 minutes
-  medium: 30 * 60 * 1000,  // 30 minutes
-  hard: 60 * 60 * 1000,    // 60 minutes
+  easy: 15 * 60 * 1000, // 15 minutes
+  medium: 30 * 60 * 1000, // 30 minutes
+  hard: 60 * 60 * 1000, // 60 minutes
 };
 
 export interface TimerState {
@@ -26,7 +26,7 @@ export class TimerManager {
   public startTimer(
     challengeId: string,
     difficulty: string,
-    onTick: (timeLeftMs: number) => void
+    onTick: (timeLeftMs: number) => void,
   ): TimerState {
     this.stopTimer();
 
@@ -46,7 +46,9 @@ export class TimerManager {
   }
 
   public getActiveTimer(): TimerState | undefined {
-    return this.context.workspaceState.get<TimerState>(TimerManager.STORAGE_KEY);
+    return this.context.workspaceState.get<TimerState>(
+      TimerManager.STORAGE_KEY,
+    );
   }
 
   public clearTimer(): void {
@@ -57,7 +59,7 @@ export class TimerManager {
   public getRemainingTimeMs(): number {
     const state = this.getActiveTimer();
     if (!state) return 0;
-    
+
     const elapsed = Date.now() - state.startTime;
     const remaining = state.durationMs - elapsed;
     return Math.max(0, remaining);

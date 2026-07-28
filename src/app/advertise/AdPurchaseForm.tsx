@@ -2,10 +2,21 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { SKY_AD_PLANS, getPriceCents, getFullPriceCents, formatPrice, PROMO_DISCOUNT, PROMO_LABEL, type SkyAdPlanId, type AdCurrency } from "@/lib/skyAdPlans";
+import {
+  SKY_AD_PLANS,
+  getPriceCents,
+  getFullPriceCents,
+  formatPrice,
+  PROMO_DISCOUNT,
+  PROMO_LABEL,
+  type SkyAdPlanId,
+  type AdCurrency,
+} from "@/lib/skyAdPlans";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 
-const AdPreview = dynamic(() => import("@/components/AdPreview"), { ssr: false });
+const AdPreview = dynamic(() => import("@/components/AdPreview"), {
+  ssr: false,
+});
 
 const ACCENT = "#ffa116";
 const SHADOW = "#b25e00";
@@ -26,7 +37,8 @@ function getPlanId(vehicle: Vehicle, duration: Duration): SkyAdPlanId {
 }
 
 function detectLocale(): { currency: AdCurrency; isBrazil: boolean } {
-  if (typeof navigator === "undefined") return { currency: "usd", isBrazil: false };
+  if (typeof navigator === "undefined")
+    return { currency: "usd", isBrazil: false };
   const lang = navigator.language || "";
   const isBrazil = lang.startsWith("pt");
   return { currency: isBrazil ? "brl" : "usd", isBrazil };
@@ -44,7 +56,11 @@ export function AdPurchaseForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isBrazil, setIsBrazil] = useState(false);
-  const [pixData, setPixData] = useState<{ brCode: string; brCodeBase64: string; trackingToken: string } | null>(null);
+  const [pixData, setPixData] = useState<{
+    brCode: string;
+    brCodeBase64: string;
+    trackingToken: string;
+  } | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
   const [pixCountdown, setPixCountdown] = useState(PIX_EXPIRY_SECONDS);
   const [pixPaid, setPixPaid] = useState(false);
@@ -89,13 +105,23 @@ export function AdPurchaseForm() {
           window.location.href = `/advertise/setup/${token}`;
         }
       }
-    } catch (err) { console.warn("[app/advertise/AdPurchaseForm.tsx] non-critical error:", err); }
+    } catch (err) {
+      console.warn(
+        "[app/advertise/AdPurchaseForm.tsx] non-critical error:",
+        err,
+      );
+    }
   }, []);
 
   useEffect(() => {
     if (!pixData || pixPaid) return;
-    pollRef.current = setInterval(() => checkAdPaid(pixData.trackingToken), 5000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    pollRef.current = setInterval(
+      () => checkAdPaid(pixData.trackingToken),
+      5000,
+    );
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [pixData, pixPaid, checkAdPaid]);
 
   const planId = getPlanId(vehicle, duration);
@@ -118,7 +144,10 @@ export function AdPurchaseForm() {
     bgColorValid &&
     !loading;
 
-  async function handleSubmit(provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree" = "cashfree", phoneVal?: string) {
+  async function handleSubmit(
+    provider: "stripe" | "abacatepay" | "nowpayments" | "cashfree" = "cashfree",
+    phoneVal?: string,
+  ) {
     if (!canSubmit) return;
 
     if (provider === "cashfree" && !phoneVal) {
@@ -143,7 +172,9 @@ export function AdPurchaseForm() {
           currency,
           provider,
           phone: phoneVal,
-          dev_mode: typeof window !== "undefined" && localStorage.getItem("leetcodecity:dev_mode") === "true",
+          dev_mode:
+            typeof window !== "undefined" &&
+            localStorage.getItem("leetcodecity:dev_mode") === "true",
         }),
       });
       const data = await res.json();
@@ -156,9 +187,14 @@ export function AdPurchaseForm() {
         // Cashfree
         try {
           const { load } = await import("@cashfreepayments/cashfree-js");
-          const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
-          const cashfreeEnv = envMode === "PRODUCTION" ? "production" : "sandbox";
-          const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
+          const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX")
+            .replace(/['"]/g, "")
+            .trim();
+          const cashfreeEnv =
+            envMode === "PRODUCTION" ? "production" : "sandbox";
+          const cashfree = await load({
+            mode: cashfreeEnv as "sandbox" | "production",
+          });
           const result = await cashfree.checkout({
             paymentSessionId: data.paymentSessionId,
             redirectTarget: "_self",
@@ -215,13 +251,14 @@ export function AdPurchaseForm() {
 
       {/* ── Control Panel ── */}
       <div className="mt-4 border-[3px] border-border p-4 sm:p-5">
-
         {/* Row 1: Format selector */}
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[10px] text-muted normal-case">Format</p>
             <p className="text-[9px] text-dim normal-case">
-              {isSky ? "flies across the entire city skyline" : "mounted on the tallest buildings (top contributors)"}
+              {isSky
+                ? "flies across the entire city skyline"
+                : "mounted on the tallest buildings (top contributors)"}
             </p>
           </div>
           <div className="flex gap-1.5">
@@ -232,14 +269,18 @@ export function AdPurchaseForm() {
                 onClick={() => setVehicle(v.id)}
                 className="flex flex-1 flex-col items-center gap-1 border-[3px] px-1 py-2.5 text-center transition-colors"
                 style={{
-                  borderColor: vehicle === v.id ? ACCENT : "var(--color-border)",
-                  backgroundColor: vehicle === v.id ? `${ACCENT}10` : "transparent",
+                  borderColor:
+                    vehicle === v.id ? ACCENT : "var(--color-border)",
+                  backgroundColor:
+                    vehicle === v.id ? `${ACCENT}10` : "transparent",
                 }}
               >
                 <span className="text-sm">{v.icon}</span>
                 <span
                   className="text-[8px] normal-case leading-tight"
-                  style={{ color: vehicle === v.id ? ACCENT : "var(--color-muted)" }}
+                  style={{
+                    color: vehicle === v.id ? ACCENT : "var(--color-muted)",
+                  }}
                 >
                   {v.name}
                 </span>
@@ -358,7 +399,11 @@ export function AdPurchaseForm() {
           {error && (
             <div
               className="mb-3 border-[3px] px-4 py-3 text-center text-xs normal-case"
-              style={{ borderColor: "#ff6b6b", color: "#ff6b6b", backgroundColor: "#ff6b6b10" }}
+              style={{
+                borderColor: "#ff6b6b",
+                color: "#ff6b6b",
+                backgroundColor: "#ff6b6b10",
+              }}
             >
               {error}
             </div>
@@ -370,8 +415,15 @@ export function AdPurchaseForm() {
                 <p className="text-xs" style={{ color: ACCENT }}>
                   PIX Payment
                 </p>
-                <p className="text-[9px] normal-case" style={{ color: pixCountdown < 120 ? "#ff6b6b" : "var(--color-muted)" }}>
-                  {Math.floor(pixCountdown / 60)}:{String(pixCountdown % 60).padStart(2, "0")}
+                <p
+                  className="text-[9px] normal-case"
+                  style={{
+                    color:
+                      pixCountdown < 120 ? "#ff6b6b" : "var(--color-muted)",
+                  }}
+                >
+                  {Math.floor(pixCountdown / 60)}:
+                  {String(pixCountdown % 60).padStart(2, "0")}
                 </p>
               </div>
               {pixData.brCodeBase64 && (
@@ -385,7 +437,9 @@ export function AdPurchaseForm() {
                 </div>
               )}
               <div className="mb-3">
-                <p className="mb-1 text-[8px] text-muted normal-case">PIX code (copy & paste):</p>
+                <p className="mb-1 text-[8px] text-muted normal-case">
+                  PIX code (copy & paste):
+                </p>
                 <div className="flex gap-1">
                   <input
                     readOnly
@@ -406,7 +460,9 @@ export function AdPurchaseForm() {
                 </div>
               </div>
               <p className="text-center text-[9px] text-muted normal-case">
-                {pixPaid ? "Payment confirmed! Redirecting..." : "Waiting for payment... You'll be redirected automatically."}
+                {pixPaid
+                  ? "Payment confirmed! Redirecting..."
+                  : "Waiting for payment... You'll be redirected automatically."}
               </p>
             </div>
           ) : (
@@ -421,7 +477,9 @@ export function AdPurchaseForm() {
                   boxShadow: "4px 4px 0 0 #4a2882",
                 }}
               >
-                {loading ? "Opening UPI..." : `Pay with UPI ₹ (${Math.round((getPriceCents(planId, "usd") / 100) * 85)})`}
+                {loading
+                  ? "Opening UPI..."
+                  : `Pay with UPI ₹ (${Math.round((getPriceCents(planId, "usd") / 100) * 85)})`}
               </button>
               <button
                 type="button"
@@ -430,11 +488,12 @@ export function AdPurchaseForm() {
               >
                 Crypto (Coming Soon)
               </button>
-              {typeof window !== "undefined" && localStorage.getItem("leetcodecity:dev_mode") === "true" && (
-                <p className="mt-1 text-center text-[10px] font-bold animate-pulse text-green-400">
-                  DEV MODE: FREE BYPASS ACTIVE
-                </p>
-              )}
+              {typeof window !== "undefined" &&
+                localStorage.getItem("leetcodecity:dev_mode") === "true" && (
+                  <p className="mt-1 text-center text-[10px] font-bold animate-pulse text-green-400">
+                    DEV MODE: FREE BYPASS ACTIVE
+                  </p>
+                )}
               <p className="mt-1 text-center text-[9px] text-muted normal-case">
                 Secure checkout via Cashfree. No account needed.
               </p>
@@ -457,7 +516,8 @@ export function AdPurchaseForm() {
               Payment Information
             </h3>
             <p className="mb-4 text-[9px] text-muted normal-case leading-relaxed">
-              Cashfree requires a valid 10-digit phone number to process UPI, Card, and Netbanking payments.
+              Cashfree requires a valid 10-digit phone number to process UPI,
+              Card, and Netbanking payments.
             </p>
             <div className="mb-4 flex flex-col gap-1.5">
               <label className="text-[9px] text-muted normal-case font-bold">
@@ -480,7 +540,9 @@ export function AdPurchaseForm() {
                 }}
               />
               {phoneInputError && (
-                <p className="text-[9px] text-red-400 normal-case mt-0.5">{phoneInputError}</p>
+                <p className="text-[9px] text-red-400 normal-case mt-0.5">
+                  {phoneInputError}
+                </p>
               )}
             </div>
             <div className="flex gap-2">

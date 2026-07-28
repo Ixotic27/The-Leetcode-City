@@ -3,14 +3,22 @@
 import { useState, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import type { RaidPreviewResponse, RaidBoostItem, RaidOffensiveItem } from "@/lib/raid";
+import type {
+  RaidPreviewResponse,
+  RaidBoostItem,
+  RaidOffensiveItem,
+} from "@/lib/raid";
 import { VehicleMesh } from "@/components/RaidSequence3D";
 
 interface Props {
   preview: RaidPreviewResponse;
   loading: boolean;
   error: string | null;
-  onRaid: (boostPurchaseId?: number, vehicleId?: string, offensiveItemId?: string) => void;
+  onRaid: (
+    boostPurchaseId?: number,
+    vehicleId?: string,
+    offensiveItemId?: string,
+  ) => void;
   onCancel: () => void;
 }
 
@@ -34,7 +42,9 @@ function StrengthBar({
   const config = ESTIMATE_CONFIG[estimate];
   return (
     <div className="flex flex-col items-center gap-1">
-      <span className="text-[9px] uppercase tracking-wider text-muted">{label}</span>
+      <span className="text-[9px] uppercase tracking-wider text-muted">
+        {label}
+      </span>
       <div className="flex gap-1">
         {[1, 2, 3].map((i) => (
           <div
@@ -47,16 +57,19 @@ function StrengthBar({
           />
         ))}
       </div>
-      <span className="text-sm font-bold tabular-nums" style={{ color: config.color }}>
+      <span
+        className="text-sm font-bold tabular-nums"
+        style={{ color: config.color }}
+      >
         {score}
       </span>
       <div className="flex flex-col items-center gap-0.5 text-[8px] text-muted/70">
         {breakdown.commits > 0 && <span>commits {breakdown.commits}</span>}
         {breakdown.streak > 0 && <span>streak {breakdown.streak}</span>}
         {breakdown.kudos > 0 && <span>kudos {breakdown.kudos}</span>}
-        {breakdown.commits === 0 && breakdown.streak === 0 && breakdown.kudos === 0 && (
-          <span>no stats</span>
-        )}
+        {breakdown.commits === 0 &&
+          breakdown.streak === 0 &&
+          breakdown.kudos === 0 && <span>no stats</span>}
       </div>
     </div>
   );
@@ -74,9 +87,20 @@ function SpinningVehicle({ type }: { type: string }) {
   );
 }
 
-const OFFENSIVE_ITEM_META: Record<string, { name: string; emoji: string; desc: string }> = {
-  emp_device: { name: "EMP Device", emoji: "⚡", desc: "Neutralizes defender's active item" },
-  sabotage_virus: { name: "Sabotage Virus", emoji: "🦠", desc: "Cuts defender's base defense by 30%" },
+const OFFENSIVE_ITEM_META: Record<
+  string,
+  { name: string; emoji: string; desc: string }
+> = {
+  emp_device: {
+    name: "EMP Device",
+    emoji: "⚡",
+    desc: "Neutralizes defender's active item",
+  },
+  sabotage_virus: {
+    name: "Sabotage Virus",
+    emoji: "🦠",
+    desc: "Cuts defender's base defense by 30%",
+  },
 };
 
 const VEHICLE_TYPE_MAP: Record<string, "air" | "ground"> = {
@@ -89,10 +113,20 @@ const VEHICLE_TYPE_MAP: Record<string, "air" | "ground"> = {
   vehicle_tank: "ground",
 };
 
-export default function RaidPreviewModal({ preview, loading, error, onRaid, onCancel }: Props) {
-  const [selectedBoost, setSelectedBoost] = useState<RaidBoostItem | null>(null);
+export default function RaidPreviewModal({
+  preview,
+  loading,
+  error,
+  onRaid,
+  onCancel,
+}: Props) {
+  const [selectedBoost, setSelectedBoost] = useState<RaidBoostItem | null>(
+    null,
+  );
   const [selectedVehicle, setSelectedVehicle] = useState(preview.vehicle);
-  const [selectedOffensiveItem, setSelectedOffensiveItem] = useState<string | null>(null);
+  const [selectedOffensiveItem, setSelectedOffensiveItem] = useState<
+    string | null
+  >(null);
 
   const attackType = VEHICLE_TYPE_MAP[selectedVehicle] ?? "air";
   const defenseType = preview.defender_defense_type;
@@ -101,17 +135,35 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
   let matchupAdvisory: { text: string; color: string } | null = null;
   if (preview.defender_scouted_defense && defenseType) {
     if (defenseType === "air" && attackType === "air") {
-      matchupAdvisory = { text: "⚠️ Anti-Air system detected — switch to Tank or use EMP!", color: "#ff8800" };
+      matchupAdvisory = {
+        text: "⚠️ Anti-Air system detected — switch to Tank or use EMP!",
+        color: "#ff8800",
+      };
     } else if (defenseType === "air" && attackType === "ground") {
-      matchupAdvisory = { text: "✅ Ground attack bypasses their Anti-Air!", color: "#44ff44" };
+      matchupAdvisory = {
+        text: "✅ Ground attack bypasses their Anti-Air!",
+        color: "#44ff44",
+      };
     } else if (defenseType === "ground" && attackType === "ground") {
-      matchupAdvisory = { text: "⚠️ Anti-Tank mines detected — use an Air vehicle or EMP!", color: "#ff8800" };
+      matchupAdvisory = {
+        text: "⚠️ Anti-Tank mines detected — use an Air vehicle or EMP!",
+        color: "#ff8800",
+      };
     } else if (defenseType === "ground" && attackType === "air") {
-      matchupAdvisory = { text: "✅ Air attack bypasses their Anti-Tank mines!", color: "#44ff44" };
+      matchupAdvisory = {
+        text: "✅ Air attack bypasses their Anti-Tank mines!",
+        color: "#44ff44",
+      };
     } else if (defenseType === "all") {
-      matchupAdvisory = { text: "⚡ Faraday Cage active — reduces your final score by 20%. Use EMP to neutralize!", color: "#ff8800" };
+      matchupAdvisory = {
+        text: "⚡ Faraday Cage active — reduces your final score by 20%. Use EMP to neutralize!",
+        color: "#ff8800",
+      };
     } else if (defenseType === "stealth") {
-      matchupAdvisory = { text: "🕵️ Hologram Cloak active — stats are hidden and your combo is reduced. Proceed anyway?", color: "#aaaaff" };
+      matchupAdvisory = {
+        text: "🕵️ Hologram Cloak active — stats are hidden and your combo is reduced. Proceed anyway?",
+        color: "#aaaaff",
+      };
     }
   }
 
@@ -139,15 +191,23 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
             <SpinningVehicle type={selectedVehicle} />
           </Canvas>
           <p className="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-wider text-muted/70">
-            {preview.available_vehicles.find((v) => v.item_id === selectedVehicle)?.name ?? selectedVehicle}
+            {preview.available_vehicles.find(
+              (v) => v.item_id === selectedVehicle,
+            )?.name ?? selectedVehicle}
           </p>
           {/* Attack type badge */}
           <span
             className="absolute top-1.5 right-1.5 px-1.5 py-0.5 text-[8px] font-bold border"
             style={{
-              backgroundColor: attackType === "air" ? "rgba(100,150,255,0.2)" : "rgba(180,120,60,0.2)",
+              backgroundColor:
+                attackType === "air"
+                  ? "rgba(100,150,255,0.2)"
+                  : "rgba(180,120,60,0.2)",
               color: attackType === "air" ? "#88aaff" : "#cc8844",
-              borderColor: attackType === "air" ? "rgba(100,150,255,0.4)" : "rgba(180,120,60,0.4)",
+              borderColor:
+                attackType === "air"
+                  ? "rgba(100,150,255,0.4)"
+                  : "rgba(180,120,60,0.4)",
             }}
           >
             {attackType === "air" ? "✈️ AIR" : "🏗 GROUND"}
@@ -157,7 +217,9 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
         {/* Vehicle Selector */}
         {preview.available_vehicles.length > 1 && (
           <div className="mb-4">
-            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">Vehicle</p>
+            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">
+              Vehicle
+            </p>
             <div className="flex gap-2 flex-wrap">
               {preview.available_vehicles.map((v) => (
                 <button
@@ -179,21 +241,29 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
         {/* Scouted Defense Panel */}
         {preview.defender_scouted_defense ? (
           <div className="mb-4 border border-yellow-500/30 bg-yellow-500/5 p-3">
-            <p className="mb-1 text-[9px] uppercase tracking-wider" style={{ color: "#ffcc44" }}>
+            <p
+              className="mb-1 text-[9px] uppercase tracking-wider"
+              style={{ color: "#ffcc44" }}
+            >
               🔍 Scouted Defense
             </p>
             <p className="text-[10px] text-cream capitalize">
               {preview.defender_scouted_defense.replace(/_/g, " ")}
             </p>
             {matchupAdvisory && (
-              <p className="mt-1.5 text-[9px] normal-case" style={{ color: matchupAdvisory.color }}>
+              <p
+                className="mt-1.5 text-[9px] normal-case"
+                style={{ color: matchupAdvisory.color }}
+              >
                 {matchupAdvisory.text}
               </p>
             )}
           </div>
         ) : (
           <div className="mb-4 border border-cream/10 bg-black/20 p-3 text-center">
-            <p className="text-[9px] text-muted/60">🔍 No active defense detected</p>
+            <p className="text-[9px] text-muted/60">
+              🔍 No active defense detected
+            </p>
           </div>
         )}
 
@@ -236,10 +306,16 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
               </p>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[9px] uppercase tracking-wider text-muted">Defense</span>
+              <span className="text-[9px] uppercase tracking-wider text-muted">
+                Defense
+              </span>
               <div className="flex gap-1">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-4 w-3" style={{ backgroundColor: "#333", opacity: 0.3 }} />
+                  <div
+                    key={i}
+                    className="h-4 w-3"
+                    style={{ backgroundColor: "#333", opacity: 0.3 }}
+                  />
                 ))}
               </div>
               <span className="text-sm font-bold text-muted/50">???</span>
@@ -250,7 +326,9 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
         {/* Offensive Items Selector */}
         {preview.available_offensive_items.length > 0 && (
           <div className="mb-4">
-            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">⚔️ Offensive Item (optional)</p>
+            <p className="mb-1.5 text-[10px] uppercase tracking-wider text-muted">
+              ⚔️ Offensive Item (optional)
+            </p>
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setSelectedOffensiveItem(null)}
@@ -262,30 +340,42 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
               >
                 None
               </button>
-              {preview.available_offensive_items.map((item: RaidOffensiveItem) => {
-                const meta = OFFENSIVE_ITEM_META[item.item_id];
-                return (
-                  <button
-                    key={item.item_id}
-                    onClick={() => setSelectedOffensiveItem(selectedOffensiveItem === item.item_id ? null : item.item_id)}
-                    title={meta?.desc}
-                    className={`flex-1 border px-2 py-1.5 text-[10px] transition-colors ${
-                      selectedOffensiveItem === item.item_id
-                        ? "border-orange-400/60 bg-orange-500/10 text-orange-300"
-                        : "border-cream/10 text-muted hover:border-orange-400/30"
-                    }`}
-                  >
-                    {meta?.emoji} {meta?.name}<br />
-                    <span className="text-[8px] opacity-60">x{item.uses_left_this_week}/wk left</span>
-                  </button>
-                );
-              })}
+              {preview.available_offensive_items.map(
+                (item: RaidOffensiveItem) => {
+                  const meta = OFFENSIVE_ITEM_META[item.item_id];
+                  return (
+                    <button
+                      key={item.item_id}
+                      onClick={() =>
+                        setSelectedOffensiveItem(
+                          selectedOffensiveItem === item.item_id
+                            ? null
+                            : item.item_id,
+                        )
+                      }
+                      title={meta?.desc}
+                      className={`flex-1 border px-2 py-1.5 text-[10px] transition-colors ${
+                        selectedOffensiveItem === item.item_id
+                          ? "border-orange-400/60 bg-orange-500/10 text-orange-300"
+                          : "border-cream/10 text-muted hover:border-orange-400/30"
+                      }`}
+                    >
+                      {meta?.emoji} {meta?.name}
+                      <br />
+                      <span className="text-[8px] opacity-60">
+                        x{item.uses_left_this_week}/wk left
+                      </span>
+                    </button>
+                  );
+                },
+              )}
             </div>
-            {selectedOffensiveItem && OFFENSIVE_ITEM_META[selectedOffensiveItem] && (
-              <p className="mt-1.5 text-[9px] normal-case text-orange-300/80">
-                {OFFENSIVE_ITEM_META[selectedOffensiveItem].desc}
-              </p>
-            )}
+            {selectedOffensiveItem &&
+              OFFENSIVE_ITEM_META[selectedOffensiveItem] && (
+                <p className="mt-1.5 text-[9px] normal-case text-orange-300/80">
+                  {OFFENSIVE_ITEM_META[selectedOffensiveItem].desc}
+                </p>
+              )}
           </div>
         )}
 
@@ -339,11 +429,19 @@ export default function RaidPreviewModal({ preview, loading, error, onRaid, onCa
             Cancel
           </button>
           <button
-            onClick={() => onRaid(selectedBoost?.purchase_id, selectedVehicle, selectedOffensiveItem ?? undefined)}
+            onClick={() =>
+              onRaid(
+                selectedBoost?.purchase_id,
+                selectedVehicle,
+                selectedOffensiveItem ?? undefined,
+              )
+            }
             disabled={loading}
             className="btn-press flex-1 border-[2px] border-red-500/60 px-3 py-2 text-xs font-bold text-red-400 transition-all hover:bg-red-500/10 disabled:opacity-50"
             style={{
-              animation: loading ? "none" : "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              animation: loading
+                ? "none"
+                : "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
             }}
           >
             {loading ? "BATTLING..." : "BATTLE"}

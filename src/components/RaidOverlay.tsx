@@ -11,7 +11,13 @@ interface Props {
   onExit: () => void;
 }
 
-function AnimatedScore({ target, duration = 1200 }: { target: number; duration?: number }) {
+function AnimatedScore({
+  target,
+  duration = 1200,
+}: {
+  target: number;
+  duration?: number;
+}) {
   const [value, setValue] = useState(0);
   const startRef = useRef<number | null>(null);
   const frameRef = useRef<number | null>(null);
@@ -54,14 +60,30 @@ function AnimatedScore({ target, duration = 1200 }: { target: number; duration?:
   return <span>{value}</span>;
 }
 
-export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) {
+export default function RaidOverlay({
+  phase,
+  raidData,
+  onSkip,
+  onExit,
+}: Props) {
   const [barsVisible, setBarsVisible] = useState(false);
   const [revealStep, setRevealStep] = useState(0);
-  const [flashPhase, setFlashPhase] = useState<"none" | "peak" | "fading">("none");
+  const [flashPhase, setFlashPhase] = useState<"none" | "peak" | "fading">(
+    "none",
+  );
 
   // Cinema bars shown during cinematic phases, retract on share
-  const showBars = phase !== "idle" && phase !== "preview" && phase !== "done" && phase !== "share";
-  const showText = phase === "intro" || phase === "flight" || phase === "attack" || phase === "outro_win" || phase === "outro_lose";
+  const showBars =
+    phase !== "idle" &&
+    phase !== "preview" &&
+    phase !== "done" &&
+    phase !== "share";
+  const showText =
+    phase === "intro" ||
+    phase === "flight" ||
+    phase === "attack" ||
+    phase === "outro_win" ||
+    phase === "outro_lose";
   const showScore = phase === "share";
 
   useEffect(() => {
@@ -167,7 +189,8 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
           className="fixed inset-0 z-[60] bg-white"
           style={{
             opacity: flashPhase === "peak" ? 0.9 : 0,
-            transition: flashPhase === "fading" ? "opacity 0.6s ease-out" : "none",
+            transition:
+              flashPhase === "fading" ? "opacity 0.6s ease-out" : "none",
           }}
         />
       )}
@@ -223,12 +246,14 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
               style={{
                 opacity: revealStep >= 2 ? 1 : 0,
                 transform: `scale(${revealStep >= 2 ? 1 : 1.5})`,
-                transition: "opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                transition:
+                  "opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               <h1
-                className={`font-silkscreen text-center text-4xl tracking-wider drop-shadow-lg md:text-6xl ${isWin ? "text-red-400" : "text-blue-400"
-                  }`}
+                className={`font-silkscreen text-center text-4xl tracking-wider drop-shadow-lg md:text-6xl ${
+                  isWin ? "text-red-400" : "text-blue-400"
+                }`}
               >
                 {isWin ? "CONQUERED" : "DEFENDED"}
               </h1>
@@ -245,11 +270,14 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
               style={{
                 opacity: revealStep >= 3 ? 1 : 0,
                 transform: `translateY(${revealStep >= 3 ? "0" : "20px"})`,
-                transition: "opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+                transition:
+                  "opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               <div className="text-center">
-                <p className="text-[9px] uppercase tracking-wider text-muted/60">Attack</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted/60">
+                  Attack
+                </p>
                 <p className="font-silkscreen text-5xl text-red-400 md:text-7xl">
                   <AnimatedScore target={raidData.attack_score} />
                 </p>
@@ -257,15 +285,25 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
                   <p>{raidData.attack_breakdown.commits} commits</p>
                   <p>{raidData.attack_breakdown.streak} streak</p>
                   <p>{raidData.attack_breakdown.kudos} kudos</p>
-                  {raidData.attack_breakdown.boost ? <p>{raidData.attack_breakdown.boost} boost</p> : null}
-                  {raidData.attack_breakdown.vehicle_bonus ? <p>{raidData.attack_breakdown.vehicle_bonus} vehicle bonus</p> : null}
+                  {raidData.attack_breakdown.boost ? (
+                    <p>{raidData.attack_breakdown.boost} boost</p>
+                  ) : null}
+                  {raidData.attack_breakdown.vehicle_bonus ? (
+                    <p>
+                      {raidData.attack_breakdown.vehicle_bonus} vehicle bonus
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
-              <span className="font-silkscreen text-2xl text-muted/40 md:text-3xl">vs</span>
+              <span className="font-silkscreen text-2xl text-muted/40 md:text-3xl">
+                vs
+              </span>
 
               <div className="text-center">
-                <p className="text-[9px] uppercase tracking-wider text-muted/60">Defense</p>
+                <p className="text-[9px] uppercase tracking-wider text-muted/60">
+                  Defense
+                </p>
                 <p className="font-silkscreen text-5xl text-blue-400 md:text-7xl">
                   <AnimatedScore target={raidData.defense_score} />
                 </p>
@@ -283,7 +321,8 @@ export default function RaidOverlay({ phase, raidData, onSkip, onExit }: Props) 
               style={{
                 opacity: revealStep >= 4 ? 1 : 0,
                 transform: `translateY(${revealStep >= 4 ? "0" : "15px"})`,
-                transition: "opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+                transition:
+                  "opacity 0.5s ease-out, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
               }}
             >
               {/* XP earned */}

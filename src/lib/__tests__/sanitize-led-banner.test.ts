@@ -9,11 +9,15 @@ describe("sanitizeLedBannerText", () => {
   });
 
   it("preserves emoji (valid unicode scalar values)", () => {
-    expect(sanitizeLedBannerText("LeetCode City 🔥🏙️")).toBe("LeetCode City 🔥🏙️");
+    expect(sanitizeLedBannerText("LeetCode City 🔥🏙️")).toBe(
+      "LeetCode City 🔥🏙️",
+    );
   });
 
   it("preserves accented and CJK characters", () => {
-    expect(sanitizeLedBannerText("café 東京 Ünïcödé")).toBe("café 東京 Ünïcödé");
+    expect(sanitizeLedBannerText("café 東京 Ünïcödé")).toBe(
+      "café 東京 Ünïcödé",
+    );
   });
 
   it("trims leading and trailing whitespace", () => {
@@ -21,7 +25,9 @@ describe("sanitizeLedBannerText", () => {
   });
 
   it("collapses internal whitespace runs to a single space", () => {
-    expect(sanitizeLedBannerText("hello    world\t\ttabs")).toBe("hello world tabs");
+    expect(sanitizeLedBannerText("hello    world\t\ttabs")).toBe(
+      "hello world tabs",
+    );
   });
 
   // ── Length enforcement ───────────────────────────────────────────────────────
@@ -41,11 +47,15 @@ describe("sanitizeLedBannerText", () => {
   // ── Control character stripping ──────────────────────────────────────────────
 
   it("strips C0 control characters (U+0000–001F)", () => {
-    expect(sanitizeLedBannerText("hel\u0000lo\u0001\u001Fworld")).toBe("helloworld");
+    expect(sanitizeLedBannerText("hel\u0000lo\u0001\u001Fworld")).toBe(
+      "helloworld",
+    );
   });
 
   it("strips DEL (U+007F) and C1 block (U+0080–009F)", () => {
-    expect(sanitizeLedBannerText("hel\u007Flo\u0080\u009Fworld")).toBe("helloworld");
+    expect(sanitizeLedBannerText("hel\u007Flo\u0080\u009Fworld")).toBe(
+      "helloworld",
+    );
   });
 
   it("strips null byte embedded in text", () => {
@@ -78,11 +88,14 @@ describe("sanitizeLedBannerText", () => {
 
   it("strips right-to-left override (U+202E)", () => {
     // Classic 'evil.exe' filename trick
-    expect(sanitizeLedBannerText("legit\u202Eignore.exe")).toBe("legitignore.exe");
+    expect(sanitizeLedBannerText("legit\u202Eignore.exe")).toBe(
+      "legitignore.exe",
+    );
   });
 
   it("strips all bidi embedding/override/isolate characters", () => {
-    const bidiChars = "\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069";
+    const bidiChars =
+      "\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069";
     expect(sanitizeLedBannerText(`a${bidiChars}b`)).toBe("ab");
   });
 
@@ -93,7 +106,9 @@ describe("sanitizeLedBannerText", () => {
   });
 
   it("strips inline event handler attributes in tags", () => {
-    expect(sanitizeLedBannerText('<img onerror="alert(1)">hello')).toBe("hello");
+    expect(sanitizeLedBannerText('<img onerror="alert(1)">hello')).toBe(
+      "hello",
+    );
   });
 
   it("strips partial/malformed tags", () => {

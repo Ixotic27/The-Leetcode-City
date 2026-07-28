@@ -81,65 +81,118 @@ function AirplaneMesh() {
       {/* Fuselage */}
       <mesh>
         <boxGeometry args={[1.2, 0.9, 5]} />
-        <meshStandardMaterial color="#e0e0e0" emissive="#aaa" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#e0e0e0"
+          emissive="#aaa"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Nose taper */}
       <mesh position={[0, 0, -3]}>
         <boxGeometry args={[0.8, 0.6, 1.2]} />
-        <meshStandardMaterial color="#ccc" emissive="#999" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#ccc"
+          emissive="#999"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Nose tip */}
       <mesh position={[0, 0, -3.7]}>
         <boxGeometry args={[0.5, 0.4, 0.5]} />
-        <meshStandardMaterial color="#bbb" emissive="#888" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#bbb"
+          emissive="#888"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Cockpit glass */}
       <mesh position={[0, 0.55, -1.2]}>
         <boxGeometry args={[0.7, 0.35, 1]} />
-        <meshStandardMaterial color="#3399dd" emissive="#2277bb" emissiveIntensity={0.8} />
+        <meshStandardMaterial
+          color="#3399dd"
+          emissive="#2277bb"
+          emissiveIntensity={0.8}
+        />
       </mesh>
       {/* Main wings */}
       <mesh position={[0, -0.1, 0]}>
         <boxGeometry args={[8, 0.12, 2]} />
-        <meshStandardMaterial color="#d8d8d8" emissive="#999" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#d8d8d8"
+          emissive="#999"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Wing tips */}
       <mesh position={[-4.2, 0.15, 0.3]}>
         <boxGeometry args={[0.6, 0.5, 0.8]} />
-        <meshStandardMaterial color="#cc4444" emissive="#993333" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#cc4444"
+          emissive="#993333"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       <mesh position={[4.2, 0.15, 0.3]}>
         <boxGeometry args={[0.6, 0.5, 0.8]} />
-        <meshStandardMaterial color="#cc4444" emissive="#993333" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#cc4444"
+          emissive="#993333"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Tail vertical stabilizer */}
       <mesh position={[0, 0.9, 2.4]}>
         <boxGeometry args={[0.12, 1.3, 1]} />
-        <meshStandardMaterial color="#cc4444" emissive="#993333" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#cc4444"
+          emissive="#993333"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Tail horizontal stabilizers */}
       <mesh position={[0, 0.35, 2.4]}>
         <boxGeometry args={[3, 0.1, 0.8]} />
-        <meshStandardMaterial color="#d8d8d8" emissive="#999" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#d8d8d8"
+          emissive="#999"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Propeller hub */}
       <mesh position={[0, 0, -4]}>
         <boxGeometry args={[0.3, 0.3, 0.2]} />
-        <meshStandardMaterial color="#555" emissive="#333" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#555"
+          emissive="#333"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Spinning propeller */}
       <group ref={propRef} position={[0, 0, -4.1]}>
         <mesh>
           <boxGeometry args={[3, 0.25, 0.06]} />
-          <meshStandardMaterial color="#666" emissive="#555" emissiveIntensity={0.4} />
+          <meshStandardMaterial
+            color="#666"
+            emissive="#555"
+            emissiveIntensity={0.4}
+          />
         </mesh>
         <mesh rotation={[0, 0, Math.PI / 2]}>
           <boxGeometry args={[3, 0.25, 0.06]} />
-          <meshStandardMaterial color="#666" emissive="#555" emissiveIntensity={0.4} />
+          <meshStandardMaterial
+            color="#666"
+            emissive="#555"
+            emissiveIntensity={0.4}
+          />
         </mesh>
       </group>
       {/* Engine glow */}
-      <pointLight position={[0, 0, 2.8]} color="#ff8844" intensity={3} distance={10} />
+      <pointLight
+        position={[0, 0, 2.8]}
+        color="#ff8844"
+        intensity={3}
+        distance={10}
+      />
     </group>
   );
 }
@@ -158,74 +211,134 @@ function HelicopterMesh() {
       {/* Body */}
       <mesh>
         <boxGeometry args={[1.8, 1.6, 4]} />
-        <meshStandardMaterial color="#556677" emissive="#334455" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#556677"
+          emissive="#334455"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Nose */}
       <mesh position={[0, -0.2, -2.3]}>
         <boxGeometry args={[1.4, 1, 1]} />
-        <meshStandardMaterial color="#4a5a6a" emissive="#334455" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#4a5a6a"
+          emissive="#334455"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Cockpit glass */}
       <mesh position={[0, 0.2, -2.5]}>
         <boxGeometry args={[1.2, 0.6, 0.6]} />
-        <meshStandardMaterial color="#44aadd" emissive="#3388bb" emissiveIntensity={0.8} />
+        <meshStandardMaterial
+          color="#44aadd"
+          emissive="#3388bb"
+          emissiveIntensity={0.8}
+        />
       </mesh>
       {/* Tail boom */}
       <mesh position={[0, 0.3, 3]}>
         <boxGeometry args={[0.5, 0.5, 2.5]} />
-        <meshStandardMaterial color="#445566" emissive="#334455" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#445566"
+          emissive="#334455"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Tail fin */}
       <mesh position={[0, 0.9, 4]}>
         <boxGeometry args={[0.1, 1, 0.6]} />
-        <meshStandardMaterial color="#cc5555" emissive="#993333" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#cc5555"
+          emissive="#993333"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Skids */}
       <mesh position={[-0.8, -1.2, 0]}>
         <boxGeometry args={[0.15, 0.15, 3.5]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       <mesh position={[0.8, -1.2, 0]}>
         <boxGeometry args={[0.15, 0.15, 3.5]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Skid struts */}
       <mesh position={[-0.8, -0.7, -0.8]}>
         <boxGeometry args={[0.12, 1, 0.12]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       <mesh position={[0.8, -0.7, -0.8]}>
         <boxGeometry args={[0.12, 1, 0.12]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       <mesh position={[-0.8, -0.7, 0.8]}>
         <boxGeometry args={[0.12, 1, 0.12]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       <mesh position={[0.8, -0.7, 0.8]}>
         <boxGeometry args={[0.12, 1, 0.12]} />
-        <meshStandardMaterial color="#444" emissive="#222" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#444"
+          emissive="#222"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Rotor mast */}
       <mesh position={[0, 1.1, 0]}>
         <boxGeometry args={[0.2, 0.5, 0.2]} />
-        <meshStandardMaterial color="#555" emissive="#333" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#555"
+          emissive="#333"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Main rotor */}
       <group ref={rotorRef} position={[0, 1.4, 0]}>
         <mesh>
           <boxGeometry args={[7, 0.08, 0.4]} />
-          <meshStandardMaterial color="#888" emissive="#666" emissiveIntensity={0.4} />
+          <meshStandardMaterial
+            color="#888"
+            emissive="#666"
+            emissiveIntensity={0.4}
+          />
         </mesh>
         <mesh rotation={[0, Math.PI / 2, 0]}>
           <boxGeometry args={[7, 0.08, 0.4]} />
-          <meshStandardMaterial color="#888" emissive="#666" emissiveIntensity={0.4} />
+          <meshStandardMaterial
+            color="#888"
+            emissive="#666"
+            emissiveIntensity={0.4}
+          />
         </mesh>
       </group>
       {/* Tail rotor */}
       <mesh ref={tailRotorRef} position={[0.3, 0.9, 4.1]}>
         <boxGeometry args={[0.06, 1.5, 0.06]} />
-        <meshStandardMaterial color="#888" emissive="#666" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#888"
+          emissive="#666"
+          emissiveIntensity={0.4}
+        />
       </mesh>
     </group>
   );
@@ -245,47 +358,85 @@ function DroneMesh() {
       {/* Center body */}
       <mesh>
         <boxGeometry args={[1.5, 0.4, 1.5]} />
-        <meshStandardMaterial color="#222" emissive="#111" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#222"
+          emissive="#111"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Camera eye */}
       <mesh position={[0, -0.25, -0.5]}>
         <boxGeometry args={[0.4, 0.2, 0.4]} />
-        <meshStandardMaterial color="#00ccff" emissive="#00aaff" emissiveIntensity={2} toneMapped={false} />
+        <meshStandardMaterial
+          color="#00ccff"
+          emissive="#00aaff"
+          emissiveIntensity={2}
+          toneMapped={false}
+        />
       </mesh>
       {/* Arms + motors + rotors */}
-      {([
-        [-1.8, 0, -1.8],
-        [1.8, 0, -1.8],
-        [-1.8, 0, 1.8],
-        [1.8, 0, 1.8],
-      ] as [number, number, number][]).map((pos, i) => (
+      {(
+        [
+          [-1.8, 0, -1.8],
+          [1.8, 0, -1.8],
+          [-1.8, 0, 1.8],
+          [1.8, 0, 1.8],
+        ] as [number, number, number][]
+      ).map((pos, i) => (
         <group key={i}>
           <mesh position={[pos[0] * 0.5, 0, pos[2] * 0.5]}>
-            <boxGeometry args={[
-              Math.abs(pos[0]) > 0 ? Math.abs(pos[0]) : 0.15,
-              0.15,
-              Math.abs(pos[2]) > 0 ? 0.15 : Math.abs(pos[2]),
-            ]} />
-            <meshStandardMaterial color="#333" emissive="#222" emissiveIntensity={0.4} />
+            <boxGeometry
+              args={[
+                Math.abs(pos[0]) > 0 ? Math.abs(pos[0]) : 0.15,
+                0.15,
+                Math.abs(pos[2]) > 0 ? 0.15 : Math.abs(pos[2]),
+              ]}
+            />
+            <meshStandardMaterial
+              color="#333"
+              emissive="#222"
+              emissiveIntensity={0.4}
+            />
           </mesh>
           <mesh position={pos}>
             <boxGeometry args={[0.5, 0.3, 0.5]} />
-            <meshStandardMaterial color="#333" emissive="#222" emissiveIntensity={0.4} />
+            <meshStandardMaterial
+              color="#333"
+              emissive="#222"
+              emissiveIntensity={0.4}
+            />
           </mesh>
           <group
             position={[pos[0], 0.2, pos[2]]}
-            ref={(el) => { if (el) rotorsRef.current[i] = el; }}
+            ref={(el) => {
+              if (el) rotorsRef.current[i] = el;
+            }}
           >
             <mesh>
               <boxGeometry args={[2, 0.05, 0.2]} />
-              <meshStandardMaterial color="#00ccff" emissive="#00aadd" emissiveIntensity={1.5} toneMapped={false} />
+              <meshStandardMaterial
+                color="#00ccff"
+                emissive="#00aadd"
+                emissiveIntensity={1.5}
+                toneMapped={false}
+              />
             </mesh>
             <mesh rotation={[0, Math.PI / 2, 0]}>
               <boxGeometry args={[2, 0.05, 0.2]} />
-              <meshStandardMaterial color="#00ccff" emissive="#00aadd" emissiveIntensity={1.5} toneMapped={false} />
+              <meshStandardMaterial
+                color="#00ccff"
+                emissive="#00aadd"
+                emissiveIntensity={1.5}
+                toneMapped={false}
+              />
             </mesh>
           </group>
-          <pointLight position={[pos[0], 0.3, pos[2]]} color="#00ccff" intensity={1} distance={5} />
+          <pointLight
+            position={[pos[0], 0.3, pos[2]]}
+            color="#00ccff"
+            intensity={1}
+            distance={5}
+          />
         </group>
       ))}
     </group>
@@ -297,8 +448,15 @@ function RocketMesh() {
 
   useFrame(({ clock }) => {
     if (flameRef.current) {
-      const flicker = 0.8 + Math.sin(clock.elapsedTime * 20) * 0.2 + Math.sin(clock.elapsedTime * 33) * 0.15;
-      flameRef.current.scale.set(flicker, flicker, 1 + Math.sin(clock.elapsedTime * 15) * 0.3);
+      const flicker =
+        0.8 +
+        Math.sin(clock.elapsedTime * 20) * 0.2 +
+        Math.sin(clock.elapsedTime * 33) * 0.15;
+      flameRef.current.scale.set(
+        flicker,
+        flicker,
+        1 + Math.sin(clock.elapsedTime * 15) * 0.3,
+      );
     }
   });
 
@@ -307,42 +465,78 @@ function RocketMesh() {
       {/* Nose cone */}
       <mesh position={[0, 0, -3]} rotation={[-Math.PI / 2, 0, 0]}>
         <coneGeometry args={[0.7, 1.8, 6]} />
-        <meshStandardMaterial color="#cc3333" emissive="#aa2222" emissiveIntensity={0.8} />
+        <meshStandardMaterial
+          color="#cc3333"
+          emissive="#aa2222"
+          emissiveIntensity={0.8}
+        />
       </mesh>
       <mesh position={[0, 0, -1.5]}>
         <boxGeometry args={[1.2, 1.2, 1.5]} />
-        <meshStandardMaterial color="#dddddd" emissive="#aaa" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#dddddd"
+          emissive="#aaa"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       <mesh>
         <boxGeometry args={[1.4, 1.4, 3]} />
-        <meshStandardMaterial color="#eeeeee" emissive="#aaa" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#eeeeee"
+          emissive="#aaa"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.45, 1.45, 0.4]} />
-        <meshStandardMaterial color="#cc3333" emissive="#992222" emissiveIntensity={0.6} />
+        <meshStandardMaterial
+          color="#cc3333"
+          emissive="#992222"
+          emissiveIntensity={0.6}
+        />
       </mesh>
       <mesh position={[0, 0, 1.8]}>
         <boxGeometry args={[1.3, 1.3, 0.8]} />
-        <meshStandardMaterial color="#888" emissive="#555" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#888"
+          emissive="#555"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Fins */}
-      {([
-        [0, -0.8, 2, 0],
-        [0, 0.8, 2, 0],
-        [-0.8, 0, 2, Math.PI / 2],
-        [0.8, 0, 2, Math.PI / 2],
-      ] as [number, number, number, number][]).map(([x, y, z, rot], i) => (
+      {(
+        [
+          [0, -0.8, 2, 0],
+          [0, 0.8, 2, 0],
+          [-0.8, 0, 2, Math.PI / 2],
+          [0.8, 0, 2, Math.PI / 2],
+        ] as [number, number, number, number][]
+      ).map(([x, y, z, rot], i) => (
         <mesh key={i} position={[x, y, z]} rotation={[0, 0, rot]}>
           <boxGeometry args={[0.1, 1.5, 1.2]} />
-          <meshStandardMaterial color="#cc3333" emissive="#992222" emissiveIntensity={0.6} />
+          <meshStandardMaterial
+            color="#cc3333"
+            emissive="#992222"
+            emissiveIntensity={0.6}
+          />
         </mesh>
       ))}
       {/* Engine flame */}
       <mesh ref={flameRef} position={[0, 0, 2.5]}>
         <boxGeometry args={[0.6, 0.6, 1.2]} />
-        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={3} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ff6600"
+          emissive="#ff4400"
+          emissiveIntensity={3}
+          toneMapped={false}
+        />
       </mesh>
-      <pointLight position={[0, 0, 3]} color="#ff6600" intensity={8} distance={15} />
+      <pointLight
+        position={[0, 0, 3]}
+        color="#ff6600"
+        intensity={8}
+        distance={15}
+      />
     </group>
   );
 }
@@ -353,42 +547,84 @@ function B2BomberMesh() {
       {/* Main body (flying wing) */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[3, 0.2, 2]} />
-        <meshStandardMaterial color="#1a1a1c" emissive="#0d0d0f" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#1a1a1c"
+          emissive="#0d0d0f"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Cockpit hump */}
       <mesh position={[0, 0.2, -0.2]}>
         <boxGeometry args={[0.8, 0.3, 1]} />
-        <meshStandardMaterial color="#111112" emissive="#080809" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#111112"
+          emissive="#080809"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Wing sweeps (angled) */}
       <mesh position={[-2.4, 0, 0.8]} rotation={[0, -Math.PI / 5, 0]}>
         <boxGeometry args={[3, 0.15, 1.2]} />
-        <meshStandardMaterial color="#1a1a1c" emissive="#0d0d0f" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#1a1a1c"
+          emissive="#0d0d0f"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       <mesh position={[2.4, 0, 0.8]} rotation={[0, Math.PI / 5, 0]}>
         <boxGeometry args={[3, 0.15, 1.2]} />
-        <meshStandardMaterial color="#1a1a1c" emissive="#0d0d0f" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#1a1a1c"
+          emissive="#0d0d0f"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Wing tips */}
       <mesh position={[-4.5, 0, 1.4]} rotation={[0, -Math.PI / 3.5, 0]}>
         <boxGeometry args={[2.5, 0.1, 0.8]} />
-        <meshStandardMaterial color="#1a1a1c" emissive="#0d0d0f" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#1a1a1c"
+          emissive="#0d0d0f"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       <mesh position={[4.5, 0, 1.4]} rotation={[0, Math.PI / 3.5, 0]}>
         <boxGeometry args={[2.5, 0.1, 0.8]} />
-        <meshStandardMaterial color="#1a1a1c" emissive="#0d0d0f" emissiveIntensity={0.5} />
+        <meshStandardMaterial
+          color="#1a1a1c"
+          emissive="#0d0d0f"
+          emissiveIntensity={0.5}
+        />
       </mesh>
       {/* Engine exhausts */}
       <mesh position={[-1.2, 0.1, 1.0]}>
         <boxGeometry args={[0.7, 0.1, 0.3]} />
-        <meshStandardMaterial color="#000" emissive="#000" emissiveIntensity={0} />
+        <meshStandardMaterial
+          color="#000"
+          emissive="#000"
+          emissiveIntensity={0}
+        />
       </mesh>
       <mesh position={[1.2, 0.1, 1.0]}>
         <boxGeometry args={[0.7, 0.1, 0.3]} />
-        <meshStandardMaterial color="#000" emissive="#000" emissiveIntensity={0} />
+        <meshStandardMaterial
+          color="#000"
+          emissive="#000"
+          emissiveIntensity={0}
+        />
       </mesh>
-      <pointLight position={[-1.2, 0, 1.2]} color="#44aaff" intensity={1} distance={4} />
-      <pointLight position={[1.2, 0, 1.2]} color="#44aaff" intensity={1} distance={4} />
+      <pointLight
+        position={[-1.2, 0, 1.2]}
+        color="#44aaff"
+        intensity={1}
+        distance={4}
+      />
+      <pointLight
+        position={[1.2, 0, 1.2]}
+        color="#44aaff"
+        intensity={1}
+        distance={4}
+      />
     </group>
   );
 }
@@ -404,25 +640,48 @@ function UFOMesh() {
       {/* Main saucer */}
       <mesh>
         <cylinderGeometry args={[2, 2, 0.3, 32]} />
-        <meshStandardMaterial color="#d1d5db" emissive="#6b7280" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#d1d5db"
+          emissive="#6b7280"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       <mesh position={[0, 0.05, 0]}>
         <cylinderGeometry args={[1.6, 2.2, 0.4, 32]} />
-        <meshStandardMaterial color="#9ca3af" emissive="#4b5563" emissiveIntensity={0.4} />
+        <meshStandardMaterial
+          color="#9ca3af"
+          emissive="#4b5563"
+          emissiveIntensity={0.4}
+        />
       </mesh>
       {/* Glass dome */}
       <mesh position={[0, 0.4, 0]}>
         <sphereGeometry args={[1, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={1} transparent opacity={0.6} />
+        <meshStandardMaterial
+          color="#10b981"
+          emissive="#059669"
+          emissiveIntensity={1}
+          transparent
+          opacity={0.6}
+        />
       </mesh>
       {/* Spinning lights ring */}
       <group ref={spinRef} position={[0, 0.15, 0]}>
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = (i / 12) * Math.PI * 2;
           return (
-            <mesh key={i} position={[Math.cos(angle) * 2.1, 0, Math.sin(angle) * 2.1]} rotation={[0, 0, Math.PI / 2]}>
+            <mesh
+              key={i}
+              position={[Math.cos(angle) * 2.1, 0, Math.sin(angle) * 2.1]}
+              rotation={[0, 0, Math.PI / 2]}
+            >
               <sphereGeometry args={[0.08, 8, 8]} />
-              <meshStandardMaterial color="#34d399" emissive="#10b981" emissiveIntensity={3} toneMapped={false} />
+              <meshStandardMaterial
+                color="#34d399"
+                emissive="#10b981"
+                emissiveIntensity={3}
+                toneMapped={false}
+              />
             </mesh>
           );
         })}
@@ -430,14 +689,30 @@ function UFOMesh() {
       {/* Bottom glowing core */}
       <mesh position={[0, -0.1, 0]}>
         <cylinderGeometry args={[0.8, 0.6, 0.3, 16]} />
-        <meshStandardMaterial color="#34d399" emissive="#10b981" emissiveIntensity={2} toneMapped={false} />
+        <meshStandardMaterial
+          color="#34d399"
+          emissive="#10b981"
+          emissiveIntensity={2}
+          toneMapped={false}
+        />
       </mesh>
-      <pointLight position={[0, -0.5, 0]} color="#10b981" intensity={3} distance={8} />
+      <pointLight
+        position={[0, -0.5, 0]}
+        color="#10b981"
+        intensity={3}
+        distance={8}
+      />
     </group>
   );
 }
 
-function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; targetPos?: THREE.Vector3 }) {
+function TankMesh({
+  isAttacking = false,
+  targetPos,
+}: {
+  isAttacking?: boolean;
+  targetPos?: THREE.Vector3;
+}) {
   const tankRef = useRef<THREE.Group>(null);
   const turretRef = useRef<THREE.Group>(null);
   const cannonRef = useRef<THREE.Group>(null);
@@ -445,19 +720,21 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
   const treadsRef = useRef<THREE.Group>(null);
   const attackElapsedRef = useRef(0);
   const _localTarget = useMemo(() => new THREE.Vector3(), []);
-  
+
   // Animate treads moving slightly
   useFrame((state, delta) => {
     if (treadsRef.current) {
       treadsRef.current.position.z = (state.clock.elapsedTime * 2) % 0.2;
     }
 
-    attackElapsedRef.current = isAttacking ? attackElapsedRef.current + delta : 0;
+    attackElapsedRef.current = isAttacking
+      ? attackElapsedRef.current + delta
+      : 0;
 
     if (turretRef.current && tankRef.current && targetPos) {
       // Force update world matrices to make sure worldToLocal coordinates are precise
       tankRef.current.updateMatrixWorld(true);
-      
+
       _localTarget.copy(targetPos);
       tankRef.current.worldToLocal(_localTarget);
 
@@ -470,7 +747,9 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
       );
     }
 
-    const firePulse = isAttacking ? getTankFirePulse(attackElapsedRef.current) : 0;
+    const firePulse = isAttacking
+      ? getTankFirePulse(attackElapsedRef.current)
+      : 0;
     if (cannonRef.current) {
       // Since cannon points along -Z, recoil slides it in the +Z direction
       cannonRef.current.position.z = firePulse * 0.35;
@@ -484,11 +763,17 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
   });
 
   return (
-    <group ref={tankRef} position={[0, 0.4, 0]}> {/* Offset up to set treads bottom at local Y=0 */}
+    <group ref={tankRef} position={[0, 0.4, 0]}>
+      {" "}
+      {/* Offset up to set treads bottom at local Y=0 */}
       {/* Main Hull */}
       <mesh position={[0, 0, 0]}>
         <boxGeometry args={[1.5, 0.6, 2.5]} />
-        <meshStandardMaterial color="#4b5320" emissive="#2c3012" emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color="#4b5320"
+          emissive="#2c3012"
+          emissiveIntensity={0.2}
+        />
       </mesh>
       {/* Rotating Turret */}
       <group ref={turretRef} position={[0, 0.45, 0.2]}>
@@ -512,11 +797,21 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
           <group ref={muzzleFlashRef} position={[0, 0, -2.55]}>
             <mesh>
               <sphereGeometry args={[0.32, 8, 8]} />
-              <meshBasicMaterial color="#fff3a3" transparent opacity={0.9} depthWrite={false} />
+              <meshBasicMaterial
+                color="#fff3a3"
+                transparent
+                opacity={0.9}
+                depthWrite={false}
+              />
             </mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
               <coneGeometry args={[0.45, 0.9, 8]} />
-              <meshBasicMaterial color="#ff7a18" transparent opacity={0.75} depthWrite={false} />
+              <meshBasicMaterial
+                color="#ff7a18"
+                transparent
+                opacity={0.75}
+                depthWrite={false}
+              />
             </mesh>
             <pointLight color="#ff9d2e" intensity={7} distance={8} />
           </group>
@@ -545,13 +840,21 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
         </mesh>
         {/* Wheels inside tracks */}
         {Array.from({ length: 5 }).map((_, i) => (
-          <mesh key={`r-wheel-${i}`} position={[0, 0, -1 + i * 0.5]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh
+            key={`r-wheel-${i}`}
+            position={[0, 0, -1 + i * 0.5]}
+            rotation={[0, 0, Math.PI / 2]}
+          >
             <cylinderGeometry args={[0.2, 0.2, 0.35, 16]} />
             <meshStandardMaterial color="#2a2e12" />
           </mesh>
         ))}
         {Array.from({ length: 5 }).map((_, i) => (
-          <mesh key={`l-wheel-${i}`} position={[-1.7, 0, -1 + i * 0.5]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh
+            key={`l-wheel-${i}`}
+            position={[-1.7, 0, -1 + i * 0.5]}
+            rotation={[0, 0, Math.PI / 2]}
+          >
             <cylinderGeometry args={[0.2, 0.2, 0.35, 16]} />
             <meshStandardMaterial color="#2a2e12" />
           </mesh>
@@ -560,14 +863,34 @@ function TankMesh({ isAttacking = false, targetPos }: { isAttacking?: boolean; t
       {/* Headlights (facing -Z) */}
       <mesh position={[-0.6, 0.1, -1.26]}>
         <boxGeometry args={[0.2, 0.1, 0.1]} />
-        <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={2} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ffaa00"
+          emissive="#ffaa00"
+          emissiveIntensity={2}
+          toneMapped={false}
+        />
       </mesh>
       <mesh position={[0.6, 0.1, -1.26]}>
         <boxGeometry args={[0.2, 0.1, 0.1]} />
-        <meshStandardMaterial color="#ffaa00" emissive="#ffaa00" emissiveIntensity={2} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ffaa00"
+          emissive="#ffaa00"
+          emissiveIntensity={2}
+          toneMapped={false}
+        />
       </mesh>
-      <pointLight position={[-0.6, 0.1, -1.5]} color="#ffaa00" intensity={1} distance={3} />
-      <pointLight position={[0.6, 0.1, -1.5]} color="#ffaa00" intensity={1} distance={3} />
+      <pointLight
+        position={[-0.6, 0.1, -1.5]}
+        color="#ffaa00"
+        intensity={1}
+        distance={3}
+      />
+      <pointLight
+        position={[0.6, 0.1, -1.5]}
+        color="#ffaa00"
+        intensity={1}
+        distance={3}
+      />
     </group>
   );
 }
@@ -576,20 +899,24 @@ function FuturisticJetMesh() {
   const afterburnerRef = useRef<THREE.Group>(null);
   const wingLightLRef = useRef<THREE.Mesh>(null);
   const wingLightRRef = useRef<THREE.Mesh>(null);
-  
+
   // Wing trail attachment points for the particle system
   const trailLRef = useRef<THREE.Group>(null);
   const trailRRef = useRef<THREE.Group>(null);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    
+
     // Afterburner flicker
     if (afterburnerRef.current) {
       const flicker = 0.75 + Math.sin(t * 30) * 0.15 + Math.sin(t * 47) * 0.1;
-      afterburnerRef.current.scale.set(flicker, flicker, 1 + Math.sin(t * 20) * 0.4);
+      afterburnerRef.current.scale.set(
+        flicker,
+        flicker,
+        1 + Math.sin(t * 20) * 0.4,
+      );
     }
-    
+
     // Wing tip strobe
     const strobe = Math.sin(t * 6) > 0.7 ? 1 : 0.1;
     if (wingLightLRef.current) {
@@ -609,7 +936,7 @@ function FuturisticJetMesh() {
         <boxGeometry args={[0.9, 0.55, 4.5]} />
         <meshStandardMaterial color="#21252b" roughness={0.7} metalness={0.3} />
       </mesh>
-      
+
       {/* Wing root blend (widens fuselage in the middle) */}
       <mesh position={[0, -0.05, 0.5]}>
         <boxGeometry args={[1.8, 0.35, 3.5]} />
@@ -628,23 +955,38 @@ function FuturisticJetMesh() {
           <boxGeometry args={[0.45, 0.15, 2.4]} />
           <meshStandardMaterial color="#1a1d24" roughness={0.7} />
         </mesh>
-        
+
         {/* Pointy Nose tip — White/Light Grey, pinched and flat */}
         <mesh position={[0, -0.15, -1.6]} rotation={[0.05, 0, 0]}>
           <boxGeometry args={[0.15, 0.08, 1.2]} />
-          <meshStandardMaterial color="#e5e7eb" roughness={0.5} emissive="#e5e7eb" emissiveIntensity={0.1} />
+          <meshStandardMaterial
+            color="#e5e7eb"
+            roughness={0.5}
+            emissive="#e5e7eb"
+            emissiveIntensity={0.1}
+          />
         </mesh>
         {/* Extreme front tip point */}
         <mesh position={[0, -0.16, -2.1]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.01, 0.08, 0.4, 4]} />
-          <meshStandardMaterial color="#e5e7eb" roughness={0.5} emissive="#e5e7eb" emissiveIntensity={0.2} />
+          <meshStandardMaterial
+            color="#e5e7eb"
+            roughness={0.5}
+            emissive="#e5e7eb"
+            emissiveIntensity={0.2}
+          />
         </mesh>
       </group>
 
       {/* Cockpit Canopy — Glowing Amber/Gold to stand out against the night sky */}
-      <mesh position={[0, 0.35, -1.8]} rotation={[Math.PI/2, 0, 0]}>
+      <mesh position={[0, 0.35, -1.8]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.25, 0.35, 1.6, 8]} />
-        <meshStandardMaterial color="#ffb700" roughness={0.2} emissive="#ff8800" emissiveIntensity={0.8} />
+        <meshStandardMaterial
+          color="#ffb700"
+          roughness={0.2}
+          emissive="#ff8800"
+          emissiveIntensity={0.8}
+        />
       </mesh>
 
       {/* Main Swept Wings — delta shape base (swept BACKWARDS) */}
@@ -679,9 +1021,14 @@ function FuturisticJetMesh() {
         {/* Left Fin Tip (Orange) */}
         <mesh position={[-0.85, 0.8, 0.3]} rotation={[0.2, 0, -0.2]}>
           <boxGeometry args={[0.09, 0.5, 1.0]} />
-          <meshStandardMaterial color="#ea580c" roughness={0.5} emissive="#ea580c" emissiveIntensity={0.2} />
+          <meshStandardMaterial
+            color="#ea580c"
+            roughness={0.5}
+            emissive="#ea580c"
+            emissiveIntensity={0.2}
+          />
         </mesh>
-        
+
         {/* Right Fin Base (Dark) */}
         <mesh position={[0.7, 0, 0]} rotation={[0.2, 0, 0.2]}>
           <boxGeometry args={[0.08, 1.4, 1.2]} />
@@ -690,7 +1037,12 @@ function FuturisticJetMesh() {
         {/* Right Fin Tip (Orange) */}
         <mesh position={[0.85, 0.8, 0.3]} rotation={[0.2, 0, 0.2]}>
           <boxGeometry args={[0.09, 0.5, 1.0]} />
-          <meshStandardMaterial color="#ea580c" roughness={0.5} emissive="#ea580c" emissiveIntensity={0.2} />
+          <meshStandardMaterial
+            color="#ea580c"
+            roughness={0.5}
+            emissive="#ea580c"
+            emissiveIntensity={0.2}
+          />
         </mesh>
       </group>
 
@@ -713,26 +1065,54 @@ function FuturisticJetMesh() {
         <cylinderGeometry args={[0.25, 0.28, 0.4, 8]} />
         <meshStandardMaterial color="#0f172a" metalness={0.8} />
       </mesh>
-      
+
       {/* Afterburner flames */}
       <group ref={afterburnerRef} position={[0, -0.25, 3.1]}>
         {/* Left */}
         <mesh position={[-0.55, 0, 0]}>
           <boxGeometry args={[0.3, 0.3, 1.5]} />
-          <meshStandardMaterial color="#00ccff" emissive="#0088ff" emissiveIntensity={6} toneMapped={false} transparent opacity={0.85} />
+          <meshStandardMaterial
+            color="#00ccff"
+            emissive="#0088ff"
+            emissiveIntensity={6}
+            toneMapped={false}
+            transparent
+            opacity={0.85}
+          />
         </mesh>
         <mesh position={[-0.55, 0, 0]}>
           <boxGeometry args={[0.15, 0.15, 1.8]} />
-          <meshStandardMaterial color="#ffffff" emissive="#aaddff" emissiveIntensity={8} toneMapped={false} transparent opacity={0.6} />
+          <meshStandardMaterial
+            color="#ffffff"
+            emissive="#aaddff"
+            emissiveIntensity={8}
+            toneMapped={false}
+            transparent
+            opacity={0.6}
+          />
         </mesh>
         {/* Right */}
         <mesh position={[0.55, 0, 0]}>
           <boxGeometry args={[0.3, 0.3, 1.5]} />
-          <meshStandardMaterial color="#00ccff" emissive="#0088ff" emissiveIntensity={6} toneMapped={false} transparent opacity={0.85} />
+          <meshStandardMaterial
+            color="#00ccff"
+            emissive="#0088ff"
+            emissiveIntensity={6}
+            toneMapped={false}
+            transparent
+            opacity={0.85}
+          />
         </mesh>
         <mesh position={[0.55, 0, 0]}>
           <boxGeometry args={[0.15, 0.15, 1.8]} />
-          <meshStandardMaterial color="#ffffff" emissive="#aaddff" emissiveIntensity={8} toneMapped={false} transparent opacity={0.6} />
+          <meshStandardMaterial
+            color="#ffffff"
+            emissive="#aaddff"
+            emissiveIntensity={8}
+            toneMapped={false}
+            transparent
+            opacity={0.6}
+          />
         </mesh>
       </group>
 
@@ -749,54 +1129,91 @@ function FuturisticJetMesh() {
       {/* Wing tip strobe lights */}
       <mesh ref={wingLightLRef} position={[-4.0, -0.1, 1.5]}>
         <boxGeometry args={[0.15, 0.1, 0.15]} />
-        <meshStandardMaterial color="#ff3333" emissive="#ff0000" emissiveIntensity={4} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ff3333"
+          emissive="#ff0000"
+          emissiveIntensity={4}
+          toneMapped={false}
+        />
       </mesh>
       <mesh ref={wingLightRRef} position={[4.0, -0.1, 1.5]}>
         <boxGeometry args={[0.15, 0.1, 0.15]} />
-        <meshStandardMaterial color="#33ff33" emissive="#00ff00" emissiveIntensity={4} toneMapped={false} />
+        <meshStandardMaterial
+          color="#33ff33"
+          emissive="#00ff00"
+          emissiveIntensity={4}
+          toneMapped={false}
+        />
       </mesh>
-      
+
       {/* Wingtip Vapor Trails (Using actual scattering particle system) */}
       <group position={[-4.0, -0.1, 1.6]} ref={trailLRef} />
       <group position={[4.0, -0.1, 1.6]} ref={trailRRef} />
 
       {/* Engine glow point lights */}
-      <pointLight position={[-0.55, -0.25, 3.4]} color="#00aaff" intensity={6} distance={12} />
-      <pointLight position={[0.55, -0.25, 3.4]} color="#00aaff" intensity={6} distance={12} />
+      <pointLight
+        position={[-0.55, -0.25, 3.4]}
+        color="#00aaff"
+        intensity={6}
+        distance={12}
+      />
+      <pointLight
+        position={[0.55, -0.25, 3.4]}
+        color="#00aaff"
+        intensity={6}
+        distance={12}
+      />
     </group>
   );
 }
 
-export function VehicleMesh({ type, isAttacking = false, targetPos }: {
+export function VehicleMesh({
+  type,
+  isAttacking = false,
+  targetPos,
+}: {
   type: string;
   isAttacking?: boolean;
   targetPos?: THREE.Vector3;
 }) {
   switch (type) {
-    case "raid_helicopter": return <HelicopterMesh />;
-    case "raid_drone": return <DroneMesh />;
-    case "raid_rocket": return <RocketMesh />;
-    case "raid_b2_bomber": return <B2BomberMesh />;
-    case "raid_ufo": return <UFOMesh />;
-    case "vehicle_tank": return <TankMesh isAttacking={isAttacking} targetPos={targetPos} />;
-    case "futuristic_jet": return <FuturisticJetMesh />;
-    default: return <AirplaneMesh />;
+    case "raid_helicopter":
+      return <HelicopterMesh />;
+    case "raid_drone":
+      return <DroneMesh />;
+    case "raid_rocket":
+      return <RocketMesh />;
+    case "raid_b2_bomber":
+      return <B2BomberMesh />;
+    case "raid_ufo":
+      return <UFOMesh />;
+    case "vehicle_tank":
+      return <TankMesh isAttacking={isAttacking} targetPos={targetPos} />;
+    case "futuristic_jet":
+      return <FuturisticJetMesh />;
+    default:
+      return <AirplaneMesh />;
   }
 }
 
 // ─── Smoke Trail ──────────────────────────────────────────────
 
-function SmokeTrail({ vehicleRef, active }: {
+function SmokeTrail({
+  vehicleRef,
+  active,
+}: {
   vehicleRef: React.RefObject<THREE.Group | null>;
   active: boolean;
 }) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const particles = useRef<{
-    pos: THREE.Vector3;
-    vel: THREE.Vector3;
-    age: number;
-    maxAge: number;
-  }[]>([]);
+  const particles = useRef<
+    {
+      pos: THREE.Vector3;
+      vel: THREE.Vector3;
+      age: number;
+      maxAge: number;
+    }[]
+  >([]);
   const _matrix = useMemo(() => new THREE.Matrix4(), []);
   const _scale = useMemo(() => new THREE.Vector3(), []);
   const _worldPos = useMemo(() => new THREE.Vector3(), []);
@@ -804,10 +1221,9 @@ function SmokeTrail({ vehicleRef, active }: {
   const spawnTimer = useRef(0);
 
   useEffect(() => {
-  if (!active) {
-    particles.current = [];
-  }
-   
+    if (!active) {
+      particles.current = [];
+    }
   }, [active]);
 
   useFrame((_, delta) => {
@@ -820,7 +1236,9 @@ function SmokeTrail({ vehicleRef, active }: {
         vehicleRef.current.getWorldPosition(_worldPos);
         _backward.set(0, 0, 1).applyQuaternion(vehicleRef.current.quaternion);
 
-        const spawnPos = _worldPos.clone().add(_backward.clone().multiplyScalar(6));
+        const spawnPos = _worldPos
+          .clone()
+          .add(_backward.clone().multiplyScalar(6));
 
         if (particles.current.length < SMOKE_COUNT) {
           particles.current.push({
@@ -836,7 +1254,8 @@ function SmokeTrail({ vehicleRef, active }: {
         } else {
           let oldest = 0;
           for (let i = 1; i < particles.current.length; i++) {
-            if (particles.current[i].age > particles.current[oldest].age) oldest = i;
+            if (particles.current[i].age > particles.current[oldest].age)
+              oldest = i;
           }
           const p = particles.current[oldest];
           p.pos.copy(spawnPos);
@@ -878,16 +1297,29 @@ function SmokeTrail({ vehicleRef, active }: {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, SMOKE_COUNT]} frustumCulled={false}>
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, SMOKE_COUNT]}
+      frustumCulled={false}
+    >
       <sphereGeometry args={[1, 5, 5]} />
-      <meshBasicMaterial color="#888" transparent opacity={0.12} depthWrite={false} />
+      <meshBasicMaterial
+        color="#888"
+        transparent
+        opacity={0.12}
+        depthWrite={false}
+      />
     </instancedMesh>
   );
 }
 
 // ─── Shockwave Ring ──────────────────────────────────────────
 
-function Shockwave({ active, position, isMissile = false }: {
+function Shockwave({
+  active,
+  position,
+  isMissile = false,
+}: {
   active: boolean;
   position: THREE.Vector3;
   isMissile?: boolean;
@@ -954,13 +1386,15 @@ function ProjectilePool({
   const isBomber = vehicleType === "raid_b2_bomber";
   const projectileCount = isTankShell ? TANK_SHELL_COUNT : PROJECTILE_COUNT;
   const [explosions, setExplosions] = useState<ExplosionData[]>([]);
-  const projectiles = useRef<{
-    pos: THREE.Vector3;
-    vel: THREE.Vector3;
-    target: THREE.Vector3;
-    alive: boolean;
-    spawned: boolean;
-  }[]>([]);
+  const projectiles = useRef<
+    {
+      pos: THREE.Vector3;
+      vel: THREE.Vector3;
+      target: THREE.Vector3;
+      alive: boolean;
+      spawned: boolean;
+    }[]
+  >([]);
   const nextSpawnIdx = useRef(0);
   const spawnTimer = useRef(0);
   const impactCount = useRef(0);
@@ -990,8 +1424,15 @@ function ProjectilePool({
     if (!active || !meshRef.current) return;
     spawnTimer.current += delta;
 
-    const spawnInterval = isTankShell ? TANK_FIRE_INTERVAL : (isBomber ? 0.10 : 0.18);
-    if (nextSpawnIdx.current < projectileCount && spawnTimer.current >= spawnInterval) {
+    const spawnInterval = isTankShell
+      ? TANK_FIRE_INTERVAL
+      : isBomber
+        ? 0.1
+        : 0.18;
+    if (
+      nextSpawnIdx.current < projectileCount &&
+      spawnTimer.current >= spawnInterval
+    ) {
       spawnTimer.current = 0;
       const p = projectiles.current[nextSpawnIdx.current];
       if (p && !p.spawned && vehicleRef.current) {
@@ -1014,11 +1455,13 @@ function ProjectilePool({
             .sub(p.pos)
             .normalize()
             .multiplyScalar(95)
-            .add(new THREE.Vector3(
-              (Math.random() - 0.5) * 4,
-              12 + Math.random() * 4,
-              (Math.random() - 0.5) * 4,
-            ));
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 4,
+                12 + Math.random() * 4,
+                (Math.random() - 0.5) * 4,
+              ),
+            );
         } else if (isDrone) {
           // Dual alternating wingtip lasers for the drone!
           const sideOffset = nextSpawnIdx.current % 2 === 0 ? -1.2 : 1.2;
@@ -1032,20 +1475,26 @@ function ProjectilePool({
             .sub(p.pos)
             .normalize()
             .multiplyScalar(150)
-            .add(new THREE.Vector3(
-              (Math.random() - 0.5) * 6,
-              (Math.random() - 0.5) * 4,
-              (Math.random() - 0.5) * 6,
-            ));
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 6,
+                (Math.random() - 0.5) * 4,
+                (Math.random() - 0.5) * 6,
+              ),
+            );
         } else if (isBomber) {
           // B-2 Bomber bomb: drops from plane with physics/gravity
           const T = 0.8 + Math.random() * 0.3; // duration of fall (staggered)
           // Add a random offset on the roof of the building so they bomb different parts of it
-          const tPos = targetPos.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 14,
-            0,
-            (Math.random() - 0.5) * 14
-          ));
+          const tPos = targetPos
+            .clone()
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 14,
+                0,
+                (Math.random() - 0.5) * 14,
+              ),
+            );
           p.target.copy(tPos);
           p.vel.x = (tPos.x - p.pos.x) / T;
           p.vel.z = (tPos.z - p.pos.z) / T;
@@ -1057,11 +1506,13 @@ function ProjectilePool({
             .sub(p.pos)
             .normalize()
             .multiplyScalar(120)
-            .add(new THREE.Vector3(
-              (Math.random() - 0.5) * 15,
-              (Math.random() - 0.5) * 8,
-              (Math.random() - 0.5) * 15,
-            ));
+            .add(
+              new THREE.Vector3(
+                (Math.random() - 0.5) * 15,
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 15,
+              ),
+            );
         }
       }
       nextSpawnIdx.current++;
@@ -1079,14 +1530,18 @@ function ProjectilePool({
       p.vel.y -= (isTankShell ? 12 : 20) * delta;
       p.pos.addScaledVector(p.vel, delta);
 
-      const checkDist = isTankShell ? 12 : (isBomber ? 3 : 10);
-      if (p.pos.distanceTo(p.target) < checkDist || (isBomber && p.pos.y <= p.target.y)) {
+      const checkDist = isTankShell ? 12 : isBomber ? 3 : 10;
+      if (
+        p.pos.distanceTo(p.target) < checkDist ||
+        (isBomber && p.pos.y <= p.target.y)
+      ) {
         p.alive = false;
         impactCount.current++;
         if (impactCount.current % 2 === 0) playRaidSound("impact");
         // This triggers the screen shake on every projectile impact
         onImpact(p.pos.clone());
-        if (impactCount.current >= projectileCount * 0.8) onImpact(p.pos.clone());
+        if (impactCount.current >= projectileCount * 0.8)
+          onImpact(p.pos.clone());
         setExplosions((prev) => [
           ...prev,
           {
@@ -1114,22 +1569,62 @@ function ProjectilePool({
   return (
     <group>
       {/* Core — small bright bullet */}
-      <instancedMesh ref={meshRef} args={[undefined, undefined, projectileCount]} frustumCulled={false}>
-        <sphereGeometry args={[isTankShell ? 0.45 : (isDrone ? 0.35 : (isBomber ? 0.85 : 0.6)), 6, 6]} />
+      <instancedMesh
+        ref={meshRef}
+        args={[undefined, undefined, projectileCount]}
+        frustumCulled={false}
+      >
+        <sphereGeometry
+          args={[
+            isTankShell ? 0.45 : isDrone ? 0.35 : isBomber ? 0.85 : 0.6,
+            6,
+            6,
+          ]}
+        />
         <meshStandardMaterial
-          color={isTankShell ? "#f5d08a" : (isDrone ? "#00f5ff" : (isBomber ? "#ff3333" : "#ffaa00"))}
-          emissive={isTankShell ? "#ff8c1a" : (isDrone ? "#0099ff" : (isBomber ? "#cc0000" : "#ff6600"))}
-          emissiveIntensity={isTankShell ? 10 : (isDrone ? 12 : 8)}
+          color={
+            isTankShell
+              ? "#f5d08a"
+              : isDrone
+                ? "#00f5ff"
+                : isBomber
+                  ? "#ff3333"
+                  : "#ffaa00"
+          }
+          emissive={
+            isTankShell
+              ? "#ff8c1a"
+              : isDrone
+                ? "#0099ff"
+                : isBomber
+                  ? "#cc0000"
+                  : "#ff6600"
+          }
+          emissiveIntensity={isTankShell ? 10 : isDrone ? 12 : 8}
           toneMapped={false}
         />
       </instancedMesh>
       {/* Glow halo — larger, transparent, trails behind */}
-      <instancedMesh ref={glowRef} args={[undefined, undefined, projectileCount]} frustumCulled={false}>
-        <sphereGeometry args={[isTankShell ? 1.35 : (isDrone ? 1.4 : (isBomber ? 2.5 : 2)), 8, 8]} />
+      <instancedMesh
+        ref={glowRef}
+        args={[undefined, undefined, projectileCount]}
+        frustumCulled={false}
+      >
+        <sphereGeometry
+          args={[isTankShell ? 1.35 : isDrone ? 1.4 : isBomber ? 2.5 : 2, 8, 8]}
+        />
         <meshBasicMaterial
-          color={isTankShell ? "#ffb347" : (isDrone ? "#00baff" : (isBomber ? "#ff1111" : "#ff4400"))}
+          color={
+            isTankShell
+              ? "#ffb347"
+              : isDrone
+                ? "#00baff"
+                : isBomber
+                  ? "#ff1111"
+                  : "#ff4400"
+          }
           transparent
-          opacity={isTankShell ? 0.35 : (isDrone ? 0.4 : (isBomber ? 0.35 : 0.25))}
+          opacity={isTankShell ? 0.35 : isDrone ? 0.4 : isBomber ? 0.35 : 0.25}
           depthWrite={false}
         />
       </instancedMesh>
@@ -1152,10 +1647,20 @@ function ProjectilePool({
 
 // ─── Debris Particles (enhanced with fire) ───────────────────
 
-function DebrisParticles({ active, origin, isMissile = false }: { active: boolean; origin: THREE.Vector3; isMissile?: boolean }) {
+function DebrisParticles({
+  active,
+  origin,
+  isMissile = false,
+}: {
+  active: boolean;
+  origin: THREE.Vector3;
+  isMissile?: boolean;
+}) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const glowRef = useRef<THREE.InstancedMesh>(null);
-  const particles = useRef<{ pos: THREE.Vector3; vel: THREE.Vector3; alive: boolean; size: number }[]>([]);
+  const particles = useRef<
+    { pos: THREE.Vector3; vel: THREE.Vector3; alive: boolean; size: number }[]
+  >([]);
   const _matrix = useMemo(() => new THREE.Matrix4(), []);
   const _scale = useMemo(() => new THREE.Vector3(), []);
 
@@ -1163,20 +1668,26 @@ function DebrisParticles({ active, origin, isMissile = false }: { active: boolea
     if (!active) return;
     particles.current = Array.from({ length: DEBRIS_COUNT }, () => {
       const angle = Math.random() * Math.PI * 2;
-      const speed = isMissile ? (28 + Math.random() * 42) : (15 + Math.random() * 30);
+      const speed = isMissile
+        ? 28 + Math.random() * 42
+        : 15 + Math.random() * 30;
       return {
-        pos: origin.clone().add(new THREE.Vector3(
-          (Math.random() - 0.5) * 6,
-          Math.random() * 5,
-          (Math.random() - 0.5) * 6,
-        )),
+        pos: origin
+          .clone()
+          .add(
+            new THREE.Vector3(
+              (Math.random() - 0.5) * 6,
+              Math.random() * 5,
+              (Math.random() - 0.5) * 6,
+            ),
+          ),
         vel: new THREE.Vector3(
           Math.cos(angle) * speed,
           Math.random() * (isMissile ? 45 : 25) + 15,
           Math.sin(angle) * speed,
         ),
         alive: true,
-        size: isMissile ? (0.4 + Math.random() * 0.9) : (0.2 + Math.random() * 0.5),
+        size: isMissile ? 0.4 + Math.random() * 0.9 : 0.2 + Math.random() * 0.5,
       };
     });
   }, [active, origin, isMissile]);
@@ -1214,13 +1725,26 @@ function DebrisParticles({ active, origin, isMissile = false }: { active: boolea
 
   return (
     <group>
-      <instancedMesh ref={meshRef} args={[undefined, undefined, DEBRIS_COUNT]} frustumCulled={false}>
+      <instancedMesh
+        ref={meshRef}
+        args={[undefined, undefined, DEBRIS_COUNT]}
+        frustumCulled={false}
+      >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="#555" />
       </instancedMesh>
-      <instancedMesh ref={glowRef} args={[undefined, undefined, DEBRIS_COUNT]} frustumCulled={false}>
+      <instancedMesh
+        ref={glowRef}
+        args={[undefined, undefined, DEBRIS_COUNT]}
+        frustumCulled={false}
+      >
         <sphereGeometry args={[0.8, 4, 4]} />
-        <meshBasicMaterial color="#ff4400" transparent opacity={0.5} depthWrite={false} />
+        <meshBasicMaterial
+          color="#ff4400"
+          transparent
+          opacity={0.5}
+          depthWrite={false}
+        />
       </instancedMesh>
     </group>
   );
@@ -1228,15 +1752,24 @@ function DebrisParticles({ active, origin, isMissile = false }: { active: boolea
 
 // ─── Fire Glow (post-explosion light) ────────────────────────
 
-function FireGlow({ active, position, isMissile = false }: { active: boolean; position: THREE.Vector3; isMissile?: boolean }) {
+function FireGlow({
+  active,
+  position,
+  isMissile = false,
+}: {
+  active: boolean;
+  position: THREE.Vector3;
+  isMissile?: boolean;
+}) {
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(({ clock }) => {
     if (!active || !lightRef.current) return;
-    const flicker = 0.7
-      + Math.sin(clock.elapsedTime * 15) * 0.15
-      + Math.sin(clock.elapsedTime * 23) * 0.1
-      + Math.sin(clock.elapsedTime * 37) * 0.05;
+    const flicker =
+      0.7 +
+      Math.sin(clock.elapsedTime * 15) * 0.15 +
+      Math.sin(clock.elapsedTime * 23) * 0.1 +
+      Math.sin(clock.elapsedTime * 37) * 0.05;
     lightRef.current.intensity = (isMissile ? 80 : 30) * flicker;
   });
 
@@ -1256,7 +1789,13 @@ function FireGlow({ active, position, isMissile = false }: { active: boolean; po
 
 // ─── Shield Dome ──────────────────────────────────────────────
 
-function ShieldDome({ active, position, size, strength, hitIntensity }: {
+function ShieldDome({
+  active,
+  position,
+  size,
+  strength,
+  hitIntensity,
+}: {
   active: boolean;
   position: THREE.Vector3;
   size: number;
@@ -1271,29 +1810,47 @@ function ShieldDome({ active, position, size, strength, hitIntensity }: {
     const mat = meshRef.current.material as THREE.MeshBasicMaterial;
     const basePulse = Math.sin(clock.elapsedTime * 4) * 0.05;
     const hitPulse = hitIntensity * 0.3;
-    const baseOpacity = strength === "strong" ? 0.15 : strength === "medium" ? 0.1 : 0.05;
+    const baseOpacity =
+      strength === "strong" ? 0.15 : strength === "medium" ? 0.1 : 0.05;
     mat.opacity = baseOpacity + basePulse + hitPulse;
 
     if (wireRef.current) {
       const wireMat = wireRef.current.material as THREE.MeshBasicMaterial;
-      wireMat.opacity = (strength === "strong" ? 0.35 : strength === "medium" ? 0.2 : 0.1) + hitPulse * 0.5;
+      wireMat.opacity =
+        (strength === "strong" ? 0.35 : strength === "medium" ? 0.2 : 0.1) +
+        hitPulse * 0.5;
     }
   });
 
   if (!active) return null;
 
   const radius = size * 0.8;
-  const color = strength === "strong" ? "#4080ff" : strength === "medium" ? "#40a0ff" : "#6060ff";
+  const color =
+    strength === "strong"
+      ? "#4080ff"
+      : strength === "medium"
+        ? "#40a0ff"
+        : "#6060ff";
 
   return (
     <group position={position}>
       <mesh ref={meshRef}>
         <sphereGeometry args={[radius, 20, 20]} />
-        <meshBasicMaterial color={color} transparent opacity={0.15} side={THREE.DoubleSide} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.15}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       <mesh ref={wireRef}>
         <sphereGeometry args={[radius * 1.01, 20, 20]} />
-        <meshBasicMaterial color="#00ccff" wireframe transparent opacity={0.3} />
+        <meshBasicMaterial
+          color="#00ccff"
+          wireframe
+          transparent
+          opacity={0.3}
+        />
       </mesh>
     </group>
   );
@@ -1301,7 +1858,13 @@ function ShieldDome({ active, position, size, strength, hitIntensity }: {
 
 // ─── Main Component ───────────────────────────────────────────
 
-export default function RaidSequence3D({ phase, attacker, defender, raidData, onPhaseComplete }: Props) {
+export default function RaidSequence3D({
+  phase,
+  attacker,
+  defender,
+  raidData,
+  onPhaseComplete,
+}: Props) {
   const { camera } = useThree();
   const vehicleRef = useRef<THREE.Group>(null);
   const phaseTimeRef = useRef(0);
@@ -1328,22 +1891,38 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
   const attackerPos = useMemo(() => {
     if (!attacker) return new THREE.Vector3(0, 0, 0);
-    return new THREE.Vector3(attacker.position[0], attacker.height + 10, attacker.position[2]);
+    return new THREE.Vector3(
+      attacker.position[0],
+      attacker.height + 10,
+      attacker.position[2],
+    );
   }, [attacker]);
 
   const defenderTopPos = useMemo(() => {
     if (!defender) return new THREE.Vector3(100, 80, 0);
-    return new THREE.Vector3(defender.position[0], defender.height + 5, defender.position[2]);
+    return new THREE.Vector3(
+      defender.position[0],
+      defender.height + 5,
+      defender.position[2],
+    );
   }, [defender]);
 
   const defenderMiddlePos = useMemo(() => {
     if (!defender) return new THREE.Vector3(100, 40, 0);
-    return new THREE.Vector3(defender.position[0], defender.height * 0.5, defender.position[2]);
+    return new THREE.Vector3(
+      defender.position[0],
+      defender.height * 0.5,
+      defender.position[2],
+    );
   }, [defender]);
 
   const defenderLowerPos = useMemo(() => {
     if (!defender) return new THREE.Vector3(100, 15, 0);
-    return new THREE.Vector3(defender.position[0], Math.max(6, defender.height * 0.15), defender.position[2]);
+    return new THREE.Vector3(
+      defender.position[0],
+      Math.max(6, defender.height * 0.15),
+      defender.position[2],
+    );
   }, [defender]);
 
   // Orbit entry: arrive from the attacker's direction
@@ -1378,11 +1957,12 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
   const rocketImpactPos = useMemo(() => {
     if (!defender) return defenderTopPos;
-    const buildingRadius = Math.max(defender.width ?? 10, defender.depth ?? 10) * 0.5;
+    const buildingRadius =
+      Math.max(defender.width ?? 10, defender.depth ?? 10) * 0.5;
     return new THREE.Vector3(
       defender.position[0] - flightDir.x * buildingRadius,
       defenderTopPos.y,
-      defender.position[2] - flightDir.z * buildingRadius
+      defender.position[2] - flightDir.z * buildingRadius,
     );
   }, [defender, defenderTopPos, flightDir]);
 
@@ -1403,12 +1983,14 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
     mid.y = cruiseHeight;
 
     // Depart forward + up (not straight up)
-    const depart = liftEndPos.clone()
+    const depart = liftEndPos
+      .clone()
       .add(flightDir.clone().multiplyScalar(35))
       .setY(liftEndPos.y + 25);
 
     // Approach from behind orbit entry, slightly above
-    const approach = orbitEntryPos.clone()
+    const approach = orbitEntryPos
+      .clone()
       .add(flightDir.clone().multiplyScalar(-25))
       .setY(orbitEntryPos.y + 15);
 
@@ -1458,7 +2040,11 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
   // groundFlightCurve: Generates a 3D path curve for the cruise/flight phase.
   // Instead of a straight line, it interpolates with a sideways offset (S-Curve) at ground level.
   const groundFlightCurve = useMemo(() => {
-    const mid = new THREE.Vector3().lerpVectors(groundDriveEndPos, groundFirePos, 0.5);
+    const mid = new THREE.Vector3().lerpVectors(
+      groundDriveEndPos,
+      groundFirePos,
+      0.5,
+    );
     mid.y = 0.35; // flat on walkway ground level
     // Slight S-curve for visual interest (not a straight line)
     const perpX = -flightDir.z;
@@ -1506,7 +2092,10 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
   }, [phase]);
 
   const triggerShake = (intensity: number) => {
-    shakeRef.current.intensity = Math.max(shakeRef.current.intensity, intensity);
+    shakeRef.current.intensity = Math.max(
+      shakeRef.current.intensity,
+      intensity,
+    );
     shakeRef.current.elapsed = 0;
   };
 
@@ -1521,12 +2110,12 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
     // Direct frame-perfect visibility control for the kamikaze rocket to keep it hidden/destroyed
     if (vehicleRef.current) {
-      const shouldHideRocket = vehicleType === "raid_rocket" && (
-        climaxTriggered.current ||
-        phase === "outro_win" ||
-        phase === "outro_lose" ||
-        phase === "share"
-      );
+      const shouldHideRocket =
+        vehicleType === "raid_rocket" &&
+        (climaxTriggered.current ||
+          phase === "outro_win" ||
+          phase === "outro_lose" ||
+          phase === "share");
       vehicleRef.current.visible = !shouldHideRocket;
     }
 
@@ -1640,7 +2229,10 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       case "flight": {
         if (isGround) {
           // ── GROUND FLIGHT: drive along ground toward defender ──
-          flightProgress.current = Math.min(flightProgress.current + delta * 0.28, 1);
+          flightProgress.current = Math.min(
+            flightProgress.current + delta * 0.28,
+            1,
+          );
           const fp = flightProgress.current;
           const eased = smoothstep(fp);
 
@@ -1657,7 +2249,8 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           }
 
           // Camera: low trailing shot, behind and slightly above
-          const hTangentLen = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
+          const hTangentLen =
+            Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
           const hTanX = tangent.x / hTangentLen;
           const hTanZ = tangent.z / hTangentLen;
           const perpX = -hTanZ;
@@ -1681,7 +2274,10 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           if (fp >= 1.0) onPhaseComplete("flight");
         } else {
           // ── AIR FLIGHT: follow spline, faster ──
-          flightProgress.current = Math.min(flightProgress.current + delta * 0.24, 1);
+          flightProgress.current = Math.min(
+            flightProgress.current + delta * 0.24,
+            1,
+          );
           const fp = flightProgress.current;
           const eased = smoothstep(fp);
 
@@ -1699,7 +2295,8 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleRef.current.rotateZ(bankAmount);
           }
 
-          const hTangentLen = Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
+          const hTangentLen =
+            Math.sqrt(tangent.x * tangent.x + tangent.z * tangent.z) || 1;
           const hTanX = tangent.x / hTangentLen;
           const hTanZ = tangent.z / hTangentLen;
           const perpX = -hTanZ;
@@ -1736,8 +2333,8 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           if (vehicleRef.current) {
             // Tank is stationary at fire position, slight recoil shake
             const recoilPulse = getTankFirePulse(t);
-            const recoilX = recoilPulse * (-flightDir.x) * 0.3;
-            const recoilZ = recoilPulse * (-flightDir.z) * 0.3;
+            const recoilX = recoilPulse * -flightDir.x * 0.3;
+            const recoilZ = recoilPulse * -flightDir.z * 0.3;
 
             vehicleRef.current.position.set(
               groundFirePos.x + recoilX,
@@ -1754,7 +2351,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
           // Camera: over-the-shoulder behind the tank on its level, looking at the middle of the building
           const behindDist = 26 - ap * 5; // Dolly in from 26 to 21
-          const camY = 5.5 - ap * 1.5;    // Keep it low, slowly lowering from 5.5 to 4.0
+          const camY = 5.5 - ap * 1.5; // Keep it low, slowly lowering from 5.5 to 4.0
           const perpX = -flightDir.z;
           const perpZ = flightDir.x;
           // Slight offset to the side for a gorgeous over-the-shoulder composition
@@ -1774,7 +2371,6 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             (groundFirePos.z + topZ) * 0.5,
           );
           camera.lookAt(_tempVec);
-
         } else {
           // ── AIR ATTACK: vehicle-specific trajectories ──
           let vehicleX = topX;
@@ -1795,8 +2391,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleZ = hoverZ + Math.cos(t * 1.5) * 2;
             lookAtTarget.copy(defenderTopPos);
             extraRotateX = 0.08; // slightly nose down
-          } 
-          else if (vehicleType === "raid_drone") {
+          } else if (vehicleType === "raid_drone") {
             // Stealth Drone: hovers close, slides left and right
             const slideWidth = Math.sin(t * 2.5) * 8;
             const perpX = -flightDir.z;
@@ -1806,39 +2401,55 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleY = topY + 16 + Math.sin(t * 4) * 0.8;
             vehicleZ = topZ - flightDir.z * 22 + perpZ * slideWidth;
             lookAtTarget.copy(defenderTopPos);
-          }
-          else if (vehicleType === "raid_ufo") {
+          } else if (vehicleType === "raid_ufo") {
             // UFO: hovers directly above the building, slowly spinning
             vehicleX = topX;
             vehicleY = topY + 28 + Math.sin(t * 2) * 1.0;
             vehicleZ = topZ;
             // Face straight forward relative to original path, spin is inside UFOMesh
-            lookAtTarget.set(topX + flightDir.x * 10, vehicleY, topZ + flightDir.z * 10);
-          }
-          else if (vehicleType === "raid_b2_bomber") {
+            lookAtTarget.set(
+              topX + flightDir.x * 10,
+              vehicleY,
+              topZ + flightDir.z * 10,
+            );
+          } else if (vehicleType === "raid_b2_bomber") {
             // B-2 Bomber: high-altitude straight bombing run
-            const startPos = defenderTopPos.clone().sub(flightDir.clone().multiplyScalar(50)).setY(topY + 35);
-            const endPos = defenderTopPos.clone().add(flightDir.clone().multiplyScalar(50)).setY(topY + 35);
-            const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, ap);
+            const startPos = defenderTopPos
+              .clone()
+              .sub(flightDir.clone().multiplyScalar(50))
+              .setY(topY + 35);
+            const endPos = defenderTopPos
+              .clone()
+              .add(flightDir.clone().multiplyScalar(50))
+              .setY(topY + 35);
+            const currentPos = new THREE.Vector3().lerpVectors(
+              startPos,
+              endPos,
+              ap,
+            );
 
             vehicleX = currentPos.x;
             vehicleY = currentPos.y;
             vehicleZ = currentPos.z;
             lookAtTarget.copy(currentPos).add(flightDir);
-          }
-          else if (vehicleType === "raid_rocket") {
+          } else if (vehicleType === "raid_rocket") {
             // Rocket: high-speed kamikaze charge, impacts at ap = 0.8
             const startPos = orbitEntryPos.clone().setY(topY + 20);
             // Hit defender building facade instead of center to avoid clipping!
-            const currentPos = new THREE.Vector3().lerpVectors(startPos, rocketImpactPos, Math.min(ap * 1.25, 1));
+            const currentPos = new THREE.Vector3().lerpVectors(
+              startPos,
+              rocketImpactPos,
+              Math.min(ap * 1.25, 1),
+            );
 
             vehicleX = currentPos.x;
             vehicleY = currentPos.y;
             vehicleZ = currentPos.z;
-            const rocketDir = new THREE.Vector3().subVectors(rocketImpactPos, startPos).normalize();
+            const rocketDir = new THREE.Vector3()
+              .subVectors(rocketImpactPos, startPos)
+              .normalize();
             lookAtTarget.copy(currentPos).add(rocketDir);
-          }
-          else if (vehicleType === "futuristic_jet") {
+          } else if (vehicleType === "futuristic_jet") {
             // Futuristic Jet: supersonic swooping strafing run
             const swoopHeight = topY + 8 + Math.pow(ap - 0.5, 2) * 90;
             const startX = topX - flightDir.x * 60;
@@ -1851,10 +2462,13 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleX = currentX;
             vehicleY = swoopHeight;
             vehicleZ = currentZ;
-            lookAtTarget.set(currentX + flightDir.x * 10, swoopHeight - (ap - 0.5) * 15, currentZ + flightDir.z * 10);
+            lookAtTarget.set(
+              currentX + flightDir.x * 10,
+              swoopHeight - (ap - 0.5) * 15,
+              currentZ + flightDir.z * 10,
+            );
             extraRotateZ = Math.sin(t * 8) * 0.15; // supersonic wings wobble
-          }
-          else {
+          } else {
             // Default Airplane: Orbiting gun run
             const orbitAngle = orbitStartAngle - t * ORBIT_SPEED;
             vehicleX = topX + Math.cos(orbitAngle) * ORBIT_RADIUS;
@@ -1932,7 +2546,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             playRaidSound("shield_hit");
             hitIntensityRef.current = 1;
           }
-          forceRender(n => n + 1);
+          forceRender((n) => n + 1);
         }
 
         // Vehicle reacts after climax
@@ -2012,27 +2626,40 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
           if (vehicleRef.current) {
             if (vehicleType === "raid_ufo") {
               // UFO: hovers directly above, pulsing tractor beam
-              vehicleRef.current.position.set(topX, topY + 28 + Math.sin(t * 1.5) * 0.5, topZ);
-              _vehicleTarget.set(topX + flightDir.x * 10, vehicleRef.current.position.y, topZ + flightDir.z * 10);
+              vehicleRef.current.position.set(
+                topX,
+                topY + 28 + Math.sin(t * 1.5) * 0.5,
+                topZ,
+              );
+              _vehicleTarget.set(
+                topX + flightDir.x * 10,
+                vehicleRef.current.position.y,
+                topZ + flightDir.z * 10,
+              );
               vehicleRef.current.lookAt(_vehicleTarget);
               vehicleRef.current.rotateY(Math.PI);
-            }
-            else if (vehicleType === "raid_b2_bomber") {
+            } else if (vehicleType === "raid_b2_bomber") {
               // B-2: flies straight away into the distance
               const startX = topX + flightDir.x * 50;
               const startZ = topZ + flightDir.z * 50;
               const currentX = startX + flightDir.x * t * 30;
               const currentZ = startZ + flightDir.z * t * 30;
               const lookAtTarget = new THREE.Vector3();
-              vehicleRef.current.position.set(currentX, topY + 35 + t * 4, currentZ);
-              lookAtTarget.set(currentX + flightDir.x * 10, topY + 35 + t * 4, currentZ + flightDir.z * 10);
+              vehicleRef.current.position.set(
+                currentX,
+                topY + 35 + t * 4,
+                currentZ,
+              );
+              lookAtTarget.set(
+                currentX + flightDir.x * 10,
+                topY + 35 + t * 4,
+                currentZ + flightDir.z * 10,
+              );
               vehicleRef.current.lookAt(lookAtTarget);
               vehicleRef.current.rotateY(Math.PI);
-            }
-            else if (vehicleType === "raid_rocket") {
+            } else if (vehicleType === "raid_rocket") {
               // Rocket is hidden/destroyed (visible logic handles this)
-            }
-            else if (vehicleType === "futuristic_jet") {
+            } else if (vehicleType === "futuristic_jet") {
               // Supersonic vertical climb!
               const currentX = topX + flightDir.x * t * 25;
               const currentZ = topZ + flightDir.z * t * 25;
@@ -2044,8 +2671,7 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
               lookAtTarget.copy(vehicleRef.current.position).add(climbDir);
               vehicleRef.current.lookAt(lookAtTarget);
               vehicleRef.current.rotateY(Math.PI);
-            }
-            else if (vehicleType === "raid_helicopter") {
+            } else if (vehicleType === "raid_helicopter") {
               // Helicopter: hovers and slowly ascends while swaying
               const hoverX = topX - flightDir.x * 28 + Math.sin(t * 2) * 3;
               const hoverZ = topZ - flightDir.z * 28 + Math.cos(t * 2) * 3;
@@ -2053,10 +2679,11 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
               vehicleRef.current.position.set(hoverX, hoverY, hoverZ);
               vehicleRef.current.lookAt(defenderTopPos);
               vehicleRef.current.rotateY(Math.PI);
-            }
-            else {
+            } else {
               // Default airplane victory circle
-              const victoryAngle = orbitStartAngle - (phaseTimeRef.current + ATTACK_DURATION) * ORBIT_SPEED * 0.3;
+              const victoryAngle =
+                orbitStartAngle -
+                (phaseTimeRef.current + ATTACK_DURATION) * ORBIT_SPEED * 0.3;
               const victoryDist = ORBIT_RADIUS * 1.5;
               vehicleRef.current.position.set(
                 defenderTopPos.x + Math.cos(victoryAngle) * victoryDist,
@@ -2088,11 +2715,13 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
         const progress = Math.min(t / 2.5, 1);
 
         if (vehicleRef.current) {
-          _tempVec.set(
-            attackerPos.x - defenderTopPos.x,
-            0,
-            attackerPos.z - defenderTopPos.z,
-          ).normalize();
+          _tempVec
+            .set(
+              attackerPos.x - defenderTopPos.x,
+              0,
+              attackerPos.z - defenderTopPos.z,
+            )
+            .normalize();
 
           if (isGround) {
             // Tank reverses on the ground
@@ -2100,9 +2729,12 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleRef.current.position.y = 0;
 
             // Damaged smoking wobble on ground
-            vehicleRef.current.rotation.z = Math.sin(t * 6) * 0.08 * (1 - progress);
+            vehicleRef.current.rotation.z =
+              Math.sin(t * 6) * 0.08 * (1 - progress);
 
-            _vehicleTarget.copy(vehicleRef.current.position).addScaledVector(_tempVec, 20);
+            _vehicleTarget
+              .copy(vehicleRef.current.position)
+              .addScaledVector(_tempVec, 20);
             _vehicleTarget.setY(0);
             vehicleRef.current.lookAt(_vehicleTarget);
             vehicleRef.current.rotateY(Math.PI);
@@ -2111,9 +2743,12 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
             vehicleRef.current.position.addScaledVector(_tempVec, delta * 40);
             vehicleRef.current.position.y += delta * 8;
 
-            vehicleRef.current.rotation.z = Math.sin(t * 8) * 0.3 * (1 - progress);
+            vehicleRef.current.rotation.z =
+              Math.sin(t * 8) * 0.3 * (1 - progress);
 
-            _vehicleTarget.copy(vehicleRef.current.position).addScaledVector(_tempVec, 20);
+            _vehicleTarget
+              .copy(vehicleRef.current.position)
+              .addScaledVector(_tempVec, 20);
             _vehicleTarget.setY(vehicleRef.current.position.y);
             vehicleRef.current.lookAt(_vehicleTarget);
             vehicleRef.current.rotateY(Math.PI);
@@ -2130,7 +2765,9 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
         // Camera pull back
         const loseAngle = t * 0.12;
         const loseDist = isGround ? GROUND_FIRE_OFFSET * 2 : ORBIT_RADIUS * 1.4;
-        const loseY = isGround ? 8 + progress * 20 : defenderTopPos.y + 20 + progress * 25;
+        const loseY = isGround
+          ? 8 + progress * 20
+          : defenderTopPos.y + 20 + progress * 25;
         _camTarget.set(
           defenderTopPos.x + Math.cos(loseAngle) * loseDist,
           loseY,
@@ -2158,13 +2795,15 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       const decay = Math.exp(-s.elapsed * 5);
       camera.position.set(
         camera.position.x + Math.sin(s.elapsed * 25) * s.intensity * decay,
-        camera.position.y + Math.cos(s.elapsed * 30) * s.intensity * 0.6 * decay,
+        camera.position.y +
+          Math.cos(s.elapsed * 30) * s.intensity * 0.6 * decay,
         camera.position.z,
       );
       camera.rotation.set(
         camera.rotation.x,
         camera.rotation.y,
-        camera.rotation.z + Math.sin(s.elapsed * 20) * s.intensity * 0.012 * decay,
+        camera.rotation.z +
+          Math.sin(s.elapsed * 20) * s.intensity * 0.012 * decay,
       );
 
       if (decay < 0.01) s.intensity = 0;
@@ -2184,21 +2823,39 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       <group
         ref={vehicleRef}
         scale={2}
-        visible={!(vehicleType === "raid_rocket" && (
-          climaxTriggered.current || 
-          phase === "outro_win" || 
-          phase === "outro_lose" || 
-          phase === "share"
-        ))}
+        visible={
+          !(
+            vehicleType === "raid_rocket" &&
+            (climaxTriggered.current ||
+              phase === "outro_win" ||
+              phase === "outro_lose" ||
+              phase === "share")
+          )
+        }
       >
-        <VehicleMesh type={vehicleType} isAttacking={isAttack} targetPos={isGround ? defenderLowerPos : defenderTopPos} />
+        <VehicleMesh
+          type={vehicleType}
+          isAttacking={isAttack}
+          targetPos={isGround ? defenderLowerPos : defenderTopPos}
+        />
       </group>
 
       {/* UFO Tractor Beam */}
       {isAttack && vehicleType === "raid_ufo" && (
-        <mesh position={[defenderTopPos.x, defenderTopPos.y + 12.5, defenderTopPos.z]}>
+        <mesh
+          position={[
+            defenderTopPos.x,
+            defenderTopPos.y + 12.5,
+            defenderTopPos.z,
+          ]}
+        >
           <cylinderGeometry args={[2.5, 4.5, 25, 16]} />
-          <meshBasicMaterial color="#10b981" transparent opacity={0.25 + Math.sin(phaseTimeRef.current * 18) * 0.12} depthWrite={false} />
+          <meshBasicMaterial
+            color="#10b981"
+            transparent
+            opacity={0.25 + Math.sin(phaseTimeRef.current * 18) * 0.12}
+            depthWrite={false}
+          />
         </mesh>
       )}
 
@@ -2207,7 +2864,9 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
 
       {/* Red targeting light on defender */}
       {(phase === "flight" || phase === "attack") && (
-        <group position={[defenderTopPos.x, defenderTopPos.y + 30, defenderTopPos.z]}>
+        <group
+          position={[defenderTopPos.x, defenderTopPos.y + 30, defenderTopPos.z]}
+        >
           <pointLight color="#ff2020" intensity={8} distance={60} />
         </group>
       )}
@@ -2248,30 +2907,70 @@ export default function RaidSequence3D({ phase, attacker, defender, raidData, on
       />
 
       {/* Shockwave ring */}
-      <Shockwave 
-        active={(isAttack || isOutro) && (!!raidData?.success || vehicleType === "raid_rocket") && climaxTriggered.current} 
-        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+      <Shockwave
+        active={
+          (isAttack || isOutro) &&
+          (!!raidData?.success || vehicleType === "raid_rocket") &&
+          climaxTriggered.current
+        }
+        position={
+          vehicleType === "raid_rocket"
+            ? rocketImpactPos
+            : isGround
+              ? defenderLowerPos
+              : defenderTopPos
+        }
         isMissile={vehicleType === "raid_rocket"}
       />
 
       {/* Debris */}
-      <DebrisParticles 
-        active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} 
-        origin={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+      <DebrisParticles
+        active={
+          (isAttack || isOutro) &&
+          !!raidData?.success &&
+          climaxTriggered.current
+        }
+        origin={
+          vehicleType === "raid_rocket"
+            ? rocketImpactPos
+            : isGround
+              ? defenderLowerPos
+              : defenderTopPos
+        }
         isMissile={vehicleType === "raid_rocket"}
       />
 
       {/* Fire glow */}
-      <FireGlow 
-        active={(isAttack || isOutro) && !!raidData?.success && climaxTriggered.current} 
-        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)} 
+      <FireGlow
+        active={
+          (isAttack || isOutro) &&
+          !!raidData?.success &&
+          climaxTriggered.current
+        }
+        position={
+          vehicleType === "raid_rocket"
+            ? rocketImpactPos
+            : isGround
+              ? defenderLowerPos
+              : defenderTopPos
+        }
         isMissile={vehicleType === "raid_rocket"}
       />
 
       {/* Climax Fireball Explosion (engulfs building) */}
-      <ClimaxExplosion 
-        active={(isAttack || isOutro) && (!!raidData?.success || vehicleType === "raid_rocket") && climaxTriggered.current} 
-        position={vehicleType === "raid_rocket" ? rocketImpactPos : (isGround ? defenderLowerPos : defenderTopPos)}
+      <ClimaxExplosion
+        active={
+          (isAttack || isOutro) &&
+          (!!raidData?.success || vehicleType === "raid_rocket") &&
+          climaxTriggered.current
+        }
+        position={
+          vehicleType === "raid_rocket"
+            ? rocketImpactPos
+            : isGround
+              ? defenderLowerPos
+              : defenderTopPos
+        }
         isMissile={vehicleType === "raid_rocket"}
       />
     </group>
@@ -2283,18 +2982,24 @@ interface ClimaxExplosionProps {
   isMissile?: boolean;
 }
 
-function ClimaxExplosion({ active, position, isMissile = false }: ClimaxExplosionProps) {
+function ClimaxExplosion({
+  active,
+  position,
+  isMissile = false,
+}: ClimaxExplosionProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const startTime = useRef<number | null>(null);
   const particleCount = isMissile ? 35 : 20;
-  const particles = useRef<{
-    pos: THREE.Vector3;
-    vel: THREE.Vector3;
-    scale: number;
-    maxScale: number;
-    elapsed: number;
-    life: number;
-  }[]>([]);
+  const particles = useRef<
+    {
+      pos: THREE.Vector3;
+      vel: THREE.Vector3;
+      scale: number;
+      maxScale: number;
+      elapsed: number;
+      life: number;
+    }[]
+  >([]);
 
   const _matrix = useMemo(() => new THREE.Matrix4(), []);
   const _scale = useMemo(() => new THREE.Vector3(), []);
@@ -2309,28 +3014,30 @@ function ClimaxExplosion({ active, position, isMissile = false }: ClimaxExplosio
 
     particles.current = Array.from({ length: particleCount }, () => {
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos((Math.random() * 2) - 1);
-      const speed = isMissile ? (8 + Math.random() * 26) : (5 + Math.random() * 12);
-      
+      const phi = Math.acos(Math.random() * 2 - 1);
+      const speed = isMissile ? 8 + Math.random() * 26 : 5 + Math.random() * 12;
+
       const vel = new THREE.Vector3(
         Math.sin(phi) * Math.cos(theta) * speed,
         Math.sin(phi) * Math.sin(theta) * speed + (isMissile ? 7 : 3),
-        Math.cos(phi) * speed
+        Math.cos(phi) * speed,
       );
 
-      const maxScale = isMissile ? (12.0 + Math.random() * 12.0) : (4.0 + Math.random() * 5.0);
-      
+      const maxScale = isMissile
+        ? 12.0 + Math.random() * 12.0
+        : 4.0 + Math.random() * 5.0;
+
       return {
         pos: new THREE.Vector3(
           (Math.random() - 0.5) * (isMissile ? 6 : 2),
           (Math.random() - 0.5) * (isMissile ? 6 : 2),
-          (Math.random() - 0.5) * (isMissile ? 6 : 2)
+          (Math.random() - 0.5) * (isMissile ? 6 : 2),
         ),
         vel,
         scale: 0.1,
         maxScale,
         elapsed: 0,
-        life: isMissile ? (1.5 + Math.random() * 0.9) : (0.8 + Math.random() * 0.5),
+        life: isMissile ? 1.5 + Math.random() * 0.9 : 0.8 + Math.random() * 0.5,
       };
     });
   }, [active, isMissile, particleCount]);
@@ -2374,7 +3081,11 @@ function ClimaxExplosion({ active, position, isMissile = false }: ClimaxExplosio
 
   return (
     <group position={position}>
-      <instancedMesh ref={meshRef} args={[undefined, undefined, particleCount]} frustumCulled={false}>
+      <instancedMesh
+        ref={meshRef}
+        args={[undefined, undefined, particleCount]}
+        frustumCulled={false}
+      >
         <sphereGeometry args={[1, 8, 8]} />
         <meshStandardMaterial
           color="#ff4500"
@@ -2395,7 +3106,11 @@ interface ExplosionParticlesProps {
   onComplete: () => void;
 }
 
-function ExplosionParticles({ position, isDrone = false, onComplete }: ExplosionParticlesProps) {
+function ExplosionParticles({
+  position,
+  isDrone = false,
+  onComplete,
+}: ExplosionParticlesProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const fireballRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.PointLight>(null);
@@ -2414,21 +3129,23 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
     const mats: THREE.Matrix4[] = [];
     const scales: number[] = [];
     const cols: THREE.Color[] = [];
-    
-    const palette = isDrone 
-      ? ["#00ffff", "#00bcff", "#0066ff", "#333333"] 
+
+    const palette = isDrone
+      ? ["#00ffff", "#00bcff", "#0066ff", "#333333"]
       : ["#ffaa00", "#ff4400", "#ff1100", "#ffffff", "#444444"];
 
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos((Math.random() * 2) - 1);
+      const phi = Math.acos(Math.random() * 2 - 1);
       const speed = 8 + Math.random() * 16;
 
-      vels.push(new THREE.Vector3(
-        Math.sin(phi) * Math.cos(theta) * speed,
-        Math.sin(phi) * Math.sin(theta) * speed,
-        Math.cos(phi) * speed
-      ));
+      vels.push(
+        new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta) * speed,
+          Math.sin(phi) * Math.sin(theta) * speed,
+          Math.cos(phi) * speed,
+        ),
+      );
 
       const matrix = new THREE.Matrix4();
       const scale = 0.25 + Math.random() * 0.45;
@@ -2464,11 +3181,11 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
         const mat = matrices.current[i];
         const vel = velocities.current[i];
         const baseScale = baseScales.current[i];
-        
+
         // Extract position from matrix, add velocity, and update matrix
         const pos = new THREE.Vector3().setFromMatrixPosition(mat);
         pos.addScaledVector(vel, delta);
-        
+
         // Apply deceleration/gravity
         vel.y -= 8 * delta;
         vel.multiplyScalar(0.98);
@@ -2477,7 +3194,7 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
         const currentScale = baseScale * (1 - progress);
         mat.makeTranslation(pos.x, pos.y, pos.z);
         mat.scale(new THREE.Vector3(currentScale, currentScale, currentScale));
-        
+
         meshRef.current.setMatrixAt(i, mat);
       }
       meshRef.current.instanceMatrix.needsUpdate = true;
@@ -2505,16 +3222,21 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
   return (
     <group position={position}>
       {/* Dynamic Flash Light */}
-      <pointLight ref={lightRef} color={isDrone ? "#00f5ff" : "#ff7700"} distance={25} intensity={15} />
+      <pointLight
+        ref={lightRef}
+        color={isDrone ? "#00f5ff" : "#ff7700"}
+        distance={25}
+        intensity={15}
+      />
 
       {/* Central Expanding Fireball Sphere */}
       <mesh ref={fireballRef}>
         <sphereGeometry args={[1, 12, 12]} />
-        <meshBasicMaterial 
-          color={isDrone ? "#00ffff" : "#ff5500"} 
-          transparent 
-          opacity={0.7} 
-          blending={THREE.AdditiveBlending} 
+        <meshBasicMaterial
+          color={isDrone ? "#00ffff" : "#ff5500"}
+          transparent
+          opacity={0.7}
+          blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
@@ -2522,10 +3244,10 @@ function ExplosionParticles({ position, isDrone = false, onComplete }: Explosion
       {/* Debris particles */}
       <instancedMesh ref={meshRef} args={[undefined, undefined, particleCount]}>
         <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial 
-          emissive={isDrone ? "#0066ff" : "#ff1100"} 
-          emissiveIntensity={4} 
-          toneMapped={false} 
+        <meshStandardMaterial
+          emissive={isDrone ? "#0066ff" : "#ff1100"}
+          emissiveIntensity={4}
+          toneMapped={false}
         />
       </instancedMesh>
     </group>

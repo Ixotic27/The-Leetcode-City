@@ -26,8 +26,15 @@ export function getPaginationStateForFilterChange(
   return { page: 1, pageSize: state.pageSize };
 }
 
-export function getPaginatedItems<T>(items: T[], page: number, pageSize: number): PaginatedResult<T> {
-  const safePageSize = Number.isFinite(pageSize) && pageSize > 0 ? pageSize : DEFAULT_ADS_PAGE_SIZE;
+export function getPaginatedItems<T>(
+  items: T[],
+  page: number,
+  pageSize: number,
+): PaginatedResult<T> {
+  const safePageSize =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? pageSize
+      : DEFAULT_ADS_PAGE_SIZE;
   const safePage = Number.isFinite(page) && page > 0 ? page : 1;
   const totalItems = items.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize));

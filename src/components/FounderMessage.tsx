@@ -214,7 +214,8 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
               className="font-pixel text-[9px] px-2 py-0.5 cursor-pointer transition-colors"
               style={{
                 color: lang === "en" ? "#ffa116" : "rgba(255, 161, 22, 0.25)",
-                background: lang === "en" ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                background:
+                  lang === "en" ? "rgba(255, 161, 22, 0.1)" : "transparent",
                 border: `1px solid ${lang === "en" ? "rgba(255, 161, 22, 0.3)" : "transparent"}`,
               }}
             >
@@ -225,7 +226,8 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
               className="font-pixel text-[9px] px-2 py-0.5 cursor-pointer transition-colors"
               style={{
                 color: lang === "pt" ? "#ffa116" : "rgba(255, 161, 22, 0.25)",
-                background: lang === "pt" ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                background:
+                  lang === "pt" ? "rgba(255, 161, 22, 0.1)" : "transparent",
                 border: `1px solid ${lang === "pt" ? "rgba(255, 161, 22, 0.3)" : "transparent"}`,
               }}
             >
@@ -238,7 +240,9 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
               className="font-pixel text-[12px] ml-3 cursor-pointer transition-colors"
               style={{ color: "rgba(255, 161, 22, 0.4)" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#ffa116")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255, 161, 22, 0.4)")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "rgba(255, 161, 22, 0.4)")
+              }
             >
               [X]
             </button>
@@ -277,17 +281,19 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
             )}
 
             {/* Cursor when waiting for first char */}
-            {!allParagraphsDone && typedText.length === 0 && paragraphsDone.length > 0 && (
-              <p className="font-pixel text-[10px] sm:text-[11px]">
-                <span
-                  className="inline-block w-[7px] h-[11px] align-middle"
-                  style={{
-                    background: cursorVisible ? "#ffa116" : "transparent",
-                    transition: "background 0.1s",
-                  }}
-                />
-              </p>
-            )}
+            {!allParagraphsDone &&
+              typedText.length === 0 &&
+              paragraphsDone.length > 0 && (
+                <p className="font-pixel text-[10px] sm:text-[11px]">
+                  <span
+                    className="inline-block w-[7px] h-[11px] align-middle"
+                    style={{
+                      background: cursorVisible ? "#ffa116" : "transparent",
+                      transition: "background 0.1s",
+                    }}
+                  />
+                </p>
+              )}
           </div>
 
           {/* Signature */}
@@ -328,7 +334,9 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
                 e.currentTarget.style.borderColor = "rgba(255, 161, 22, 0.4)";
               }}
             >
-              {lang === "en" ? "Keep the signal alive" : "Mantenha o sinal vivo"}
+              {lang === "en"
+                ? "Keep the signal alive"
+                : "Mantenha o sinal vivo"}
             </a>
           </div>
 
@@ -356,7 +364,9 @@ export default function FounderMessage({ onClose }: FounderMessageProps) {
               className="font-pixel text-[9px] px-3 py-1 cursor-pointer transition-colors tracking-wider"
               style={{ color: "rgba(255, 161, 22, 0.3)" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#ffa116")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255, 161, 22, 0.3)")}
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.color = "rgba(255, 161, 22, 0.3)")
+              }
             >
               SKIP &gt;&gt;
             </button>

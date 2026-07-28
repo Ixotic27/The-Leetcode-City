@@ -19,12 +19,18 @@ export function sendEmblemNotification(
   login: string,
   emblems: EmblemInfo[],
 ) {
-  const notable = emblems.filter((e) => e.tier === "gold" || e.tier === "diamond");
+  const notable = emblems.filter(
+    (e) => e.tier === "gold" || e.tier === "diamond",
+  );
   if (notable.length === 0) return;
 
-  const dedupKey = notable.length === 1
-    ? `emblem:${devId}:${notable[0].id}`
-    : `emblem_batch:${devId}:${notable.map((e) => e.id).sort().join(",")}`;
+  const dedupKey =
+    notable.length === 1
+      ? `emblem:${devId}:${notable[0].id}`
+      : `emblem_batch:${devId}:${notable
+          .map((e) => e.id)
+          .sort()
+          .join(",")}`;
 
   const isSingle = notable.length === 1;
   const first = notable[0];

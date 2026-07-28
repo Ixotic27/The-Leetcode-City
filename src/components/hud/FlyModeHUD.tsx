@@ -50,7 +50,8 @@ export default function FlyModeHUD() {
           className="absolute inset-0 bg-bg/70 backdrop-blur-sm"
           onClick={() => {
             setShowFlyResults(null);
-            if (flyResultsTimerRef.current) clearTimeout(flyResultsTimerRef.current);
+            if (flyResultsTimerRef.current)
+              clearTimeout(flyResultsTimerRef.current);
           }}
         />
         {/* Modal */}
@@ -62,7 +63,8 @@ export default function FlyModeHUD() {
           <button
             onClick={() => {
               setShowFlyResults(null);
-              if (flyResultsTimerRef.current) clearTimeout(flyResultsTimerRef.current);
+              if (flyResultsTimerRef.current)
+                clearTimeout(flyResultsTimerRef.current);
             }}
             className="absolute top-2 right-3 text-[10px] text-muted transition-colors hover:text-cream"
           >
@@ -138,7 +140,8 @@ export default function FlyModeHUD() {
             <button
               onClick={() => {
                 setShowFlyResults(null);
-                if (flyResultsTimerRef.current) clearTimeout(flyResultsTimerRef.current);
+                if (flyResultsTimerRef.current)
+                  clearTimeout(flyResultsTimerRef.current);
                 setFlyMode(true);
                 setFlyScore({
                   score: 0,
@@ -157,8 +160,8 @@ export default function FlyModeHUD() {
                   setFlyPersonalBest(
                     parseInt(
                       localStorage.getItem("leetcodecity_fly_pb") || "0",
-                      10
-                    ) || 0
+                      10,
+                    ) || 0,
                   );
                 } catch {
                   setFlyPersonalBest(0);
@@ -176,7 +179,8 @@ export default function FlyModeHUD() {
               href="/leaderboard?mode=game"
               onClick={() => {
                 setShowFlyResults(null);
-                if (flyResultsTimerRef.current) clearTimeout(flyResultsTimerRef.current);
+                if (flyResultsTimerRef.current)
+                  clearTimeout(flyResultsTimerRef.current);
               }}
               className="btn-press border-[2px] border-border px-5 py-2 text-[10px] transition-colors hover:border-border-light"
               style={{ color: theme.accent }}
@@ -186,7 +190,8 @@ export default function FlyModeHUD() {
             <button
               onClick={() => {
                 setShowFlyResults(null);
-                if (flyResultsTimerRef.current) clearTimeout(flyResultsTimerRef.current);
+                if (flyResultsTimerRef.current)
+                  clearTimeout(flyResultsTimerRef.current);
               }}
               className="text-[9px] text-muted transition-colors hover:text-cream"
             >
@@ -249,9 +254,7 @@ export default function FlyModeHUD() {
               className="pointer-events-auto btn-press border px-1.5 py-0.5 text-[11px] transition-colors"
               style={{
                 borderColor:
-                  flyVehicle === v.id
-                    ? theme.accent
-                    : "rgba(255,255,255,0.15)",
+                  flyVehicle === v.id ? theme.accent : "rgba(255,255,255,0.15)",
                 backgroundColor:
                   flyVehicle === v.id ? theme.accent + "22" : "transparent",
                 color: flyVehicle === v.id ? theme.accent : "#888",
@@ -277,7 +280,8 @@ export default function FlyModeHUD() {
               MISSION QUOTA MATCHED!
             </div>
             <div className="text-[10px] text-cream/80">
-              You&apos;ve reached {activeFlyQuota || 50} PX. Exit now to complete quest?
+              You&apos;ve reached {activeFlyQuota || 50} PX. Exit now to
+              complete quest?
             </div>
             <div className="mt-2 flex gap-3">
               <button
@@ -327,8 +331,7 @@ export default function FlyModeHUD() {
         </div>
         {flyPersonalBest > 0 && (
           <div className="mt-0.5 text-[8px] text-muted">
-            BEST:{" "}
-            <span style={{ color: theme.accent }}>{flyPersonalBest}</span>
+            BEST: <span style={{ color: theme.accent }}>{flyPersonalBest}</span>
           </div>
         )}
       </div>
@@ -456,13 +459,16 @@ export default function FlyModeHUD() {
                 try {
                   localStorage.setItem("leetcodecity_fly_controls_seen", "1");
                 } catch (err) {
-                  console.warn("[flyControls] Failed to persist controls seen flag:", err);
+                  console.warn(
+                    "[flyControls] Failed to persist controls seen flag:",
+                    err,
+                  );
                 }
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", {
                     code: "Space",
                     bubbles: true,
-                  })
+                  }),
                 );
               }}
               className="btn-press mt-5 px-6 py-2 text-[10px] text-bg"

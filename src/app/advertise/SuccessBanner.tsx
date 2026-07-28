@@ -21,7 +21,8 @@ function SuccessBannerInner() {
         Payment <span style={{ color: ACCENT }}>confirmed!</span>
       </p>
       <p className="mt-2 text-[10px] text-muted normal-case">
-        Your ad is now live and flying over the city. Track impressions and clicks anytime:
+        Your ad is now live and flying over the city. Track impressions and
+        clicks anytime:
       </p>
       <Link
         href={`/advertise/track/${token}`}

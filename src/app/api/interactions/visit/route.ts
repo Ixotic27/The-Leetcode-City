@@ -8,7 +8,8 @@ import { trackDailyMission } from "@/lib/dailies";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
 
   const { building_login } = await request.json();
   if (!building_login || typeof building_login !== "string") {
-    return NextResponse.json({ error: "Missing building_login" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing building_login" },
+      { status: 400 },
+    );
   }
 
   // Per-user rate limit
@@ -43,7 +47,10 @@ export async function POST(request: Request) {
     .single();
 
   if (!visitor) {
-    return NextResponse.json({ error: "Not a registered developer" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Not a registered developer" },
+      { status: 403 },
+    );
   }
 
   // Fetch building owner
@@ -78,19 +85,21 @@ export async function POST(request: Request) {
   }
 
   // Insert (ON CONFLICT DO NOTHING via PK constraint)
-  const { error: insertError } = await admin
-    .from("building_visits")
-    .insert({
-      visitor_id: visitor.id,
-      building_id: building.id,
-      visit_date: today,
-    });
+  const { error: insertError } = await admin.from("building_visits").insert({
+    visitor_id: visitor.id,
+    building_id: building.id,
+    visit_date: today,
+  });
 
   if (!insertError) {
     await admin.rpc("increment_visit_count", { target_dev_id: building.id });
 
     // Grant XP for visiting a building
-    await admin.rpc("grant_xp_atomic", { p_developer_id: visitor.id, p_source: "visit", p_amount: 2 });
+    await admin.rpc("grant_xp_atomic", {
+      p_developer_id: visitor.id,
+      p_source: "visit",
+      p_amount: 2,
+    });
 
     // Only credit daily missions for genuine, unique visits
     await trackDailyMission(visitor.id, "visit_building");

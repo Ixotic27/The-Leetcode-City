@@ -67,10 +67,7 @@ function BarRow({
           {value}
         </span>
       </div>
-      <div
-        className="h-[3px] w-full"
-        style={{ background: "#2a2a30" }}
-      >
+      <div className="h-[3px] w-full" style={{ background: "#2a2a30" }}>
         <div
           className="h-full transition-all duration-500"
           style={{ width: `${pct}%`, background: color }}
@@ -103,9 +100,8 @@ function ActiveSessionsPanel({
   }, [liveByLogin]);
 
   const activeCount = useMemo(
-    () =>
-      [...liveByLogin.values()].filter((s) => s.status === "active").length,
-    [liveByLogin]
+    () => [...liveByLogin.values()].filter((s) => s.status === "active").length,
+    [liveByLogin],
   );
 
   return (
@@ -114,11 +110,7 @@ function ActiveSessionsPanel({
       <StatRow label="Viewers online" value={liveUsers} color="#4ade80" />
       <StatRow label="Coding now" value={codingCount} color="#60a5fa" />
       <StatRow label="Active" value={activeCount} color="#4ade80" />
-      <StatRow
-        label="Idle"
-        value={codingCount - activeCount}
-        color="#5c5c6c"
-      />
+      <StatRow label="Idle" value={codingCount - activeCount} color="#5c5c6c" />
       {languageCounts.length > 0 && (
         <div className="mt-2">
           <p className="text-[8px] text-dim mb-1.5 normal-case">
@@ -237,14 +229,13 @@ function CityHealthPanel({ buildings }: { buildings: CityBuilding[] }) {
 
   const totalContributions = useMemo(
     () => buildings.reduce((acc, b) => acc + (b.contributions ?? 0), 0),
-    [buildings]
+    [buildings],
   );
 
   const raidTagCount = buildings.filter(
-    (b) => b.active_raid_tag != null
+    (b) => b.active_raid_tag != null,
   ).length;
-  const raidTagPct =
-    total > 0 ? Math.round((raidTagCount / total) * 100) : 0;
+  const raidTagPct = total > 0 ? Math.round((raidTagCount / total) * 100) : 0;
 
   const maxTierCount = Math.max(...tierCounts.map((t) => t.count), 1);
 
@@ -289,9 +280,9 @@ export default function CityAnalyticsDashboard({
   open,
   onClose,
 }: CityAnalyticsDashboardProps) {
-  const [activeTab, setActiveTab] = useState<
-    "sessions" | "density" | "health"
-  >("sessions");
+  const [activeTab, setActiveTab] = useState<"sessions" | "density" | "health">(
+    "sessions",
+  );
 
   if (!open) return null;
 

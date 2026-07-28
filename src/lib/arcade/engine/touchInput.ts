@@ -45,7 +45,10 @@ function getChatBtnPos() {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
-function canvasCoords(touch: Touch, canvas: HTMLCanvasElement): { x: number; y: number } {
+function canvasCoords(
+  touch: Touch,
+  canvas: HTMLCanvasElement,
+): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect();
   return {
     x: (touch.clientX - rect.left) * (canvas.width / rect.width),
@@ -61,7 +64,13 @@ function directionFromDelta(dx: number, dy: number): Direction {
   return "left";
 }
 
-function isInCircle(px: number, py: number, cx: number, cy: number, r: number): boolean {
+function isInCircle(
+  px: number,
+  py: number,
+  cx: number,
+  cy: number,
+  r: number,
+): boolean {
   const dx = px - cx;
   const dy = py - cy;
   return dx * dx + dy * dy <= r * r;
@@ -204,8 +213,12 @@ export function updateTouchMovement(dt: number): void {
 // ─── Render helpers ──────────────────────────────────────────
 function drawRingButton(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, r: number,
-  pressed: boolean, label: string, sublabel?: string,
+  x: number,
+  y: number,
+  r: number,
+  pressed: boolean,
+  label: string,
+  sublabel?: string,
 ): void {
   // Fill
   ctx.globalAlpha = pressed ? 0.3 : 0.1;
@@ -266,14 +279,26 @@ export function renderTouchControls(
     ctx.globalAlpha = 0.35;
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
-    ctx.arc(joystickThumbX, joystickThumbY, JOYSTICK_THUMB_RADIUS, 0, Math.PI * 2);
+    ctx.arc(
+      joystickThumbX,
+      joystickThumbY,
+      JOYSTICK_THUMB_RADIUS,
+      0,
+      Math.PI * 2,
+    );
     ctx.fill();
 
     ctx.globalAlpha = 0.5;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(joystickThumbX, joystickThumbY, JOYSTICK_THUMB_RADIUS, 0, Math.PI * 2);
+    ctx.arc(
+      joystickThumbX,
+      joystickThumbY,
+      JOYSTICK_THUMB_RADIUS,
+      0,
+      Math.PI * 2,
+    );
     ctx.stroke();
   } else {
     // Idle hint — subtle D-pad
@@ -299,15 +324,25 @@ export function renderTouchControls(
     ctx.lineWidth = 1;
     const len = 8;
     ctx.beginPath();
-    ctx.moveTo(hx, hy - len); ctx.lineTo(hx, hy + len);
-    ctx.moveTo(hx - len, hy); ctx.lineTo(hx + len, hy);
+    ctx.moveTo(hx, hy - len);
+    ctx.lineTo(hx, hy + len);
+    ctx.moveTo(hx - len, hy);
+    ctx.lineTo(hx + len, hy);
     ctx.stroke();
   }
 
   const action = getActionBtnPos();
   const chat = getChatBtnPos();
 
-  drawRingButton(ctx, action.x, action.y, BUTTON_RADIUS, actionDown, "E", actionLabel || undefined);
+  drawRingButton(
+    ctx,
+    action.x,
+    action.y,
+    BUTTON_RADIUS,
+    actionDown,
+    "E",
+    actionLabel || undefined,
+  );
   drawRingButton(ctx, chat.x, chat.y, BUTTON_RADIUS, chatDown, "Chat");
 
   ctx.globalAlpha = 1;

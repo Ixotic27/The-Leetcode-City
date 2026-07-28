@@ -88,7 +88,7 @@ export function SearchFeedback({
       return;
     }
     const timers = LOADING_PHASES.map((phase, i) =>
-      setTimeout(() => setPhaseIndex(i), phase.delay)
+      setTimeout(() => setPhaseIndex(i), phase.delay),
     );
     return () => timers.forEach(clearTimeout);
   }, [feedback?.type]);
@@ -259,7 +259,10 @@ export default function SearchBar() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     };
@@ -323,12 +326,12 @@ export default function SearchBar() {
       }
 
       const existedBefore = buildings.some(
-        (b) => b.login.toLowerCase() === trimmed
+        (b) => b.login.toLowerCase() === trimmed,
       );
 
       const devRes = await fetch(
         `/api/dev/${encodeURIComponent(trimmed)}?t=${Date.now()}`,
-        { cache: "no-store" }
+        { cache: "no-store" },
       );
       const devData = await devRes.json();
 
@@ -343,7 +346,10 @@ export default function SearchBar() {
             code = "no-activity";
         }
         if (PERMANENT_ERROR_CODES.has(code)) {
-          failedUsernamesRef.current.set(trimmed, { code, timestamp: Date.now() });
+          failedUsernamesRef.current.set(trimmed, {
+            code,
+            timestamp: Date.now(),
+          });
         }
         setFeedback({
           type: "error",
@@ -381,7 +387,7 @@ export default function SearchBar() {
         updatedBuildings = layout.buildings;
       } else {
         const foundIdx = rawDevsRef.current.findIndex(
-          (d) => d.github_login.toLowerCase() === trimmed
+          (d) => d.github_login.toLowerCase() === trimmed,
         );
         if (foundIdx !== -1) {
           rawDevsRef.current[foundIdx] = {
@@ -404,7 +410,7 @@ export default function SearchBar() {
 
       const searchPool = updatedBuildings ?? buildings;
       const foundBuilding = searchPool.find(
-        (b) => b.login.toLowerCase() === trimmed
+        (b) => b.login.toLowerCase() === trimmed,
       );
 
       if (wasComparing && !comparePair && foundBuilding) {
@@ -447,8 +453,15 @@ export default function SearchBar() {
   if (!exploreMode || compareBuilding || comparePair) return null;
 
   return (
-    <div ref={containerRef} className="pointer-events-auto absolute top-3 left-32 right-3 z-[31] sm:left-36 sm:right-auto sm:top-4 sm:w-72">
-      <form id="search-bar-form" onSubmit={handleSubmit} className="flex items-center gap-2">
+    <div
+      ref={containerRef}
+      className="pointer-events-auto absolute top-3 left-32 right-3 z-[31] sm:left-36 sm:right-auto sm:top-4 sm:w-72"
+    >
+      <form
+        id="search-bar-form"
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2"
+      >
         <input
           type="text"
           value={username}
@@ -475,7 +488,10 @@ export default function SearchBar() {
       {open && results.length > 0 && (
         <div className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto border-[3px] border-border bg-bg/95 backdrop-blur-md shadow-lg z-[32]">
           {results.map((dev, idx) => {
-            const totalSolved = (dev.easy_solved ?? 0) + (dev.medium_solved ?? 0) + (dev.hard_solved ?? 0);
+            const totalSolved =
+              (dev.easy_solved ?? 0) +
+              (dev.medium_solved ?? 0) +
+              (dev.hard_solved ?? 0);
             return (
               <div
                 key={dev.github_login}
@@ -490,11 +506,16 @@ export default function SearchBar() {
                     : "text-cream/90 hover:bg-white/5 hover:text-white"
                 }`}
                 style={{
-                  borderLeft: idx === activeIdx ? `3px solid ${theme.accent}` : "3px solid transparent",
+                  borderLeft:
+                    idx === activeIdx
+                      ? `3px solid ${theme.accent}`
+                      : "3px solid transparent",
                 }}
               >
                 <span>{dev.github_login}</span>
-                <span className="text-[10px] text-muted normal-case">{totalSolved} solved</span>
+                <span className="text-[10px] text-muted normal-case">
+                  {totalSolved} solved
+                </span>
               </div>
             );
           })}

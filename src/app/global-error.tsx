@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 export default function GlobalError({
   error,
@@ -11,7 +11,9 @@ export default function GlobalError({
     <html lang="en">
       <body className="bg-bg font-pixel text-warm">
         <div className="flex h-screen w-full flex-col items-center justify-center p-4 text-center">
-          <h2 className="mb-4 text-4xl font-pixel text-warm drop-shadow-lg">Critical System Error</h2>
+          <h2 className="mb-4 text-4xl font-pixel text-warm drop-shadow-lg">
+            Critical System Error
+          </h2>
           <p className="mb-8 font-pixel text-sm text-gray-400">
             A fatal error occurred that broke the entire city layout.
           </p>

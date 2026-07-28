@@ -38,7 +38,9 @@ export default function ReturnModal({ streakData, onClose }: Props) {
   useEffect(() => {
     const delay = new_achievements.length > 0 ? 6000 : 4000;
     timerRef.current = setTimeout(handleClose, delay);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [handleClose, new_achievements.length]);
 
   const raids = streakData.raids_since_last ?? [];
@@ -48,13 +50,19 @@ export default function ReturnModal({ streakData, onClose }: Props) {
   const parts: string[] = [];
   if (was_frozen) parts.push("Freeze used");
   if (new_achievements.length > 0) {
-    parts.push(`${new_achievements.length} new badge${new_achievements.length > 1 ? "s" : ""}`);
+    parts.push(
+      `${new_achievements.length} new badge${new_achievements.length > 1 ? "s" : ""}`,
+    );
   }
   if (successfulRaids.length > 0) {
-    parts.push(`Attacked by ${successfulRaids.map((r) => r.attacker_login).join(", ")}`);
+    parts.push(
+      `Attacked by ${successfulRaids.map((r) => r.attacker_login).join(", ")}`,
+    );
   }
   if (failedRaids.length > 0 && successfulRaids.length === 0) {
-    parts.push(`Defended ${failedRaids.length} battle${failedRaids.length > 1 ? "s" : ""}`);
+    parts.push(
+      `Defended ${failedRaids.length} battle${failedRaids.length > 1 ? "s" : ""}`,
+    );
   }
   const subtitle = parts.length > 0 ? parts.join(" · ") : null;
 

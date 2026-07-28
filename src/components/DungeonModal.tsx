@@ -1,13 +1,37 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-interface DungeonModalProps { onClose: () => void; }
-interface DailyProblem { title: string; difficulty: string; titleSlug: string; }
+interface DungeonModalProps {
+  onClose: () => void;
+}
+interface DailyProblem {
+  title: string;
+  difficulty: string;
+  titleSlug: string;
+}
 
-const BOSS_MAP: Record<string, { name: string; emoji: string; color: string; bg: string }> = {
-  Easy:   { name: "Goblin", emoji: "👺", color: "#4ade80", bg: "rgba(74,222,128,0.15)" },
-  Medium: { name: "Orc",    emoji: "👹", color: "#fb923c", bg: "rgba(251,146,60,0.15)" },
-  Hard:   { name: "Dragon", emoji: "🐉", color: "#ef4444", bg: "rgba(239,68,68,0.15)" },
+const BOSS_MAP: Record<
+  string,
+  { name: string; emoji: string; color: string; bg: string }
+> = {
+  Easy: {
+    name: "Goblin",
+    emoji: "👺",
+    color: "#4ade80",
+    bg: "rgba(74,222,128,0.15)",
+  },
+  Medium: {
+    name: "Orc",
+    emoji: "👹",
+    color: "#fb923c",
+    bg: "rgba(251,146,60,0.15)",
+  },
+  Hard: {
+    name: "Dragon",
+    emoji: "🐉",
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.15)",
+  },
 };
 
 const FETCH_TIMEOUT_MS = 8000;
@@ -33,11 +57,19 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
       setLoading(true);
       setError(false);
       try {
-        const res = await fetch("https://alfa-leetcode-api.onrender.com/daily", { signal: controller.signal });
+        const res = await fetch(
+          "https://alfa-leetcode-api.onrender.com/daily",
+          { signal: controller.signal },
+        );
         if (!res.ok) throw new Error("fetch failed");
         const data = await res.json();
-        if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug) throw new Error("bad data");
-        setProblem({ title: data.questionTitle, difficulty: data.difficulty, titleSlug: data.titleSlug });
+        if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug)
+          throw new Error("bad data");
+        setProblem({
+          title: data.questionTitle,
+          difficulty: data.difficulty,
+          titleSlug: data.titleSlug,
+        });
       } catch {
         setError(true);
       } finally {
@@ -87,8 +119,8 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
       if (e.key === "Tab" && dialogRef.current) {
         const focusables = Array.from(
           dialogRef.current.querySelectorAll<HTMLElement>(
-            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          )
+            'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
         ).filter((el) => el.offsetParent !== null);
         if (focusables.length === 0) return;
 
@@ -108,16 +140,25 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const boss = problem ? (BOSS_MAP[problem.difficulty] ?? BOSS_MAP["Medium"]) : null;
-  const leetcodeUrl = problem ? "https://leetcode.com/problems/" + problem.titleSlug + "/" : "#";
+  const boss = problem
+    ? (BOSS_MAP[problem.difficulty] ?? BOSS_MAP["Medium"])
+    : null;
+  const leetcodeUrl = problem
+    ? "https://leetcode.com/problems/" + problem.titleSlug + "/"
+    : "#";
 
   const handleFightBoss = () => {
     try {
       fetch("/api/relics/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "dungeon_fight_boss", difficulty: problem?.difficulty }),
-      }).catch(() => { /* best-effort, ignore tracking failures */ });
+        body: JSON.stringify({
+          action: "dungeon_fight_boss",
+          difficulty: problem?.difficulty,
+        }),
+      }).catch(() => {
+        /* best-effort, ignore tracking failures */
+      });
     } catch {
       // best-effort only
     }
@@ -154,7 +195,9 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
 
         {/* Loading state */}
         {loading && (
-          <p className="text-[11px] text-muted animate-pulse">SUMMONING BOSS...</p>
+          <p className="text-[11px] text-muted animate-pulse">
+            SUMMONING BOSS...
+          </p>
         )}
 
         {/* Error state with retry */}
@@ -177,7 +220,9 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
             <div
               aria-label={`Boss: ${boss.name}, difficulty ${problem.difficulty}`}
               className={`my-4 text-5xl drop-shadow-[0_0_12px_rgba(255,255,255,0.15)] ${
-                reducedMotion ? "" : "animate-[dungeon-float_2.4s_ease-in-out_infinite]"
+                reducedMotion
+                  ? ""
+                  : "animate-[dungeon-float_2.4s_ease-in-out_infinite]"
               }`}
             >
               {boss.emoji}
@@ -187,14 +232,21 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
               TODAY&apos;S BOSS
             </p>
 
-            <h3 className="mb-2 text-[13px] tracking-[0.1em]" style={{ color: boss.color }}>
+            <h3
+              className="mb-2 text-[13px] tracking-[0.1em]"
+              style={{ color: boss.color }}
+            >
               {boss.name.toUpperCase()}
             </h3>
 
             {/* Difficulty badge/pill */}
             <span
               className="mb-4 inline-block rounded-none border-[1.5px] px-2.5 py-0.5 text-[9px] font-bold tracking-[0.1em]"
-              style={{ color: boss.color, borderColor: boss.color, backgroundColor: boss.bg }}
+              style={{
+                color: boss.color,
+                borderColor: boss.color,
+                backgroundColor: boss.bg,
+              }}
             >
               {problem.difficulty.toUpperCase()}
             </span>
@@ -230,8 +282,13 @@ export default function DungeonModal({ onClose }: DungeonModalProps) {
 
       <style jsx global>{`
         @keyframes dungeon-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-6px);
+          }
         }
       `}</style>
     </div>

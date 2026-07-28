@@ -21,7 +21,10 @@ const FROM = "LeetCode City <noreply@theleetcodecity.tech>";
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,8 +33,10 @@ export async function POST(request: NextRequest) {
   let body: { subject?: string; html?: string; slug?: string };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/admin/send-update-email/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/admin/send-update-email/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const { subject, html, slug } = body;
   if (!subject || !html || !slug) {
     return NextResponse.json(
@@ -65,7 +70,9 @@ export async function POST(request: NextRequest) {
       .in("developer_id", devIds);
 
     const emailDisabled = new Set(
-      (prefs ?? []).filter((p) => p.email_enabled === false).map((p) => p.developer_id),
+      (prefs ?? [])
+        .filter((p) => p.email_enabled === false)
+        .map((p) => p.developer_id),
     );
 
     for (const dev of devs) {

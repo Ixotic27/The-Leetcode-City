@@ -94,7 +94,8 @@ const PROBLEMS: Record<string, Problem> = {
     title: "Two Sum",
     difficulty: "Easy",
     stars: "★☆☆",
-    description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+    description:
+      "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
     defaultCode: `def twoSum(nums, target):\n    # Write your code here\n    pass`,
     solutionTemplate: `def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []`,
     tests: [
@@ -103,13 +104,14 @@ const PROBLEMS: Record<string, Problem> = {
       { input: "nums = [3,3], target = 6", output: "[0, 1]" },
       { input: "nums = [1,5,8,3], target = 11", output: "[2, 3]" },
       { input: "nums = [2,5,5,11], target = 10", output: "[1, 2]" },
-    ]
+    ],
   },
   container: {
     title: "Container With Most Water",
     difficulty: "Medium",
     stars: "★★☆",
-    description: "Find two lines that together with the x-axis form a container, such that the container contains the most water.",
+    description:
+      "Find two lines that together with the x-axis form a container, such that the container contains the most water.",
     defaultCode: `def maxArea(height):\n    # Write your code here\n    l, r = 0, len(height) - 1\n    res = 0\n    return res`,
     solutionTemplate: `def maxArea(height):\n    l, r = 0, len(height) - 1\n    res = 0\n    while l < r:\n        width = r - l\n        area = min(height[l], height[r]) * width\n        res = max(res, area)\n        if height[l] < height[r]:\n            l += 1\n        else:\n            r -= 1\n    return res`,
     tests: [
@@ -118,8 +120,8 @@ const PROBLEMS: Record<string, Problem> = {
       { input: "height = [4,3,2,1,4]", output: "16" },
       { input: "height = [1,2,1]", output: "2" },
       { input: "height = [2,3,4,5,18,17,6]", output: "17" },
-    ]
-  }
+    ],
+  },
 };
 
 export default function BattlePage() {
@@ -140,8 +142,12 @@ export default function BattlePage() {
   const [playerLives, setPlayerLives] = useState(3);
   const [bossHp, setBossHp] = useState(100);
   const [bossMaxHp, setBossMaxHp] = useState(100);
-  const [battleState, setBattleState] = useState<"intro" | "player_turn" | "solving" | "animating" | "victory" | "game_over">("intro");
-  const [solveMode, setSolveMode] = useState<"idle" | "solving" | "testing" | "submitted">("idle");
+  const [battleState, setBattleState] = useState<
+    "intro" | "player_turn" | "solving" | "animating" | "victory" | "game_over"
+  >("intro");
+  const [solveMode, setSolveMode] = useState<
+    "idle" | "solving" | "testing" | "submitted"
+  >("idle");
   const [testsPassed, setTestsPassed] = useState<number>(0);
   const [testsEvaluated, setTestsEvaluated] = useState<boolean[]>([]);
   const [timerCount, setTimerCount] = useState(600); // 10 minutes
@@ -231,13 +237,19 @@ export default function BattlePage() {
     setShowIdePanel(false);
 
     if (type === "wild") {
-      typeText("A wild Code Monster appeared! It's a Level 5 Two Sum (Easy)!", () => {
-        setBattleState("player_turn");
-      });
+      typeText(
+        "A wild Code Monster appeared! It's a Level 5 Two Sum (Easy)!",
+        () => {
+          setBattleState("player_turn");
+        },
+      );
     } else {
-      typeText("GYM LEADER ADA challenges you! 'Prove your mastery of Arrays!'", () => {
-        setBattleState("player_turn");
-      });
+      typeText(
+        "GYM LEADER ADA challenges you! 'Prove your mastery of Arrays!'",
+        () => {
+          setBattleState("player_turn");
+        },
+      );
     }
   };
 
@@ -266,26 +278,35 @@ export default function BattlePage() {
   // Trigger test case run
   const runTests = () => {
     setSolveMode("testing");
-    setConsoleLogs(["[compiler] Compiling main.py...", "[compiler] Running test cases..."]);
+    setConsoleLogs([
+      "[compiler] Compiling main.py...",
+      "[compiler] Running test cases...",
+    ]);
 
     const timerIdx = [0, 1, 2, 3, 4];
     const results: boolean[] = [];
 
     // Evaluate code correctness based on if it matches solution length/keywords
     const normalized = code.replace(/\s+/g, "");
-    const correctNormalized = activeProblem.solutionTemplate.replace(/\s+/g, "");
+    const correctNormalized = activeProblem.solutionTemplate.replace(
+      /\s+/g,
+      "",
+    );
     // Check key variables to mock correct vs incorrect solution
-    const isCorrect = normalized.includes("seen") || normalized.includes("width=r-l") || normalized === correctNormalized;
+    const isCorrect =
+      normalized.includes("seen") ||
+      normalized.includes("width=r-l") ||
+      normalized === correctNormalized;
 
     let idx = 0;
     const interval = setInterval(() => {
       if (idx < activeProblem.tests.length) {
-        const passed = isCorrect || (idx < 3); // mock partially passing if incorrect
+        const passed = isCorrect || idx < 3; // mock partially passing if incorrect
         results.push(passed);
         setTestsEvaluated([...results]);
         setConsoleLogs((prev) => [
           ...prev,
-          `Test ${idx + 1}: ${passed ? "PASSED ✅" : "FAILED ❌"} (${activeProblem.tests[idx].input})`
+          `Test ${idx + 1}: ${passed ? "PASSED ✅" : "FAILED ❌"} (${activeProblem.tests[idx].input})`,
         ]);
         if (passed) setTestsPassed((p) => p + 1);
         idx++;
@@ -318,7 +339,9 @@ export default function BattlePage() {
         return next;
       });
 
-      typeText(`All test cases passed! Code compile deals ${damage} damage to the opponent!`);
+      typeText(
+        `All test cases passed! Code compile deals ${damage} damage to the opponent!`,
+      );
     } else {
       // Failed tests, player takes damage
       setBattleState("animating");
@@ -347,50 +370,59 @@ export default function BattlePage() {
         }
         return next;
       });
-      typeText("Test cases failed! Semicolon syntax error causes code feedback damage.");
+      typeText(
+        "Test cases failed! Semicolon syntax error causes code feedback damage.",
+      );
     }
   };
 
   const triggerBossCounterAttack = () => {
-    typeText(`${battleType === "wild" ? "The Code Monster" : "Leader Ada"} counter-attacks! 'Compilation Refusal!'`, () => {
-      // Trigger player damage shake
-      shakeOffset.current = { x: -8, y: -6 };
-      setTimeout(() => (shakeOffset.current = { x: 0, y: 0 }), 400);
+    typeText(
+      `${battleType === "wild" ? "The Code Monster" : "Leader Ada"} counter-attacks! 'Compilation Refusal!'`,
+      () => {
+        // Trigger player damage shake
+        shakeOffset.current = { x: -8, y: -6 };
+        setTimeout(() => (shakeOffset.current = { x: 0, y: 0 }), 400);
 
-      setPlayerHp((h) => {
-        const next = Math.max(0, h - 25);
-        if (next <= 0) {
-          setPlayerLives((l) => {
-            const nextL = Math.max(0, l - 1);
-            if (nextL <= 0) {
-              setTimeout(() => triggerGameOver(), 1000);
-            } else {
-              setTimeout(() => {
-                setPlayerHp(100);
-                setBattleState("player_turn");
-              }, 1000);
-            }
-            return nextL;
-          });
-        } else {
-          setTimeout(() => {
-            setBattleState("player_turn");
-            setSolveMode("solving");
-            setShowIdePanel(true);
-          }, 1500);
-        }
-        return next;
-      });
-    });
+        setPlayerHp((h) => {
+          const next = Math.max(0, h - 25);
+          if (next <= 0) {
+            setPlayerLives((l) => {
+              const nextL = Math.max(0, l - 1);
+              if (nextL <= 0) {
+                setTimeout(() => triggerGameOver(), 1000);
+              } else {
+                setTimeout(() => {
+                  setPlayerHp(100);
+                  setBattleState("player_turn");
+                }, 1000);
+              }
+              return nextL;
+            });
+          } else {
+            setTimeout(() => {
+              setBattleState("player_turn");
+              setSolveMode("solving");
+              setShowIdePanel(true);
+            }, 1500);
+          }
+          return next;
+        });
+      },
+    );
   };
 
   const triggerVictory = () => {
     setBattleState("victory");
     setShowIdePanel(false);
     if (battleType === "gym") {
-      typeText("Gym Leader Ada: 'Incredible! You have mastered Arrays. Take the Linear Badge!'");
+      typeText(
+        "Gym Leader Ada: 'Incredible! You have mastered Arrays. Take the Linear Badge!'",
+      );
     } else {
-      typeText("Victory! You defeated the Code Monster, earning +100 XP and +50 PX!");
+      typeText(
+        "Victory! You defeated the Code Monster, earning +100 XP and +50 PX!",
+      );
     }
   };
 
@@ -548,7 +580,8 @@ export default function BattlePage() {
 
     // HP Bar fill
     const hpPct = playerHp / 100;
-    ctx.fillStyle = hpPct > 0.5 ? "#22c55e" : hpPct > 0.2 ? "#eab308" : "#ef4444";
+    ctx.fillStyle =
+      hpPct > 0.5 ? "#22c55e" : hpPct > 0.2 ? "#eab308" : "#ef4444";
     ctx.fillRect(41, 31, Math.max(0, 158 * hpPct), 10);
 
     ctx.fillStyle = "#5a5248";
@@ -591,7 +624,8 @@ export default function BattlePage() {
     ctx.strokeRect(40, 42, 170, 12);
 
     const bHpPct = bossHp / bossMaxHp;
-    ctx.fillStyle = bHpPct > 0.5 ? "#22c55e" : bHpPct > 0.2 ? "#eab308" : "#ef4444";
+    ctx.fillStyle =
+      bHpPct > 0.5 ? "#22c55e" : bHpPct > 0.2 ? "#eab308" : "#ef4444";
     ctx.fillRect(41, 43, Math.max(0, 168 * bHpPct), 10);
 
     ctx.fillStyle = "#5a5248";
@@ -668,7 +702,6 @@ export default function BattlePage() {
 
       {/* Main Container */}
       <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-4 items-stretch z-10">
-
         {/* MOCK IDE PANEL (Slides in from the left) */}
         {showIdePanel && (
           <div className="w-full lg:w-1/2 flex flex-col border-[4px] border-[#334155] bg-[#0f172a] pixel-corners overflow-hidden">
@@ -721,7 +754,10 @@ export default function BattlePage() {
             {/* Test validation box */}
             <div className="bg-[#1e293b] p-3 border-t border-slate-800 flex items-center justify-between">
               <div className="text-[9px] text-slate-400">
-                Tests Passed: <span className="text-white font-bold">{testsPassed} / {activeProblem.tests.length}</span>
+                Tests Passed:{" "}
+                <span className="text-white font-bold">
+                  {testsPassed} / {activeProblem.tests.length}
+                </span>
                 <div className="flex gap-1 mt-1">
                   {activeProblem.tests.map((_, i) => (
                     <span
@@ -730,8 +766,8 @@ export default function BattlePage() {
                         testsEvaluated[i] === true
                           ? "bg-lime border-lime"
                           : testsEvaluated[i] === false
-                          ? "bg-rose border-rose"
-                          : "bg-slate-700 border-slate-600"
+                            ? "bg-rose border-rose"
+                            : "bg-slate-700 border-slate-600"
                       }`}
                     />
                   ))}
@@ -774,7 +810,9 @@ export default function BattlePage() {
               {/* Typewriter dialogue */}
               <div className="md:col-span-2 text-[10px] sm:text-[11px] leading-relaxed border-r-0 md:border-r-2 border-[#5a5248] pr-2 min-h-[45px] select-none uppercase">
                 {dialogText}
-                {dialogFinished && <span className="blink-text font-bold ml-1">▼</span>}
+                {dialogFinished && (
+                  <span className="blink-text font-bold ml-1">▼</span>
+                )}
               </div>
 
               {/* Action Buttons options */}
@@ -789,7 +827,9 @@ export default function BattlePage() {
                     </button>
                     <button
                       onClick={() => {
-                        typeText("HINT: Remember to use two-pointer technique or check the indices dictionary map for difference values!");
+                        typeText(
+                          "HINT: Remember to use two-pointer technique or check the indices dictionary map for difference values!",
+                        );
                       }}
                       className="border-2 border-[#5a5248] py-1.5 text-[10px] font-bold hover:bg-[#e2e8f0] transition-colors uppercase"
                     >
@@ -803,7 +843,9 @@ export default function BattlePage() {
                     </button>
                     <button
                       onClick={() => {
-                        typeText(`INFO: Target sum needs to fit array elements. Limit: ${formatTime(timerCount)} left.`);
+                        typeText(
+                          `INFO: Target sum needs to fit array elements. Limit: ${formatTime(timerCount)} left.`,
+                        );
                       }}
                       className="border-2 border-[#5a5248] py-1.5 text-[10px] font-bold hover:bg-[#e2e8f0] transition-colors uppercase"
                     >
@@ -828,9 +870,19 @@ export default function BattlePage() {
             {/* Countdown / HUD details */}
             <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
               <div className="flex gap-2">
-                <span>Timer: <span className="text-white font-bold">{formatTime(timerCount)}</span></span>
+                <span>
+                  Timer:{" "}
+                  <span className="text-white font-bold">
+                    {formatTime(timerCount)}
+                  </span>
+                </span>
                 <span>•</span>
-                <span>Type: <span className="text-white font-bold">{battleType === "wild" ? "Wild Encounter" : "Gym Battle"}</span></span>
+                <span>
+                  Type:{" "}
+                  <span className="text-white font-bold">
+                    {battleType === "wild" ? "Wild Encounter" : "Gym Battle"}
+                  </span>
+                </span>
               </div>
               <button
                 onClick={() => {
@@ -895,7 +947,6 @@ export default function BattlePage() {
             </div>
           </div>
         )}
-
       </div>
 
       {/* POPUP: IDE NOT CONNECTED DIALOG BOX */}
@@ -912,7 +963,8 @@ export default function BattlePage() {
               🔌 Local IDE Not Connected
             </h3>
             <p className="text-[9px] text-[#8a8278] leading-relaxed mb-4 uppercase">
-              Please connect your local editor (VS Code or Cursor) to sync your algorithms code with LeetCode City.
+              Please connect your local editor (VS Code or Cursor) to sync your
+              algorithms code with LeetCode City.
             </p>
 
             <div className="bg-white border-2 border-slate-300 p-2.5 mb-4 text-center font-mono text-[9px] break-all">
@@ -922,7 +974,9 @@ export default function BattlePage() {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText("npx leetcode-city connect leetcode-city-token-93f4a8b7c2d1");
+                  navigator.clipboard.writeText(
+                    "npx leetcode-city connect leetcode-city-token-93f4a8b7c2d1",
+                  );
                   setCopiedToken(true);
                   setTimeout(() => setCopiedToken(false), 2000);
                 }}

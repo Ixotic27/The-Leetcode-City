@@ -3,7 +3,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendCommunityMilestoneNotifications } from "@/lib/notification-senders/community-milestone";
 import crypto from "crypto";
 
-const MILESTONES = [10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
+const MILESTONES = [
+  10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000,
+];
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -13,7 +15,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 export async function POST(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
 
   const auth = request.headers.get("authorization") ?? "";
@@ -38,7 +43,10 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await sb
     .from("milestone_celebrations")
-    .upsert({ milestone, reached_at: new Date().toISOString() }, { onConflict: "milestone", ignoreDuplicates: true })
+    .upsert(
+      { milestone, reached_at: new Date().toISOString() },
+      { onConflict: "milestone", ignoreDuplicates: true },
+    )
     .select()
     .single();
 
@@ -50,7 +58,11 @@ export async function POST(request: NextRequest) {
     console.error("[milestone] Notification send error:", err);
   });
 
-  return NextResponse.json({ celebrated: true, milestone, reached_at: data?.reached_at });
+  return NextResponse.json({
+    celebrated: true,
+    milestone,
+    reached_at: data?.reached_at,
+  });
 }
 
 export async function GET() {

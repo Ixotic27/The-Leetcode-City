@@ -8,7 +8,10 @@ export async function GET(req: NextRequest) {
   const category = url.searchParams.get("category");
   const featured = url.searchParams.get("featured");
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
+  const limit = Math.min(
+    50,
+    Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)),
+  );
   const offset = (page - 1) * limit;
 
   const sb = getSupabaseAdmin();
@@ -21,13 +24,19 @@ export async function GET(req: NextRequest) {
     .lt("last_heartbeat", pruneCutoff)
     .then(({ error }) => {
       if (error) {
-        console.warn("[rooms] Failed to prune stale active players:", error.message);
+        console.warn(
+          "[rooms] Failed to prune stale active players:",
+          error.message,
+        );
       }
     });
 
   let query = sb
     .from("arcade_rooms")
-    .select("id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, portals, created_at", { count: "exact" })
+    .select(
+      "id, slug, name, room_type, floor_number, max_players, visibility, category, description, is_featured, portals, created_at",
+      { count: "exact" },
+    )
     .in("visibility", ["open", "password"])
     .range(offset, offset + limit - 1)
     .order("is_featured", { ascending: false })
@@ -51,7 +60,10 @@ export async function GET(req: NextRequest) {
   let count = dbCount ?? 0;
 
   if (error) {
-    console.debug("[rooms] DB table not found, using fallback rooms:", error.message);
+    console.debug(
+      "[rooms] DB table not found, using fallback rooms:",
+      error.message,
+    );
     data = [
       {
         id: "lobby",
@@ -65,10 +77,24 @@ export async function GET(req: NextRequest) {
         description: "Welcome to LeetCode City E.Arcade! Hangout and chat.",
         is_featured: true,
         portals: [
-          { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-          { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+          {
+            x: 14,
+            y: 0,
+            width: 4,
+            type: "elevator",
+            destination: "lobby",
+            label: "Lobby",
+          },
+          {
+            x: 13,
+            y: 21,
+            width: 4,
+            type: "exit",
+            destination: "ixotopia",
+            label: "Exit to Outside World",
+          },
         ],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: "fsociety",
@@ -82,10 +108,24 @@ export async function GET(req: NextRequest) {
         description: "Clearance level 1. fsociety headquarters.",
         is_featured: true,
         portals: [
-          { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-          { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+          {
+            x: 14,
+            y: 0,
+            width: 4,
+            type: "elevator",
+            destination: "lobby",
+            label: "Lobby",
+          },
+          {
+            x: 13,
+            y: 21,
+            width: 4,
+            type: "exit",
+            destination: "ixotopia",
+            label: "Exit to Outside World",
+          },
         ],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: "trading_floor",
@@ -99,10 +139,24 @@ export async function GET(req: NextRequest) {
         description: "Clearance level 2. High-frequency algorithmic trading.",
         is_featured: true,
         portals: [
-          { x: 14, y: 0, width: 4, type: "elevator", destination: "lobby", label: "Lobby" },
-          { x: 13, y: 21, width: 4, type: "exit", destination: "ixotopia", label: "Exit to Outside World" }
+          {
+            x: 14,
+            y: 0,
+            width: 4,
+            type: "elevator",
+            destination: "lobby",
+            label: "Lobby",
+          },
+          {
+            x: 13,
+            y: 21,
+            width: 4,
+            type: "exit",
+            destination: "ixotopia",
+            label: "Exit to Outside World",
+          },
         ],
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       },
       {
         id: "ixotopia",
@@ -116,10 +170,17 @@ export async function GET(req: NextRequest) {
         description: "Explore the Pokémon-style Ixotopia Overworld Town!",
         is_featured: true,
         portals: [
-          { x: 20, y: 16, width: 1, type: "door", destination: "lobby", label: "Enter E.Arcade Lobby" }
+          {
+            x: 20,
+            y: 16,
+            width: 1,
+            type: "door",
+            destination: "lobby",
+            label: "Enter E.Arcade Lobby",
+          },
         ],
-        created_at: new Date().toISOString()
-      }
+        created_at: new Date().toISOString(),
+      },
     ];
     count = data.length;
   }
@@ -129,15 +190,18 @@ export async function GET(req: NextRequest) {
   let recentVisits: Array<{ room_id: string; last_visited_at: string }> = [];
 
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
     if (auth.ok && auth.user) {
       const [favRes, visitRes] = await Promise.all([
-        sb.from("arcade_room_favorites")
+        sb
+          .from("arcade_room_favorites")
           .select("room_id")
           .eq("user_id", auth.user.id),
-        sb.from("arcade_room_visits")
+        sb
+          .from("arcade_room_visits")
           .select("room_id, last_visited_at")
           .eq("user_id", auth.user.id)
           .order("last_visited_at", { ascending: false })
@@ -147,17 +211,25 @@ export async function GET(req: NextRequest) {
       recentVisits = visitRes.data ?? [];
     }
   } catch (err) {
-    console.error("[app/api/arcade/rooms/route.ts] failed to load favorites/visits:", err);
+    console.error(
+      "[app/api/arcade/rooms/route.ts] failed to load favorites/visits:",
+      err,
+    );
   }
 
-  return NextResponse.json({
-    rooms: data,
-    total: count ?? 0,
-    page,
-    limit,
-    favorites,
-    recentVisits,
-  }, {
-    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
-  });
+  return NextResponse.json(
+    {
+      rooms: data,
+      total: count ?? 0,
+      page,
+      limit,
+      favorites,
+      recentVisits,
+    },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30",
+      },
+    },
+  );
 }

@@ -21,7 +21,12 @@ interface Props {
   style?: CSSProperties;
 }
 
-export default function CurrencyIcon({ currency, size = 16, className, style }: Props) {
+export default function CurrencyIcon({
+  currency,
+  size = 16,
+  className,
+  style,
+}: Props) {
   return (
     // eslint-disable-next-line @next/next/no-img-element -- static pixel-art icon, no optimization needed
     <img

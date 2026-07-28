@@ -31,12 +31,14 @@ export default function PrivacyPage() {
             <p>When you sign in with LeetCode, we receive and store:</p>
             <ul className="mt-1 flex flex-col gap-1">
               <Li>LeetCode username and profile picture</Li>
-              <Li>Public repository count, star count, and contribution data</Li>
+              <Li>
+                Public repository count, star count, and contribution data
+              </Li>
               <Li>Email address (from your GitHub account)</Li>
             </ul>
             <p className="mt-1">
-              We do NOT access your private repositories, code, or any non-public
-              LeetCode data.
+              We do NOT access your private repositories, code, or any
+              non-public LeetCode data.
             </p>
           </Section>
 
@@ -80,8 +82,8 @@ export default function PrivacyPage() {
             <p>
               We use cookies for authentication sessions and local storage for
               user preferences (theme, district selection). We use Vercel
-              Analytics for anonymous usage data. No third-party tracking cookies
-              are used.
+              Analytics for anonymous usage data. No third-party tracking
+              cookies are used.
             </p>
           </Section>
 
@@ -106,24 +108,24 @@ export default function PrivacyPage() {
           <Section n={7} title="Security">
             <p>
               We use industry-standard security measures including encrypted
-              connections (HTTPS), Row-Level Security on our database, and secure
-              authentication through LeetCode OAuth. However, no system is 100%
-              secure.
+              connections (HTTPS), Row-Level Security on our database, and
+              secure authentication through LeetCode OAuth. However, no system
+              is 100% secure.
             </p>
           </Section>
 
           <Section n={8} title="Children">
             <p>
-              LeetCode City is not intended for children under 13. We do not knowingly
-              collect data from children under 13. If you believe a child has
-              provided us with data, contact us for removal.
+              LeetCode City is not intended for children under 13. We do not
+              knowingly collect data from children under 13. If you believe a
+              child has provided us with data, contact us for removal.
             </p>
           </Section>
 
           <Section n={9} title="Changes">
             <p>
-              We may update this policy at any time. Continued use of LeetCode City
-              after changes constitutes acceptance.
+              We may update this policy at any time. Continued use of LeetCode
+              City after changes constitutes acceptance.
             </p>
           </Section>
 

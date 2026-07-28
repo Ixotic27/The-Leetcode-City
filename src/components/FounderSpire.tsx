@@ -64,17 +64,19 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
     // Cursor handling (throttled ~15Hz)
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     let lastMove = 0;
-    const onMove = isTouch ? null : (e: PointerEvent) => {
-      const now = performance.now();
-      if (now - lastMove < 66) return;
-      lastMove = now;
-      if (hitsSpire(e)) {
-        document.body.style.cursor = "pointer";
-        (window as any).__spireCursor = true;
-      } else if ((window as any).__spireCursor) {
-        (window as any).__spireCursor = false;
-      }
-    };
+    const onMove = isTouch
+      ? null
+      : (e: PointerEvent) => {
+          const now = performance.now();
+          if (now - lastMove < 66) return;
+          lastMove = now;
+          if (hitsSpire(e)) {
+            document.body.style.cursor = "pointer";
+            (window as any).__spireCursor = true;
+          } else if ((window as any).__spireCursor) {
+            (window as any).__spireCursor = false;
+          }
+        };
 
     canvas.addEventListener("pointerdown", onDown, true);
     window.addEventListener("pointerup", onUp, true);
@@ -106,7 +108,9 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
 
     if (topGlowRef.current) {
       const glow = 0.6 + Math.sin(t * 2) * 0.4;
-      (topGlowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = glow * 3;
+      (
+        topGlowRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = glow * 3;
       topGlowRef.current.scale.setScalar(1 + Math.sin(t * 1.5) * 0.15);
     }
   });
@@ -152,7 +156,11 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
       {/* Upper section - thin */}
       <mesh position={[0, 500, 0]}>
         <cylinderGeometry args={[4, 8, 200, 6]} />
-        <meshStandardMaterial color="#0a0a0a" roughness={0.15} metalness={0.95} />
+        <meshStandardMaterial
+          color="#0a0a0a"
+          roughness={0.15}
+          metalness={0.95}
+        />
       </mesh>
 
       {/* Top spike */}
@@ -183,7 +191,11 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
       ))}
 
       {/* Floating ring 1 - lower */}
-      <mesh ref={ring1Ref} position={[0, 180, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh
+        ref={ring1Ref}
+        position={[0, 180, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
         <torusGeometry args={[22, 1, 8, 6]} />
         <meshStandardMaterial
           color={LEETCODE_ORANGE}
@@ -195,7 +207,11 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
       </mesh>
 
       {/* Floating ring 2 - middle */}
-      <mesh ref={ring2Ref} position={[0, 400, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh
+        ref={ring2Ref}
+        position={[0, 400, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
         <torusGeometry args={[16, 0.8, 8, 6]} />
         <meshStandardMaterial
           color={LEETCODE_ORANGE}
@@ -250,7 +266,6 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
         distance={200}
         decay={2}
       />
-
     </group>
   );
 }

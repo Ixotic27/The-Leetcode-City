@@ -8,7 +8,11 @@ describe("performVoteWithRollback", () => {
       throw new Error("network");
     });
     await expect(
-      performVoteWithRollback({ setOptimistic, toggleVoteFn, itemId: "feature_x" })
+      performVoteWithRollback({
+        setOptimistic,
+        toggleVoteFn,
+        itemId: "feature_x",
+      }),
     ).rejects.toThrow("network");
 
     // setOptimistic called to apply optimistic state, then called again to rollback
@@ -22,7 +26,11 @@ describe("performVoteWithRollback", () => {
     const setOptimistic = vi.fn();
     const toggleVoteFn = vi.fn(async () => ({}));
 
-    await performVoteWithRollback({ setOptimistic, toggleVoteFn, itemId: "feature_x" });
+    await performVoteWithRollback({
+      setOptimistic,
+      toggleVoteFn,
+      itemId: "feature_x",
+    });
 
     expect(setOptimistic).toHaveBeenCalledTimes(1);
     expect(toggleVoteFn).toHaveBeenCalledWith("feature_x");

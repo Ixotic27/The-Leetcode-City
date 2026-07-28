@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
 
 type RainParticlesProps = {
   dropCount?: number;
@@ -21,7 +21,7 @@ export function RainParticles({
 }: RainParticlesProps) {
   const pointsRef = useRef<THREE.Points>(null);
   const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
-   
+
   const positions = useMemo(() => {
     const pos = new Float32Array(dropCount * 3);
 
@@ -43,7 +43,7 @@ export function RainParticles({
       uAreaSize: { value: areaSize },
       uHeight: { value: height },
     }),
-    [speed, windX, areaSize, height]
+    [speed, windX, areaSize, height],
   );
 
   useFrame((state) => {

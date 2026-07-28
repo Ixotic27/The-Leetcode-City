@@ -39,17 +39,19 @@ async function main() {
   let offset = 0;
   const limit = 100;
   let totalFetched = 0;
-  
+
   const outputFile = "temp_dataset.jsonl";
   if (fs.existsSync(outputFile)) {
     fs.unlinkSync(outputFile);
   }
 
-  console.log(`Downloading ${TARGET_TOTAL} problems from open-r1/codeforces...`);
+  console.log(
+    `Downloading ${TARGET_TOTAL} problems from open-r1/codeforces...`,
+  );
 
   while (totalFetched < TARGET_TOTAL) {
     const url = `https://datasets-server.huggingface.co/rows?dataset=open-r1/codeforces&config=default&split=train&offset=${offset}&limit=${limit}`;
-    
+
     let rows: any[] = [];
     try {
       const res = await fetch(url);
@@ -57,8 +59,10 @@ async function main() {
       const json = await res.json();
       rows = json.rows || [];
     } catch (err: any) {
-      console.error(`Fetch failed at offset ${offset}: ${err.message}. Retrying...`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.error(
+        `Fetch failed at offset ${offset}: ${err.message}. Retrying...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       continue;
     }
 
@@ -87,20 +91,20 @@ async function main() {
         difficulty,
         tags: row.tags || [],
         seeded: false, // <--- Key addition!
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
 
       fs.appendFileSync(outputFile, JSON.stringify(newRow) + "\n");
       totalFetched++;
-      
+
       if (totalFetched >= TARGET_TOTAL) break;
     }
 
     offset += limit;
     console.log(`... Fetched ${totalFetched}/${TARGET_TOTAL}`);
-    
+
     // Slight delay to respect HF rate limits
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   console.log(`\n✅ Saved ${totalFetched} questions to ${outputFile}`);
@@ -112,13 +116,17 @@ async function main() {
       credentials: { accessToken: HF_TOKEN },
       file: {
         path: "data.jsonl",
-        content: new Blob([fs.readFileSync(outputFile)])
+        content: new Blob([fs.readFileSync(outputFile)]),
       },
       commitTitle: "Initial dataset sync with seeded: false",
     });
-    console.log(`\n🎉 Upload successful! Dataset available at: https://huggingface.co/datasets/${REPO_ID}`);
+    console.log(
+      `\n🎉 Upload successful! Dataset available at: https://huggingface.co/datasets/${REPO_ID}`,
+    );
   } catch (err: any) {
-    console.error("❌ Upload failed. Ensure the dataset repository exists or the token has write access.");
+    console.error(
+      "❌ Upload failed. Ensure the dataset repository exists or the token has write access.",
+    );
     console.error(err.message);
   } finally {
     if (fs.existsSync(outputFile)) {

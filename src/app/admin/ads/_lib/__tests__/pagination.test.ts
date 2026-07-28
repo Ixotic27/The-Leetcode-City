@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getPaginationStateForFilterChange, getPaginatedItems } from "../pagination";
+import {
+  getPaginationStateForFilterChange,
+  getPaginatedItems,
+} from "../pagination";
 
 describe("admin ads pagination", () => {
   it("navigates to the next and previous pages", () => {
@@ -22,17 +25,28 @@ describe("admin ads pagination", () => {
     expect(pageSize25.totalPages).toBe(2);
 
     const pageSize50 = getPaginatedItems(items, 3, 50);
-    expect(pageSize50.items).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]);
+    expect(pageSize50.items).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+      22, 23, 24, 25, 26, 27, 28, 29, 30,
+    ]);
     expect(pageSize50.page).toBe(1);
   });
 
   it("resets pagination when filters or page size change", () => {
     const state = { page: 3, pageSize: 25 };
 
-    const afterStatusChange = getPaginationStateForFilterChange(state, "status", "paused");
+    const afterStatusChange = getPaginationStateForFilterChange(
+      state,
+      "status",
+      "paused",
+    );
     expect(afterStatusChange).toEqual({ page: 1, pageSize: 25 });
 
-    const afterPageSizeChange = getPaginationStateForFilterChange(state, "pageSize", 50);
+    const afterPageSizeChange = getPaginationStateForFilterChange(
+      state,
+      "pageSize",
+      50,
+    );
     expect(afterPageSizeChange).toEqual({ page: 1, pageSize: 50 });
   });
 });

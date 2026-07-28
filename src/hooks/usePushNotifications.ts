@@ -3,11 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 export type SubscriptionState =
-  | "loading"
-  | "unsupported"
-  | "denied"
-  | "unsubscribed"
-  | "subscribed";
+  "loading" | "unsupported" | "denied" | "unsubscribed" | "subscribed";
 
 interface UsePushNotificationsReturn {
   state: SubscriptionState;
@@ -24,7 +20,8 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0))).buffer as ArrayBuffer;
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)))
+    .buffer as ArrayBuffer;
 }
 
 // Best-effort platform label stored alongside the subscription so the server
@@ -38,7 +35,9 @@ function getPlatform(): string {
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
-export function usePushNotifications(developerId: number): UsePushNotificationsReturn {
+export function usePushNotifications(
+  developerId: number,
+): UsePushNotificationsReturn {
   const [state, setState] = useState<SubscriptionState>("loading");
   const [error, setError] = useState<string | null>(null);
 
@@ -89,7 +88,7 @@ export function usePushNotifications(developerId: number): UsePushNotificationsR
       if (!vapidKey) {
         throw new Error(
           "NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set. " +
-          "Run `npx web-push generate-vapid-keys` and add it to .env.local"
+            "Run `npx web-push generate-vapid-keys` and add it to .env.local",
         );
       }
 

@@ -29,15 +29,18 @@ function createLogoTexture(color: string): THREE.CanvasTexture {
 
   // "E" logo inspired by E Corp (tilted ~20deg, thick bars)
   ctx.fillStyle = color;
-  const bw = 130, bh = 150, bar = 36;
+  const bw = 130,
+    bh = 150,
+    bar = 36;
   ctx.save();
   ctx.translate(s / 2, s / 2);
   ctx.rotate(-0.35); // ~20 degrees counter-clockwise
-  const ox = -bw / 2, oy = -bh / 2;
-  ctx.fillRect(ox, oy, bar, bh);                        // vertical bar (left)
-  ctx.fillRect(ox, oy, bw, bar);                        // top bar
+  const ox = -bw / 2,
+    oy = -bh / 2;
+  ctx.fillRect(ox, oy, bar, bh); // vertical bar (left)
+  ctx.fillRect(ox, oy, bw, bar); // top bar
   ctx.fillRect(ox, oy + bh / 2 - bar / 2, bw * 0.7, bar); // middle bar
-  ctx.fillRect(ox, oy + bh - bar, bw, bar);             // bottom bar
+  ctx.fillRect(ox, oy + bh - bar, bw, bar); // bottom bar
   ctx.restore();
 
   const tex = new THREE.CanvasTexture(canvas);
@@ -48,7 +51,8 @@ function createLogoTexture(color: string): THREE.CanvasTexture {
 
 // ─── Sign text ───────────────────────────────────────────────
 function createSignTexture(accent: string): THREE.CanvasTexture {
-  const cw = 256, ch = 40;
+  const cw = 256,
+    ch = 40;
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -75,11 +79,17 @@ function createSignTexture(accent: string): THREE.CanvasTexture {
 
 // ─── Glass facade texture (theme-aware) ──────────────────────
 function createGlassTex(
-  cols: number, rows: number, seed: number,
-  litColors: string[], offColor: string, faceColor: string,
+  cols: number,
+  rows: number,
+  seed: number,
+  litColors: string[],
+  offColor: string,
+  faceColor: string,
 ): THREE.CanvasTexture {
-  const cellW = 10, cellH = 12;
-  const cw = cols * cellW, ch = rows * cellH;
+  const cellW = 10,
+    cellH = 12;
+  const cw = cols * cellW,
+    ch = rows * cellH;
   const canvas = document.createElement("canvas");
   canvas.width = cw;
   canvas.height = ch;
@@ -98,7 +108,7 @@ function createGlassTex(
       const ww = cellW - 2;
       const hh = cellH - 2;
 
-      const lit = (hash % 100) < 40;
+      const lit = hash % 100 < 40;
       if (lit) {
         ctx.fillStyle = litColors[hash % litColors.length];
         ctx.globalAlpha = 0.4 + (hash % 30) / 100;
@@ -205,7 +215,10 @@ export default function EArcadeLandmark({
 
       // Check if a building or another landmark is closer
       const arcadeDistance = arcadeHits[0].distance;
-      const sceneHits = raycaster.current.intersectObjects(scene.children, true);
+      const sceneHits = raycaster.current.intersectObjects(
+        scene.children,
+        true,
+      );
       for (const hit of sceneHits) {
         if (hit.distance >= arcadeDistance) break;
         if ((hit.object as any).isInstancedMesh) return false;
@@ -279,8 +292,9 @@ export default function EArcadeLandmark({
     if (beaconRef.current) {
       const s = 1 + Math.sin(t * 2) * 0.2;
       beaconRef.current.scale.setScalar(s);
-      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        2 + Math.sin(t * 2) * 1;
+      (
+        beaconRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 2 + Math.sin(t * 2) * 1;
     }
   });
 
@@ -297,7 +311,11 @@ export default function EArcadeLandmark({
       {/* ── Ground plaza ── */}
       <mesh position={[0, 1, 0]}>
         <boxGeometry args={[base.w + 40, 2, base.d + 40]} />
-        <meshStandardMaterial color={shellColor} roughness={0.5} metalness={0.4} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.5}
+          metalness={0.4}
+        />
       </mesh>
 
       {/* ── Stepped tower sections ── */}
@@ -342,7 +360,10 @@ export default function EArcadeLandmark({
               />
             </mesh>
             {/* Glass facade - right */}
-            <mesh position={[hw + 0.3, sec.y, 0]} rotation={[0, Math.PI / 2, 0]}>
+            <mesh
+              position={[hw + 0.3, sec.y, 0]}
+              rotation={[0, Math.PI / 2, 0]}
+            >
               <planeGeometry args={[sec.d - 4, sec.h - 4]} />
               <meshStandardMaterial
                 map={glassSide}
@@ -354,7 +375,10 @@ export default function EArcadeLandmark({
               />
             </mesh>
             {/* Glass facade - left */}
-            <mesh position={[-hw - 0.3, sec.y, 0]} rotation={[0, -Math.PI / 2, 0]}>
+            <mesh
+              position={[-hw - 0.3, sec.y, 0]}
+              rotation={[0, -Math.PI / 2, 0]}
+            >
               <planeGeometry args={[sec.d - 4, sec.h - 4]} />
               <meshStandardMaterial
                 map={glassSide}
@@ -369,7 +393,11 @@ export default function EArcadeLandmark({
             {/* Ledge/setback at top of each section */}
             <mesh position={[0, sec.y + sec.h / 2 + 1, 0]}>
               <boxGeometry args={[sec.w + 3, 2, sec.d + 3]} />
-              <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
+              <meshStandardMaterial
+                color={shellColor}
+                roughness={0.3}
+                metalness={0.7}
+              />
             </mesh>
 
             {/* Accent trim at setback */}
@@ -469,13 +497,21 @@ export default function EArcadeLandmark({
       {/* ── Rooftop structure ── */}
       <mesh position={[0, TOTAL_H + 4, 0]}>
         <boxGeometry args={[30, 8, 24]} />
-        <meshStandardMaterial color={shellColor} roughness={0.3} metalness={0.7} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.3}
+          metalness={0.7}
+        />
       </mesh>
 
       {/* ── Antenna ── */}
       <mesh position={[0, TOTAL_H + 35, 0]}>
         <cylinderGeometry args={[0.5, 2, 60, 6]} />
-        <meshStandardMaterial color={shellColor} roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
 
       {/* ── Top beacon ── */}

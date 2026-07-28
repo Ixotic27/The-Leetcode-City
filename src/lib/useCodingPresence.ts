@@ -13,7 +13,9 @@ export interface LiveSession {
 }
 
 export function useCodingPresence() {
-  const [liveByLogin, setLiveByLogin] = useState<Map<string, LiveSession>>(new Map());
+  const [liveByLogin, setLiveByLogin] = useState<Map<string, LiveSession>>(
+    new Map(),
+  );
   const channelRef = useRef<RealtimeChannel | null>(null);
   const mapRef = useRef<Map<string, LiveSession>>(new Map());
 
@@ -39,9 +41,13 @@ export function useCodingPresence() {
             for (const d of data.developers) {
               serverLogins.add(d.githubLogin);
               const existing = mapRef.current.get(d.githubLogin);
-              
+
               // Only overwrite if our local data isn't newer than the request start time
-              if (existing && existing.lastUpdated && existing.lastUpdated > requestTime) {
+              if (
+                existing &&
+                existing.lastUpdated &&
+                existing.lastUpdated > requestTime
+              ) {
                 newMap.set(d.githubLogin, existing);
               } else {
                 newMap.set(d.githubLogin, {
@@ -79,32 +85,38 @@ export function useCodingPresence() {
     channelRef.current = channel;
 
     channel
-      .on("broadcast", { event: "heartbeat" }, ({ payload }: {
-        payload: {
-          githubLogin: string;
-          status?: "active" | "offline";
-          avatarUrl?: string;
-          language?: string;
-        };
-      }) => {
-        if (!payload?.githubLogin) return;
+      .on(
+        "broadcast",
+        { event: "heartbeat" },
+        ({
+          payload,
+        }: {
+          payload: {
+            githubLogin: string;
+            status?: "active" | "offline";
+            avatarUrl?: string;
+            language?: string;
+          };
+        }) => {
+          if (!payload?.githubLogin) return;
 
-        // Offline signal: remove dev from live map immediately
-        if (payload.status === "offline") {
-          mapRef.current.delete(payload.githubLogin);
+          // Offline signal: remove dev from live map immediately
+          if (payload.status === "offline") {
+            mapRef.current.delete(payload.githubLogin);
+            updateMap();
+            return;
+          }
+
+          mapRef.current.set(payload.githubLogin, {
+            githubLogin: payload.githubLogin,
+            avatarUrl: payload.avatarUrl ?? "",
+            status: payload.status ?? "active",
+            language: payload.language,
+            lastUpdated: Date.now(),
+          });
           updateMap();
-          return;
-        }
-
-        mapRef.current.set(payload.githubLogin, {
-          githubLogin: payload.githubLogin,
-          avatarUrl: payload.avatarUrl ?? "",
-          status: payload.status ?? "active",
-          language: payload.language,
-          lastUpdated: Date.now(),
-        });
-        updateMap();
-      })
+        },
+      )
       .subscribe();
 
     // Periodically re-fetch to stay in sync with server state

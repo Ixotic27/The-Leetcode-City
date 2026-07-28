@@ -6,7 +6,10 @@ export async function POST() {
   const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const sb = getSupabaseAdmin();

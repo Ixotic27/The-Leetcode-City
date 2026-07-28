@@ -36,9 +36,13 @@ export class EntitlementService {
   async ownsItem(
     developerId: number,
     itemId: string,
-    options: EntitlementQueryOptions = {}
+    options: EntitlementQueryOptions = {},
   ): Promise<boolean> {
-    const row = await this.fetchPurchaseRow(developerId, itemId, options.purchasesTable);
+    const row = await this.fetchPurchaseRow(
+      developerId,
+      itemId,
+      options.purchasesTable,
+    );
     if (!row) return false;
     return this.isMeaningfulPurchase(row);
   }
@@ -46,7 +50,7 @@ export class EntitlementService {
   async ownsInventoryItem(
     developerId: number,
     itemId: string,
-    options: EntitlementQueryOptions = {}
+    options: EntitlementQueryOptions = {},
   ): Promise<boolean> {
     const inventoryTable = options.inventoryTable ?? "arena_inventory";
     const { data, error } = await this.admin
@@ -66,11 +70,15 @@ export class EntitlementService {
   async hasEntitlement(
     developerId: number,
     itemId: string,
-    options: EntitlementQueryOptions = {}
+    options: EntitlementQueryOptions = {},
   ): Promise<boolean> {
     if (options.inventoryTable) {
       try {
-        const inventoryOwned = await this.ownsInventoryItem(developerId, itemId, options);
+        const inventoryOwned = await this.ownsInventoryItem(
+          developerId,
+          itemId,
+          options,
+        );
         if (inventoryOwned) return true;
       } catch {
         // Fall back to purchase ownership below.
@@ -83,13 +91,13 @@ export class EntitlementService {
   async canAccess(
     developerId: number,
     itemId: string,
-    options: EntitlementQueryOptions = {}
+    options: EntitlementQueryOptions = {},
   ): Promise<boolean> {
     return this.hasEntitlement(developerId, itemId, options);
   }
 
   async evaluate(
-    options: EntitlementEvaluationOptions
+    options: EntitlementEvaluationOptions,
   ): Promise<EntitlementEvaluationResult> {
     const owned: string[] = [];
     const missing: string[] = [];
@@ -112,7 +120,7 @@ export class EntitlementService {
 
   async listOwnedItems(
     developerId: number,
-    options: EntitlementQueryOptions = {}
+    options: EntitlementQueryOptions = {},
   ): Promise<string[]> {
     if (options.inventoryTable) {
       const { data, error } = await this.admin
@@ -145,33 +153,48 @@ export class EntitlementService {
   private async fetchPurchaseRow(
     developerId: number,
     itemId: string,
-    purchasesTable = "purchases"
+    purchasesTable = "purchases",
   ): Promise<PurchaseRow | null> {
-    const baseQuery = this.admin.from(purchasesTable)
+    const baseQuery = this.admin
+      .from(purchasesTable)
       .select("id, provider, amount_cents");
 
-    const query = typeof baseQuery.or === "function"
-      ? baseQuery.or(`developer_id.eq.${developerId},gifted_to.eq.${developerId}`).eq("item_id", itemId).eq("status", "completed")
-      : baseQuery.eq("item_id", itemId).eq("status", "completed");
+    const query =
+      typeof baseQuery.or === "function"
+        ? baseQuery
+            .or(`developer_id.eq.${developerId},gifted_to.eq.${developerId}`)
+            .eq("item_id", itemId)
+            .eq("status", "completed")
+        : baseQuery.eq("item_id", itemId).eq("status", "completed");
 
     const maybeSingleResult = query.maybeSingle
       ? await query.maybeSingle()
       : await query;
 
-    if (maybeSingleResult && typeof maybeSingleResult === "object" && "data" in maybeSingleResult) {
-      const response = maybeSingleResult as SupabaseSingleResponse<PurchaseRow | null>;
+    if (
+      maybeSingleResult &&
+      typeof maybeSingleResult === "object" &&
+      "data" in maybeSingleResult
+    ) {
+      const response =
+        maybeSingleResult as SupabaseSingleResponse<PurchaseRow | null>;
       if (response.error) {
         throw response.error;
       }
       return response.data ?? null;
     }
 
-    return maybeSingleResult as PurchaseRow | null | undefined ?? null;
+    return (maybeSingleResult as PurchaseRow | null | undefined) ?? null;
   }
 
   private isMeaningfulPurchase(row: PurchaseRow | null): boolean {
     if (!row) return false;
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider ?? "")) {
+    if (
+      row.amount_cents === 0 &&
+      ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+        row.provider ?? "",
+      )
+    ) {
       return false;
     }
     return true;

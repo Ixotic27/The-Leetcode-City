@@ -6,7 +6,8 @@ import { type NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 const TIER_COLORS: Record<string, string> = {
   bronze: "#cd7f32",
@@ -62,13 +63,13 @@ function renderWindows(bHeight: number, color: string) {
             height: WSIZE,
             backgroundColor: lit ? color : `${color}18`,
           }}
-        />
+        />,
       );
     }
     rows.push(
       <div key={r} style={{ display: "flex", gap: WGAP }}>
         {cells}
-      </div>
+      </div>,
     );
   }
   return rows;
@@ -76,13 +77,13 @@ function renderWindows(bHeight: number, color: string) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
+  { params }: { params: Promise<{ username: string }> },
 ) {
   const { username } = await params;
   const format = request.nextUrl.searchParams.get("format") ?? "landscape";
 
   const fontData = await readFile(
-    join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")
+    join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf"),
   );
 
   const supabase = getSafeSupabaseClient();
@@ -90,31 +91,29 @@ export async function GET(
   const { data: dev } = await supabase
     .from("developers")
     .select(
-      "id, github_login, name, avatar_url, contributions, contributions_total, public_repos, total_stars, rank, kudos_count"
+      "id, github_login, name, avatar_url, contributions, contributions_total, public_repos, total_stars, rank, kudos_count",
     )
     .ilike("github_login", username)
     .single();
 
   if (!dev) {
     return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: bg,
-            fontFamily: "Silkscreen",
-            color: cream,
-            fontSize: 48,
-            border: `6px solid ${border}`,
-          }}
-        >
-          {i18n.notFound}
-        </div>
-      ),
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bg,
+          fontFamily: "Silkscreen",
+          color: cream,
+          fontSize: 48,
+          border: `6px solid ${border}`,
+        }}
+      >
+        {i18n.notFound}
+      </div>,
       {
         width: 1200,
         height: 675,
@@ -126,7 +125,7 @@ export async function GET(
             weight: 400 as const,
           },
         ],
-      }
+      },
     );
   }
 
@@ -143,13 +142,13 @@ export async function GET(
       tier:
         ((a.achievements as Record<string, unknown>)?.tier as string) ??
         "bronze",
-    })
+    }),
   );
 
   const highestTier =
     achievements.length > 0
-      ? TIER_ORDER.find((tier) => achievements.some((a) => a.tier === tier)) ??
-      "bronze"
+      ? (TIER_ORDER.find((tier) => achievements.some((a) => a.tier === tier)) ??
+        "bronze")
       : null;
 
   const { data: titleCustomization } = await supabase
@@ -160,7 +159,8 @@ export async function GET(
     .maybeSingle();
 
   const titleSlug =
-    (titleCustomization?.config as Record<string, unknown>)?.slug as string | null ?? null;
+    ((titleCustomization?.config as Record<string, unknown>)?.slug as
+      string | null) ?? null;
 
   let titleLabel: string | null = null;
   if (titleSlug) {
@@ -172,14 +172,31 @@ export async function GET(
     titleLabel = titleItem?.name ?? titleSlug;
   }
 
-  const contribs = (dev.contributions_total && dev.contributions_total > 0) ? dev.contributions_total : dev.contributions;
+  const contribs =
+    dev.contributions_total && dev.contributions_total > 0
+      ? dev.contributions_total
+      : dev.contributions;
   const devEff = { ...dev, contributions: contribs };
 
   const t = i18n;
   if (format === "stories") {
-    return renderStories(devEff, achievements, highestTier, titleLabel, fontData, t);
+    return renderStories(
+      devEff,
+      achievements,
+      highestTier,
+      titleLabel,
+      fontData,
+      t,
+    );
   }
-  return renderLandscape(devEff, achievements, highestTier, titleLabel, fontData, t);
+  return renderLandscape(
+    devEff,
+    achievements,
+    highestTier,
+    titleLabel,
+    fontData,
+    t,
+  );
 }
 
 function renderLandscape(
@@ -188,13 +205,13 @@ function renderLandscape(
   highestTier: string | null,
   titleLabel: string | null,
   fontData: Buffer,
-  t: typeof i18n
+  t: typeof i18n,
 ) {
   const buildingH = Math.round(
     Math.min(
       520,
-      Math.max(320, 320 + ((dev.contributions as number) / 1000) * 160)
-    )
+      Math.max(320, 320 + ((dev.contributions as number) / 1000) * 160),
+    ),
   );
   const GROUND_Y = 590;
 
@@ -202,277 +219,278 @@ function renderLandscape(
     { label: t.commits, value: (dev.contributions as number).toLocaleString() },
     { label: t.repos, value: (dev.public_repos as number).toLocaleString() },
     { label: t.stars, value: (dev.total_stars as number).toLocaleString() },
-    { label: t.kudos, value: ((dev.kudos_count as number) ?? 0).toLocaleString() },
+    {
+      label: t.kudos,
+      value: ((dev.kudos_count as number) ?? 0).toLocaleString(),
+    },
   ];
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        backgroundColor: bg,
+        fontFamily: "Silkscreen",
+        border: `6px solid ${border}`,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          left: 80,
+          top: GROUND_Y - buildingH,
+          width: 260,
+          height: buildingH,
+          backgroundColor: cardBg,
+          borderTop: `6px solid ${accent}`,
+          borderLeft: `3px solid ${accent}50`,
+          borderRight: `3px solid ${accent}50`,
           display: "flex",
-          backgroundColor: bg,
-          fontFamily: "Silkscreen",
-          border: `6px solid ${border}`,
-          position: "relative",
-          overflow: "hidden",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: 16,
+          gap: WGAP,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            left: 80,
-            top: GROUND_Y - buildingH,
-            width: 260,
-            height: buildingH,
-            backgroundColor: cardBg,
-            borderTop: `6px solid ${accent}`,
-            borderLeft: `3px solid ${accent}50`,
-            borderRight: `3px solid ${accent}50`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingTop: 16,
-            gap: WGAP,
-          }}
-        >
-          {renderWindows(buildingH, accent)}
+        {renderWindows(buildingH, accent)}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: 420,
+          top: 36,
+          width: 720,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          {dev.avatar_url ? (
+            <img
+              src={dev.avatar_url as string}
+              width={110}
+              height={110}
+              style={{ border: `4px solid ${accent}` }}
+            />
+          ) : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {dev.name ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 44,
+                  color: cream,
+                  textTransform: "uppercase",
+                }}
+              >
+                {dev.name as string}
+              </div>
+            ) : null}
+            <div
+              style={{
+                display: "flex",
+                fontSize: 24,
+                color: muted,
+                textTransform: "uppercase",
+              }}
+            >
+              {`@${dev.github_login}`}
+            </div>
+            {titleLabel ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 16,
+                  color: accent,
+                  border: `2px solid ${accent}`,
+                  padding: "3px 12px",
+                  textTransform: "uppercase",
+                  marginTop: 2,
+                }}
+              >
+                {titleLabel}
+              </div>
+            ) : null}
+            {dev.rank ? (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 18,
+                  color: accent,
+                  border: `3px solid ${accent}`,
+                  padding: "4px 14px",
+                  marginTop: 2,
+                  textTransform: "uppercase",
+                }}
+              >
+                {`#${dev.rank} ${t.inTheCity}`}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div
           style={{
-            position: "absolute",
-            left: 420,
-            top: 36,
-            width: 720,
             display: "flex",
-            flexDirection: "column",
+            flexWrap: "wrap",
+            gap: 16,
+            marginTop: 30,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            {dev.avatar_url ? (
-              <img
-                src={dev.avatar_url as string}
-                width={110}
-                height={110}
-                style={{ border: `4px solid ${accent}` }}
-              />
-            ) : null}
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {dev.name ? (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 44,
-                    color: cream,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {dev.name as string}
-                </div>
-              ) : null}
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                width: 310,
+                display: "flex",
+                flexDirection: "column",
+                backgroundColor: cardBg,
+                border: `3px solid ${border}`,
+                padding: "12px 20px",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
-                  fontSize: 24,
+                  fontSize: 16,
                   color: muted,
                   textTransform: "uppercase",
                 }}
               >
-                {`@${dev.github_login}`}
+                {stat.label}
               </div>
-              {titleLabel ? (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 16,
-                    color: accent,
-                    border: `2px solid ${accent}`,
-                    padding: "3px 12px",
-                    textTransform: "uppercase",
-                    marginTop: 2,
-                  }}
-                >
-                  {titleLabel}
-                </div>
-              ) : null}
-              {dev.rank ? (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 18,
-                    color: accent,
-                    border: `3px solid ${accent}`,
-                    padding: "4px 14px",
-                    marginTop: 2,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {`#${dev.rank} ${t.inTheCity}`}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 16,
-              marginTop: 30,
-            }}
-          >
-            {stats.map((stat) => (
               <div
-                key={stat.label}
                 style={{
-                  width: 310,
                   display: "flex",
-                  flexDirection: "column",
-                  backgroundColor: cardBg,
-                  border: `3px solid ${border}`,
-                  padding: "12px 20px",
+                  fontSize: 40,
+                  color: accent,
+                  marginTop: 2,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 16,
-                    color: muted,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {stat.label}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 40,
-                    color: accent,
-                    marginTop: 2,
-                  }}
-                >
-                  {stat.value}
-                </div>
+                {stat.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {achievements.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              marginTop: 20,
+              flexWrap: "wrap",
+            }}
+          >
+            {highestTier && (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 18,
+                  color: TIER_COLORS[highestTier],
+                  border: `3px solid ${TIER_COLORS[highestTier]}`,
+                  padding: "4px 14px",
+                  textTransform: "uppercase",
+                }}
+              >
+                {TIER_LABELS[highestTier] ?? highestTier.toUpperCase()}
+              </div>
+            )}
+            {achievements.slice(0, 4).map((ach, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  fontSize: 12,
+                  color: TIER_COLORS[ach.tier] ?? accent,
+                  border: `2px solid ${TIER_COLORS[ach.tier] ?? accent}`,
+                  padding: "3px 10px",
+                  textTransform: "uppercase",
+                }}
+              >
+                {ach.name}
               </div>
             ))}
+            {achievements.length > 4 && (
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 12,
+                  color: muted,
+                }}
+              >
+                +{achievements.length - 4}
+              </div>
+            )}
           </div>
+        )}
+      </div>
 
-          {achievements.length > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                marginTop: 20,
-                flexWrap: "wrap",
-              }}
-            >
-              {highestTier && (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 18,
-                    color: TIER_COLORS[highestTier],
-                    border: `3px solid ${TIER_COLORS[highestTier]}`,
-                    padding: "4px 14px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {TIER_LABELS[highestTier] ?? highestTier.toUpperCase()}
-                </div>
-              )}
-              {achievements.slice(0, 4).map((ach, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    fontSize: 12,
-                    color: TIER_COLORS[ach.tier] ?? accent,
-                    border: `2px solid ${TIER_COLORS[ach.tier] ?? accent}`,
-                    padding: "3px 10px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {ach.name}
-                </div>
-              ))}
-              {achievements.length > 4 && (
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 12,
-                    color: muted,
-                  }}
-                >
-                  +{achievements.length - 4}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: GROUND_Y,
+          width: 1200,
+          height: 4,
+          backgroundColor: accent,
+          display: "flex",
+        }}
+      />
 
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: GROUND_Y + 4,
+          width: 1200,
+          height: 90,
+          backgroundColor: "#141418",
+          display: "flex",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          bottom: 14,
+          left: 0,
+          width: 1200,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0 40px",
+        }}
+      >
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            top: GROUND_Y,
-            width: 1200,
-            height: 4,
-            backgroundColor: accent,
             display: "flex",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            top: GROUND_Y + 4,
-            width: 1200,
-            height: 90,
-            backgroundColor: "#141418",
-            display: "flex",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: 14,
-            left: 0,
-            width: 1200,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "0 40px",
+            alignItems: "baseline",
+            gap: 8,
+            textTransform: "uppercase",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 8,
-              textTransform: "uppercase",
-            }}
-          >
-            <span style={{ fontSize: 24, color: cream }}>LEETCODE</span>
-            <span style={{ fontSize: 24, color: accent }}>CITY</span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              fontSize: 16,
-              color: muted,
-              textTransform: "uppercase",
-            }}
-          >
-            {`${APP_URL}/dev/${dev.github_login as string}`}
-          </div>
+          <span style={{ fontSize: 24, color: cream }}>LEETCODE</span>
+          <span style={{ fontSize: 24, color: accent }}>CITY</span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            fontSize: 16,
+            color: muted,
+            textTransform: "uppercase",
+          }}
+        >
+          {`${APP_URL}/dev/${dev.github_login as string}`}
         </div>
       </div>
-    ),
+    </div>,
     {
       width: 1200,
       height: 675,
@@ -484,7 +502,7 @@ function renderLandscape(
           weight: 400 as const,
         },
       ],
-    }
+    },
   );
 }
 
@@ -532,12 +550,12 @@ function renderStories(
   highestTier: string | null,
   titleLabel: string | null,
   fontData: Buffer,
-  t: typeof i18n
+  t: typeof i18n,
 ) {
   const contributions = dev.contributions as number;
   const rank = dev.rank as number | null;
   const buildingH = Math.round(
-    Math.min(750, Math.max(500, 500 + (contributions / 1000) * 200))
+    Math.min(750, Math.max(500, 500 + (contributions / 1000) * 200)),
   );
   const BWIDTH = 320;
   const GROUND_Y = 1320;
@@ -546,283 +564,286 @@ function renderStories(
   const stats = [
     { label: t.commits, value: contributions.toLocaleString() },
     { label: t.stars, value: dev.total_stars?.toLocaleString() || "0" },
-    { label: t.repos, value: (dev.rank as number)?.toLocaleString() ?? (dev.public_repos as number).toLocaleString() },
+    {
+      label: t.repos,
+      value:
+        (dev.rank as number)?.toLocaleString() ??
+        (dev.public_repos as number).toLocaleString(),
+    },
   ];
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: bg,
+        fontFamily: "Silkscreen",
+        position: "relative",
+        overflow: "hidden",
+        alignItems: "center",
+      }}
+    >
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          position: "absolute",
+          top: 150,
+          width: 920,
           display: "flex",
-          flexDirection: "column",
-          backgroundColor: bg,
-          fontFamily: "Silkscreen",
-          position: "relative",
-          overflow: "hidden",
-          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <div
           style={{
-            position: "absolute",
-            top: 150,
-            width: 920,
             display: "flex",
+            fontSize: 36,
+            color: accent,
+            textTransform: "uppercase",
+            textAlign: "center",
             justifyContent: "center",
           }}
         >
+          &ldquo;{taunt}&rdquo;
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          top: 230,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: 920,
+        }}
+      >
+        {dev.avatar_url ? (
+          <img
+            src={dev.avatar_url as string}
+            width={110}
+            height={110}
+            style={{ border: `4px solid ${accent}` }}
+          />
+        ) : null}
+        {dev.name ? (
           <div
             style={{
               display: "flex",
-              fontSize: 36,
-              color: accent,
+              fontSize: 42,
+              color: cream,
               textTransform: "uppercase",
+              marginTop: 16,
               textAlign: "center",
               justifyContent: "center",
             }}
           >
-            &ldquo;{taunt}&rdquo;
+            {dev.name as string}
           </div>
-        </div>
-
+        ) : null}
         <div
           style={{
-            position: "absolute",
-            top: 230,
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            width: 920,
+            fontSize: 22,
+            color: muted,
+            textTransform: "uppercase",
+            marginTop: 6,
           }}
         >
-          {dev.avatar_url ? (
-            <img
-              src={dev.avatar_url as string}
-              width={110}
-              height={110}
-              style={{ border: `4px solid ${accent}` }}
-            />
-          ) : null}
-          {dev.name ? (
-            <div
-              style={{
-                display: "flex",
-                fontSize: 42,
-                color: cream,
-                textTransform: "uppercase",
-                marginTop: 16,
-                textAlign: "center",
-                justifyContent: "center",
-              }}
-            >
-              {dev.name as string}
-            </div>
-          ) : null}
+          @{dev.github_login as string}
+        </div>
+        {titleLabel ? (
           <div
             style={{
               display: "flex",
-              fontSize: 22,
-              color: muted,
+              fontSize: 18,
+              color: accent,
+              border: `2px solid ${accent}`,
+              padding: "4px 14px",
               textTransform: "uppercase",
-              marginTop: 6,
+              marginTop: 8,
             }}
           >
-            @{dev.github_login as string}
+            {titleLabel}
           </div>
-          {titleLabel ? (
+        ) : null}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginTop: 10,
+          }}
+        >
+          {rank ? (
             <div
               style={{
                 display: "flex",
                 fontSize: 18,
                 color: accent,
-                border: `2px solid ${accent}`,
-                padding: "4px 14px",
+                border: `3px solid ${accent}`,
+                padding: "5px 14px",
                 textTransform: "uppercase",
-                marginTop: 8,
               }}
             >
-              {titleLabel}
+              #{rank} {t.inTheCity}
             </div>
           ) : null}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginTop: 10,
-            }}
-          >
-            {rank ? (
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 18,
-                  color: accent,
-                  border: `3px solid ${accent}`,
-                  padding: "5px 14px",
-                  textTransform: "uppercase",
-                }}
-              >
-                #{rank} {t.inTheCity}
-              </div>
-            ) : null}
-            {highestTier ? (
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 18,
-                  color: TIER_COLORS[highestTier],
-                  border: `3px solid ${TIER_COLORS[highestTier]}`,
-                  padding: "5px 14px",
-                  textTransform: "uppercase",
-                }}
-              >
-                {TIER_LABELS[highestTier] ?? highestTier.toUpperCase()}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            left: (1080 - BWIDTH) / 2,
-            top: GROUND_Y - buildingH,
-            width: BWIDTH,
-            height: buildingH,
-            backgroundColor: cardBg,
-            borderTop: `6px solid ${accent}`,
-            borderLeft: `3px solid ${accent}50`,
-            borderRight: `3px solid ${accent}50`,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingTop: 16,
-            gap: WGAP,
-          }}
-        >
-          {renderWindows(buildingH, accent)}
-        </div>
-
-        <div
-          style={{
-            position: "absolute",
-            left: 100,
-            top: GROUND_Y,
-            width: 880,
-            height: 4,
-            backgroundColor: accent,
-            display: "flex",
-          }}
-        />
-
-        <div
-          style={{
-            position: "absolute",
-            top: GROUND_Y + 36,
-            left: 100,
-            width: 880,
-            display: "flex",
-            justifyContent: "space-around",
-          }}
-        >
-          {stats.map((stat) => (
+          {highestTier ? (
             <div
-              key={stat.label}
               style={{
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
+                fontSize: 18,
+                color: TIER_COLORS[highestTier],
+                border: `3px solid ${TIER_COLORS[highestTier]}`,
+                padding: "5px 14px",
+                textTransform: "uppercase",
               }}
             >
-              <div style={{ display: "flex", fontSize: 50, color: accent }}>
-                {stat.value}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 16,
-                  color: muted,
-                  textTransform: "uppercase",
-                  marginTop: 4,
-                }}
-              >
-                {stat.label}
-              </div>
+              {TIER_LABELS[highestTier] ?? highestTier.toUpperCase()}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: (1080 - BWIDTH) / 2,
+          top: GROUND_Y - buildingH,
+          width: BWIDTH,
+          height: buildingH,
+          backgroundColor: cardBg,
+          borderTop: `6px solid ${accent}`,
+          borderLeft: `3px solid ${accent}50`,
+          borderRight: `3px solid ${accent}50`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          paddingTop: 16,
+          gap: WGAP,
+        }}
+      >
+        {renderWindows(buildingH, accent)}
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          left: 100,
+          top: GROUND_Y,
+          width: 880,
+          height: 4,
+          backgroundColor: accent,
+          display: "flex",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          top: GROUND_Y + 36,
+          left: 100,
+          width: 880,
+          display: "flex",
+          justifyContent: "space-around",
+        }}
+      >
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <div style={{ display: "flex", fontSize: 50, color: accent }}>
+              {stat.value}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                fontSize: 16,
+                color: muted,
+                textTransform: "uppercase",
+                marginTop: 4,
+              }}
+            >
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {achievements.length > 0 ? (
+        <div
+          style={{
+            position: "absolute",
+            top: GROUND_Y + 150,
+            left: 80,
+            width: 920,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 10,
+            justifyContent: "center",
+          }}
+        >
+          {achievements.slice(0, 5).map((ach, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                fontSize: 15,
+                color: TIER_COLORS[ach.tier] ?? accent,
+                border: `2px solid ${TIER_COLORS[ach.tier] ?? accent}`,
+                padding: "4px 10px",
+                textTransform: "uppercase",
+              }}
+            >
+              {ach.name}
             </div>
           ))}
         </div>
+      ) : null}
 
-        {achievements.length > 0 ? (
-          <div
-            style={{
-              position: "absolute",
-              top: GROUND_Y + 150,
-              left: 80,
-              width: 920,
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 10,
-              justifyContent: "center",
-            }}
-          >
-            {achievements.slice(0, 5).map((ach, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  fontSize: 15,
-                  color: TIER_COLORS[ach.tier] ?? accent,
-                  border: `2px solid ${TIER_COLORS[ach.tier] ?? accent}`,
-                  padding: "4px 10px",
-                  textTransform: "uppercase",
-                }}
-              >
-                {ach.name}
-              </div>
-            ))}
-          </div>
-        ) : null}
-
+      <div
+        style={{
+          position: "absolute",
+          top: GROUND_Y + 220,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: 1080,
+          gap: 14,
+        }}
+      >
         <div
           style={{
-            position: "absolute",
-            top: GROUND_Y + 220,
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            width: 1080,
-            gap: 14,
+            fontSize: 26,
+            color: bg,
+            backgroundColor: accent,
+            padding: "14px 44px",
+            textTransform: "uppercase",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              fontSize: 26,
-              color: bg,
-              backgroundColor: accent,
-              padding: "14px 44px",
-              textTransform: "uppercase",
-            }}
-          >
-            {t.cta} &rarr; {APP_URL}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "baseline",
-              gap: 8,
-              textTransform: "uppercase",
-            }}
-          >
-            <span style={{ fontSize: 20, color: cream }}>LEETCODE</span>
-            <span style={{ fontSize: 20, color: accent }}>CITY</span>
-          </div>
+          {t.cta} &rarr; {APP_URL}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 8,
+            textTransform: "uppercase",
+          }}
+        >
+          <span style={{ fontSize: 20, color: cream }}>LEETCODE</span>
+          <span style={{ fontSize: 20, color: accent }}>CITY</span>
         </div>
       </div>
-    ),
+    </div>,
     {
       width: 1080,
       height: 1920,
@@ -834,6 +855,6 @@ function renderStories(
           weight: 400 as const,
         },
       ],
-    }
+    },
   );
 }

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -48,5 +49,8 @@ export async function GET(req: NextRequest) {
       ? transactions[transactions.length - 1].created_at
       : null;
 
-  return NextResponse.json({ transactions: transactions ?? [], next_cursor: nextCursor });
+  return NextResponse.json({
+    transactions: transactions ?? [],
+    next_cursor: nextCursor,
+  });
 }

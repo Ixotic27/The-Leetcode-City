@@ -15,7 +15,9 @@ import {
   type CityCanal,
 } from "@/lib/github";
 
-const CityCanvas = dynamic(() => import("@/components/CityCanvas"), { ssr: false });
+const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
+  ssr: false,
+});
 
 const THEME_MAP: Record<string, number> = {
   midnight: 0,
@@ -31,7 +33,9 @@ function WallpaperInner() {
   const themeIndex = THEME_MAP[themeParam] ?? 3;
 
   const speedParam = params.get("speed");
-  const speed = speedParam ? Math.min(0.5, Math.max(0.05, parseFloat(speedParam) || 0.08)) : 0.08;
+  const speed = speedParam
+    ? Math.min(0.5, Math.max(0.05, parseFloat(speedParam) || 0.08))
+    : 0.08;
 
   const [buildings, setBuildings] = useState<CityBuilding[]>([]);
   const [plazas, setPlazas] = useState<CityPlaza[]>([]);
@@ -71,8 +75,9 @@ function WallpaperInner() {
         const promises: Promise<{ developers: typeof allDevs } | null>[] = [];
         for (let from = CHUNK; from < total; from += CHUNK) {
           promises.push(
-            fetch(`/api/city?from=${from}&to=${from + CHUNK}`)
-              .then((r) => (r.ok ? r.json() : null))
+            fetch(`/api/city?from=${from}&to=${from + CHUNK}`).then((r) =>
+              r.ok ? r.json() : null,
+            ),
           );
         }
         const chunks = await Promise.all(promises);
@@ -120,7 +125,15 @@ function WallpaperInner() {
 
 export default function WallpaperPage() {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#000", cursor: "none", overflow: "hidden" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#000",
+        cursor: "none",
+        overflow: "hidden",
+      }}
+    >
       <Suspense fallback={null}>
         <WallpaperInner />
       </Suspense>

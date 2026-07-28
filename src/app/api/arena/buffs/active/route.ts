@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   // 1. Fetch active temporary buffs (consumables)
   const { data: tempBuffs, error: tempError } = await sb
     .from("arena_active_buffs")
-    .select(`
+    .select(
+      `
       id,
       buff_type,
       buff_value,
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest) {
         slug,
         icon_path
       )
-    `)
+    `,
+    )
     .eq("user_id", dev.id)
     .gt("expires_at", now);
 
@@ -36,7 +38,8 @@ export async function GET(request: NextRequest) {
   // 2. Fetch equipped gear (passive permanent buffs)
   const { data: equippedGear, error: gearError } = await sb
     .from("arena_inventory")
-    .select(`
+    .select(
+      `
       id,
       item:arena_items (
         id,
@@ -47,7 +50,8 @@ export async function GET(request: NextRequest) {
         effect_value,
         icon_path
       )
-    `)
+    `,
+    )
     .eq("user_id", dev.id)
     .eq("is_equipped", true);
 
@@ -63,7 +67,7 @@ export async function GET(request: NextRequest) {
     icon_path: b.item?.icon_path || "",
     buff_type: b.buff_type,
     buff_value: b.buff_value,
-    expires_at: b.expires_at
+    expires_at: b.expires_at,
   }));
 
   const passiveBuffs = (equippedGear || [])
@@ -75,11 +79,11 @@ export async function GET(request: NextRequest) {
       icon_path: g.item.icon_path,
       buff_type: g.item.effect_type,
       buff_value: g.item.effect_value?.multiplier || 1.0,
-      expires_at: null // permanent while equipped
+      expires_at: null, // permanent while equipped
     }));
 
   return NextResponse.json({
-    active_buffs: [...buffs, ...passiveBuffs]
+    active_buffs: [...buffs, ...passiveBuffs],
   });
 }
 

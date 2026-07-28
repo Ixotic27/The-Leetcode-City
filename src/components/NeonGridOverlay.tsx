@@ -82,7 +82,7 @@ export default function NeonGridOverlay({ accentColor }: NeonGridOverlayProps) {
       uTime: { value: 0 },
       uColor: { value: new THREE.Color() },
     }),
-    []
+    [],
   );
 
   // Keep color in sync with prop updates
@@ -97,7 +97,11 @@ export default function NeonGridOverlay({ accentColor }: NeonGridOverlayProps) {
   });
 
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.49, 0]} renderOrder={1}>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, -0.49, 0]}
+      renderOrder={1}
+    >
       <planeGeometry args={[6000, 6000]} />
       <shaderMaterial
         ref={materialRef}

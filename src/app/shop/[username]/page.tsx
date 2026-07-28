@@ -57,14 +57,20 @@ const ACCENT = "#ffa116";
 
 export default async function ShopPage({ params, searchParams }: Props) {
   const { username } = await params;
-  const { purchased: purchasedItem, gifted: giftedItem, to: giftedTo } = await searchParams;
+  const {
+    purchased: purchasedItem,
+    gifted: giftedItem,
+    to: giftedTo,
+  } = await searchParams;
   const dev = await getDeveloper(username);
 
   if (!dev) notFound();
 
   // Check if the logged-in user owns this building
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const isOwner = !!user && dev.claimed_by === user.id;
 
   // Not the owner or not claimed — show message
@@ -104,14 +110,33 @@ export default async function ShopPage({ params, searchParams }: Props) {
 
   const sb = getSupabaseAdmin();
 
-  const [items, ownedItems, customizationsResult, billboardPurchasesResult, topDevResult, topStarsResult, achievementsResult, loadoutResult, raidLoadoutResult, allPurchasesResult, consumablesResult, arenaInventoryResult] = await Promise.all([
+  const [
+    items,
+    ownedItems,
+    customizationsResult,
+    billboardPurchasesResult,
+    topDevResult,
+    topStarsResult,
+    achievementsResult,
+    loadoutResult,
+    raidLoadoutResult,
+    allPurchasesResult,
+    consumablesResult,
+    arenaInventoryResult,
+  ] = await Promise.all([
     getActiveItems(),
     getOwnedItems(dev.id),
     sb
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", dev.id)
-      .in("item_id", ["custom_color", "billboard", "building_style", "led_banner", "selected_title"]),
+      .in("item_id", [
+        "custom_color",
+        "billboard",
+        "building_style",
+        "led_banner",
+        "selected_title",
+      ]),
     sb
       .from("purchases")
       .select("id", { count: "exact", head: true })
@@ -158,10 +183,12 @@ export default async function ShopPage({ params, searchParams }: Props) {
     sb
       .from("arena_inventory")
       .select("arena_items(slug)")
-      .eq("user_id", dev.id)
+      .eq("user_id", dev.id),
   ]);
 
-  const achievements = (achievementsResult.data ?? []).map((a: { achievement_id: string }) => a.achievement_id);
+  const achievements = (achievementsResult.data ?? []).map(
+    (a: { achievement_id: string }) => a.achievement_id,
+  );
 
   // A10: Compute top 3 most purchased items (min 5 purchases)
   const purchaseCounts: Record<string, number> = {};
@@ -170,7 +197,8 @@ export default async function ShopPage({ params, searchParams }: Props) {
   for (const p of allPurchasesResult.data ?? []) {
     purchaseCounts[p.item_id] = (purchaseCounts[p.item_id] ?? 0) + 1;
     if (new Date(p.created_at).getTime() > weekAgo) {
-      weeklyPurchaseCounts[p.item_id] = (weeklyPurchaseCounts[p.item_id] ?? 0) + 1;
+      weeklyPurchaseCounts[p.item_id] =
+        (weeklyPurchaseCounts[p.item_id] ?? 0) + 1;
     }
   }
   const popularItems = Object.entries(purchaseCounts)
@@ -178,7 +206,13 @@ export default async function ShopPage({ params, searchParams }: Props) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
     .map(([id]) => id);
-  const initialLoadout = (loadoutResult.data?.config as { crown: string | null; roof: string | null; aura: string | null; faces: string | null } | null) ?? null;
+  const initialLoadout =
+    (loadoutResult.data?.config as {
+      crown: string | null;
+      roof: string | null;
+      aura: string | null;
+      faces: string | null;
+    } | null) ?? null;
 
   const billboardSlots = billboardPurchasesResult.count ?? 0;
   const maxContrib = topDevResult.data?.contributions ?? dev.contributions;
@@ -222,14 +256,21 @@ export default async function ShopPage({ params, searchParams }: Props) {
     }
   }
 
-  const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
+  const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(
+    dev.github_login.toLowerCase(),
+  );
 
   const ownedTitles = (arenaInventoryResult.data ?? [])
-    .map((inv: any) => Array.isArray(inv.arena_items) ? inv.arena_items[0]?.slug : inv.arena_items?.slug)
-    .filter((slug): slug is string => typeof slug === "string" && (
-      slug === "crown_of_code" ||
-      slug.startsWith("badge_")
-    ));
+    .map((inv: any) =>
+      Array.isArray(inv.arena_items)
+        ? inv.arena_items[0]?.slug
+        : inv.arena_items?.slug,
+    )
+    .filter(
+      (slug): slug is string =>
+        typeof slug === "string" &&
+        (slug === "crown_of_code" || slug.startsWith("badge_")),
+    );
 
   if (isDevAccount) {
     ownedTitles.push("title_creator", "title_lead_dev", "title_sys_op");
@@ -284,7 +325,12 @@ export default async function ShopPage({ params, searchParams }: Props) {
           achievements={achievements}
           initialLoadout={initialLoadout}
           initialBuildingStyle={initialBuildingStyle}
-          initialRaidLoadout={(raidLoadoutResult?.data?.config as { vehicle: string; tag: string }) ?? null}
+          initialRaidLoadout={
+            (raidLoadoutResult?.data?.config as {
+              vehicle: string;
+              tag: string;
+            }) ?? null
+          }
           purchasedItem={purchasedItem ?? null}
           giftedItem={giftedItem ?? null}
           giftedTo={giftedTo ?? null}

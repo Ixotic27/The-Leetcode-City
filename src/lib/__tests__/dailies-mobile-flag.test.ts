@@ -59,20 +59,22 @@ describe("getDailyMissions", () => {
     // desktopOnly, they should see the EXACT SAME missions on Mobile.
     for (let id = 1; id <= 100; id++) {
       const desktop = getDailyMissions(id, DATE, false);
-      const mobile  = getDailyMissions(id, DATE, true);
-      
+      const mobile = getDailyMissions(id, DATE, true);
+
       const desktopSecondary = desktop.slice(1);
-      const mobileSecondary  = mobile.slice(1);
+      const mobileSecondary = mobile.slice(1);
 
       // If both Desktop missions are NOT desktopOnly, they MUST be identical on Mobile
-      const allAnyOnDesktop = desktopSecondary.every(m => !m.desktopOnly);
+      const allAnyOnDesktop = desktopSecondary.every((m) => !m.desktopOnly);
       if (allAnyOnDesktop) {
-        expect(mobileSecondary.map(m => m.id)).toEqual(desktopSecondary.map(m => m.id));
+        expect(mobileSecondary.map((m) => m.id)).toEqual(
+          desktopSecondary.map((m) => m.id),
+        );
       } else {
         // If Desktop had a desktopOnly mission, Mobile should at least preserve the other one
-        const common = desktopSecondary.filter(m => !m.desktopOnly);
+        const common = desktopSecondary.filter((m) => !m.desktopOnly);
         for (const m of common) {
-          expect(mobileSecondary.some(mm => mm.id === m.id)).toBe(true);
+          expect(mobileSecondary.some((mm) => mm.id === m.id)).toBe(true);
         }
       }
     }
@@ -103,10 +105,13 @@ describe("trackDailyMission", () => {
     if (!targetId) return; // skip if not found in range (seed-dependent)
 
     await trackDailyMission(targetId, "give_kudos", { isMobile: true });
-    expect(mockRpc).toHaveBeenCalledWith("record_mission_progress", expect.objectContaining({
-      p_developer_id: targetId,
-      p_mission_id: "give_kudos",
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      "record_mission_progress",
+      expect.objectContaining({
+        p_developer_id: targetId,
+        p_mission_id: "give_kudos",
+      }),
+    );
   });
 
   it("skips (no-ops) when a desktopOnly mission is not in the mobile set", async () => {
@@ -123,7 +128,9 @@ describe("trackDailyMission", () => {
     let missionId: string | null = null;
     for (let id = 1; id <= 1000; id++) {
       const mobile = getDailyMissions(id, DATE, true).slice(1);
-      const desktopIds = new Set(getDailyMissions(id, DATE, false).map((m) => m.id));
+      const desktopIds = new Set(
+        getDailyMissions(id, DATE, false).map((m) => m.id),
+      );
       const mobileOnly = mobile.find((m) => !desktopIds.has(m.id));
       if (mobileOnly) {
         targetId = id;
@@ -134,9 +141,12 @@ describe("trackDailyMission", () => {
     if (!targetId || !missionId) return; // skip if not found in range
 
     await trackDailyMission(targetId, missionId);
-    expect(mockRpc).toHaveBeenCalledWith("record_mission_progress", expect.objectContaining({
-      p_mission_id: missionId,
-    }));
+    expect(mockRpc).toHaveBeenCalledWith(
+      "record_mission_progress",
+      expect.objectContaining({
+        p_mission_id: missionId,
+      }),
+    );
   });
 
   it("may record fly_score_50 when isMobile=false and mission is assigned", async () => {
@@ -150,10 +160,16 @@ describe("trackDailyMission", () => {
     }
     if (!targetId) return;
 
-    await trackDailyMission(targetId, "fly_score_50", { score: 100, isMobile: false });
-    expect(mockRpc).toHaveBeenCalledWith("record_mission_progress", expect.objectContaining({
-      p_mission_id: "fly_score_50",
-    }));
+    await trackDailyMission(targetId, "fly_score_50", {
+      score: 100,
+      isMobile: false,
+    });
+    expect(mockRpc).toHaveBeenCalledWith(
+      "record_mission_progress",
+      expect.objectContaining({
+        p_mission_id: "fly_score_50",
+      }),
+    );
   });
 
   it("defaults isMobile to false when extra is omitted (backwards compatible)", async () => {
@@ -168,7 +184,7 @@ describe("trackDailyMission", () => {
     }
     if (!targetId) return;
 
-    await trackDailyMission(targetId, "give_kudos");  // no extra
+    await trackDailyMission(targetId, "give_kudos"); // no extra
     // Should not throw; may or may not call RPC depending on seed
     // Key assertion: no unhandled exception
     expect(true).toBe(true);

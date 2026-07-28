@@ -4,7 +4,8 @@ import { rateLimit } from "@/lib/rate-limit";
 
 const VALID_EVENTS = new Set(["impression", "click", "cta_click"]);
 
-const BOT_UA_PATTERNS = /bot|crawler|spider|headless|phantomjs|selenium|puppeteer|wget|curl|python-requests|scrapy|slurp|mediapartners/i;
+const BOT_UA_PATTERNS =
+  /bot|crawler|spider|headless|phantomjs|selenium|puppeteer|wget|curl|python-requests|scrapy|slurp|mediapartners/i;
 
 const ALLOWED_ORIGINS = new Set([
   "https://theleetcodecity.tech",
@@ -14,7 +15,9 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 async function hashIP(ip: string): Promise<string> {
-  const data = new TextEncoder().encode(ip + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""));
+  const data = new TextEncoder().encode(
+    ip + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""),
+  );
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -26,15 +29,18 @@ async function hashIP(ip: string): Promise<string> {
  */
 export async function POST(request: NextRequest) {
   // ── Origin validation ──
-  const origin = request.headers.get("origin") ?? request.headers.get("referer");
+  const origin =
+    request.headers.get("origin") ?? request.headers.get("referer");
   if (origin) {
     try {
       const url = new URL(origin);
       if (!ALLOWED_ORIGINS.has(url.origin)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-    } catch (err) { console.warn("[app/api/sky-ads/track/route.ts] error:", err); return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-     }
+    } catch (err) {
+      console.warn("[app/api/sky-ads/track/route.ts] error:", err);
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   // ── Bot filtering ──
@@ -61,8 +67,10 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/sky-ads/track/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/sky-ads/track/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const { ad_id, github_login } = body;
   if (!ad_id || typeof ad_id !== "string") {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -87,7 +95,10 @@ export async function POST(request: NextRequest) {
 
   const ipHash = await hashIP(ip);
   const userAgent = request.headers.get("user-agent")?.slice(0, 256) ?? null;
-  const login = typeof github_login === "string" ? github_login.slice(0, 39).toLowerCase() : null;
+  const login =
+    typeof github_login === "string"
+      ? github_login.slice(0, 39).toLowerCase()
+      : null;
   const country = request.headers.get("x-vercel-ip-country") ?? null;
 
   const sb = getSupabaseAdmin();

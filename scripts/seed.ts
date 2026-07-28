@@ -8,7 +8,7 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN!;
 
 if (!SUPABASE_URL || !SUPABASE_KEY || !GITHUB_TOKEN) {
   console.error(
-    "Missing env vars. Make sure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and GITHUB_TOKEN are set."
+    "Missing env vars. Make sure NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and GITHUB_TOKEN are set.",
   );
   console.error("Run: source .env.local && npx tsx scripts/seed.ts");
   process.exit(1);
@@ -21,8 +21,24 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 // ─── Top devs list ───────────────────────────────────────────
 
 const TOP_DEVS = [
-  "neal_wu", "tourist", "awice", "lee215", "stefanpochmann", "erictra", "wavy", "votrubac", "dbabichev",
-  "lwy", "tonygarkovski", "katorz", "yan_xinyi", "hank55663", "liouh", "cuiaoxiang", "zemen", "xiaowuc1"
+  "neal_wu",
+  "tourist",
+  "awice",
+  "lee215",
+  "stefanpochmann",
+  "erictra",
+  "wavy",
+  "votrubac",
+  "dbabichev",
+  "lwy",
+  "tonygarkovski",
+  "katorz",
+  "yan_xinyi",
+  "hank55663",
+  "liouh",
+  "cuiaoxiang",
+  "zemen",
+  "xiaowuc1",
 ];
 
 // ─── GitHub Helpers ──────────────────────────────────────────
@@ -54,12 +70,18 @@ function buildYearAliases(): string {
   const currentYear = new Date().getFullYear();
   const lines: string[] = [];
   for (let y = currentYear; y >= currentYear - 9; y--) {
-    lines.push(`y${y}: contributionsCollection(from: "${y}-01-01T00:00:00Z", to: "${y}-12-31T23:59:59Z") { contributionCalendar { totalContributions } }`);
+    lines.push(
+      `y${y}: contributionsCollection(from: "${y}-01-01T00:00:00Z", to: "${y}-12-31T23:59:59Z") { contributionCalendar { totalContributions } }`,
+    );
   }
   return lines.join("\n    ");
 }
 
-function computeStreaks(weeks: Array<{ contributionDays: Array<{ contributionCount: number; date: string }> }>): {
+function computeStreaks(
+  weeks: Array<{
+    contributionDays: Array<{ contributionCount: number; date: string }>;
+  }>,
+): {
   current_streak: number;
   longest_streak: number;
   active_days_last_year: number;
@@ -92,8 +114,14 @@ function computeStreaks(weeks: Array<{ contributionDays: Array<{ contributionCou
 
   for (let i = allDays.length - 1; i >= 0; i--) {
     const day = allDays[i];
-    if (i === allDays.length - 1 && day.date !== today && day.date !== yesterday) break;
-    if (i === allDays.length - 1 && day.count === 0 && day.date === today) continue;
+    if (
+      i === allDays.length - 1 &&
+      day.date !== today &&
+      day.date !== yesterday
+    )
+      break;
+    if (i === allDays.length - 1 && day.count === 0 && day.date === today)
+      continue;
     if (day.count > 0) {
       current_streak++;
     } else {
@@ -104,7 +132,9 @@ function computeStreaks(weeks: Array<{ contributionDays: Array<{ contributionCou
   return { current_streak, longest_streak, active_days_last_year };
 }
 
-async function fetchExpandedGitHubData(login: string): Promise<ExpandedGitHubData | null> {
+async function fetchExpandedGitHubData(
+  login: string,
+): Promise<ExpandedGitHubData | null> {
   const yearAliases = buildYearAliases();
 
   const query = `
@@ -152,14 +182,16 @@ async function fetchExpandedGitHubData(login: string): Promise<ExpandedGitHubDat
     if (!user) return null;
 
     const currentCollection = user.current;
-    const contributions = currentCollection?.contributionCalendar?.totalContributions ?? 0;
+    const contributions =
+      currentCollection?.contributionCalendar?.totalContributions ?? 0;
 
     const currentYear = new Date().getFullYear();
     let contributions_total = 0;
     const contribution_years: number[] = [];
     for (let y = currentYear; y >= currentYear - 9; y--) {
       const yearData = user[`y${y}`];
-      const yearContribs = yearData?.contributionCalendar?.totalContributions ?? 0;
+      const yearContribs =
+        yearData?.contributionCalendar?.totalContributions ?? 0;
       if (yearContribs > 0) {
         contributions_total += yearContribs;
         contribution_years.push(y);
@@ -174,7 +206,8 @@ async function fetchExpandedGitHubData(login: string): Promise<ExpandedGitHubDat
       contributions_total,
       contribution_years,
       total_prs: currentCollection?.totalPullRequestContributions ?? 0,
-      total_reviews: currentCollection?.totalPullRequestReviewContributions ?? 0,
+      total_reviews:
+        currentCollection?.totalPullRequestReviewContributions ?? 0,
       total_issues: currentCollection?.totalIssueContributions ?? 0,
       repos_contributed_to: user.repositoriesContributedTo?.totalCount ?? 0,
       followers: user.followers?.totalCount ?? 0,
@@ -220,11 +253,11 @@ async function fetchAndUpsert(login: string): Promise<boolean> {
   `;
 
   try {
-    const res = await fetch('https://leetcode.com/graphql', {
-      method: 'POST',
+    const res = await fetch("https://leetcode.com/graphql", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Referer': 'https://leetcode.com',
+        "Content-Type": "application/json",
+        Referer: "https://leetcode.com",
       },
       body: JSON.stringify({ query, variables: { username: login } }),
     });
@@ -237,13 +270,16 @@ async function fetchAndUpsert(login: string): Promise<boolean> {
       return false;
     }
 
-    const contributions = lcUser.submitStats?.acSubmissionNum?.find((d: any) => d.difficulty === "All")?.count ?? 0;
+    const contributions =
+      lcUser.submitStats?.acSubmissionNum?.find(
+        (d: any) => d.difficulty === "All",
+      )?.count ?? 0;
     const ranking = lcUser.profile?.ranking ?? 999999;
     const reputation = lcUser.profile?.reputation ?? 0;
 
     let hash = 0;
     for (let i = 0; i < login.length; i++) {
-      hash = Math.imul(31, hash) + login.charCodeAt(i) | 0;
+      hash = (Math.imul(31, hash) + login.charCodeAt(i)) | 0;
     }
     const github_id = Math.abs(hash);
 
@@ -261,7 +297,7 @@ async function fetchAndUpsert(login: string): Promise<boolean> {
         top_repos: [],
         fetched_at: new Date().toISOString(),
       },
-      { onConflict: "github_login" }
+      { onConflict: "github_login" },
     );
 
     if (error) {
@@ -270,7 +306,7 @@ async function fetchAndUpsert(login: string): Promise<boolean> {
     }
 
     console.log(
-      `  [OK]   ${lcUser.username} — ${contributions} solved, ${reputation} rep, rank ${ranking}`
+      `  [OK]   ${lcUser.username} — ${contributions} solved, ${reputation} rep, rank ${ranking}`,
     );
     return true;
   } catch (err) {
@@ -282,7 +318,9 @@ async function fetchAndUpsert(login: string): Promise<boolean> {
 // ─── Main ────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`\nSeeding LeetCode City with ${TOP_DEVS.length} developers...\n`);
+  console.log(
+    `\nSeeding LeetCode City with ${TOP_DEVS.length} developers...\n`,
+  );
 
   // Deduplicate
   const unique = [...new Set(TOP_DEVS.map((d) => d.toLowerCase()))];

@@ -13,7 +13,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
 
   const auth = request.headers.get("authorization") ?? "";

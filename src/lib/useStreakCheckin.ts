@@ -37,10 +37,7 @@ export interface StreakData {
 
 const CACHE_KEY = "gc_checkin";
 
-export function useStreakCheckin(
-  session: Session | null,
-  hasClaimed: boolean,
-) {
+export function useStreakCheckin(session: Session | null, hasClaimed: boolean) {
   const [streakData, setStreakData] = useState<StreakData | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -50,7 +47,9 @@ export function useStreakCheckin(
         data.checked_in = false; // no pulse on cached load
         return data;
       }
-    } catch (err) { console.warn("[lib/useStreakCheckin.ts] non-critical error:", err); }
+    } catch (err) {
+      console.warn("[lib/useStreakCheckin.ts] non-critical error:", err);
+    }
     return null;
   });
   const [loading, setLoading] = useState(false);
@@ -60,7 +59,8 @@ export function useStreakCheckin(
     if (!session || !hasClaimed) return;
     // Already fetched this session (ref guards against StrictMode double-fire)
     if (fetchedRef.current) return;
-    if (typeof window !== "undefined" && sessionStorage.getItem(CACHE_KEY)) return;
+    if (typeof window !== "undefined" && sessionStorage.getItem(CACHE_KEY))
+      return;
 
     fetchedRef.current = true;
 
@@ -78,7 +78,9 @@ export function useStreakCheckin(
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
           }
           if (data.unseen_count > 0) {
-            fetch("/api/achievements/mark-seen", { method: "POST" }).catch(() => { });
+            fetch("/api/achievements/mark-seen", { method: "POST" }).catch(
+              () => {},
+            );
           }
         }
       } catch {

@@ -47,7 +47,10 @@ describe("resolveAuthenticatedDeveloper", () => {
   });
 
   it("resolves the owning developer record for an authenticated user", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: { id: "user-123" } }, error: null });
+    mockGetUser.mockResolvedValueOnce({
+      data: { user: { id: "user-123" } },
+      error: null,
+    });
     mockFrom.mockReturnValueOnce({
       select: () => ({
         eq: () => ({
@@ -59,7 +62,9 @@ describe("resolveAuthenticatedDeveloper", () => {
       }),
     });
 
-    const result = await resolveAuthenticatedDeveloper({ select: "id, github_login, claimed" });
+    const result = await resolveAuthenticatedDeveloper({
+      select: "id, github_login, claimed",
+    });
 
     expect(result.ok).toBe(true);
     expect(result.authenticated).toBe(true);

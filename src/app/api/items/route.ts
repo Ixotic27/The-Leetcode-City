@@ -12,7 +12,10 @@ export async function GET() {
     .order("price_usd_cents");
 
   if (error) {
-    return NextResponse.json({ error: "Failed to fetch items" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch items" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json(
@@ -21,6 +24,6 @@ export async function GET() {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
       },
-    }
+    },
   );
 }

@@ -86,7 +86,12 @@ export function BusStop({
       {/* Blue Roof */}
       <mesh position={[0, 5.5, 0]}>
         <boxGeometry args={[15, 0.6, 9]} />
-        <meshStandardMaterial color="#0055a5" emissive="#002255" emissiveIntensity={0.25} roughness={0.5} />
+        <meshStandardMaterial
+          color="#0055a5"
+          emissive="#002255"
+          emissiveIntensity={0.25}
+          roughness={0.5}
+        />
       </mesh>
 
       {/* Wooden Bench */}
@@ -109,7 +114,12 @@ export function BusStop({
         {/* Glowing Board Panel */}
         <mesh position={[0, 6.5, 0.12]}>
           <boxGeometry args={[1.8, 1.0, 0.05]} />
-          <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={hovered ? 3.0 : 1.5} toneMapped={false} />
+          <meshStandardMaterial
+            color="#ffa116"
+            emissive="#ffa116"
+            emissiveIntensity={hovered ? 3.0 : 1.5}
+            toneMapped={false}
+          />
         </mesh>
       </group>
 
@@ -117,7 +127,12 @@ export function BusStop({
       {hovered && (
         <mesh position={[0, 7.5, 0]}>
           <boxGeometry args={[2, 2, 2]} />
-          <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={2} toneMapped={false} />
+          <meshStandardMaterial
+            color="#ffa116"
+            emissive="#ffa116"
+            emissiveIntensity={2}
+            toneMapped={false}
+          />
         </mesh>
       )}
     </group>
@@ -169,10 +184,18 @@ export function SkyTransitBoard({
     // Text selection based on district
     let icon = "🚌";
     let typeText = "BUS STATION";
-    if (district === "backend" || district === "data_ai" || district === "security") {
+    if (
+      district === "backend" ||
+      district === "data_ai" ||
+      district === "security"
+    ) {
       icon = "🛺";
       typeText = "AUTO STAND";
-    } else if (district === "fullstack" || district === "gamedev" || district === "vibe_coder") {
+    } else if (
+      district === "fullstack" ||
+      district === "gamedev" ||
+      district === "vibe_coder"
+    ) {
       icon = "🚇";
       typeText = "METRO STATION";
     } else if (district === "downtown") {
@@ -212,59 +235,60 @@ export function SkyTransitBoard({
   });
 
   return (
-    <Billboard position={[position[0], 200, position[2]]} follow lockX={false} lockY={false} lockZ={false}>
+    <Billboard
+      position={[position[0], 200, position[2]]}
+      follow
+      lockX={false}
+      lockY={false}
+      lockZ={false}
+    >
       <group ref={meshRef}>
-      {/* Neon laser beam pointing down to anchor the board */}
-      <mesh ref={laserRef} position={[0, -100, 0]}>
-        <cylinderGeometry args={[0.8, 0.8, 200, 8]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={2.0}
-          transparent
-          opacity={0.25}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Main Board Frame */}
-      <mesh>
-        <boxGeometry args={[70, 24, 3]} />
-        <meshStandardMaterial
-          color="#151922"
-          roughness={0.2}
-          metalness={0.8}
-        />
-      </mesh>
-
-      {/* Glowing Neon Outline Frame */}
-      <mesh position={[0, 0, 0.1]}>
-        <boxGeometry args={[72, 26, 0.5]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={3.0}
-          transparent
-          opacity={0.65}
-        />
-      </mesh>
-
-      {/* Screen Face (Front) */}
-      {texture && (
-        <mesh position={[0, 0, 1.55]}>
-          <planeGeometry args={[68, 22]} />
-          <meshBasicMaterial
-            map={texture}
+        {/* Neon laser beam pointing down to anchor the board */}
+        <mesh ref={laserRef} position={[0, -100, 0]}>
+          <cylinderGeometry args={[0.8, 0.8, 200, 8]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={2.0}
             transparent
-            alphaTest={0.05}
+            opacity={0.25}
+            depthWrite={false}
           />
         </mesh>
-      )}
+
+        {/* Main Board Frame */}
+        <mesh>
+          <boxGeometry args={[70, 24, 3]} />
+          <meshStandardMaterial
+            color="#151922"
+            roughness={0.2}
+            metalness={0.8}
+          />
+        </mesh>
+
+        {/* Glowing Neon Outline Frame */}
+        <mesh position={[0, 0, 0.1]}>
+          <boxGeometry args={[72, 26, 0.5]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={3.0}
+            transparent
+            opacity={0.65}
+          />
+        </mesh>
+
+        {/* Screen Face (Front) */}
+        {texture && (
+          <mesh position={[0, 0, 1.55]}>
+            <planeGeometry args={[68, 22]} />
+            <meshBasicMaterial map={texture} transparent alphaTest={0.05} />
+          </mesh>
+        )}
       </group>
     </Billboard>
   );
 }
-
 
 // ─── 3D BMTC Bus Model ────────────────────────────────────────
 export function BusModel({
@@ -303,11 +327,21 @@ export function BusModel({
         <group key={idx} position={[0, 3.8, z]}>
           <mesh position={[3.62, 0, 0]}>
             <boxGeometry args={[0.05, 1.3, 1.8]} />
-            <meshStandardMaterial color="#222222" roughness={0.1} transparent opacity={0.85} />
+            <meshStandardMaterial
+              color="#222222"
+              roughness={0.1}
+              transparent
+              opacity={0.85}
+            />
           </mesh>
           <mesh position={[-3.62, 0, 0]}>
             <boxGeometry args={[0.05, 1.3, 1.8]} />
-            <meshStandardMaterial color="#222222" roughness={0.1} transparent opacity={0.85} />
+            <meshStandardMaterial
+              color="#222222"
+              roughness={0.1}
+              transparent
+              opacity={0.85}
+            />
           </mesh>
         </group>
       ))}
@@ -315,11 +349,21 @@ export function BusModel({
       {/* Headlights */}
       <mesh position={[-2.5, 1.6, 8.02]}>
         <boxGeometry args={[0.7, 0.7, 0.1]} />
-        <meshStandardMaterial color="#ffffdd" emissive="#ffffcc" emissiveIntensity={3.0} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ffffdd"
+          emissive="#ffffcc"
+          emissiveIntensity={3.0}
+          toneMapped={false}
+        />
       </mesh>
       <mesh position={[2.5, 1.6, 8.02]}>
         <boxGeometry args={[0.7, 0.7, 0.1]} />
-        <meshStandardMaterial color="#ffffdd" emissive="#ffffcc" emissiveIntensity={3.0} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ffffdd"
+          emissive="#ffffcc"
+          emissiveIntensity={3.0}
+          toneMapped={false}
+        />
       </mesh>
 
       {/* LED Destination Marquee */}
@@ -329,17 +373,26 @@ export function BusModel({
       </mesh>
       <mesh position={[0, 4.6, 8.05]}>
         <boxGeometry args={[3.6, 0.35, 0.01]} />
-        <meshStandardMaterial color="#ff9000" emissive="#ff9000" emissiveIntensity={2.5} toneMapped={false} />
+        <meshStandardMaterial
+          color="#ff9000"
+          emissive="#ff9000"
+          emissiveIntensity={2.5}
+          toneMapped={false}
+        />
       </mesh>
 
       {/* Wheels */}
       {[-2.0, 2.0].map((x) =>
         [-4.5, 4.5].map((z) => (
-          <mesh key={`${x}-${z}`} position={[x * 1.5, 0.7, z]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh
+            key={`${x}-${z}`}
+            position={[x * 1.5, 0.7, z]}
+            rotation={[0, 0, Math.PI / 2]}
+          >
             <cylinderGeometry args={[1.0, 1.0, 1.2, 8]} />
             <meshStandardMaterial color="#1f1f1f" roughness={0.9} />
           </mesh>
-        ))
+        )),
       )}
     </group>
   );
@@ -362,19 +415,23 @@ export default function BusTransit({
   const curve = useMemo(() => {
     if (!transitState?.active) return null;
 
-    const fromPlaza = plazas.find((p) => p.district === transitState.fromDistrict);
+    const fromPlaza = plazas.find(
+      (p) => p.district === transitState.fromDistrict,
+    );
     const toPlaza = plazas.find((p) => p.district === transitState.toDistrict);
 
     if (!fromPlaza || !toPlaza) return null;
 
-    const fromRotY = Math.atan2(fromPlaza.position[0], fromPlaza.position[2]) + Math.PI;
+    const fromRotY =
+      Math.atan2(fromPlaza.position[0], fromPlaza.position[2]) + Math.PI;
     const fromPos: [number, number, number] = [
       fromPlaza.position[0] + Math.sin(fromRotY) * 45,
       fromPlaza.position[1],
       fromPlaza.position[2] + Math.cos(fromRotY) * 45,
     ];
 
-    const toRotY = Math.atan2(toPlaza.position[0], toPlaza.position[2]) + Math.PI;
+    const toRotY =
+      Math.atan2(toPlaza.position[0], toPlaza.position[2]) + Math.PI;
     const toPos: [number, number, number] = [
       toPlaza.position[0] + Math.sin(toRotY) * 45,
       toPlaza.position[1],
@@ -385,7 +442,8 @@ export default function BusTransit({
     points.push(new THREE.Vector3(...fromPos));
 
     // Check if we need to cross the central horizontal river (Z = 0)
-    const crossedRiver = (fromPos[2] > 0 && toPos[2] < 0) || (fromPos[2] < 0 && toPos[2] > 0);
+    const crossedRiver =
+      (fromPos[2] > 0 && toPos[2] < 0) || (fromPos[2] < 0 && toPos[2] > 0);
 
     if (crossedRiver && bridges.length > 0) {
       // Find the closest bridge on X to fromPos
@@ -412,7 +470,8 @@ export default function BusTransit({
     } else {
       // Direct routing with a curved midpoint
       const mx = (fromPos[0] + toPos[0]) / 2;
-      const mz = (fromPos[2] + toPos[2]) / 2 + (fromPos[0] > toPos[0] ? 40 : -40);
+      const mz =
+        (fromPos[2] + toPos[2]) / 2 + (fromPos[0] > toPos[0] ? 40 : -40);
       points.push(new THREE.Vector3(mx, 0.5, mz));
     }
 
@@ -444,7 +503,9 @@ export default function BusTransit({
 
     // Position camera slightly behind the bus direction
     const yaw = Math.atan2(tangent.x, tangent.z);
-    const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(new THREE.Euler(0, yaw, 0));
+    const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(
+      new THREE.Euler(0, yaw, 0),
+    );
     camera.position.copy(pos).add(camOffset);
     camera.lookAt(pos.x, pos.y + 4, pos.z);
 
@@ -476,10 +537,7 @@ export default function BusTransit({
                 onClick={() => onOpenTransitMenu(p.district!)}
               />
             </group>
-            <SkyTransitBoard
-              position={stopPos}
-              district={p.district}
-            />
+            <SkyTransitBoard position={stopPos} district={p.district} />
             {/* Tall pulsing beacon column visible from far away */}
             {/* Tall beacon visible from across the city */}
             <mesh position={[stopPos[0], 250, stopPos[2]]}>

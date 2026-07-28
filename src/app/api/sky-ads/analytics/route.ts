@@ -6,11 +6,14 @@ const OWNER_LOGIN = "ixotic27";
 // Historical baselines from Himetrica (tracking was lost in Supabase due to www origin bug).
 // These get added on top of live Supabase counts. Remove once Supabase data catches up.
 // To get per-ad numbers: filter Himetrica events by ad_id property.
-const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number; cta_clicks: number }> = {
-  "leetcodecity":   { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
-  "samuel":    { impressions: 280045, clicks: 2274, cta_clicks: 999 },
-  "build":     { impressions: 248929, clicks: 2022, cta_clicks: 888 },
-  "advertise": { impressions: 31116,  clicks: 253,  cta_clicks: 110 },
+const HISTORICAL_BASELINES: Record<
+  string,
+  { impressions: number; clicks: number; cta_clicks: number }
+> = {
+  leetcodecity: { impressions: 311161, clicks: 2527, cta_clicks: 1110 },
+  samuel: { impressions: 280045, clicks: 2274, cta_clicks: 999 },
+  build: { impressions: 248929, clicks: 2022, cta_clicks: 888 },
+  advertise: { impressions: 31116, clicks: 253, cta_clicks: 110 },
 };
 
 /**
@@ -18,7 +21,8 @@ const HISTORICAL_BASELINES: Record<string, { impressions: number; clicks: number
  */
 export async function GET(request: Request) {
   // Auth check
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -37,17 +41,28 @@ export async function GET(request: Request) {
   const period = searchParams.get("period") ?? "30d";
 
   // Refresh materialized view (ignore errors - view may be empty on first run)
-  try { await admin.rpc("refresh_sky_ad_stats"); } catch (err) { console.warn("[app/api/sky-ads/analytics/route.ts] non-critical error:", err); }
+  try {
+    await admin.rpc("refresh_sky_ad_stats");
+  } catch (err) {
+    console.warn(
+      "[app/api/sky-ads/analytics/route.ts] non-critical error:",
+      err,
+    );
+  }
   // Build date filter
   let dayFilter: string | null = null;
   if (period === "7d") {
     dayFilter = new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
   } else if (period === "30d") {
-    dayFilter = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+    dayFilter = new Date(Date.now() - 30 * 86400000)
+      .toISOString()
+      .split("T")[0];
   }
 
   // Query aggregated stats
-  let query = admin.from("sky_ad_daily_stats").select("ad_id, day, impressions, clicks, cta_clicks");
+  let query = admin
+    .from("sky_ad_daily_stats")
+    .select("ad_id, day, impressions, clicks, cta_clicks");
   if (dayFilter) {
     query = query.gte("day", dayFilter);
   }
@@ -58,13 +73,24 @@ export async function GET(request: Request) {
   }
 
   // Get all ads with full details
-  const { data: allAds } = await admin.from("sky_ads").select("id, brand, text, description, color, bg_color, link, active, vehicle, priority, plan_id, starts_at, ends_at, purchaser_email, tracking_token, created_at");
+  const { data: allAds } = await admin
+    .from("sky_ads")
+    .select(
+      "id, brand, text, description, color, bg_color, link, active, vehicle, priority, plan_id, starts_at, ends_at, purchaser_email, tracking_token, created_at",
+    );
   const adMap = new Map((allAds ?? []).map((a) => [a.id, a]));
 
   // Aggregate by ad_id (live Supabase data + historical baselines)
-  const aggregated = new Map<string, { impressions: number; clicks: number; cta_clicks: number }>();
+  const aggregated = new Map<
+    string,
+    { impressions: number; clicks: number; cta_clicks: number }
+  >();
   for (const row of stats ?? []) {
-    const cur = aggregated.get(row.ad_id) ?? { impressions: 0, clicks: 0, cta_clicks: 0 };
+    const cur = aggregated.get(row.ad_id) ?? {
+      impressions: 0,
+      clicks: 0,
+      cta_clicks: 0,
+    };
     cur.impressions += Number(row.impressions);
     cur.clicks += Number(row.clicks);
     cur.cta_clicks += Number(row.cta_clicks);
@@ -72,14 +98,21 @@ export async function GET(request: Request) {
   }
   // Merge historical baselines
   for (const [adId, baseline] of Object.entries(HISTORICAL_BASELINES)) {
-    const cur = aggregated.get(adId) ?? { impressions: 0, clicks: 0, cta_clicks: 0 };
+    const cur = aggregated.get(adId) ?? {
+      impressions: 0,
+      clicks: 0,
+      cta_clicks: 0,
+    };
     cur.impressions += baseline.impressions;
     cur.clicks += baseline.clicks;
     cur.cta_clicks += baseline.cta_clicks;
     aggregated.set(adId, cur);
   }
 
-  function buildAdEntry(id: string, s: { impressions: number; clicks: number; cta_clicks: number }) {
+  function buildAdEntry(
+    id: string,
+    s: { impressions: number; clicks: number; cta_clicks: number },
+  ) {
     const ad = adMap.get(id);
     const totalClicks = s.clicks + s.cta_clicks;
     return {
@@ -102,11 +135,16 @@ export async function GET(request: Request) {
       impressions: s.impressions,
       clicks: s.clicks,
       cta_clicks: s.cta_clicks,
-      ctr: s.impressions > 0 ? ((totalClicks / s.impressions) * 100).toFixed(2) + "%" : "0%",
+      ctr:
+        s.impressions > 0
+          ? ((totalClicks / s.impressions) * 100).toFixed(2) + "%"
+          : "0%",
     };
   }
 
-  const ads = Array.from(aggregated.entries()).map(([id, s]) => buildAdEntry(id, s));
+  const ads = Array.from(aggregated.entries()).map(([id, s]) =>
+    buildAdEntry(id, s),
+  );
 
   // Include ads with zero events
   for (const [id] of adMap) {

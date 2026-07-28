@@ -7,7 +7,9 @@ import { describe, it, expect } from "vitest";
 // Simulates the new grant_streak_freeze() RPC behaviour:
 // UPDATE ... WHERE streak_freezes_available < 2
 // Returns { granted: true } if incremented, { granted: false } if at cap.
-function simulateGrantStreakFreeze(dev: { streak_freezes_available: number }): { granted: boolean } {
+function simulateGrantStreakFreeze(dev: { streak_freezes_available: number }): {
+  granted: boolean;
+} {
   if (dev.streak_freezes_available < 2) {
     dev.streak_freezes_available += 1;
     return { granted: true };
@@ -17,7 +19,9 @@ function simulateGrantStreakFreeze(dev: { streak_freezes_available: number }): {
 
 // Simulates the old LEAST() behaviour (the bug):
 // Both concurrent callers increment independently — no WHERE guard.
-function simulateOldGrantStreakFreeze(dev: { streak_freezes_available: number }): void {
+function simulateOldGrantStreakFreeze(dev: {
+  streak_freezes_available: number;
+}): void {
   dev.streak_freezes_available = Math.min(dev.streak_freezes_available + 1, 2);
 }
 
@@ -134,7 +138,10 @@ describe("total % 7 gate — only fires on milestone completions", () => {
     expect(total % 7 === 0).toBe(true);
   });
 
-  it.each(nonMilestones)("total=%i does NOT trigger freeze grant check", (total) => {
-    expect(total % 7 === 0).toBe(false);
-  });
+  it.each(nonMilestones)(
+    "total=%i does NOT trigger freeze grant check",
+    (total) => {
+      expect(total % 7 === 0).toBe(false);
+    },
+  );
 });

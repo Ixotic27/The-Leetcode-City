@@ -11,7 +11,9 @@ const SANDBOX_URL = "https://sandbox.cashfree.com/pg";
 const PRODUCTION_URL = "https://api.cashfree.com/pg";
 
 function getApiUrl(): string {
-  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX")
+    .replace(/['"]/g, "")
+    .trim();
   return env === "PRODUCTION" ? PRODUCTION_URL : SANDBOX_URL;
 }
 
@@ -22,7 +24,9 @@ function getAppId(): string {
 }
 
 function getSecretKey(): string {
-  const key = (process.env.CASHFREE_SECRET_KEY ?? "").replace(/['"]/g, "").trim();
+  const key = (process.env.CASHFREE_SECRET_KEY ?? "")
+    .replace(/['"]/g, "")
+    .trim();
   if (!key) throw new Error("CASHFREE_SECRET_KEY is not set");
   return key;
 }
@@ -53,15 +57,22 @@ export async function createCashfreeOrder(opts: {
     customerPhone: opts.customerPhone,
   });
   console.log("[createCashfreeOrder] Config:", {
-    env: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "").replace(/['"]/g, "").trim(),
+    env: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "")
+      .replace(/['"]/g, "")
+      .trim(),
     apiUrl: getApiUrl(),
     appId: getAppId(),
     // Log first/last 4 chars of secret key for security validation
     secretPrefix: getSecretKey().substring(0, 12),
   });
 
-  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
-  const phone = opts.customerPhone === "9999999999" && env === "PRODUCTION" ? "7000000000" : opts.customerPhone;
+  const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX")
+    .replace(/['"]/g, "")
+    .trim();
+  const phone =
+    opts.customerPhone === "9999999999" && env === "PRODUCTION"
+      ? "7000000000"
+      : opts.customerPhone;
 
   const res = await fetch(`${getApiUrl()}/orders`, {
     method: "POST",
@@ -84,7 +95,11 @@ export async function createCashfreeOrder(opts: {
       order_meta: {
         return_url: (opts.returnUrl.includes("?")
           ? opts.returnUrl + "&order_id={order_id}"
-          : opts.returnUrl + "?order_id={order_id}").replace(/^http:\/\/localhost:\d+/, process.env.CASHFREE_TUNNEL_URL || "$&"),
+          : opts.returnUrl + "?order_id={order_id}"
+        ).replace(
+          /^http:\/\/localhost:\d+/,
+          process.env.CASHFREE_TUNNEL_URL || "$&",
+        ),
       },
       order_note: opts.itemName,
     }),
@@ -98,7 +113,9 @@ export async function createCashfreeOrder(opts: {
   const data: CashfreeOrderResponse = await res.json();
 
   if (!data.payment_session_id) {
-    throw new Error(`Cashfree: missing payment_session_id: ${JSON.stringify(data)}`);
+    throw new Error(
+      `Cashfree: missing payment_session_id: ${JSON.stringify(data)}`,
+    );
   }
 
   return {
@@ -191,7 +208,10 @@ export async function createCashfreeCheckout(
   // Convert USD cents to INR (approximate rate; in production you'd use
   // a live rate API, but for now we use a fixed conversion).
   const USD_TO_INR = 85;
-  const amountINR = Math.max(1, Math.ceil((item.price_usd_cents / 100) * USD_TO_INR));
+  const amountINR = Math.max(
+    1,
+    Math.ceil((item.price_usd_cents / 100) * USD_TO_INR),
+  );
 
   const orderId = `${developerId}_${itemId}_${Date.now()}`;
   const baseUrl = getBaseUrl();

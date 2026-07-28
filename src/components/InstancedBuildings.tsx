@@ -302,7 +302,9 @@ export default memo(function InstancedBuildings({
   // is NOT recreated (which would lose all instance attributes).
   const currentOrigin = useMemo(() => {
     if (focusedBuilding) {
-      const b = buildings.find(x => x.login.toLowerCase() === focusedBuilding.toLowerCase());
+      const b = buildings.find(
+        (x) => x.login.toLowerCase() === focusedBuilding.toLowerCase(),
+      );
       if (b && b.district) {
         const origin = DISTRICT_ORIGINS[b.district];
         if (origin) return new THREE.Vector2(origin[0], origin[2]);
@@ -318,10 +320,21 @@ export default memo(function InstancedBuildings({
     material.uniforms.uDimOpacity.value = dimOpacity;
     material.uniforms.uDimEmissive.value = dimEmissive;
     material.uniforms.uCityEnergy.value = cityEnergy;
-    material.uniforms.uSnowIntensity.value = weatherMode === "snowy" ? 1.0 : 0.0;
+    material.uniforms.uSnowIntensity.value =
+      weatherMode === "snowy" ? 1.0 : 0.0;
     material.uniforms.uCurrentOrigin.value.copy(currentOrigin);
     material.needsUpdate = true;
-  }, [atlasTexture, colors.roof, colors.face, dimOpacity, dimEmissive, cityEnergy, weatherMode, currentOrigin, material]);
+  }, [
+    atlasTexture,
+    colors.roof,
+    colors.face,
+    dimOpacity,
+    dimEmissive,
+    cityEnergy,
+    weatherMode,
+    currentOrigin,
+    material,
+  ]);
 
   const { uvFrontData, uvSideData, riseData, tintData, lcData } =
     useMemo(() => {
@@ -337,11 +350,11 @@ export default memo(function InstancedBuildings({
         const seed =
           b.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
-        const safePct = typeof b.litPercentage === "number" && !isNaN(b.litPercentage) ? b.litPercentage : 0.3;
-        const bandIndex = Math.min(
-          5,
-          Math.max(0, Math.round(safePct * 5)),
-        );
+        const safePct =
+          typeof b.litPercentage === "number" && !isNaN(b.litPercentage)
+            ? b.litPercentage
+            : 0.3;
+        const bandIndex = Math.min(5, Math.max(0, Math.round(safePct * 5)));
         const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
 
         const frontColStart = Math.abs(
@@ -422,7 +435,7 @@ export default memo(function InstancedBuildings({
     const sphere = new THREE.Sphere();
     box.getBoundingSphere(sphere);
     // Add generous padding for building physical dimensions (width/depth)
-    sphere.radius += (maxHeight / 2) + 250;
+    sphere.radius += maxHeight / 2 + 250;
     mesh.boundingSphere = sphere;
     mesh.boundingBox = null;
 
@@ -461,8 +474,7 @@ export default memo(function InstancedBuildings({
       const m = meshRef.current;
       if (!m) return;
       const attr = m.geometry.getAttribute("aRise") as
-        | THREE.InstancedBufferAttribute
-        | undefined;
+        THREE.InstancedBufferAttribute | undefined;
       if (!attr) return;
       const arr = attr.array as Float32Array;
       let anyZero = false;
@@ -512,7 +524,11 @@ export default memo(function InstancedBuildings({
 
     const lastFogColorHex = material.uniforms.uFogColor.value.getHex();
     const currentFogHex = fog.color.getHex();
-    if (fog.near !== lastFogNear.current || fog.far !== lastFogFar.current || currentFogHex !== lastFogColorHex) {
+    if (
+      fog.near !== lastFogNear.current ||
+      fog.far !== lastFogFar.current ||
+      currentFogHex !== lastFogColorHex
+    ) {
       material.uniforms.uFogColor.value.copy(fog.color);
       material.uniforms.uFogNear.value = fog.near;
       material.uniforms.uFogFar.value = fog.far;
@@ -543,8 +559,7 @@ export default memo(function InstancedBuildings({
     const mesh = meshRef.current;
     if (!mesh) return;
     const liveAttr = mesh.geometry.getAttribute("aLive") as
-      | THREE.InstancedBufferAttribute
-      | undefined;
+      THREE.InstancedBufferAttribute | undefined;
     if (!liveAttr) return;
     const arr = liveAttr.array as Float32Array;
 

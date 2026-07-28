@@ -22,7 +22,9 @@ describe("week utilities", () => {
   });
 
   it("builds stable UTC date keys for week and reset comparisons", () => {
-    expect(getIsoWeekStartDateString(new Date("2026-05-27T15:30:00.000Z"))).toBe("2026-05-25");
+    expect(
+      getIsoWeekStartDateString(new Date("2026-05-27T15:30:00.000Z")),
+    ).toBe("2026-05-25");
     expect(getUtcDateString("2026-05-25T18:45:00.000Z")).toBe("2026-05-25");
   });
 

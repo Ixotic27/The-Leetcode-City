@@ -18,7 +18,21 @@ import type {
   AvatarConfig,
 } from "@/lib/arcade/types";
 import { startGameLoop } from "@/lib/arcade/engine/gameLoop";
-import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout, loadoutToAvatar, type CozyLayer } from "@/lib/arcade/engine/sprites";
+import {
+  loadSpritesheet,
+  loadCozySprites,
+  updateSpriteAnimation,
+  resetSprites,
+  loadPetSprites,
+  resetPet,
+  setActivePet,
+  registerShopItems,
+  setPlayerAvatar,
+  preloadLoadout,
+  getDefaultLoadout,
+  loadoutToAvatar,
+  type CozyLayer,
+} from "@/lib/arcade/engine/sprites";
 import type { AvatarLoadout } from "@/lib/arcade/types";
 import {
   loadMapFromData,
@@ -63,7 +77,12 @@ import {
   disconnect,
 } from "@/lib/arcade/network/client";
 import { findNearbySeat, findNearbyObject } from "@/lib/arcade/engine/tileMap";
-import { executeCommand, getBootSequence, TOTAL_DISCOVERIES, type TerminalLine } from "@/lib/arcade/terminal";
+import {
+  executeCommand,
+  getBootSequence,
+  TOTAL_DISCOVERIES,
+  type TerminalLine,
+} from "@/lib/arcade/terminal";
 import type { ConnectionStatus } from "@/lib/arcade/network/client";
 import type { GameResult } from "@/lib/arcade/types";
 import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
@@ -142,7 +161,13 @@ const FOUNDER_QUOTES = [
 ];
 
 // Idle-down frame preview: col 1, row 0, cell 16x32
-function SpritePreview({ charIndex, scale = 3 }: { charIndex: number; scale?: number }) {
+function SpritePreview({
+  charIndex,
+  scale = 3,
+}: {
+  charIndex: number;
+  scale?: number;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -157,16 +182,21 @@ function SpritePreview({ charIndex, scale = 3 }: { charIndex: number; scale?: nu
     const avatar = loadoutToAvatar(getDefaultLoadout());
     const basePath = cozyUrl("walk");
     const promises = avatar.layers.map((layer: CozyLayer) => {
-      return new Promise<{ layer: CozyLayer; img: HTMLImageElement } | null>((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve({ layer, img });
-        img.onerror = () => resolve(null);
-        img.src = `${basePath}/${layer.file}`;
-      });
+      return new Promise<{ layer: CozyLayer; img: HTMLImageElement } | null>(
+        (resolve) => {
+          const img = new Image();
+          img.onload = () => resolve({ layer, img });
+          img.onerror = () => resolve(null);
+          img.src = `${basePath}/${layer.file}`;
+        },
+      );
     });
 
     Promise.all(promises).then((results) => {
-      const loaded = results.filter(Boolean) as { layer: CozyLayer; img: HTMLImageElement }[];
+      const loaded = results.filter(Boolean) as {
+        layer: CozyLayer;
+        img: HTMLImageElement;
+      }[];
       if (loaded.length === 0) {
         // Fallback to legacy
         const img = new Image();
@@ -694,8 +724,7 @@ export default function ArcadeRoomPage({
       onGameResult(game: string, result: GameResult) {
         const handler = (window as unknown as Record<string, unknown>)
           .__arcadeGameResult as
-          | ((g: string, r: GameResult) => void)
-          | undefined;
+          ((g: string, r: GameResult) => void) | undefined;
         handler?.(game, result);
       },
       onStatusChange(s) {
@@ -771,7 +800,12 @@ export default function ArcadeRoomPage({
 
       const apiPortals = mapRes.room.portals ?? [];
       const mapPortals = (map.objects ?? [])
-        .filter((obj) => obj.type === "door" || obj.type === "stairs" || obj.type === "portal")
+        .filter(
+          (obj) =>
+            obj.type === "door" ||
+            obj.type === "stairs" ||
+            obj.type === "portal",
+        )
         .map((obj) => ({
           type: obj.type,
           x: obj.x,
@@ -1161,11 +1195,7 @@ export default function ArcadeRoomPage({
 
       // Snap camera initially to the spawn point
       const ts = map.tileSize;
-      snapCamera(
-        startX * ts + ts / 2,
-        startY * ts + ts / 2,
-        map,
-      );
+      snapCamera(startX * ts + ts / 2, startY * ts + ts / 2, map);
 
       connect(token, connectCallbacks(), 0, slug!, startX, startY);
     }

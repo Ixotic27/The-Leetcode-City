@@ -50,20 +50,18 @@ export function getDevClass(login: string) {
   ];
 }
 
-export function buildComparisonRows(
-  comparePair: CityBuilding[]
-) {
+export function buildComparisonRows(comparePair: CityBuilding[]) {
   const compareStatDefs: {
     label: string;
     key: keyof CityBuilding;
     invert?: boolean;
   }[] = [
-      { label: "City Rank", key: "rank", invert: true },
-      { label: "Solved", key: "contributions" },
-      { label: "Reputation", key: "total_stars" },
-      { label: "LC Rank", key: "public_repos", invert: true },
-      { label: "Kudos", key: "kudos_count" },
-    ];
+    { label: "City Rank", key: "rank", invert: true },
+    { label: "Solved", key: "contributions" },
+    { label: "Reputation", key: "total_stars" },
+    { label: "LC Rank", key: "public_repos", invert: true },
+    { label: "Kudos", key: "kudos_count" },
+  ];
 
   let totalAWins = 0;
   let totalBWins = 0;
@@ -105,21 +103,19 @@ export function buildComparisonRows(
 export function getComparisonSummary(
   comparePair: CityBuilding[],
   totalAWins: number,
-  totalBWins: number
+  totalBWins: number,
 ) {
   const cmpTie = totalAWins === totalBWins;
 
   const cmpWinner =
-    totalAWins > totalBWins
-      ? comparePair[0].login
-      : comparePair[1].login;
+    totalAWins > totalBWins ? comparePair[0].login : comparePair[1].login;
 
   return cmpTie
     ? `Tie ${totalAWins}-${totalBWins}`
     : `@${cmpWinner} wins ${Math.max(
-      totalAWins,
-      totalBWins
-    )}-${Math.min(totalAWins, totalBWins)}`;
+        totalAWins,
+        totalBWins,
+      )}-${Math.min(totalAWins, totalBWins)}`;
 }
 
 export default function ComparisonPanel() {
@@ -161,7 +157,7 @@ export default function ComparisonPanel() {
       }
       const devRes = await fetch(
         `/api/dev/${encodeURIComponent(trimmed)}?t=${Date.now()}`,
-        { cache: "no-store" }
+        { cache: "no-store" },
       );
       const devData = await devRes.json();
       if (!devRes.ok) {
@@ -219,7 +215,10 @@ export default function ComparisonPanel() {
             </button>
           </div>
           {compareSelfHint && (
-            <p className="mt-1 text-[9px] normal-case" style={{ color: "#f85149" }}>
+            <p
+              className="mt-1 text-[9px] normal-case"
+              style={{ color: "#f85149" }}
+            >
               Pick a different building to compare
             </p>
           )}
@@ -249,16 +248,13 @@ export default function ComparisonPanel() {
 
   // ─── Case 2: Comparison stats panel is active ───
   if (comparePair && !flyMode) {
-    const {
-      cmpRows,
-      totalAWins,
-      totalBWins,
-    } = buildComparisonRows(comparePair);
+    const { cmpRows, totalAWins, totalBWins } =
+      buildComparisonRows(comparePair);
 
     const cmpSummary = getComparisonSummary(
       comparePair,
       totalAWins,
-      totalBWins
+      totalBWins,
     );
     return (
       <div
@@ -280,7 +276,8 @@ export default function ComparisonPanel() {
             }}
             onTouchEnd={(e) => {
               const start = touchYRef.current;
-              if (start != null && e.changedTouches[0].clientY - start > 50) closeCompare();
+              if (start != null && e.changedTouches[0].clientY - start > 50)
+                closeCompare();
               touchYRef.current = null;
             }}
           >
@@ -302,7 +299,8 @@ export default function ComparisonPanel() {
                   className="border-[3px] transition-colors group-hover:brightness-110"
                   style={{
                     imageRendering: "pixelated",
-                    borderColor: totalAWins >= totalBWins ? theme.accent : "#3a3a40",
+                    borderColor:
+                      totalAWins >= totalBWins ? theme.accent : "#3a3a40",
                   }}
                 />
               )}
@@ -314,7 +312,10 @@ export default function ComparisonPanel() {
               </p>
             </Link>
 
-            <span className="text-base shrink-0 md:pt-4" style={{ color: theme.accent }}>
+            <span
+              className="text-base shrink-0 md:pt-4"
+              style={{ color: theme.accent }}
+            >
               VS
             </span>
 
@@ -331,7 +332,8 @@ export default function ComparisonPanel() {
                   className="border-[3px] transition-colors group-hover:brightness-110"
                   style={{
                     imageRendering: "pixelated",
-                    borderColor: totalBWins >= totalAWins ? theme.accent : "#3a3a40",
+                    borderColor:
+                      totalBWins >= totalAWins ? theme.accent : "#3a3a40",
                   }}
                 />
               )}
@@ -357,7 +359,11 @@ export default function ComparisonPanel() {
                     color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                   }}
                 >
-                  {s.key === "rank" ? (s.a > 0 ? `#${s.a}` : "-") : s.a.toLocaleString()}
+                  {s.key === "rank"
+                    ? s.a > 0
+                      ? `#${s.a}`
+                      : "-"
+                    : s.a.toLocaleString()}
                 </span>
                 <span className="text-center text-[7px] md:text-[8px] text-muted uppercase tracking-wider mx-2">
                   {s.label}
@@ -368,7 +374,11 @@ export default function ComparisonPanel() {
                     color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                   }}
                 >
-                  {s.key === "rank" ? (s.b > 0 ? `#${s.b}` : "-") : s.b.toLocaleString()}
+                  {s.key === "rank"
+                    ? s.b > 0
+                      ? `#${s.b}`
+                      : "-"
+                    : s.b.toLocaleString()}
                 </span>
               </div>
             ))}
@@ -390,9 +400,9 @@ export default function ComparisonPanel() {
           <div className="px-4 pt-3 pb-1 flex flex-col md:flex-row gap-2">
             <a
               href={`https://x.com/intent/tweet?text=${encodeURIComponent(
-                `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`
+                `I just compared my building with ${comparePair[1].login}'s in LeetCode City. It wasn't even close. What's yours?`,
               )}&url=${encodeURIComponent(
-                `${typeof window !== "undefined" ? window.location.origin : ""}/compare/${comparePair[0].login}/${comparePair[1].login}`
+                `${typeof window !== "undefined" ? window.location.origin : ""}/compare/${comparePair[0].login}/${comparePair[1].login}`,
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -407,7 +417,7 @@ export default function ComparisonPanel() {
             <button
               onClick={() => {
                 navigator.clipboard.writeText(
-                  `${window.location.origin}/compare/${comparePair[0].login}/${comparePair[1].login}`
+                  `${window.location.origin}/compare/${comparePair[0].login}/${comparePair[1].login}`,
                 );
                 setCompareCopied(true);
                 setTimeout(() => setCompareCopied(false), 2000);
@@ -428,7 +438,10 @@ export default function ComparisonPanel() {
                   className="px-2 py-0.5 text-[9px] uppercase transition-colors"
                   style={{
                     color: compareLang === l ? theme.accent : "#666",
-                    borderBottom: compareLang === l ? `2px solid ${theme.accent}` : "2px solid transparent",
+                    borderBottom:
+                      compareLang === l
+                        ? `2px solid ${theme.accent}`
+                        : "2px solid transparent",
                   }}
                 >
                   {l}
@@ -438,7 +451,7 @@ export default function ComparisonPanel() {
             <button
               onClick={async () => {
                 const res = await fetch(
-                  `/api/compare-card/${comparePair[0].login}/${comparePair[1].login}?format=landscape&lang=${compareLang}`
+                  `/api/compare-card/${comparePair[0].login}/${comparePair[1].login}?format=landscape&lang=${compareLang}`,
                 );
                 if (!res.ok) return;
                 const blob = await res.blob();
@@ -458,7 +471,7 @@ export default function ComparisonPanel() {
             <button
               onClick={async () => {
                 const res = await fetch(
-                  `/api/compare-card/${comparePair[0].login}/${comparePair[1].login}?format=stories&lang=${compareLang}`
+                  `/api/compare-card/${comparePair[0].login}/${comparePair[1].login}?format=stories&lang=${compareLang}`,
                 );
                 if (!res.ok) return;
                 const blob = await res.blob();

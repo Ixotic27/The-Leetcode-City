@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
   const envKey = p1 + p2 + p3 + p4;
   const envValue = process.env[envKey];
   if (!envValue) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
 
   const auth = request.headers.get("authorization") ?? "";
@@ -38,7 +41,10 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("[cron/cleanup-active-players] Error:", error);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: error.message },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({

@@ -5,7 +5,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 
-const AdPreview = dynamic(() => import("@/components/AdPreview"), { ssr: false });
+const AdPreview = dynamic(() => import("@/components/AdPreview"), {
+  ssr: false,
+});
 
 const ACCENT = "#ffa116";
 
@@ -35,8 +37,13 @@ function ClickPreview({
     ? (() => {
         try {
           return new URL(link).hostname.replace("www.", "");
-        } catch (err) { console.warn("[app/advertise/setup/[token]/SetupContent.tsx] error:", err); return link;
-         }
+        } catch (err) {
+          console.warn(
+            "[app/advertise/setup/[token]/SetupContent.tsx] error:",
+            err,
+          );
+          return link;
+        }
       })()
     : null;
   const isMailto = link?.startsWith("mailto:");
@@ -61,7 +68,9 @@ function ClickPreview({
           {brand ? (
             <p className="truncate text-sm text-cream">{brand}</p>
           ) : (
-            <p className="truncate text-sm text-muted/30 normal-case">Brand name</p>
+            <p className="truncate text-sm text-muted/30 normal-case">
+              Brand name
+            </p>
           )}
           <p className="text-[9px] text-dim">Sponsored</p>
         </div>
@@ -158,7 +167,10 @@ export function SetupContent({
 
       window.location.href = `/advertise/track/${token}`;
     } catch (err) {
-      console.warn("[app/advertise/setup/[token]/SetupContent.tsx] error:", err);
+      console.warn(
+        "[app/advertise/setup/[token]/SetupContent.tsx] error:",
+        err,
+      );
       setError("Network error. Please try again.");
       setSaving(false);
     }
@@ -269,9 +281,7 @@ export function SetupContent({
 
           {/* Link */}
           <div>
-            <label className="block text-xs text-muted normal-case">
-              Link
-            </label>
+            <label className="block text-xs text-muted normal-case">Link</label>
             <input
               type="url"
               value={link}

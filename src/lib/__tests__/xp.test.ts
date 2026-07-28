@@ -108,7 +108,7 @@ describe("calculateLeetcodeXp", () => {
         hard_solved: 0,
         contest_rating: 0,
         lc_streak: 0,
-      })
+      }),
     ).toBe(0);
   });
 
@@ -120,24 +120,54 @@ describe("calculateLeetcodeXp", () => {
         hard_solved: -3,
         contest_rating: 0,
         lc_streak: 0,
-      })
+      }),
     ).toBe(0);
   });
 
   it("hard problems contribute more XP than easy", () => {
-    const easy = calculateLeetcodeXp({ easy_solved: 10, medium_solved: 0, hard_solved: 0, contest_rating: 0, lc_streak: 0 });
-    const hard = calculateLeetcodeXp({ easy_solved: 0, medium_solved: 0, hard_solved: 10, contest_rating: 0, lc_streak: 0 });
+    const easy = calculateLeetcodeXp({
+      easy_solved: 10,
+      medium_solved: 0,
+      hard_solved: 0,
+      contest_rating: 0,
+      lc_streak: 0,
+    });
+    const hard = calculateLeetcodeXp({
+      easy_solved: 0,
+      medium_solved: 0,
+      hard_solved: 10,
+      contest_rating: 0,
+      lc_streak: 0,
+    });
     expect(hard).toBeGreaterThan(easy);
   });
 
   it("contest rating below 1400 contributes 0 rating XP", () => {
-    const withRating = calculateLeetcodeXp({ easy_solved: 0, medium_solved: 0, hard_solved: 0, contest_rating: 1399, lc_streak: 0 });
-    const noRating = calculateLeetcodeXp({ easy_solved: 0, medium_solved: 0, hard_solved: 0, contest_rating: 0, lc_streak: 0 });
+    const withRating = calculateLeetcodeXp({
+      easy_solved: 0,
+      medium_solved: 0,
+      hard_solved: 0,
+      contest_rating: 1399,
+      lc_streak: 0,
+    });
+    const noRating = calculateLeetcodeXp({
+      easy_solved: 0,
+      medium_solved: 0,
+      hard_solved: 0,
+      contest_rating: 0,
+      lc_streak: 0,
+    });
     expect(withRating).toBe(noRating);
   });
 
   it("streak contributes positively", () => {
-    const withStreak = calculateLeetcodeXp({ easy_solved: 0, medium_solved: 0, hard_solved: 0, contest_rating: 0, lc_streak: 10 });
+    const withStreak = calculateLeetcodeXp({
+      easy_solved: 0,
+      medium_solved: 0,
+      hard_solved: 0,
+      contest_rating: 0,
+      lc_streak: 10,
+    });
     expect(withStreak).toBeGreaterThan(0);
   });
 });

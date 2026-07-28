@@ -4,14 +4,23 @@ import { describe, it, expect } from "vitest";
 // the core idempotency invariants — no DB required.
 
 function mapRedeemResult(
-  result: { ok: boolean; error_code: string | null; xp_amount: number } | null
+  result: { ok: boolean; error_code: string | null; xp_amount: number } | null,
 ): { blocked: boolean; status: number; error?: string; xp_amount?: number } {
   if (!result?.ok) {
     const errorMap: Record<string, { error: string; status: number }> = {
-      already_redeemed: { error: "You have already redeemed this code.", status: 409 },
-      exhausted:        { error: "This code has already reached its maximum usage limit.", status: 410 },
+      already_redeemed: {
+        error: "You have already redeemed this code.",
+        status: 409,
+      },
+      exhausted: {
+        error: "This code has already reached its maximum usage limit.",
+        status: 410,
+      },
     };
-    const mapped = errorMap[result?.error_code ?? ""] ?? { error: "Code could not be redeemed.", status: 409 };
+    const mapped = errorMap[result?.error_code ?? ""] ?? {
+      error: "Code could not be redeemed.",
+      status: 409,
+    };
     return { blocked: true, ...mapped };
   }
   return { blocked: false, status: 200, xp_amount: result.xp_amount };
@@ -30,21 +39,33 @@ describe("redeem_xp_code RPC result mapping", () => {
   // ── error_code mapping ────────────────────────────────────────────
 
   it("already_redeemed maps to 409", () => {
-    const r = mapRedeemResult({ ok: false, error_code: "already_redeemed", xp_amount: 0 });
+    const r = mapRedeemResult({
+      ok: false,
+      error_code: "already_redeemed",
+      xp_amount: 0,
+    });
     expect(r.blocked).toBe(true);
     expect(r.status).toBe(409);
     expect(r.error).toMatch(/already redeemed/i);
   });
 
   it("exhausted maps to 410", () => {
-    const r = mapRedeemResult({ ok: false, error_code: "exhausted", xp_amount: 0 });
+    const r = mapRedeemResult({
+      ok: false,
+      error_code: "exhausted",
+      xp_amount: 0,
+    });
     expect(r.blocked).toBe(true);
     expect(r.status).toBe(410);
     expect(r.error).toMatch(/maximum usage limit/i);
   });
 
   it("unknown error_code falls back to 409", () => {
-    const r = mapRedeemResult({ ok: false, error_code: "future_code", xp_amount: 0 });
+    const r = mapRedeemResult({
+      ok: false,
+      error_code: "future_code",
+      xp_amount: 0,
+    });
     expect(r.blocked).toBe(true);
     expect(r.status).toBe(409);
   });
@@ -61,7 +82,7 @@ describe("INSERT ... ON CONFLICT DO NOTHING idempotency (simulated)", () => {
   function simulateUsageInsert(
     table: Set<string>,
     codeId: string,
-    devId: number
+    devId: number,
   ): { inserted: boolean } {
     const key = `${codeId}:${devId}`;
     if (table.has(key)) return { inserted: false }; // ON CONFLICT DO NOTHING
@@ -96,9 +117,10 @@ describe("INSERT ... ON CONFLICT DO NOTHING idempotency (simulated)", () => {
 });
 
 describe("atomic used_count increment (simulated)", () => {
-  function atomicIncrement(
-    row: { used_count: number; max_uses: number }
-  ): { updated: boolean; new_count: number } {
+  function atomicIncrement(row: { used_count: number; max_uses: number }): {
+    updated: boolean;
+    new_count: number;
+  } {
     if (row.max_uses !== -1 && row.used_count >= row.max_uses) {
       return { updated: false, new_count: row.used_count };
     }
@@ -139,9 +161,9 @@ describe("atomic used_count increment (simulated)", () => {
 describe("operation order: usage insert before XP grant", () => {
   it("XP is not granted when usage insert returns inserted=false", () => {
     const table = new Set<string>(["code-1:42"]); // already redeemed
-    const inserted = !table.has("code-1:42");  // false
+    const inserted = !table.has("code-1:42"); // false
     let xpGranted = false;
-    if (inserted) xpGranted = true;  // gate
+    if (inserted) xpGranted = true; // gate
     expect(xpGranted).toBe(false);
   });
 

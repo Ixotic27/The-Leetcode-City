@@ -21,7 +21,10 @@ function SupportContent() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [progress, setProgress] = useState<{ raised_inr: number; target_inr: number } | null>(null);
+  const [progress, setProgress] = useState<{
+    raised_inr: number;
+    target_inr: number;
+  } | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(true);
 
   useEffect(() => {
@@ -31,9 +34,12 @@ function SupportContent() {
     if (orderIdParam) {
       const verify = async () => {
         try {
-          const res = await fetch(`/api/support/status?order_id=${orderIdParam}`, {
-            signal: ac.signal,
-          });
+          const res = await fetch(
+            `/api/support/status?order_id=${orderIdParam}`,
+            {
+              signal: ac.signal,
+            },
+          );
           if (isMounted && res.ok) {
             const data = await res.json();
             if (data.isPaid && isMounted) {
@@ -72,7 +78,10 @@ function SupportContent() {
           .eq("id", "support_renewal")
           .single();
         if (data && data.metadata) {
-          const meta = data.metadata as { raised_inr?: number; target_inr?: number };
+          const meta = data.metadata as {
+            raised_inr?: number;
+            target_inr?: number;
+          };
           setProgress({
             raised_inr: meta.raised_inr ?? 0,
             target_inr: meta.target_inr ?? 2900,
@@ -117,9 +126,14 @@ function SupportContent() {
       if (data.paymentSessionId) {
         try {
           const { load } = await import("@cashfreepayments/cashfree-js");
-          const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();
-          const cashfreeEnv = envMode === "PRODUCTION" ? "production" : "sandbox";
-          const cashfree = await load({ mode: cashfreeEnv as "sandbox" | "production" });
+          const envMode = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX")
+            .replace(/['"]/g, "")
+            .trim();
+          const cashfreeEnv =
+            envMode === "PRODUCTION" ? "production" : "sandbox";
+          const cashfree = await load({
+            mode: cashfreeEnv as "sandbox" | "production",
+          });
           const result = await cashfree.checkout({
             paymentSessionId: data.paymentSessionId,
             redirectTarget: "_self",
@@ -154,16 +168,16 @@ function SupportContent() {
           Keep the <span style={{ color: ACCENT }}>Signal</span> Alive
         </h1>
         <p className="mt-2 text-xs text-muted normal-case sm:text-sm">
-          LeetCode City runs on servers, databases, and API calls. Every new building
-          that goes up, the cost goes up with it. Your support keeps this city
-          running.
+          LeetCode City runs on servers, databases, and API calls. Every new
+          building that goes up, the cost goes up with it. Your support keeps
+          this city running.
         </p>
 
         {/* Progress Bar for Website Renewal */}
         <div className="mt-6 border-[3px] border-border bg-bg-raised p-5 sm:p-6 relative overflow-hidden">
           {/* Grid background effect */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
-          
+
           <div className="relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
@@ -171,15 +185,20 @@ function SupportContent() {
                   &gt; Campaign: Website Renewal
                 </p>
                 <p className="mt-1 text-[10px] text-muted normal-case">
-                  Secures the domain name (theleetcodecity.tech) and basic server hosting for another 12 months.
+                  Secures the domain name (theleetcodecity.tech) and basic
+                  server hosting for another 12 months.
                 </p>
               </div>
               <div className="shrink-0 text-left sm:text-right mt-1 sm:mt-0">
                 <span className="font-pixel text-lg text-cream">
-                  {loadingProgress ? "..." : `₹${progress?.raised_inr.toLocaleString()}`}
+                  {loadingProgress
+                    ? "..."
+                    : `₹${progress?.raised_inr.toLocaleString()}`}
                 </span>
                 <span className="font-pixel text-xs text-muted">
-                  {loadingProgress ? " / ₹2,900" : ` / ₹${progress?.target_inr.toLocaleString()} INR`}
+                  {loadingProgress
+                    ? " / ₹2,900"
+                    : ` / ₹${progress?.target_inr.toLocaleString()} INR`}
                 </span>
               </div>
             </div>
@@ -190,32 +209,35 @@ function SupportContent() {
                 className="h-full bg-gradient-to-r from-amber-600 to-amber-400 relative transition-all duration-1000 ease-out"
                 style={{
                   width: `${loadingProgress ? 0 : Math.min(100, Math.max(0, ((progress?.raised_inr ?? 0) / (progress?.target_inr ?? 2900)) * 100))}%`,
-                  backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 8px)",
+                  backgroundImage:
+                    "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.15) 4px, rgba(0,0,0,0.15) 8px)",
                 }}
               >
                 {/* Glow effect on progress bar */}
                 <div className="absolute inset-y-0 right-0 w-2 bg-white/40 shadow-[0_0_8px_#ffa116]" />
               </div>
-              
+
               {/* Centered Percentage Text */}
               <div className="absolute inset-0 flex items-center justify-center font-pixel text-[10px] text-cream drop-shadow-[0_1.5px_1.5px_rgba(0,0,0,0.8)] font-bold">
-                {loadingProgress 
-                  ? "LOADING DATA..." 
-                  : `${Math.round(((progress?.raised_inr ?? 0) / (progress?.target_inr ?? 2900)) * 100)}% FUNDED`
-                }
+                {loadingProgress
+                  ? "LOADING DATA..."
+                  : `${Math.round(((progress?.raised_inr ?? 0) / (progress?.target_inr ?? 2900)) * 100)}% FUNDED`}
               </div>
             </div>
 
             <div className="mt-3 flex items-center justify-between text-[8px] sm:text-[9px] text-muted">
-              <span>STATUS: {
-                loadingProgress 
-                  ? "CHECKING SIGNAL..." 
-                  : (progress?.raised_inr ?? 0) >= (progress?.target_inr ?? 2900) 
-                    ? "GOAL ACHIEVED! THANK YOU!" 
-                    : "ACTIVE — AWAITING POWER"
-              }</span>
               <span>
-                {!loadingProgress && `${Math.max(0, (progress?.target_inr ?? 2900) - (progress?.raised_inr ?? 0))} INR REMAINING`}
+                STATUS:{" "}
+                {loadingProgress
+                  ? "CHECKING SIGNAL..."
+                  : (progress?.raised_inr ?? 0) >=
+                      (progress?.target_inr ?? 2900)
+                    ? "GOAL ACHIEVED! THANK YOU!"
+                    : "ACTIVE — AWAITING POWER"}
+              </span>
+              <span>
+                {!loadingProgress &&
+                  `${Math.max(0, (progress?.target_inr ?? 2900) - (progress?.raised_inr ?? 0))} INR REMAINING`}
               </span>
             </div>
           </div>
@@ -224,13 +246,18 @@ function SupportContent() {
         {/* Thank you banner */}
         {verifyingPayment && (
           <div className="mt-6 border-[3px] p-5 sm:p-6 border-muted bg-bg-raised animate-pulse">
-            <p className="text-sm text-muted">Verifying your support payment...</p>
+            <p className="text-sm text-muted">
+              Verifying your support payment...
+            </p>
           </div>
         )}
         {!verifyingPayment && verifiedThanks && (
           <div
             className="mt-6 border-[3px] p-5 sm:p-6"
-            style={{ borderColor: ACCENT, backgroundColor: "rgba(255, 161, 22, 0.06)" }}
+            style={{
+              borderColor: ACCENT,
+              backgroundColor: "rgba(255, 161, 22, 0.06)",
+            }}
           >
             <p className="text-sm" style={{ color: ACCENT }}>
               Thank you for your support
@@ -240,25 +267,29 @@ function SupportContent() {
             </p>
           </div>
         )}
-        {!verifyingPayment && (orderIdParam || thanksParam) && !verifiedThanks && (
-          <div
-            className="mt-6 border-[3px] p-5 sm:p-6 border-red-500 bg-red-500/5"
-            style={{ borderColor: "#f87171" }}
-          >
-            <p className="text-sm text-red-400">
-              Payment Not Completed / Cancelled
-            </p>
-            <p className="mt-2 text-xs text-muted normal-case">
-              We couldn&apos;t verify a completed payment for this session. If you cancelled the transaction, no charges were made.
-            </p>
-          </div>
-        )}
+        {!verifyingPayment &&
+          (orderIdParam || thanksParam) &&
+          !verifiedThanks && (
+            <div
+              className="mt-6 border-[3px] p-5 sm:p-6 border-red-500 bg-red-500/5"
+              style={{ borderColor: "#f87171" }}
+            >
+              <p className="text-sm text-red-400">
+                Payment Not Completed / Cancelled
+              </p>
+              <p className="mt-2 text-xs text-muted normal-case">
+                We couldn&apos;t verify a completed payment for this session. If
+                you cancelled the transaction, no charges were made.
+              </p>
+            </div>
+          )}
 
         <div className="mt-8 flex flex-col gap-5">
           {/* Cashfree */}
           <div className="border-[3px] border-border bg-bg-raised p-5 sm:p-6">
             <p className="text-sm text-cream">
-              <span style={{ color: ACCENT }}>01.</span> One-time Support (UPI / Cards / Wallets)
+              <span style={{ color: ACCENT }}>01.</span> One-time Support (UPI /
+              Cards / Wallets)
             </p>
             <div className="mt-4 flex flex-col gap-1.5 max-w-xs">
               <label className="text-[10px] text-muted normal-case font-bold">
@@ -276,7 +307,9 @@ function SupportContent() {
                 className="border-[2px] border-border bg-transparent px-3 py-1.5 text-xs text-cream outline-none focus:border-cream"
               />
               {phoneError && (
-                <p className="text-[9px] text-red-400 normal-case">{phoneError}</p>
+                <p className="text-[9px] text-red-400 normal-case">
+                  {phoneError}
+                </p>
               )}
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -306,16 +339,30 @@ function SupportContent() {
                   className="w-16 border-[2px] border-border bg-transparent px-2 py-2 text-xs text-cream outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
                 <button
-                  disabled={loadingAmount !== null || !customAmount || parseInt(customAmount, 10) < 10}
-                  onClick={() => handleCashfreeCheckout(parseInt(customAmount, 10))}
+                  disabled={
+                    loadingAmount !== null ||
+                    !customAmount ||
+                    parseInt(customAmount, 10) < 10
+                  }
+                  onClick={() =>
+                    handleCashfreeCheckout(parseInt(customAmount, 10))
+                  }
                   className="btn-press border-[2px] border-border px-3 py-2 text-[10px] text-cream transition-colors hover:border-border-light disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  {loadingAmount && loadingAmount !== 100 && loadingAmount !== 250 && loadingAmount !== 500 ? "..." : "GO"}
+                  {loadingAmount &&
+                  loadingAmount !== 100 &&
+                  loadingAmount !== 250 &&
+                  loadingAmount !== 500
+                    ? "..."
+                    : "GO"}
                 </button>
               </div>
             </div>
             {error && (
-              <p className="mt-3 text-xs normal-case" style={{ color: "#f87171" }}>
+              <p
+                className="mt-3 text-xs normal-case"
+                style={{ color: "#f87171" }}
+              >
                 {error}
               </p>
             )}
@@ -330,8 +377,6 @@ function SupportContent() {
               Coming soon...
             </p>
           </div>
-
-
         </div>
       </div>
     </main>

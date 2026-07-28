@@ -70,11 +70,21 @@ export default function LeaderboardLoading() {
               className="flex items-center gap-4 border-b border-border/50 px-5 py-3.5"
             >
               <span className="w-10 text-center">
-                <Skeleton variant="text" width={16} height={12} className="mx-auto" />
+                <Skeleton
+                  variant="text"
+                  width={16}
+                  height={12}
+                  className="mx-auto"
+                />
               </span>
 
               <div className="flex flex-1 items-center gap-3 overflow-hidden">
-                <Skeleton variant="circle" width={36} height={36} className="flex-shrink-0" />
+                <Skeleton
+                  variant="circle"
+                  width={36}
+                  height={36}
+                  className="flex-shrink-0"
+                />
                 <div className="flex-1 space-y-1.5">
                   <Skeleton variant="text" width="60%" height={12} />
                   <Skeleton variant="text" width="40%" height={8} />
@@ -82,11 +92,21 @@ export default function LeaderboardLoading() {
               </div>
 
               <span className="hidden w-24 text-right sm:block">
-                <Skeleton variant="text" width={50} height={10} className="ml-auto" />
+                <Skeleton
+                  variant="text"
+                  width={50}
+                  height={10}
+                  className="ml-auto"
+                />
               </span>
 
               <span className="w-28 text-right">
-                <Skeleton variant="rectangular" width={70} height={14} className="ml-auto" />
+                <Skeleton
+                  variant="rectangular"
+                  width={70}
+                  height={14}
+                  className="ml-auto"
+                />
               </span>
             </div>
           ))}

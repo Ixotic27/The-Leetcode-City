@@ -3,7 +3,10 @@ const BASE_URL = "https://theleetcodecity.tech";
 const FONT = `'Silkscreen', monospace`;
 const FONT_IMPORT = `@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');`;
 
-export function wrapInBaseTemplate(bodyHtml: string, unsubscribeUrl?: string): string {
+export function wrapInBaseTemplate(
+  bodyHtml: string,
+  unsubscribeUrl?: string,
+): string {
   const footer = unsubscribeUrl
     ? `<a href="${escapeHtml(unsubscribeUrl)}" style="color: #3a3a44; text-decoration: underline; font-family: ${FONT}; font-size: 11px;">unsubscribe</a>&nbsp;&middot;&nbsp;`
     : "";
@@ -80,7 +83,9 @@ export function buildStatRow(label: string, value: string | number): string {
 </tr>`;
 }
 
-export function buildStatsTable(rows: { label: string; value: string | number }[]): string {
+export function buildStatsTable(
+  rows: { label: string; value: string | number }[],
+): string {
   return `<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
   ${rows.map((r) => buildStatRow(r.label, r.value)).join("\n")}
 </table>`;

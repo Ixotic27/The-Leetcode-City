@@ -9,7 +9,10 @@ export async function POST() {
   });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const user = auth.user;
@@ -22,8 +25,11 @@ export async function POST() {
 
   if (!githubLogin) {
     return NextResponse.json(
-      { error: "GitHub profile information could not be retrieved. Please log in again." },
-      { status: 400 }
+      {
+        error:
+          "GitHub profile information could not be retrieved. Please log in again.",
+      },
+      { status: 400 },
     );
   }
 
@@ -33,7 +39,7 @@ export async function POST() {
   if (auth.developer) {
     return NextResponse.json(
       { error: "You have already claimed a building" },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
@@ -55,7 +61,7 @@ export async function POST() {
   if (error || !data) {
     return NextResponse.json(
       { error: "Building not found or already claimed" },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -66,8 +72,8 @@ export async function POST() {
     .eq("claimed_by", user.id)
     .single();
 
-  if (dev) { 
-    await grantFreeClaimItem(dev.id);  
+  if (dev) {
+    await grantFreeClaimItem(dev.id);
     await admin.from("activity_feed").insert({
       event_type: "building_claimed",
       actor_id: dev.id,

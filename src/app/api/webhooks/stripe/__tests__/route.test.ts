@@ -25,12 +25,15 @@ vi.mock("@/lib/items", () => ({
 }));
 
 vi.mock("@/lib/notification-senders/purchase", () => ({
-  sendPurchaseNotification: (...args: unknown[]) => mockSendPurchaseNotification(...args),
-  sendGiftSentNotification: (...args: unknown[]) => mockSendGiftSentNotification(...args),
+  sendPurchaseNotification: (...args: unknown[]) =>
+    mockSendPurchaseNotification(...args),
+  sendGiftSentNotification: (...args: unknown[]) =>
+    mockSendGiftSentNotification(...args),
 }));
 
 vi.mock("@/lib/notification-senders/gift", () => ({
-  sendGiftReceivedNotification: (...args: unknown[]) => mockSendGiftReceivedNotification(...args),
+  sendGiftReceivedNotification: (...args: unknown[]) =>
+    mockSendGiftReceivedNotification(...args),
 }));
 
 interface QueryOp {
@@ -46,10 +49,18 @@ interface QueryBuilder {
   maybeSingle(): Promise<{ data: unknown; error: unknown }>;
   single(): Promise<{ data: unknown; error: unknown }>;
   insert(values: unknown): Promise<{ data: unknown; error: unknown }>;
-  delete(): Promise<{ data: unknown; error: unknown }> ;
+  delete(): Promise<{ data: unknown; error: unknown }>;
 }
 
-function createMockQuery(table: string, record: { callLog: string[]; enablePendingPurchase?: boolean; stripeProcessedEventExists?: boolean; processedEventInsertCount?: { count: number } }) {
+function createMockQuery(
+  table: string,
+  record: {
+    callLog: string[];
+    enablePendingPurchase?: boolean;
+    stripeProcessedEventExists?: boolean;
+    processedEventInsertCount?: { count: number };
+  },
+) {
   const ops: QueryOp[] = [];
   const builder: QueryBuilder = {
     select(cols?: string) {
@@ -77,14 +88,24 @@ function createMockQuery(table: string, record: { callLog: string[]; enablePendi
         };
       }
       if (table === "purchases") {
-        const hasIdempotencyKeySelect = ops.some(op => op.name === "eq" && op.args[0] === "idempotency_key");
-        const hasPendingClaim = ops.some(op => op.name === "update") && ops.some(op => op.name === "select");
+        const hasIdempotencyKeySelect = ops.some(
+          (op) => op.name === "eq" && op.args[0] === "idempotency_key",
+        );
+        const hasPendingClaim =
+          ops.some((op) => op.name === "update") &&
+          ops.some((op) => op.name === "select");
         if (hasIdempotencyKeySelect) {
           return { data: null, error: null };
         }
         if (hasPendingClaim) {
           return {
-            data: record.enablePendingPurchase ? { id: "purchase_pending", developer_id: 1, item_id: "consumable" } : null,
+            data: record.enablePendingPurchase
+              ? {
+                  id: "purchase_pending",
+                  developer_id: 1,
+                  item_id: "consumable",
+                }
+              : null,
             error: null,
           };
         }
@@ -97,7 +118,10 @@ function createMockQuery(table: string, record: { callLog: string[]; enablePendi
     },
     insert: async (values: unknown) => {
       record.callLog.push(`${table}.insert ${JSON.stringify(values)}`);
-      if (table === "stripe_processed_events" && record.processedEventInsertCount) {
+      if (
+        table === "stripe_processed_events" &&
+        record.processedEventInsertCount
+      ) {
         record.processedEventInsertCount.count++;
       }
       return { data: values, error: null };
@@ -126,7 +150,11 @@ describe("Stripe webhook route", () => {
 
   it("skips duplicate Stripe events before processing", async () => {
     const callLog: string[] = [];
-    const record1 = { callLog, stripeProcessedEventExists: true, processedEventInsertCount: { count: 0 } };
+    const record1 = {
+      callLog,
+      stripeProcessedEventExists: true,
+      processedEventInsertCount: { count: 0 },
+    };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => createMockQuery(table, record1),
       rpc: async (name: string) => {
@@ -137,35 +165,56 @@ describe("Stripe webhook route", () => {
       },
     });
     mockGetStripe.mockReturnValue({
-      refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+      refunds: {
+        create: (...args: unknown[]) => mockStripeRefundsCreate(...args),
+      },
       webhooks: {
-        constructEvent: vi.fn(() => ({ type: "checkout.session.expired", data: { object: { metadata: { type: "sky_ad" }, id: "sess_123" } } })),
+        constructEvent: vi.fn(() => ({
+          type: "checkout.session.expired",
+          data: { object: { metadata: { type: "sky_ad" }, id: "sess_123" } },
+        })),
       },
     });
 
     const response = await POST(makeRequest(JSON.stringify({} as unknown)));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ received: true, duplicate: true });
-    expect(callLog.some(entry => entry.startsWith("stripe_processed_events.insert"))).toBe(false);
+    expect(
+      callLog.some((entry) =>
+        entry.startsWith("stripe_processed_events.insert"),
+      ),
+    ).toBe(false);
   });
 
   it("returns 500 and does not mark event processed when fulfillment throws InfrastructureError", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
-    const record2 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: true, processedEventInsertCount };
+    const record2 = {
+      callLog,
+      stripeProcessedEventExists: false,
+      enablePendingPurchase: true,
+      processedEventInsertCount,
+    };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => createMockQuery(table, record2),
       rpc: async (name: string) => {
         if (name === "claim_pending_purchase_atomic") {
           // Simulate pending purchase found
-          return { data: [{ ok: true, purchase_id: "purchase_pending" }], error: null };
+          return {
+            data: [{ ok: true, purchase_id: "purchase_pending" }],
+            error: null,
+          };
         }
         return { data: null, error: null };
       },
     });
-    mockFulfillItemPurchase.mockRejectedValueOnce(new InfrastructureError("DB timeout", { code: "PGRST_TIMEOUT" }));
+    mockFulfillItemPurchase.mockRejectedValueOnce(
+      new InfrastructureError("DB timeout", { code: "PGRST_TIMEOUT" }),
+    );
     mockGetStripe.mockReturnValue({
-      refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+      refunds: {
+        create: (...args: unknown[]) => mockStripeRefundsCreate(...args),
+      },
       webhooks: {
         constructEvent: vi.fn(() => ({
           type: "checkout.session.completed",
@@ -189,19 +238,31 @@ describe("Stripe webhook route", () => {
   it("marks Stripe event processed after deterministic business error and returns 200", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
-    const record3 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: true, processedEventInsertCount };
+    const record3 = {
+      callLog,
+      stripeProcessedEventExists: false,
+      enablePendingPurchase: true,
+      processedEventInsertCount,
+    };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => createMockQuery(table, record3),
       rpc: async (name: string) => {
         if (name === "claim_pending_purchase_atomic") {
-          return { data: [{ ok: true, purchase_id: "purchase_pending" }], error: null };
+          return {
+            data: [{ ok: true, purchase_id: "purchase_pending" }],
+            error: null,
+          };
         }
         return { data: null, error: null };
       },
     });
-    mockFulfillItemPurchase.mockRejectedValueOnce(new BusinessLogicError("Item already owned"));
+    mockFulfillItemPurchase.mockRejectedValueOnce(
+      new BusinessLogicError("Item already owned"),
+    );
     mockGetStripe.mockReturnValue({
-      refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+      refunds: {
+        create: (...args: unknown[]) => mockStripeRefundsCreate(...args),
+      },
       webhooks: {
         constructEvent: vi.fn(() => ({
           type: "checkout.session.completed",
@@ -225,7 +286,12 @@ describe("Stripe webhook route", () => {
   it("issues a refund when no pending purchase is found", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
-    const record4 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: false, processedEventInsertCount };
+    const record4 = {
+      callLog,
+      stripeProcessedEventExists: false,
+      enablePendingPurchase: false,
+      processedEventInsertCount,
+    };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => createMockQuery(table, record4),
       rpc: async (name: string) => {
@@ -237,7 +303,9 @@ describe("Stripe webhook route", () => {
       },
     });
     mockGetStripe.mockReturnValue({
-      refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+      refunds: {
+        create: (...args: unknown[]) => mockStripeRefundsCreate(...args),
+      },
       webhooks: {
         constructEvent: vi.fn(() => ({
           type: "checkout.session.completed",
@@ -264,7 +332,12 @@ describe("Stripe webhook route", () => {
   it("does not issue a refund when a processed purchase exists for the same txId", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
-    const record5 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: false, processedEventInsertCount };
+    const record5 = {
+      callLog,
+      stripeProcessedEventExists: false,
+      enablePendingPurchase: false,
+      processedEventInsertCount,
+    };
     mockGetSupabaseAdmin.mockReturnValue({
       from: (table: string) => {
         const query = createMockQuery(table, record5);
@@ -272,8 +345,14 @@ describe("Stripe webhook route", () => {
           const originalMaybeSingle = query.maybeSingle;
           query.maybeSingle = async () => {
             const res = await originalMaybeSingle.call(query);
-            if (callLog[callLog.length - 1].includes("provider_tx_id") && callLog[callLog.length - 1].includes("completed")) {
-              return { data: { id: "purchase_already_processed", status: "completed" }, error: null };
+            if (
+              callLog[callLog.length - 1].includes("provider_tx_id") &&
+              callLog[callLog.length - 1].includes("completed")
+            ) {
+              return {
+                data: { id: "purchase_already_processed", status: "completed" },
+                error: null,
+              };
             }
             return res;
           };
@@ -287,9 +366,11 @@ describe("Stripe webhook route", () => {
         return { data: null, error: null };
       },
     });
-    
+
     mockGetStripe.mockReturnValue({
-      refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+      refunds: {
+        create: (...args: unknown[]) => mockStripeRefundsCreate(...args),
+      },
       webhooks: {
         constructEvent: vi.fn(() => ({
           type: "checkout.session.completed",

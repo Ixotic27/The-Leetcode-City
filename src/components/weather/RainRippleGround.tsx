@@ -21,7 +21,7 @@ export function RainRippleGround({
       uIntensity: { value: intensity },
       uColor: { value: new THREE.Color("#6f8fa8") },
     }),
-    [intensity]
+    [intensity],
   );
 
   useFrame((state) => {

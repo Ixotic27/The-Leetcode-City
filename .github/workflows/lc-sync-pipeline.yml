@@ -47,8 +47,8 @@ jobs:
           LIMIT="${{ github.event.inputs.limit || '300' }}"
           CONCURRENCY="${{ github.event.inputs.concurrency || '5' }}"
           DISCOVER_PAGES="${{ github.event.inputs.discover_pages || '5' }}"
-          
+
           echo "🚀 Starting LeetCode User Sync Pipeline..."
           echo "Parameters: Limit=$LIMIT, Concurrency=$CONCURRENCY, Discover Pages=$DISCOVER_PAGES"
-          
+
           npx tsx scripts/lc-hourly-fetcher.ts --one-shot --limit "$LIMIT" --concurrency "$CONCURRENCY" --discover-pages "$DISCOVER_PAGES"

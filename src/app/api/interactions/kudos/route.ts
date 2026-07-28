@@ -10,7 +10,8 @@ import { getUtcDateStrings } from "@/lib/utc-date";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -20,7 +21,10 @@ export async function POST(request: Request) {
 
   const { receiver_login } = await request.json();
   if (!receiver_login || typeof receiver_login !== "string") {
-    return NextResponse.json({ error: "Missing receiver_login" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing receiver_login" },
+      { status: 400 },
+    );
   }
 
   const { ok } = await rateLimit(`kudos:${user.id}`, 1, 1000);
@@ -32,14 +36,19 @@ export async function POST(request: Request) {
 
   const { data: giver } = await admin
     .from("developers")
-    .select("id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, kudos_streak, last_kudos_given_date, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+    .select(
+      "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, kudos_streak, last_kudos_given_date, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs",
+    )
     .eq("claimed_by", user.id)
     .single();
 
   const githubLogin = giver?.github_login ?? "";
 
   if (!giver || !giver.claimed) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 },
+    );
   }
 
   const { data: receiver } = await admin
@@ -53,19 +62,28 @@ export async function POST(request: Request) {
   }
 
   if (giver.id === receiver.id) {
-    return NextResponse.json({ error: "Cannot give kudos to yourself" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Cannot give kudos to yourself" },
+      { status: 400 },
+    );
   }
 
   const { today } = getUtcDateStrings();
 
-  const { data: rpcResult, error: rpcError } = await admin.rpc("insert_kudos_atomic", {
-    p_giver_id: giver.id,
-    p_receiver_id: receiver.id,
-    p_given_date: today,
-  });
+  const { data: rpcResult, error: rpcError } = await admin.rpc(
+    "insert_kudos_atomic",
+    {
+      p_giver_id: giver.id,
+      p_receiver_id: receiver.id,
+      p_given_date: today,
+    },
+  );
 
   if (rpcError) {
-    return NextResponse.json({ error: "Failed to give kudos" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to give kudos" },
+      { status: 500 },
+    );
   }
 
   if (!rpcResult.success) {
@@ -78,8 +96,16 @@ export async function POST(request: Request) {
 
   await admin.rpc("increment_kudos_count", { target_dev_id: receiver.id });
 
-    await admin.rpc("grant_xp_atomic", { p_developer_id: giver.id, p_source: "kudos_given", p_amount: 3 });
-    await admin.rpc("grant_xp_atomic", { p_developer_id: receiver.id, p_source: "kudos_received", p_amount: 1 });
+  await admin.rpc("grant_xp_atomic", {
+    p_developer_id: giver.id,
+    p_source: "kudos_given",
+    p_amount: 3,
+  });
+  await admin.rpc("grant_xp_atomic", {
+    p_developer_id: receiver.id,
+    p_source: "kudos_received",
+    p_amount: 1,
+  });
 
   await admin.from("activity_feed").insert({
     event_type: "kudos_given",
@@ -91,12 +117,21 @@ export async function POST(request: Request) {
     },
   });
 
-  const { data: streakResult, error: streakError } = await admin.rpc("update_kudos_streak", {
-    p_giver_id: giver.id, p_given_date: today,
-  });
-  
-  if (streakError) { console.warn("[kudos] update_kudos_streak RPC error:", streakError.message); }
-  const newKudosStreak = (streakResult?.kudos_streak as number | undefined) ?? giver.kudos_streak ?? 0;
+  const { data: streakResult, error: streakError } = await admin.rpc(
+    "update_kudos_streak",
+    {
+      p_giver_id: giver.id,
+      p_given_date: today,
+    },
+  );
+
+  if (streakError) {
+    console.warn("[kudos] update_kudos_streak RPC error:", streakError.message);
+  }
+  const newKudosStreak =
+    (streakResult?.kudos_streak as number | undefined) ??
+    giver.kudos_streak ??
+    0;
 
   try {
     await admin.rpc("increment_kudos_week", {
@@ -104,25 +139,32 @@ export async function POST(request: Request) {
       p_receiver_id: receiver.id,
     });
   } catch (err) {
-    console.warn("[app/api/interactions/kudos/route.ts] non-critical error:", err);
+    console.warn(
+      "[app/api/interactions/kudos/route.ts] non-critical error:",
+      err,
+    );
   }
 
-  await checkAchievements(giver.id, {
-    contributions: giver.contributions ?? 0,
-    public_repos: giver.public_repos ?? 0,
-    total_stars: giver.total_stars ?? 0,
-    referral_count: 0,
-    kudos_count: giver.kudos_count ?? 0,
-    gifts_sent: 0,
-    gifts_received: 0,
-    kudos_streak: newKudosStreak,
-    easy_solved: giver.easy_solved ?? 0,
-    medium_solved: giver.medium_solved ?? 0,
-    hard_solved: giver.hard_solved ?? 0,
-    contest_rating: giver.contest_rating ?? 0,
-    lc_streak: giver.lc_streak ?? 0,
-    total_prs: giver.total_prs ?? 0,
-  }, githubLogin);
+  await checkAchievements(
+    giver.id,
+    {
+      contributions: giver.contributions ?? 0,
+      public_repos: giver.public_repos ?? 0,
+      total_stars: giver.total_stars ?? 0,
+      referral_count: 0,
+      kudos_count: giver.kudos_count ?? 0,
+      gifts_sent: 0,
+      gifts_received: 0,
+      kudos_streak: newKudosStreak,
+      easy_solved: giver.easy_solved ?? 0,
+      medium_solved: giver.medium_solved ?? 0,
+      hard_solved: giver.hard_solved ?? 0,
+      contest_rating: giver.contest_rating ?? 0,
+      lc_streak: giver.lc_streak ?? 0,
+      total_prs: giver.total_prs ?? 0,
+    },
+    githubLogin,
+  );
 
   return NextResponse.json({ ok: true });
 }

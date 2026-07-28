@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     if (!auth.ok || !auth.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,7 +13,10 @@ export async function POST(req: Request) {
 
     const { code } = await req.json();
     if (!code || typeof code !== "string") {
-      return NextResponse.json({ error: "Valid code is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Valid code is required" },
+        { status: 400 },
+      );
     }
 
     const sb = getSupabaseAdmin();
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
     if (!dev) {
       return NextResponse.json(
         { error: "You must link a LeetCode account first." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -37,17 +41,26 @@ export async function POST(req: Request) {
       .single();
 
     if (fetchError || !redeemCode) {
-      return NextResponse.json({ error: "Invalid or expired code." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Invalid or expired code." },
+        { status: 404 },
+      );
     }
 
     if (redeemCode.expires_at && new Date(redeemCode.expires_at) < new Date()) {
-      return NextResponse.json({ error: "This code has expired." }, { status: 410 });
+      return NextResponse.json(
+        { error: "This code has expired." },
+        { status: 410 },
+      );
     }
 
-    if (redeemCode.max_uses !== -1 && redeemCode.used_count >= redeemCode.max_uses) {
+    if (
+      redeemCode.max_uses !== -1 &&
+      redeemCode.used_count >= redeemCode.max_uses
+    ) {
       return NextResponse.json(
         { error: "This code has already reached its maximum usage limit." },
-        { status: 410 }
+        { status: 410 },
       );
     }
 
@@ -59,18 +72,21 @@ export async function POST(req: Request) {
     //      same transaction as code consumption. If the XP grant fails,
     //      the entire transaction rolls back (code never consumed).
     //   4. Returns { ok, error_code, xp_amount, new_total, new_level }
-    const { data: rpcResult, error: rpcError } = await sb.rpc("redeem_xp_code", {
-      p_code_id:      redeemCode.id,
-      p_developer_id: dev.id,
-      p_xp_amount:    redeemCode.xp_amount,
-      p_max_uses:     redeemCode.max_uses,
-    });
+    const { data: rpcResult, error: rpcError } = await sb.rpc(
+      "redeem_xp_code",
+      {
+        p_code_id: redeemCode.id,
+        p_developer_id: dev.id,
+        p_xp_amount: redeemCode.xp_amount,
+        p_max_uses: redeemCode.max_uses,
+      },
+    );
 
     if (rpcError) {
       console.error("[redeem-xp] redeem_xp_code RPC error:", rpcError.message);
       return NextResponse.json(
         { error: "Redemption failed. Please try again later." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -95,7 +111,10 @@ export async function POST(req: Request) {
         error: "Code could not be redeemed.",
         status: 409,
       };
-      return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+      return NextResponse.json(
+        { error: mapped.error },
+        { status: mapped.status },
+      );
     }
 
     return NextResponse.json({
@@ -107,6 +126,9 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("[Redeem XP API Error]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

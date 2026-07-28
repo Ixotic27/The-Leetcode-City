@@ -1,4 +1,5 @@
-export type AdVehicle = "plane" | "blimp" | "billboard" | "rooftop_sign" | "led_wrap";
+export type AdVehicle =
+  "plane" | "blimp" | "billboard" | "rooftop_sign" | "led_wrap";
 
 export interface SkyAd {
   id: string;
@@ -22,8 +23,14 @@ export const MAX_TEXT_LENGTH = 80;
 const ALLOWED_LINK_PATTERN = /^(https:\/\/|mailto:)/;
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
-export function isBuildingAd(vehicle: string): vehicle is "billboard" | "rooftop_sign" | "led_wrap" {
-  return vehicle === "billboard" || vehicle === "rooftop_sign" || vehicle === "led_wrap";
+export function isBuildingAd(
+  vehicle: string,
+): vehicle is "billboard" | "rooftop_sign" | "led_wrap" {
+  return (
+    vehicle === "billboard" ||
+    vehicle === "rooftop_sign" ||
+    vehicle === "led_wrap"
+  );
 }
 
 export function validateAds(ads: SkyAd[]): SkyAd[] {
@@ -43,9 +50,15 @@ export function getActiveAds(ads: SkyAd[]) {
   return {
     planeAds: valid.filter((a) => a.vehicle === "plane").slice(0, MAX_PLANES),
     blimpAds: valid.filter((a) => a.vehicle === "blimp").slice(0, MAX_BLIMPS),
-    billboardAds: valid.filter((a) => a.vehicle === "billboard").slice(0, MAX_BILLBOARDS),
-    rooftopSignAds: valid.filter((a) => a.vehicle === "rooftop_sign").slice(0, MAX_ROOFTOP_SIGNS),
-    ledWrapAds: valid.filter((a) => a.vehicle === "led_wrap").slice(0, MAX_LED_WRAPS),
+    billboardAds: valid
+      .filter((a) => a.vehicle === "billboard")
+      .slice(0, MAX_BILLBOARDS),
+    rooftopSignAds: valid
+      .filter((a) => a.vehicle === "rooftop_sign")
+      .slice(0, MAX_ROOFTOP_SIGNS),
+    ledWrapAds: valid
+      .filter((a) => a.vehicle === "led_wrap")
+      .slice(0, MAX_LED_WRAPS),
   };
 }
 
@@ -60,27 +73,59 @@ export function buildAdLink(ad: SkyAd): string | undefined {
     url.searchParams.set("utm_campaign", ad.id);
     url.searchParams.set("utm_content", ad.vehicle);
     return url.toString();
-  } catch (err) { console.warn("[lib/skyAds.ts] error:", err); return ad.link;
-   }
+  } catch (err) {
+    console.warn("[lib/skyAds.ts] error:", err);
+    return ad.link;
+  }
 }
 
 /** Fire a tracking beacon to the sky-ads track API (non-blocking). */
-export function trackAdEvent(adId: string, eventType: "impression" | "click" | "cta_click", githubLogin?: string) {
-  const body = JSON.stringify({ ad_id: adId, event_type: eventType, ...(githubLogin && { github_login: githubLogin }) });
+export function trackAdEvent(
+  adId: string,
+  eventType: "impression" | "click" | "cta_click",
+  githubLogin?: string,
+) {
+  const body = JSON.stringify({
+    ad_id: adId,
+    event_type: eventType,
+    ...(githubLogin && { github_login: githubLogin }),
+  });
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-    navigator.sendBeacon("/api/sky-ads/track", new Blob([body], { type: "application/json" }));
+    navigator.sendBeacon(
+      "/api/sky-ads/track",
+      new Blob([body], { type: "application/json" }),
+    );
   } else {
-    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => { });
+    fetch("/api/sky-ads/track", {
+      method: "POST",
+      body,
+      keepalive: true,
+    }).catch(() => {});
   }
 }
 
 /** Fire multiple event types in a single beacon (saves rate limit budget). */
-export function trackAdEvents(adId: string, eventTypes: ("impression" | "click" | "cta_click")[], githubLogin?: string) {
-  const body = JSON.stringify({ ad_id: adId, event_types: eventTypes, ...(githubLogin && { github_login: githubLogin }) });
+export function trackAdEvents(
+  adId: string,
+  eventTypes: ("impression" | "click" | "cta_click")[],
+  githubLogin?: string,
+) {
+  const body = JSON.stringify({
+    ad_id: adId,
+    event_types: eventTypes,
+    ...(githubLogin && { github_login: githubLogin }),
+  });
   if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-    navigator.sendBeacon("/api/sky-ads/track", new Blob([body], { type: "application/json" }));
+    navigator.sendBeacon(
+      "/api/sky-ads/track",
+      new Blob([body], { type: "application/json" }),
+    );
   } else {
-    fetch("/api/sky-ads/track", { method: "POST", body, keepalive: true }).catch(() => { });
+    fetch("/api/sky-ads/track", {
+      method: "POST",
+      body,
+      keepalive: true,
+    }).catch(() => {});
   }
 }
 
@@ -89,7 +134,8 @@ export const DEFAULT_SKY_ADS: SkyAd[] = [
     id: "leetcodecity",
     text: "THEleetcodecity.TECH ★ YOUR CODE, YOUR CITY ★ THEleetcodecity.TECH",
     brand: "LeetCode City",
-    description: "A city built from GitHub contributions. Search your username and find your building among thousands of developers.",
+    description:
+      "A city built from GitHub contributions. Search your username and find your building among thousands of developers.",
     color: "#f8d880",
     bgColor: "#1a1018",
     link: "https://theleetcodecity.tech",
@@ -111,7 +157,8 @@ export const DEFAULT_SKY_ADS: SkyAd[] = [
     id: "findyourbuilding",
     text: "YOUR GITHUB CITY AWAITS ★ FIND YOUR BUILDING!",
     brand: "LeetCode City",
-    description: "Search your username and locate your personal high-rise building.",
+    description:
+      "Search your username and locate your personal high-rise building.",
     color: "#00e0ff",
     bgColor: "#081420",
     link: "https://theleetcodecity.tech",
@@ -122,7 +169,8 @@ export const DEFAULT_SKY_ADS: SkyAd[] = [
     id: "advertise",
     text: "ADD YOUR AD HERE ★ PLANES & BLIMPS ★ ADVERTISE NOW",
     brand: "Sky Ads",
-    description: "Want your brand flying over LeetCode City? Planes, blimps, your colors. Get in touch!",
+    description:
+      "Want your brand flying over LeetCode City? Planes, blimps, your colors. Get in touch!",
     color: "#ffc0ff",
     bgColor: "#18081a",
     link: "https://theleetcodecity.tech/advertise",

@@ -34,7 +34,7 @@ function normalizeOutput(text: string): string {
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .split("\n")
-    .map(line => line.trimEnd())
+    .map((line) => line.trimEnd())
     .join("\n")
     .trim();
 }
@@ -43,7 +43,7 @@ export async function runTests(
   filePath: string,
   langConfig: LanguageConfig,
   testCases: TestCase[],
-  timeLimitMs: number
+  timeLimitMs: number,
 ): Promise<RunResult> {
   const dirName = path.dirname(filePath);
   const tempDir = path.join(dirName, ".arena_temp");
@@ -60,7 +60,11 @@ export async function runTests(
       await new Promise<void>((resolve, reject) => {
         cp.exec(compileCommand, { cwd: dirName }, (err, stdout, stderr) => {
           if (err) {
-            reject(new Error(`Compilation error:\n${stderr || stdout || err.message}`));
+            reject(
+              new Error(
+                `Compilation error:\n${stderr || stdout || err.message}`,
+              ),
+            );
           } else {
             resolve();
           }
@@ -78,7 +82,7 @@ export async function runTests(
         testsTotal: testCases.length,
         executionTimeMs: 0,
         details: compileErr.message,
-        testCaseResults: []
+        testCaseResults: [],
       };
     }
   }
@@ -97,7 +101,7 @@ export async function runTests(
     try {
       const result = await new Promise<TestCaseResult>((resolve) => {
         const child = cp.exec(runCommand, { cwd: dirName });
-        
+
         let stdoutData = "";
         let stderrData = "";
         let isTimedOut = false;
@@ -135,7 +139,7 @@ export async function runTests(
               input: tc.input,
               expectedOutput: tc.output,
               timeMs: timeLimitMs,
-              errorMessage: `Time Limit Exceeded (> ${timeLimitMs}ms)`
+              errorMessage: `Time Limit Exceeded (> ${timeLimitMs}ms)`,
             });
           } else if (code !== 0) {
             resolve({
@@ -146,7 +150,7 @@ export async function runTests(
               expectedOutput: tc.output,
               actualOutput: stdoutData,
               timeMs,
-              errorMessage: `Runtime Error: Exit code ${code}\n${stderrData}`
+              errorMessage: `Runtime Error: Exit code ${code}\n${stderrData}`,
             });
           } else {
             const actualNorm = normalizeOutput(stdoutData);
@@ -160,7 +164,7 @@ export async function runTests(
               input: tc.input,
               expectedOutput: tc.output,
               actualOutput: stdoutData,
-              timeMs
+              timeMs,
             });
           }
         });
@@ -172,7 +176,10 @@ export async function runTests(
       if (!result.passed) {
         if (overallStatus === "accepted") {
           overallStatus = result.status;
-        } else if (overallStatus === "wrong_answer" && result.status !== "wrong_answer") {
+        } else if (
+          overallStatus === "wrong_answer" &&
+          result.status !== "wrong_answer"
+        ) {
           // Upgrade status priority: tle / rte > wrong_answer
           overallStatus = result.status;
         }
@@ -187,7 +194,7 @@ export async function runTests(
         input: tc.input,
         expectedOutput: tc.output,
         timeMs,
-        errorMessage: `Process spawn error: ${err.message}`
+        errorMessage: `Process spawn error: ${err.message}`,
       });
       overallStatus = "rte";
     }
@@ -207,6 +214,6 @@ export async function runTests(
     testsPassed,
     testsTotal: testCases.length,
     executionTimeMs: totalTimeMs,
-    testCaseResults: results
+    testCaseResults: results,
   };
 }

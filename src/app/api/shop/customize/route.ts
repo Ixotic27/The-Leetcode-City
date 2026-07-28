@@ -5,47 +5,51 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
-    const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
+  const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
-    if (!auth.ok || !auth.user) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-    const user = auth.user;
+  if (!auth.ok || !auth.user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+  const user = auth.user;
 
-    const { developerId, itemId, config } = await request.json();
+  const { developerId, itemId, config } = await request.json();
 
-    if (itemId !== "building_style") {
-        return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
-    }
+  if (itemId !== "building_style") {
+    return NextResponse.json({ error: "Invalid itemId" }, { status: 400 });
+  }
 
-    const sb = getSupabaseAdmin();
+  const sb = getSupabaseAdmin();
 
-    // Validate ownership of building
-    const { data: dev } = await sb
-        .from("developers")
-        .select("id, claimed_by")
-        .eq("id", developerId)
-        .single();
+  // Validate ownership of building
+  const { data: dev } = await sb
+    .from("developers")
+    .select("id, claimed_by")
+    .eq("id", developerId)
+    .single();
 
-    if (!dev || dev.claimed_by !== user.id) {
-        return NextResponse.json({ error: "Operation not permitted" }, { status: 403 });
-    }
-
-    // Upsert style
-    const { error } = await sb.from("developer_customizations").upsert(
-        {
-            developer_id: developerId,
-            item_id: "building_style",
-            config: config,
-            updated_at: new Date().toISOString(),
-        },
-        { onConflict: "developer_id,item_id" }
+  if (!dev || dev.claimed_by !== user.id) {
+    return NextResponse.json(
+      { error: "Operation not permitted" },
+      { status: 403 },
     );
+  }
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+  // Upsert style
+  const { error } = await sb.from("developer_customizations").upsert(
+    {
+      developer_id: developerId,
+      item_id: "building_style",
+      config: config,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "developer_id,item_id" },
+  );
 
-    return NextResponse.json({ ok: true });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }

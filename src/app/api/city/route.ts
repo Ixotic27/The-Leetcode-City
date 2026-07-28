@@ -12,8 +12,11 @@ export async function GET(request: Request) {
 
   if (isNaN(rawFrom) || isNaN(rawTo)) {
     return NextResponse.json(
-      { error: "Invalid pagination parameters: 'from' and 'to' must be numbers." },
-      { status: 400 }
+      {
+        error:
+          "Invalid pagination parameters: 'from' and 'to' must be numbers.",
+      },
+      { status: 400 },
     );
   }
 
@@ -22,7 +25,10 @@ export async function GET(request: Request) {
 
   if (to <= from) {
     return NextResponse.json(
-      { error: "Invalid pagination parameters: 'to' must be greater than 'from'." },
+      {
+        error:
+          "Invalid pagination parameters: 'to' must be greater than 'from'.",
+      },
       { status: 400 },
     );
   }

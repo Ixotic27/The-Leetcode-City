@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { verifyHmacToken, type NotificationCategory } from "@/lib/notifications";
+import {
+  verifyHmacToken,
+  type NotificationCategory,
+} from "@/lib/notifications";
 
-const VALID_CATEGORIES = ["transactional", "social", "digest", "marketing", "streak_reminders", "all"];
+const VALID_CATEGORIES = [
+  "transactional",
+  "social",
+  "digest",
+  "marketing",
+  "streak_reminders",
+  "all",
+];
 
 /**
  * POST /api/unsubscribe?dev={id}&cat={category}&token={hmac}
@@ -32,7 +42,11 @@ export async function POST(request: Request) {
     await sb
       .from("notification_preferences")
       .upsert(
-        { developer_id: devId, email_enabled: false, updated_at: new Date().toISOString() },
+        {
+          developer_id: devId,
+          email_enabled: false,
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: "developer_id" },
       );
   } else {
@@ -84,7 +98,11 @@ export async function GET(request: Request) {
     await sb
       .from("notification_preferences")
       .upsert(
-        { developer_id: devId, email_enabled: false, updated_at: new Date().toISOString() },
+        {
+          developer_id: devId,
+          email_enabled: false,
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: "developer_id" },
       );
   } else {

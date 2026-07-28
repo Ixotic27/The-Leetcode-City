@@ -4,7 +4,8 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -31,7 +32,10 @@ export async function POST(request: Request) {
     .single();
 
   if (!dev || !dev.claimed) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 },
+    );
   }
 
   if (dev.rabbit_completed) {
@@ -39,7 +43,10 @@ export async function POST(request: Request) {
   }
 
   if (sighting !== (dev.rabbit_progress ?? 0) + 1) {
-    return NextResponse.json({ error: "Wrong sighting order" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Wrong sighting order" },
+      { status: 400 },
+    );
   }
 
   if (sighting === 5) {
@@ -69,22 +76,20 @@ export async function POST(request: Request) {
         { onConflict: "developer_id,achievement_id" },
       );
 
-    await admin
-      .from("purchases")
-      .upsert(
-        {
-          developer_id: dev.id,
-          item_id: "white_rabbit",
-          provider: "system",
-          amount_cents: 0,
-          currency: "usd",
-          status: "completed",
-        },
-        {
-          onConflict: "developer_id,item_id",
-          ignoreDuplicates: true,
-        }
-      );
+    await admin.from("purchases").upsert(
+      {
+        developer_id: dev.id,
+        item_id: "white_rabbit",
+        provider: "system",
+        amount_cents: 0,
+        currency: "usd",
+        status: "completed",
+      },
+      {
+        onConflict: "developer_id,item_id",
+        ignoreDuplicates: true,
+      },
+    );
 
     return NextResponse.json({ progress: 5, completed: true });
   }
@@ -110,7 +115,7 @@ export async function POST(request: Request) {
   if (!updated || updated.length === 0) {
     return NextResponse.json(
       { error: "Another request already advanced this sighting" },
-      { status: 409 }
+      { status: 409 },
     );
   }
 
@@ -122,7 +127,11 @@ export async function GET(request: Request) {
   const admin = getSupabaseAdmin();
 
   if (searchParams.has("check")) {
-    let dev: { rabbit_progress: number | null; rabbit_completed: boolean | null; rabbit_completed_at: string | null } | null = null;
+    let dev: {
+      rabbit_progress: number | null;
+      rabbit_completed: boolean | null;
+      rabbit_completed_at: string | null;
+    } | null = null;
 
     const authedDev = await getAuthenticatedDeveloper(request);
     if (authedDev) {
@@ -134,7 +143,8 @@ export async function GET(request: Request) {
       dev = qDev;
     } else {
       try {
-        const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+        const { resolveAuthenticatedDeveloper } =
+          await import("@/lib/authenticated-developer");
         const auth2 = await resolveAuthenticatedDeveloper({});
         if (auth2.ok && auth2.user) {
           const { data: qDev } = await admin
@@ -145,7 +155,10 @@ export async function GET(request: Request) {
           dev = qDev;
         }
       } catch (err) {
-        console.error("[app/api/rabbit/route.ts] failed to load rabbit dev info:", err);
+        console.error(
+          "[app/api/rabbit/route.ts] failed to load rabbit dev info:",
+          err,
+        );
       }
     }
 
@@ -171,7 +184,12 @@ export async function GET(request: Request) {
     completed_at: c.rabbit_completed_at,
   }));
 
-  return NextResponse.json({ completers: hall }, {
-    headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
-  });
+  return NextResponse.json(
+    { completers: hall },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    },
+  );
 }

@@ -1,61 +1,67 @@
-import fs from 'fs';
+import fs from "fs";
 
 const repo = "Ixotic27/The-Leetcode-City";
-const token = fs.readFileSync(".env.local", "utf-8")
-    .split("\n")
-    .find(line => line.startsWith("GITHUB_TOKEN="))
-    ?.split("=")[1]?.trim();
+const token = fs
+  .readFileSync(".env.local", "utf-8")
+  .split("\n")
+  .find((line) => line.startsWith("GITHUB_TOKEN="))
+  ?.split("=")[1]
+  ?.trim();
 
 if (!token) {
-    console.error("No GITHUB_TOKEN found in .env.local");
-    process.exit(1);
+  console.error("No GITHUB_TOKEN found in .env.local");
+  process.exit(1);
 }
 
 const headers = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": `token ${token}`,
-    "Content-Type": "application/json",
-    "User-Agent": "Node-Script"
+  Accept: "application/vnd.github.v3+json",
+  Authorization: `token ${token}`,
+  "Content-Type": "application/json",
+  "User-Agent": "Node-Script",
 };
 
 async function createLabel(name, color, description) {
-    const res = await fetch(`https://api.github.com/repos/${repo}/labels`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ name, color, description })
-    });
-    if (res.status === 201) {
-        console.log(`Created label: ${name}`);
-    } else if (res.status === 422) {
-        console.log(`Label ${name} already exists.`);
-    }
+  const res = await fetch(`https://api.github.com/repos/${repo}/labels`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name, color, description }),
+  });
+  if (res.status === 201) {
+    console.log(`Created label: ${name}`);
+  } else if (res.status === 422) {
+    console.log(`Label ${name} already exists.`);
+  }
 }
 
 async function createIssue(title, body, labels) {
-    const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ title, body, labels })
-    });
-    if (res.status === 201) {
-        const issue = await res.json();
-        console.log(`Created issue: ${title} (#${issue.number})`);
-    } else {
-        console.error(`Failed to create issue ${title}:`, await res.text());
-    }
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ title, body, labels }),
+  });
+  if (res.status === 201) {
+    const issue = await res.json();
+    console.log(`Created issue: ${title} (#${issue.number})`);
+  } else {
+    console.error(`Failed to create issue ${title}:`, await res.text());
+  }
 }
 
 async function run() {
-    // Make sure tags/labels exist
-    await createLabel("bug", "d73a4a", "Something isn't working");
-    await createLabel("backend", "0052cc", "Backend database/API logic");
-    await createLabel("realtime", "1d76db", "Supabase Realtime multiplayer features");
-    await createLabel("performance", "cccccc", "Performance tuning and scaling");
+  // Make sure tags/labels exist
+  await createLabel("bug", "d73a4a", "Something isn't working");
+  await createLabel("backend", "0052cc", "Backend database/API logic");
+  await createLabel(
+    "realtime",
+    "1d76db",
+    "Supabase Realtime multiplayer features",
+  );
+  await createLabel("performance", "cccccc", "Performance tuning and scaling");
 
-    const issues = [
-        {
-            title: "Multiplayer Migrations: Missing Realtime Database Tables",
-            body: `### Description
+  const issues = [
+    {
+      title: "Multiplayer Migrations: Missing Realtime Database Tables",
+      body: `### Description
 The tables \`arcade_chat_messages\` and \`arcade_active_players\` are missing from the hosted/remote Supabase database (resulting in 404 REST API errors in the browser console). This is because the migration file \`066_supabase_realtime_multiplayer.sql\` was not successfully run on the remote Supabase DB due to the missing \`exec_sql\` RPC helper function.
 
 ### Proposed Fix
@@ -118,11 +124,11 @@ END;
 $$;
 \`\`\`
 `,
-            labels: ["bug", "backend", "realtime"]
-        },
-        {
-            title: "Multiplayer: Remote Player Position Interpolation / Smoothing",
-            body: `### Description
+      labels: ["bug", "backend", "realtime"],
+    },
+    {
+      title: "Multiplayer: Remote Player Position Interpolation / Smoothing",
+      body: `### Description
 The transition to client-authoritative movement via Supabase Realtime broadcast works instantly for the local player, but because position updates are broadcast on every step and Presence is throttled (\`PRESENCE_TRACK_THROTTLE_MS = 1500\`), remote players can appear laggy or snap between coordinates when moving, especially under network jitter.
 
 ### Proposed Solution
@@ -130,11 +136,12 @@ Add linear interpolation (lerp) or delta-time-based coordinate smoothing in the 
 1. Don't immediately teleport the player.
 2. Smoothly slide the player's coordinate over the next ~150-200ms towards the target tile.
 `,
-            labels: ["performance", "realtime"]
-        },
-        {
-            title: "Multiplayer: Pruning Inactive Active Players (Stale Presence Cleanup)",
-            body: `### Description
+      labels: ["performance", "realtime"],
+    },
+    {
+      title:
+        "Multiplayer: Pruning Inactive Active Players (Stale Presence Cleanup)",
+      body: `### Description
 When a player disconnects, we call \`disconnect()\` which deletes their row from \`arcade_active_players\`. However, if the player suddenly closes the tab, loses network connection, or the browser freezes/sleeps, the active player entry will remain in the database indefinitely.
 
 ### Proposed Solution
@@ -145,13 +152,13 @@ DELETE FROM public.arcade_active_players WHERE last_heartbeat < now() - INTERVAL
 \`\`\`
 2. Or perform this cleanup periodically on room fetch/route handler calls to keep the room/player counts accurate.
 `,
-            labels: ["bug", "backend"]
-        }
-    ];
+      labels: ["bug", "backend"],
+    },
+  ];
 
-    for (const issue of issues) {
-        await createIssue(issue.title, issue.body, issue.labels);
-    }
+  for (const issue of issues) {
+    await createIssue(issue.title, issue.body, issue.labels);
+  }
 }
 
 run().catch(console.error);

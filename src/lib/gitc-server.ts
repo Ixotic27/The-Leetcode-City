@@ -1,5 +1,11 @@
 import "server-only";
-import { createPublicClient, http, fallback, parseEventLogs, getAddress } from "viem";
+import {
+  createPublicClient,
+  http,
+  fallback,
+  parseEventLogs,
+  getAddress,
+} from "viem";
 import { base } from "viem/chains";
 import {
   GITC_ABI,
@@ -23,11 +29,19 @@ function buildClient() {
 
   const alchemyKey = process.env.ALCHEMY_API_KEY;
   if (alchemyKey) {
-    transports.push(http(`https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`));
+    transports.push(
+      http(`https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`),
+    );
   }
 
   const ankrKey = process.env.ANKR_API_KEY;
-  transports.push(http(ankrKey ? `https://rpc.ankr.com/base/${ankrKey}` : "https://rpc.ankr.com/base"));
+  transports.push(
+    http(
+      ankrKey
+        ? `https://rpc.ankr.com/base/${ankrKey}`
+        : "https://rpc.ankr.com/base",
+    ),
+  );
 
   // Final fallback: Base public RPC (rate-limited, last resort).
   transports.push(http("https://mainnet.base.org"));
@@ -66,7 +80,8 @@ async function fetchFromGeckoTerminal(): Promise<number | null> {
     const json = (await res.json()) as {
       data?: { attributes?: { token_prices?: Record<string, string> } };
     };
-    const raw = json.data?.attributes?.token_prices?.[GITC_ADDRESS.toLowerCase()];
+    const raw =
+      json.data?.attributes?.token_prices?.[GITC_ADDRESS.toLowerCase()];
     const price = raw ? Number(raw) : NaN;
     return Number.isFinite(price) && price > 0 ? price : null;
   } catch {
@@ -83,7 +98,11 @@ async function fetchFromDexScreener(): Promise<number | null> {
     });
     if (!res.ok) return null;
     const json = (await res.json()) as {
-      pairs?: Array<{ chainId?: string; priceUsd?: string; liquidity?: { usd?: number } }>;
+      pairs?: Array<{
+        chainId?: string;
+        priceUsd?: string;
+        liquidity?: { usd?: number };
+      }>;
     };
     // Prefer Base pair with highest liquidity.
     const basePairs = (json.pairs ?? []).filter((p) => p.chainId === "base");
@@ -162,14 +181,19 @@ export async function getGitcMarket(): Promise<GitcMarket> {
         }>;
       };
       const basePairs = (json.pairs ?? []).filter((p) => p.chainId === "base");
-      basePairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0));
+      basePairs.sort(
+        (a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0),
+      );
       const top = basePairs[0];
       if (top) {
         const price = top.priceUsd ? Number(top.priceUsd) : NaN;
         const change = top.priceChange?.h24;
         market = {
           priceUsd: Number.isFinite(price) && price > 0 ? price : null,
-          change24h: typeof change === "number" && Number.isFinite(change) ? change : null,
+          change24h:
+            typeof change === "number" && Number.isFinite(change)
+              ? change
+              : null,
         };
       }
     }
@@ -180,7 +204,10 @@ export async function getGitcMarket(): Promise<GitcMarket> {
   // If DexScreener gave no price, fall back to the cached/Gecko price source.
   if (market.priceUsd === null) {
     try {
-      market = { priceUsd: await getGitcPriceUsd(), change24h: market.change24h };
+      market = {
+        priceUsd: await getGitcPriceUsd(),
+        change24h: market.change24h,
+      };
     } catch {
       /* keep nulls */
     }
@@ -233,8 +260,7 @@ const ALLOWED_SELL_TOKENS = new Set([
 ]);
 
 export type ZeroxResult =
-  | { ok: true; data: unknown }
-  | { ok: false; status: number; error: string };
+  { ok: true; data: unknown } | { ok: false; status: number; error: string };
 
 /**
  * Proxy a /price (indicative) or /quote (firm, returns a ready-to-send tx) call
@@ -243,7 +269,12 @@ export type ZeroxResult =
  */
 export async function fetchZeroxSwap(
   kind: "price" | "quote",
-  params: { sellToken: string; sellAmount: string; taker?: string; slippageBps?: string },
+  params: {
+    sellToken: string;
+    sellAmount: string;
+    taker?: string;
+    slippageBps?: string;
+  },
 ): Promise<ZeroxResult> {
   const apiKey = process.env.ZEROX_API_KEY;
   if (!apiKey) return { ok: false, status: 503, error: "disabled" };
@@ -272,20 +303,35 @@ export async function fetchZeroxSwap(
   if (takerValid) qs.set("taker", params.taker!);
   // A firm quote needs a taker to build the transaction.
   if (kind === "quote" && !takerValid) {
-    return { ok: false, status: 400, error: "A connected wallet is required to quote" };
+    return {
+      ok: false,
+      status: 400,
+      error: "A connected wallet is required to quote",
+    };
   }
 
   try {
     const res = await fetch(`${ZEROX_BASE}/${kind}?${qs.toString()}`, {
       headers: { "0x-api-key": apiKey, "0x-version": "v2" },
     });
-    const data = (await res.json().catch(() => ({}))) as { message?: string; reason?: string };
+    const data = (await res.json().catch(() => ({}))) as {
+      message?: string;
+      reason?: string;
+    };
     if (!res.ok) {
-      return { ok: false, status: res.status, error: data.message || data.reason || `0x ${kind} failed` };
+      return {
+        ok: false,
+        status: res.status,
+        error: data.message || data.reason || `0x ${kind} failed`,
+      };
     }
     return { ok: true, data };
   } catch {
-    return { ok: false, status: 502, error: "Could not reach the swap service" };
+    return {
+      ok: false,
+      status: 502,
+      error: "Could not reach the swap service",
+    };
   }
 }
 
@@ -363,7 +409,10 @@ export async function verifyGitcPaymentTx(params: {
   });
 
   if (!payment) {
-    return { ok: false, reason: "No GITC transfer to treasury from the expected wallet" };
+    return {
+      ok: false,
+      reason: "No GITC transfer to treasury from the expected wallet",
+    };
   }
 
   if (payment.args.value < params.minAmountWei) {

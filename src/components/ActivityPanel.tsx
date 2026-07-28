@@ -24,7 +24,12 @@ interface Props {
   onNavigate?: (login: string) => void;
 }
 
-export default function ActivityPanel({ initialEvents, open, onClose, onNavigate }: Props) {
+export default function ActivityPanel({
+  initialEvents,
+  open,
+  onClose,
+  onNavigate,
+}: Props) {
   const [events, setEvents] = useState<FeedEvent[]>(initialEvents);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -101,7 +106,9 @@ export default function ActivityPanel({ initialEvents, open, onClose, onNavigate
                 key={e.id}
                 className="border-b border-border/30 px-4 py-3 hover:bg-bg-card/50 transition-colors"
               >
-                <p className="text-[9px] text-dim">{relativeTime(e.created_at)}</p>
+                <p className="text-[9px] text-dim">
+                  {relativeTime(e.created_at)}
+                </p>
                 <div className="mt-1 flex items-start gap-2">
                   {avatarUrl ? (
                     <img
@@ -139,8 +146,10 @@ export default function ActivityPanel({ initialEvents, open, onClose, onNavigate
 
         {error && !loading && (
           <div className="px-4 py-4 text-center">
-            <p className="text-[9px] text-red-400 normal-case mb-2">Failed to load more activity</p>
-            <button 
+            <p className="text-[9px] text-red-400 normal-case mb-2">
+              Failed to load more activity
+            </p>
+            <button
               onClick={loadMore}
               className="border border-border px-2 py-0.5 text-[8px] text-cream hover:border-border-light transition-colors"
             >

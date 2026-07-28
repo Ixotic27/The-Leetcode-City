@@ -15,11 +15,21 @@
 // ─── Constants ──────────────────────────────────────────────
 const COZY_CELL = 32;
 const COZY_COLS = 8;
-const COZY_DIR_ROW: Record<string, number> = { down: 0, up: 1, left: 3, right: 2 };
+const COZY_DIR_ROW: Record<string, number> = {
+  down: 0,
+  up: 1,
+  left: 3,
+  right: 2,
+};
 
 const LEGACY_SPRITE_W = 16;
 const LEGACY_SPRITE_H = 32;
-const LEGACY_DIR_ROW: Record<string, number> = { down: 0, up: 1, right: 2, left: 2 };
+const LEGACY_DIR_ROW: Record<string, number> = {
+  down: 0,
+  up: 1,
+  right: 2,
+  left: 2,
+};
 const LEGACY_COL_IDLE = 1;
 const LEGACY_COL_WALK1 = 0;
 const LEGACY_COL_WALK2 = 2;
@@ -29,8 +39,8 @@ import type { AvatarLoadout } from "../types";
 // ─── Cozy layer system ─────────────────────────────────────
 export interface CozyLayer {
   id: string;
-  file: string;        // path relative to cozy base
-  color: string;       // hex color for tinting
+  file: string; // path relative to cozy base
+  color: string; // hex color for tinting
   noTint?: boolean;
 }
 
@@ -39,28 +49,91 @@ export interface CozyAvatar {
 }
 
 const DEFAULT_ITEMS = [
-  { id: "buzzcut", file: "hair/buzzcut_grey.png", no_tint: false, default_color: "#1a1a1a" },
-  { id: "curly", file: "hair/curly_grey.png", no_tint: false, default_color: "#8B4513" },
-  { id: "ponytail", file: "hair/ponytail_grey.png", no_tint: false, default_color: "#FFD700" },
-  { id: "gentleman", file: "hair/gentleman_grey.png", no_tint: false, default_color: "#1a1a1a" },
-  { id: "emo", file: "hair/emo_grey.png", no_tint: false, default_color: "#4169E1" },
-  { id: "bob", file: "hair/bob_grey.png", no_tint: false, default_color: "#B22222" },
-  { id: "basic", file: "clothes/basic_grey.png", no_tint: false, default_color: "#4a9eff" },
-  { id: "pants", file: "clothes/pants_grey.png", no_tint: false, default_color: "#2c3e50" },
-  { id: "shoes", file: "clothes/shoes_grey.png", no_tint: false, default_color: "#4a3728" },
+  {
+    id: "buzzcut",
+    file: "hair/buzzcut_grey.png",
+    no_tint: false,
+    default_color: "#1a1a1a",
+  },
+  {
+    id: "curly",
+    file: "hair/curly_grey.png",
+    no_tint: false,
+    default_color: "#8B4513",
+  },
+  {
+    id: "ponytail",
+    file: "hair/ponytail_grey.png",
+    no_tint: false,
+    default_color: "#FFD700",
+  },
+  {
+    id: "gentleman",
+    file: "hair/gentleman_grey.png",
+    no_tint: false,
+    default_color: "#1a1a1a",
+  },
+  {
+    id: "emo",
+    file: "hair/emo_grey.png",
+    no_tint: false,
+    default_color: "#4169E1",
+  },
+  {
+    id: "bob",
+    file: "hair/bob_grey.png",
+    no_tint: false,
+    default_color: "#B22222",
+  },
+  {
+    id: "basic",
+    file: "clothes/basic_grey.png",
+    no_tint: false,
+    default_color: "#4a9eff",
+  },
+  {
+    id: "pants",
+    file: "clothes/pants_grey.png",
+    no_tint: false,
+    default_color: "#2c3e50",
+  },
+  {
+    id: "shoes",
+    file: "clothes/shoes_grey.png",
+    no_tint: false,
+    default_color: "#4a3728",
+  },
 ];
 
 // Shop item file lookup (loaded from DB, cached here)
-const shopItemFiles = new Map<string, { file: string | null; no_tint: boolean; default_color: string | null }>(
+const shopItemFiles = new Map<
+  string,
+  { file: string | null; no_tint: boolean; default_color: string | null }
+>(
   DEFAULT_ITEMS.map((item) => [
     item.id,
-    { file: item.file, no_tint: item.no_tint, default_color: item.default_color },
-  ])
+    {
+      file: item.file,
+      no_tint: item.no_tint,
+      default_color: item.default_color,
+    },
+  ]),
 );
 
-export function registerShopItems(items: Array<{ id: string; file: string | null; no_tint: boolean; default_color: string | null }>): void {
+export function registerShopItems(
+  items: Array<{
+    id: string;
+    file: string | null;
+    no_tint: boolean;
+    default_color: string | null;
+  }>,
+): void {
   for (const item of items) {
-    shopItemFiles.set(item.id, { file: item.file, no_tint: item.no_tint, default_color: item.default_color });
+    shopItemFiles.set(item.id, {
+      file: item.file,
+      no_tint: item.no_tint,
+      default_color: item.default_color,
+    });
   }
 }
 
@@ -77,10 +150,18 @@ export function loadoutToAvatar(loadout: AvatarLoadout): CozyAvatar {
   }
 
   // Body (always present)
-  layers.push({ id: "body", file: "body/body_grey.png", color: loadout.skin_color || "#e8c4a0" });
+  layers.push({
+    id: "body",
+    file: "body/body_grey.png",
+    color: loadout.skin_color || "#e8c4a0",
+  });
 
   // Eyes
-  layers.push({ id: "eyes", file: "eyes/eyes_grey.png", color: loadout.eyes_color || "#4a3728" });
+  layers.push({
+    id: "eyes",
+    file: "eyes/eyes_grey.png",
+    color: loadout.eyes_color || "#4a3728",
+  });
 
   // Blush / Lipstick
   addLayer("blush", loadout.blush_id, loadout.blush_color);
@@ -88,9 +169,17 @@ export function loadoutToAvatar(loadout: AvatarLoadout): CozyAvatar {
 
   // Clothes: bottom → shoes → top OR full
   if (loadout.clothes_full_id) {
-    addLayer("clothes_full", loadout.clothes_full_id, loadout.clothes_full_color);
+    addLayer(
+      "clothes_full",
+      loadout.clothes_full_id,
+      loadout.clothes_full_color,
+    );
   } else {
-    addLayer("clothes_bottom", loadout.clothes_bottom_id, loadout.clothes_bottom_color);
+    addLayer(
+      "clothes_bottom",
+      loadout.clothes_bottom_id,
+      loadout.clothes_bottom_color,
+    );
     addLayer("shoes", loadout.shoes_id, loadout.shoes_color);
     addLayer("clothes_top", loadout.clothes_top_id, loadout.clothes_top_color);
   }
@@ -110,18 +199,29 @@ export function loadoutToAvatar(loadout: AvatarLoadout): CozyAvatar {
 // Default loadout for players without one
 const DEFAULT_LOADOUT: AvatarLoadout = {
   skin_color: "#e8c4a0",
-  hair_id: "buzzcut", hair_color: "#1a1a1a",
-  clothes_top_id: "basic", clothes_top_color: "#4a9eff",
-  clothes_bottom_id: "pants", clothes_bottom_color: "#2c3e50",
-  clothes_full_id: null, clothes_full_color: null,
-  shoes_id: "shoes", shoes_color: "#4a3728",
-  acc_hat_id: null, acc_hat_color: null,
-  acc_face_id: null, acc_face_color: null,
-  acc_facial_id: null, acc_facial_color: null,
-  acc_jewelry_id: null, acc_jewelry_color: null,
+  hair_id: "buzzcut",
+  hair_color: "#1a1a1a",
+  clothes_top_id: "basic",
+  clothes_top_color: "#4a9eff",
+  clothes_bottom_id: "pants",
+  clothes_bottom_color: "#2c3e50",
+  clothes_full_id: null,
+  clothes_full_color: null,
+  shoes_id: "shoes",
+  shoes_color: "#4a3728",
+  acc_hat_id: null,
+  acc_hat_color: null,
+  acc_face_id: null,
+  acc_face_color: null,
+  acc_facial_id: null,
+  acc_facial_color: null,
+  acc_jewelry_id: null,
+  acc_jewelry_color: null,
   eyes_color: "#4a3728",
-  blush_id: null, blush_color: null,
-  lipstick_id: null, lipstick_color: null,
+  blush_id: null,
+  blush_color: null,
+  lipstick_id: null,
+  lipstick_color: null,
   pet_id: null,
 };
 
@@ -147,7 +247,8 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 function tintSheet(img: HTMLImageElement, hexColor: string): OffscreenCanvas {
-  const w = img.width, h = img.height;
+  const w = img.width,
+    h = img.height;
   const oc = new OffscreenCanvas(w, h);
   const ctx = oc.getContext("2d")!;
 
@@ -209,7 +310,9 @@ export async function ensureSpriteLoaded(file: string): Promise<void> {
 /** Preload all files needed by a loadout */
 export async function preloadLoadout(loadout: AvatarLoadout): Promise<void> {
   const avatar = loadoutToAvatar(loadout);
-  const missing = avatar.layers.filter((l) => !greyImages.has(l.file)).map((l) => l.file);
+  const missing = avatar.layers
+    .filter((l) => !greyImages.has(l.file))
+    .map((l) => l.file);
   if (missing.length === 0) return;
   await Promise.all(missing.map((f) => ensureSpriteLoaded(f)));
 }
@@ -230,14 +333,19 @@ export function loadSpritesheet(basePath: string): Promise<void> {
     promises.push(
       new Promise((resolve, reject) => {
         const img = new Image();
-        img.onload = () => { legacyChars[i] = img; resolve(); };
+        img.onload = () => {
+          legacyChars[i] = img;
+          resolve();
+        };
         img.onerror = reject;
         img.src = `${basePath}/char_${i}.png`;
       }),
     );
   }
 
-  return Promise.all(promises).then(() => { legacyLoaded = true; });
+  return Promise.all(promises).then(() => {
+    legacyLoaded = true;
+  });
 }
 
 export function isSpriteLoaded(): boolean {
@@ -307,7 +415,10 @@ export function drawCozyCharacter(
 const playerAvatarCache = new Map<string, CozyAvatar>();
 
 /** Set/update a player's avatar from their loadout */
-export function setPlayerAvatar(playerId: string, loadout: AvatarLoadout): void {
+export function setPlayerAvatar(
+  playerId: string,
+  loadout: AvatarLoadout,
+): void {
   playerAvatarCache.set(playerId, loadoutToAvatar(loadout));
 }
 
@@ -346,7 +457,11 @@ export function drawCharacter(
 
   const row = LEGACY_DIR_ROW[dir];
   const legacyWalk = walkFrame % 2;
-  const col = walking ? (legacyWalk === 0 ? LEGACY_COL_WALK1 : LEGACY_COL_WALK2) : LEGACY_COL_IDLE;
+  const col = walking
+    ? legacyWalk === 0
+      ? LEGACY_COL_WALK1
+      : LEGACY_COL_WALK2
+    : LEGACY_COL_IDLE;
 
   const sx = col * LEGACY_SPRITE_W;
   const sy = row * LEGACY_SPRITE_H;
@@ -357,10 +472,30 @@ export function drawCharacter(
     ctx.save();
     ctx.translate(dx + dw, dy);
     ctx.scale(-1, 1);
-    ctx.drawImage(charImg, sx, sy, LEGACY_SPRITE_W, LEGACY_SPRITE_H, 0, 0, dw, dh);
+    ctx.drawImage(
+      charImg,
+      sx,
+      sy,
+      LEGACY_SPRITE_W,
+      LEGACY_SPRITE_H,
+      0,
+      0,
+      dw,
+      dh,
+    );
     ctx.restore();
   } else {
-    ctx.drawImage(charImg, sx, sy, LEGACY_SPRITE_W, LEGACY_SPRITE_H, dx, dy, dw, dh);
+    ctx.drawImage(
+      charImg,
+      sx,
+      sy,
+      LEGACY_SPRITE_W,
+      LEGACY_SPRITE_H,
+      dx,
+      dy,
+      dw,
+      dh,
+    );
   }
 }
 
@@ -378,10 +513,21 @@ export interface PetDef {
 
 export const PET_DEFS: PetDef[] = [
   { id: "cat", name: "Cat", file: "cat_animation.png", cell: 18, cols: 4 },
-  { id: "yorkie", name: "Yorkie", file: "yorkie_animation.png", cell: 18, cols: 4 },
+  {
+    id: "yorkie",
+    name: "Yorkie",
+    file: "yorkie_animation.png",
+    cell: 18,
+    cols: 4,
+  },
 ];
 
-const PET_DIR_ROW: Record<string, number> = { down: 0, up: 1, left: 3, right: 2 };
+const PET_DIR_ROW: Record<string, number> = {
+  down: 0,
+  up: 1,
+  left: 3,
+  right: 2,
+};
 const PET_WALK_FRAME_DURATION = 0.15;
 
 const petImages = new Map<string, HTMLImageElement>();
@@ -391,13 +537,19 @@ let petWalkFrame = 0;
 let petWalkTimer = 0;
 
 export function loadPetSprites(basePath: string): Promise<void> {
-  const promises = PET_DEFS.map((def) =>
-    new Promise<void>((resolve) => {
-      const img = new Image();
-      img.onload = () => { petImages.set(def.id, img); resolve(); };
-      img.onerror = () => { resolve(); };
-      img.src = `${basePath}/${def.file}`;
-    }),
+  const promises = PET_DEFS.map(
+    (def) =>
+      new Promise<void>((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          petImages.set(def.id, img);
+          resolve();
+        };
+        img.onerror = () => {
+          resolve();
+        };
+        img.src = `${basePath}/${def.file}`;
+      }),
   );
   return Promise.all(promises).then(() => {
     petLoaded = petImages.size > 0;
@@ -408,17 +560,31 @@ export function loadPetSprites(basePath: string): Promise<void> {
 export function loadPetSprite(src: string): Promise<void> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => { petImages.set("cat", img); petLoaded = true; resolve(); };
-    img.onerror = () => { resolve(); };
+    img.onload = () => {
+      petImages.set("cat", img);
+      petLoaded = true;
+      resolve();
+    };
+    img.onerror = () => {
+      resolve();
+    };
     img.src = src;
   });
 }
 
-export function isPetLoaded(): boolean { return petLoaded; }
+export function isPetLoaded(): boolean {
+  return petLoaded;
+}
 
-export function setActivePet(id: string): void { activePetId = id; }
-export function getActivePet(): string { return activePetId; }
-export function getPetDefs(): PetDef[] { return PET_DEFS; }
+export function setActivePet(id: string): void {
+  activePetId = id;
+}
+export function getActivePet(): string {
+  return activePetId;
+}
+export function getPetDefs(): PetDef[] {
+  return PET_DEFS;
+}
 
 export function updatePetAnimation(dt: number, walking: boolean): void {
   const def = PET_DEFS.find((d) => d.id === activePetId) ?? PET_DEFS[0];
@@ -448,8 +614,17 @@ export function drawPet(
   const row = PET_DIR_ROW[dir];
   const frame = walking ? petWalkFrame : 0;
   const cell = def.cell;
-  ctx.drawImage(img, frame * cell, row * cell, cell, cell,
-    dx, dy, cell * scale, cell * scale);
+  ctx.drawImage(
+    img,
+    frame * cell,
+    row * cell,
+    cell,
+    cell,
+    dx,
+    dy,
+    cell * scale,
+    cell * scale,
+  );
 }
 
 export const PET_SIZE = 18; // both cat and yorkie are 18x18

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { DEFAULT_SKY_ADS, MAX_PLANES, MAX_BLIMPS, MAX_BILLBOARDS, MAX_ROOFTOP_SIGNS, MAX_LED_WRAPS, type SkyAd } from "@/lib/skyAds";
+import {
+  DEFAULT_SKY_ADS,
+  MAX_PLANES,
+  MAX_BLIMPS,
+  MAX_BILLBOARDS,
+  MAX_ROOFTOP_SIGNS,
+  MAX_LED_WRAPS,
+  type SkyAd,
+} from "@/lib/skyAds";
 
 // Rotation interval in seconds. Every interval, a different set of paid ads is served.
 const ROTATION_INTERVAL = 60;
@@ -51,7 +59,9 @@ export async function GET() {
     const sb = getSupabaseAdmin();
     const { data, error } = await sb
       .from("sky_ads")
-      .select("id, brand, text, description, color, bg_color, link, vehicle, priority, plan_id")
+      .select(
+        "id, brand, text, description, color, bg_color, link, vehicle, priority, plan_id",
+      )
       .eq("active", true)
       .or("starts_at.is.null,starts_at.lte.now()")
       .or("ends_at.is.null,ends_at.gt.now()")
@@ -59,7 +69,9 @@ export async function GET() {
 
     if (error || !data || data.length === 0) {
       return NextResponse.json(DEFAULT_SKY_ADS, {
-        headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
       });
     }
 
@@ -75,17 +87,41 @@ export async function GET() {
       priority: row.priority,
     }));
 
-    const planes = rotateAds(allAds.filter((a) => a.vehicle === "plane"), MAX_PLANES);
-    const blimps = rotateAds(allAds.filter((a) => a.vehicle === "blimp"), MAX_BLIMPS);
-    const billboards = rotateAds(allAds.filter((a) => a.vehicle === "billboard"), MAX_BILLBOARDS);
-    const rooftopSigns = rotateAds(allAds.filter((a) => a.vehicle === "rooftop_sign"), MAX_ROOFTOP_SIGNS);
-    const ledWraps = rotateAds(allAds.filter((a) => a.vehicle === "led_wrap"), MAX_LED_WRAPS);
+    const planes = rotateAds(
+      allAds.filter((a) => a.vehicle === "plane"),
+      MAX_PLANES,
+    );
+    const blimps = rotateAds(
+      allAds.filter((a) => a.vehicle === "blimp"),
+      MAX_BLIMPS,
+    );
+    const billboards = rotateAds(
+      allAds.filter((a) => a.vehicle === "billboard"),
+      MAX_BILLBOARDS,
+    );
+    const rooftopSigns = rotateAds(
+      allAds.filter((a) => a.vehicle === "rooftop_sign"),
+      MAX_ROOFTOP_SIGNS,
+    );
+    const ledWraps = rotateAds(
+      allAds.filter((a) => a.vehicle === "led_wrap"),
+      MAX_LED_WRAPS,
+    );
 
-    return NextResponse.json([...planes, ...blimps, ...billboards, ...rooftopSigns, ...ledWraps], {
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
+    return NextResponse.json(
+      [...planes, ...blimps, ...billboards, ...rooftopSigns, ...ledWraps],
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        },
+      },
+    );
+  } catch (err) {
+    console.warn("[app/api/sky-ads/route.ts] error:", err);
+    return NextResponse.json(DEFAULT_SKY_ADS, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
     });
-  } catch (err) { console.warn("[app/api/sky-ads/route.ts] error:", err); return NextResponse.json(DEFAULT_SKY_ADS, {
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
-    });
-   }
+  }
 }

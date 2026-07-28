@@ -35,13 +35,22 @@ function generateBuildings(count: number): BuildingData[] {
 
   function spiralCoord(index: number): [number, number] {
     if (index === 0) return [0, 0];
-    let x = 0, y = 0, dx = 1, dy = 0;
-    let segLen = 1, segPassed = 0, turns = 0;
+    let x = 0,
+      y = 0,
+      dx = 1,
+      dy = 0;
+    let segLen = 1,
+      segPassed = 0,
+      turns = 0;
     for (let i = 0; i < index; i++) {
-      x += dx; y += dy; segPassed++;
+      x += dx;
+      y += dy;
+      segPassed++;
       if (segPassed === segLen) {
         segPassed = 0;
-        const tmp = dx; dx = -dy; dy = tmp;
+        const tmp = dx;
+        dx = -dy;
+        dy = tmp;
         turns++;
         if (turns % 2 === 0) segLen++;
       }
@@ -64,7 +73,7 @@ function generateBuildings(count: number): BuildingData[] {
         const offsetX = (c - (BLOCK_SIZE - 1) / 2) * CELL_SPACING;
         const offsetZ = (r - (BLOCK_SIZE - 1) / 2) * CELL_SPACING;
 
-        const seed = (idx + 1) * 16807 % 2147483647;
+        const seed = ((idx + 1) * 16807) % 2147483647;
         const r1 = seededRand(seed);
         const r2 = seededRand(seed + 1);
         const r3 = seededRand(seed + 2);
@@ -80,7 +89,13 @@ function generateBuildings(count: number): BuildingData[] {
         buildings.push({
           x: blockCenterX + offsetX,
           z: blockCenterZ + offsetZ,
-          height, width, depth, litPct, windowsPerFloor, floors, seed,
+          height,
+          width,
+          depth,
+          litPct,
+          windowsPerFloor,
+          floors,
+          seed,
           customColor: null,
         });
         idx++;
@@ -116,7 +131,10 @@ function createAtlas(): THREE.CanvasTexture {
   buf32.fill(faceABGR);
 
   let s = 42;
-  const rand = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  const rand = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
 
   for (let band = 0; band < ATLAS_LIT_PCTS.length; band++) {
     const litPct = ATLAS_LIT_PCTS[band];
@@ -125,9 +143,10 @@ function createAtlas(): THREE.CanvasTexture {
       const rowY = (bandStart + r) * ATLAS_CELL;
       for (let c = 0; c < ATLAS_COLS; c++) {
         const px = c * ATLAS_CELL;
-        const abgr = rand() < litPct
-          ? litABGRs[Math.floor(rand() * litABGRs.length)]
-          : offABGR;
+        const abgr =
+          rand() < litPct
+            ? litABGRs[Math.floor(rand() * litABGRs.length)]
+            : offABGR;
         for (let dy = 0; dy < WS; dy++) {
           const rowOffset = (rowY + dy) * ATLAS_SIZE + px;
           for (let dx = 0; dx < WS; dx++) {
@@ -256,7 +275,9 @@ function InstancedCity({ buildings }: { buildings: BuildingData[] }) {
       // Per-instance UV: pick a band + column from atlas
       const bandIndex = Math.min(5, Math.max(0, Math.round(b.litPct * 5)));
       const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
-      const colStart = Math.abs(b.seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor));
+      const colStart = Math.abs(
+        b.seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor),
+      );
 
       uvData[i * 4 + 0] = colStart / ATLAS_COLS;
       uvData[i * 4 + 1] = bandRowOffset / ATLAS_COLS;
@@ -279,7 +300,11 @@ function InstancedCity({ buildings }: { buildings: BuildingData[] }) {
   }, [geo, material, atlas]);
 
   return (
-    <instancedMesh ref={meshRef} args={[geo, material, count]} frustumCulled={false} />
+    <instancedMesh
+      ref={meshRef}
+      args={[geo, material, count]}
+      frustumCulled={false}
+    />
   );
 }
 
@@ -297,7 +322,9 @@ const IndividualBuilding = memo(function IndividualBuilding({
   const materials = useMemo(() => {
     const bandIndex = Math.min(5, Math.max(0, Math.round(b.litPct * 5)));
     const bandRowOffset = bandIndex * ATLAS_BAND_ROWS;
-    const colStart = Math.abs(b.seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor));
+    const colStart = Math.abs(
+      b.seed % Math.max(1, ATLAS_COLS - b.windowsPerFloor),
+    );
 
     const front = atlas.clone();
     front.offset.set(colStart / ATLAS_COLS, bandRowOffset / ATLAS_COLS);
@@ -343,7 +370,13 @@ const IndividualBuilding = memo(function IndividualBuilding({
   );
 });
 
-function IndividualCity({ buildings, atlas }: { buildings: BuildingData[]; atlas: THREE.CanvasTexture }) {
+function IndividualCity({
+  buildings,
+  atlas,
+}: {
+  buildings: BuildingData[];
+  atlas: THREE.CanvasTexture;
+}) {
   return (
     <>
       {buildings.map((b, i) => (
@@ -375,7 +408,8 @@ function RenderStats({ mode, count }: { mode: string; count: number }) {
     fpsFrames.current.push(1000 / delta);
     if (fpsFrames.current.length > 60) fpsFrames.current.shift();
 
-    const avgFps = fpsFrames.current.reduce((a, b) => a + b, 0) / fpsFrames.current.length;
+    const avgFps =
+      fpsFrames.current.reduce((a, b) => a + b, 0) / fpsFrames.current.length;
 
     if (statsRef.current) {
       const info = gl.info.render;
@@ -425,16 +459,21 @@ export default function CityPOC() {
     return buildings.slice(0, Math.min(count, 2000));
   }, [buildings, count, mode]);
 
-  const effectiveCount = mode === "individual"
-    ? Math.min(count, 2000)
-    : count;
+  const effectiveCount = mode === "individual" ? Math.min(count, 2000) : count;
 
   const handleCountChange = useCallback((newCount: number) => {
     setCount(newCount);
   }, []);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#0a0a14", position: "relative" }}>
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        background: "#0a0a14",
+        position: "relative",
+      }}
+    >
       {/* Controls Panel */}
       <div
         style={{
@@ -466,7 +505,8 @@ export default function CityPOC() {
             style={{
               flex: 1,
               padding: "6px 8px",
-              background: mode === "instanced" ? "#ffa116" : "rgba(255,161,22,0.1)",
+              background:
+                mode === "instanced" ? "#ffa116" : "rgba(255,161,22,0.1)",
               color: mode === "instanced" ? "#0a0a14" : "#ffa116",
               border: "1px solid #ffa116",
               borderRadius: 4,
@@ -483,7 +523,8 @@ export default function CityPOC() {
             style={{
               flex: 1,
               padding: "6px 8px",
-              background: mode === "individual" ? "#e64a4a" : "rgba(230,74,74,0.1)",
+              background:
+                mode === "individual" ? "#e64a4a" : "rgba(230,74,74,0.1)",
               color: mode === "individual" ? "#fff" : "#e64a4a",
               border: "1px solid #e64a4a",
               borderRadius: 4,
@@ -505,7 +546,10 @@ export default function CityPOC() {
               onClick={() => handleCountChange(n)}
               style={{
                 padding: "4px 8px",
-                background: count === n ? "rgba(255,161,22,0.3)" : "rgba(255,255,255,0.05)",
+                background:
+                  count === n
+                    ? "rgba(255,161,22,0.3)"
+                    : "rgba(255,255,255,0.05)",
                 color: count === n ? "#ffa116" : "#888",
                 border: `1px solid ${count === n ? "#ffa116" : "#333"}`,
                 borderRadius: 4,
@@ -558,9 +602,21 @@ export default function CityPOC() {
       >
         <fog attach="fog" args={["#0a0a14", 800, 5000]} />
         <ambientLight color="#4466aa" intensity={2.5} />
-        <directionalLight position={[200, 400, 200]} color="#aabbff" intensity={3} />
-        <directionalLight position={[-100, 300, -200]} color="#6644aa" intensity={1.5} />
-        <hemisphereLight color="#334488" groundColor="#0a0a14" intensity={2.5} />
+        <directionalLight
+          position={[200, 400, 200]}
+          color="#aabbff"
+          intensity={3}
+        />
+        <directionalLight
+          position={[-100, 300, -200]}
+          color="#6644aa"
+          intensity={1.5}
+        />
+        <hemisphereLight
+          color="#334488"
+          groundColor="#0a0a14"
+          intensity={2.5}
+        />
 
         <Ground />
 

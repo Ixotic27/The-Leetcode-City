@@ -25,7 +25,9 @@ function calendarResponse(entries: Record<number, number>) {
 }
 
 // Midnight-UTC timestamps relative to FIXED_NOW.
-const todayMidnightTs = Math.floor(new Date("2025-06-04T00:00:00.000Z").getTime() / 1000);
+const todayMidnightTs = Math.floor(
+  new Date("2025-06-04T00:00:00.000Z").getTime() / 1000,
+);
 const twoDaysAgoTs = todayMidnightTs - 2 * 86400;
 const tenDaysAgoTs = todayMidnightTs - 10 * 86400;
 
@@ -43,9 +45,11 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
   it("sums only submissions within the last 7 days", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(
-        calendarResponse({ [twoDaysAgoTs]: 5, [tenDaysAgoTs]: 99 }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          calendarResponse({ [twoDaysAgoTs]: 5, [tenDaysAgoTs]: 99 }),
+        ),
     );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
     expect(result).toBe(5);
@@ -82,7 +86,10 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
   });
 
   it("returns null (not 0) when fetch throws (network error)", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("network down")),
+    );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
     expect(result).toBeNull();
   });
@@ -94,7 +101,9 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
     // undercount of the window, so the function must return null rather than
     // overwrite the stored count with a partial total.
     vi.setSystemTime(new Date("2026-01-02T12:00:00.000Z"));
-    const jan1Ts = Math.floor(new Date("2026-01-01T00:00:00.000Z").getTime() / 1000);
+    const jan1Ts = Math.floor(
+      new Date("2026-01-01T00:00:00.000Z").getTime() / 1000,
+    );
 
     const fetchMock = vi
       .fn()

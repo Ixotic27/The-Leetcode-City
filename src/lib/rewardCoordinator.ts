@@ -47,15 +47,31 @@ export interface RewardCoordinationInput {
 
 export interface RewardCoordinationResult {
   newAchievements: string[];
-  xpResults: Array<{ source: string; amount: number; success: boolean; error?: unknown }>;
+  xpResults: Array<{
+    source: string;
+    amount: number;
+    success: boolean;
+    error?: unknown;
+  }>;
   feedInserted: boolean;
 }
 
 type RewardAdminClient = {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data?: unknown; error?: { message?: string; code?: string } | null }>;
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{
+    data?: unknown;
+    error?: { message?: string; code?: string } | null;
+  }>;
   from: (table: string) => {
-    insert?: (values: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
-    upsert?: (values: Record<string, unknown>, options?: Record<string, unknown>) => Promise<{ data?: unknown; error?: unknown }>;
+    insert?: (
+      values: Record<string, unknown>,
+    ) => Promise<{ data?: unknown; error?: unknown }>;
+    upsert?: (
+      values: Record<string, unknown>,
+      options?: Record<string, unknown>,
+    ) => Promise<{ data?: unknown; error?: unknown }>;
   };
 };
 
@@ -74,16 +90,30 @@ export async function coordinateRewardSideEffects(
         p_source: grant.source,
         p_amount: grant.amount,
       });
-      xpResults.push({ source: grant.source, amount: grant.amount, success: !error, error });
+      xpResults.push({
+        source: grant.source,
+        amount: grant.amount,
+        success: !error,
+        error,
+      });
     } catch (error) {
-      xpResults.push({ source: grant.source, amount: grant.amount, success: false, error });
+      xpResults.push({
+        source: grant.source,
+        amount: grant.amount,
+        success: false,
+        error,
+      });
     }
   }
 
   let newAchievements: string[] = [];
   if (input.stats) {
     try {
-      newAchievements = await checkAchievements(input.developerId, input.stats as never, input.actorLogin);
+      newAchievements = await checkAchievements(
+        input.developerId,
+        input.stats as never,
+        input.actorLogin,
+      );
     } catch (error) {
       console.error("[rewardCoordinator] achievements check failed", error);
     }
@@ -96,13 +126,16 @@ export async function coordinateRewardSideEffects(
       actor_id: input.feedEvent.actor_id ?? input.developerId,
       target_id: input.feedEvent.target_id ?? null,
       metadata: input.feedEvent.metadata,
-      ...(input.feedEvent.event_date ? { event_date: input.feedEvent.event_date } : {}),
+      ...(input.feedEvent.event_date
+        ? { event_date: input.feedEvent.event_date }
+        : {}),
     };
 
     try {
       if (input.feedEvent.upsert) {
         await admin.from("activity_feed").upsert?.(payload, {
-          onConflict: input.feedEvent.onConflict ?? "actor_id,event_type,event_date",
+          onConflict:
+            input.feedEvent.onConflict ?? "actor_id,event_type,event_date",
           ignoreDuplicates: input.feedEvent.ignoreDuplicates ?? true,
         });
       } else {

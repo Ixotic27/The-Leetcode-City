@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({});
 
     const sb = getSupabaseAdmin();
@@ -11,13 +12,17 @@ export async function GET() {
     // Fetch all achievements
     const { data: allAchievements } = await sb
       .from("achievements")
-      .select("id, category, name, description, threshold, tier, reward_type, reward_item_id, sort_order")
+      .select(
+        "id, category, name, description, threshold, tier, reward_type, reward_item_id, sort_order",
+      )
       .order("sort_order", { ascending: true });
 
     // Fetch all shop items
     const { data: allItems } = await sb
       .from("arena_items")
-      .select("id, name, slug, description, item_type, rarity, icon_path, max_stack, price_points, price_usd_cents")
+      .select(
+        "id, name, slug, description, item_type, rarity, icon_path, max_stack, price_points, price_usd_cents",
+      )
       .order("name", { ascending: true });
 
     // Default response for guest users
@@ -59,7 +64,9 @@ export async function GET() {
       .from("developer_achievements")
       .select("achievement_id")
       .eq("developer_id", dev.id);
-    const unlockedAchievements = (unlockedAchievementsData ?? []).map(r => r.achievement_id);
+    const unlockedAchievements = (unlockedAchievementsData ?? []).map(
+      (r) => r.achievement_id,
+    );
 
     // Fetch user's owned items (purchases completed)
     const { data: directPurchases } = await sb
@@ -77,12 +84,28 @@ export async function GET() {
     const ownedItems = Array.from(
       new Set([
         ...(directPurchases ?? [])
-          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-          .map(p => p.item_id),
+          .filter(
+            (p) =>
+              !(
+                p.amount_cents === 0 &&
+                ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+                  p.provider,
+                )
+              ),
+          )
+          .map((p) => p.item_id),
         ...(giftedPurchases ?? [])
-          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-          .map(p => p.item_id)
-      ])
+          .filter(
+            (p) =>
+              !(
+                p.amount_cents === 0 &&
+                ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+                  p.provider,
+                )
+              ),
+          )
+          .map((p) => p.item_id),
+      ]),
     );
 
     // Fetch user's Arena Inventory items (for Arena Badges/Customizations)
@@ -90,12 +113,18 @@ export async function GET() {
       .from("arena_inventory")
       .select("arena_items(slug)")
       .eq("user_id", dev.id);
-    
+
     const ownedTitles = (arenaInvData ?? [])
-      .map((inv: any) => Array.isArray(inv.arena_items) ? inv.arena_items[0]?.slug : inv.arena_items?.slug)
+      .map((inv: any) =>
+        Array.isArray(inv.arena_items)
+          ? inv.arena_items[0]?.slug
+          : inv.arena_items?.slug,
+      )
       .filter((slug): slug is string => typeof slug === "string");
 
-    const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
+    const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(
+      dev.github_login.toLowerCase(),
+    );
     if (isDeveloper) {
       ownedTitles.push("title_creator", "title_lead_dev", "title_sys_op");
     }

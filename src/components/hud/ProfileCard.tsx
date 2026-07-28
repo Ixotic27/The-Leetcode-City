@@ -232,10 +232,10 @@ export default function ProfileCard() {
 
   const isOwnBuilding =
     !!selectedBuilding &&
-    (
-      (!!linkedLeetCodeUsername && selectedBuilding.login.toLowerCase() === linkedLeetCodeUsername.toLowerCase()) ||
-      (!!authLogin && selectedBuilding.login.toLowerCase() === authLogin)
-    );
+    ((!!linkedLeetCodeUsername &&
+      selectedBuilding.login.toLowerCase() ===
+        linkedLeetCodeUsername.toLowerCase()) ||
+      (!!authLogin && selectedBuilding.login.toLowerCase() === authLogin));
 
   return (
     <>
@@ -248,7 +248,10 @@ export default function ProfileCard() {
           <span className="text-cream">Scroll</span> zoom
         </div>
         <div>
-          <span className="text-cream" style={{ color: theme.accent }}>ESC</span> close
+          <span className="text-cream" style={{ color: theme.accent }}>
+            ESC
+          </span>{" "}
+          close
         </div>
       </div>
 
@@ -327,22 +330,34 @@ export default function ProfileCard() {
                   {selectedBuilding.contributions >= 100 && (
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       {selectedBuilding.contributions >= 1000 && (
-                        <span className="inline-flex items-center bg-[#bc13fe]/20 border border-[#bc13fe] px-1.5 py-0.5 text-[8px] font-bold text-[#d880ff]" title="1000+ LeetCode problems solved">
+                        <span
+                          className="inline-flex items-center bg-[#bc13fe]/20 border border-[#bc13fe] px-1.5 py-0.5 text-[8px] font-bold text-[#d880ff]"
+                          title="1000+ LeetCode problems solved"
+                        >
                           🚨 Neon Beacon (1k+)
                         </span>
                       )}
                       {selectedBuilding.contributions >= 500 && (
-                        <span className="inline-flex items-center bg-[#ffd700]/20 border border-[#ffd700] px-1.5 py-0.5 text-[8px] font-bold text-[#ffe680]" title="500+ LeetCode problems solved">
+                        <span
+                          className="inline-flex items-center bg-[#ffd700]/20 border border-[#ffd700] px-1.5 py-0.5 text-[8px] font-bold text-[#ffe680]"
+                          title="500+ LeetCode problems solved"
+                        >
                           🥇 Gold Milestone (500+)
                         </span>
                       )}
                       {selectedBuilding.contributions >= 300 && (
-                        <span className="inline-flex items-center bg-[#c0c0c0]/20 border border-[#c0c0c0] px-1.5 py-0.5 text-[8px] font-bold text-[#e6e6e6]" title="300+ LeetCode problems solved">
+                        <span
+                          className="inline-flex items-center bg-[#c0c0c0]/20 border border-[#c0c0c0] px-1.5 py-0.5 text-[8px] font-bold text-[#e6e6e6]"
+                          title="300+ LeetCode problems solved"
+                        >
                           🥈 Silver Milestone (300+)
                         </span>
                       )}
                       {selectedBuilding.contributions >= 100 && (
-                        <span className="inline-flex items-center bg-[#cd7f32]/20 border border-[#cd7f32] px-1.5 py-0.5 text-[8px] font-bold text-[#ffb880]" title="100+ LeetCode problems solved">
+                        <span
+                          className="inline-flex items-center bg-[#cd7f32]/20 border border-[#cd7f32] px-1.5 py-0.5 text-[8px] font-bold text-[#ffb880]"
+                          title="100+ LeetCode problems solved"
+                        >
                           🥉 Bronze Milestone (100+)
                         </span>
                       )}
@@ -451,7 +466,8 @@ export default function ProfileCard() {
                 const reputation = selectedBuilding.total_stars;
                 const acceptanceRateRaw = selectedBuilding.acceptance_rate;
                 const acceptanceRate =
-                  typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw)
+                  typeof acceptanceRateRaw === "number" &&
+                  !isNaN(acceptanceRateRaw)
                     ? acceptanceRateRaw
                     : -1;
 
@@ -490,9 +506,7 @@ export default function ProfileCard() {
                   {
                     label: "Contest",
                     value:
-                      contestRating > 0
-                        ? contestRating.toLocaleString()
-                        : "--",
+                      contestRating > 0 ? contestRating.toLocaleString() : "--",
                   },
                   { label: "Reputation", value: reputation.toLocaleString() },
                   {
@@ -509,7 +523,10 @@ export default function ProfileCard() {
                   <div className="grid grid-cols-3 gap-px bg-border/30 mx-4 mb-3 border border-border/50">
                     {statsList.map((s) => (
                       <div key={s.label} className="bg-bg-card p-2 text-center">
-                        <div className="text-xs" style={{ color: theme.accent }}>
+                        <div
+                          className="text-xs"
+                          style={{ color: theme.accent }}
+                        >
                           {s.value}
                         </div>
                         <div className="text-[8px] text-muted mt-0.5">
@@ -522,44 +539,56 @@ export default function ProfileCard() {
               })()}
 
               {/* Achievements with tier colors */}
-              {selectedBuilding.achievements && selectedBuilding.achievements.length > 0 && (
-                <div className="mx-4 mb-3 flex flex-wrap gap-1">
-                  {[...selectedBuilding.achievements]
-                    .sort((a, b) => {
-                      const tierOrder = ["diamond", "gold", "silver", "bronze"];
-                      const ta = tierOrder.indexOf(ACHIEVEMENT_TIERS_MAP[a] ?? "bronze");
-                      const tb = tierOrder.indexOf(ACHIEVEMENT_TIERS_MAP[b] ?? "bronze");
-                      return ta - tb;
-                    })
-                    .slice(0, 3)
-                    .map((ach) => {
-                      const tier = ACHIEVEMENT_TIERS_MAP[ach];
-                      const color = tier ? TIER_COLORS_MAP[tier] : undefined;
-                      const emoji = tier ? TIER_EMOJI_MAP[tier] : "";
-                      return (
-                        <span
-                          key={ach}
-                          className="px-1.5 py-0.5 text-[8px] border normal-case"
-                          style={{
-                            borderColor: color ?? "rgba(255,255,255,0.15)",
-                            color: color ?? "#a0a0b0",
-                          }}
-                        >
-                          {emoji} {ACHIEVEMENT_NAMES_MAP[ach] ?? ach.replace(/_/g, " ")}
-                        </span>
-                      );
-                    })}
-                  {selectedBuilding.achievements.length > 3 && (
-                    <Link
-                      href={`/dev/${selectedBuilding.login}`}
-                      className="px-1.5 py-0.5 text-[8px] transition-colors hover:text-cream"
-                      style={{ color: theme.accent }}
-                    >
-                      +{selectedBuilding.achievements.length - 3} more &rarr;
-                    </Link>
-                  )}
-                </div>
-              )}
+              {selectedBuilding.achievements &&
+                selectedBuilding.achievements.length > 0 && (
+                  <div className="mx-4 mb-3 flex flex-wrap gap-1">
+                    {[...selectedBuilding.achievements]
+                      .sort((a, b) => {
+                        const tierOrder = [
+                          "diamond",
+                          "gold",
+                          "silver",
+                          "bronze",
+                        ];
+                        const ta = tierOrder.indexOf(
+                          ACHIEVEMENT_TIERS_MAP[a] ?? "bronze",
+                        );
+                        const tb = tierOrder.indexOf(
+                          ACHIEVEMENT_TIERS_MAP[b] ?? "bronze",
+                        );
+                        return ta - tb;
+                      })
+                      .slice(0, 3)
+                      .map((ach) => {
+                        const tier = ACHIEVEMENT_TIERS_MAP[ach];
+                        const color = tier ? TIER_COLORS_MAP[tier] : undefined;
+                        const emoji = tier ? TIER_EMOJI_MAP[tier] : "";
+                        return (
+                          <span
+                            key={ach}
+                            className="px-1.5 py-0.5 text-[8px] border normal-case"
+                            style={{
+                              borderColor: color ?? "rgba(255,255,255,0.15)",
+                              color: color ?? "#a0a0b0",
+                            }}
+                          >
+                            {emoji}{" "}
+                            {ACHIEVEMENT_NAMES_MAP[ach] ??
+                              ach.replace(/_/g, " ")}
+                          </span>
+                        );
+                      })}
+                    {selectedBuilding.achievements.length > 3 && (
+                      <Link
+                        href={`/dev/${selectedBuilding.login}`}
+                        className="px-1.5 py-0.5 text-[8px] transition-colors hover:text-cream"
+                        style={{ color: theme.accent }}
+                      >
+                        +{selectedBuilding.achievements.length - 3} more &rarr;
+                      </Link>
+                    )}
+                  </div>
+                )}
 
               {/* Equipped items on other devs' buildings */}
               {identityResolved &&
@@ -570,8 +599,13 @@ export default function ProfileCard() {
                   if (loadout?.crown) equipped.push(loadout.crown);
                   if (loadout?.roof) equipped.push(loadout.roof);
                   if (loadout?.aura) equipped.push(loadout.aura);
-                  for (const fi of ["custom_color", "billboard", "led_banner"]) {
-                    if (selectedBuilding.owned_items?.includes(fi)) equipped.push(fi);
+                  for (const fi of [
+                    "custom_color",
+                    "billboard",
+                    "led_banner",
+                  ]) {
+                    if (selectedBuilding.owned_items?.includes(fi))
+                      equipped.push(fi);
                   }
                   if (equipped.length === 0) return null;
                   const shown = equipped.slice(0, 3);
@@ -594,7 +628,11 @@ export default function ProfileCard() {
                             {ITEM_EMOJIS[id] ?? "🎁"} {ITEM_NAMES[id] ?? id}
                           </span>
                         ))}
-                        {extra > 0 && <span className="text-[9px] text-muted">+{extra} more</span>}
+                        {extra > 0 && (
+                          <span className="text-[9px] text-muted">
+                            +{extra} more
+                          </span>
+                        )}
                       </div>
                       {identityResolved && session && !isOwnBuilding && (
                         <Link
@@ -675,13 +713,19 @@ export default function ProfileCard() {
                   <button
                     onClick={() => {
                       if (authLogin && selectedBuilding) {
-                        raidActions.startPreview(selectedBuilding.login, buildings, authLogin);
+                        raidActions.startPreview(
+                          selectedBuilding.login,
+                          buildings,
+                          authLogin,
+                        );
                       }
                     }}
                     disabled={raidState.loading}
                     className="btn-press mt-1.5 w-full border-[3px] border-red-500/60 px-4 py-2 text-xs text-red-400 transition-colors hover:bg-red-500/10"
                   >
-                    {raidState.loading ? "Loading..." : "⚔️ BATTLE — Win +50 XP"}
+                    {raidState.loading
+                      ? "Loading..."
+                      : "⚔️ BATTLE — Win +50 XP"}
                   </button>
                 </div>
               )}
@@ -692,7 +736,9 @@ export default function ProfileCard() {
                   <button
                     onClick={() => {
                       try {
-                        const { trackDisabledButtonClicked } = require("@/lib/himetrica");
+                        const {
+                          trackDisabledButtonClicked,
+                        } = require("@/lib/himetrica");
                         trackDisabledButtonClicked("kudos");
                       } catch {}
                       handleSignIn();
@@ -704,7 +750,9 @@ export default function ProfileCard() {
                   <button
                     onClick={() => {
                       try {
-                        const { trackDisabledButtonClicked } = require("@/lib/himetrica");
+                        const {
+                          trackDisabledButtonClicked,
+                        } = require("@/lib/himetrica");
                         trackDisabledButtonClicked("gift");
                       } catch {}
                       handleSignIn();
@@ -716,7 +764,9 @@ export default function ProfileCard() {
                   <button
                     onClick={() => {
                       try {
-                        const { trackDisabledButtonClicked } = require("@/lib/himetrica");
+                        const {
+                          trackDisabledButtonClicked,
+                        } = require("@/lib/himetrica");
                         trackDisabledButtonClicked("raid");
                       } catch {}
                       handleSignIn();
@@ -734,7 +784,7 @@ export default function ProfileCard() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(
-                        `${window.location.origin}/?ref=${selfLogin}`
+                        `${window.location.origin}/?ref=${selfLogin}`,
                       );
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);

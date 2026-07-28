@@ -15,8 +15,16 @@ interface DistrictChooserProps {
 }
 
 const CHOOSABLE_DISTRICTS = [
-  "frontend", "backend", "fullstack", "mobile", "data_ai",
-  "devops", "security", "gamedev", "vibe_coder", "creator",
+  "frontend",
+  "backend",
+  "fullstack",
+  "mobile",
+  "data_ai",
+  "devops",
+  "security",
+  "gamedev",
+  "vibe_coder",
+  "creator",
 ];
 
 export default function DistrictChooser({

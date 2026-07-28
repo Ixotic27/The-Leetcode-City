@@ -15,7 +15,6 @@ import type { CityPlayer } from "@/lib/multiplayer/types";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
 
-
 const GRID_CELL_SIZE = 200;
 const WEATHER_PARTICLE_COUNT = 900;
 const WEATHER_AREA = 2200;
@@ -32,7 +31,9 @@ const pseudoRandom = (seed: number) => {
   return x - Math.floor(x);
 };
 const wrapAroundCenter = (value: number, center: number) => {
-  const wrapped = ((value - center + WEATHER_HALF_AREA) % WEATHER_AREA + WEATHER_AREA) % WEATHER_AREA;
+  const wrapped =
+    (((value - center + WEATHER_HALF_AREA) % WEATHER_AREA) + WEATHER_AREA) %
+    WEATHER_AREA;
   return center + wrapped - WEATHER_HALF_AREA;
 };
 const createInitialRainState = (centerX: number, centerZ: number) => {
@@ -47,7 +48,8 @@ const createInitialRainState = (centerX: number, centerZ: number) => {
     anchorX[i] = centerX + (pseudoRandom(i * 3 + 1) - 0.5) * WEATHER_AREA;
     anchorZ[i] = centerZ + (pseudoRandom(i * 3 + 3) - 0.5) * WEATHER_AREA;
     positions[base] = anchorX[i];
-    positions[base + 1] = WEATHER_BOTTOM + pseudoRandom(i * 3 + 2) * (WEATHER_TOP - WEATHER_BOTTOM);
+    positions[base + 1] =
+      WEATHER_BOTTOM + pseudoRandom(i * 3 + 2) * (WEATHER_TOP - WEATHER_BOTTOM);
     positions[base + 2] = anchorZ[i];
     speeds[i] = 120 + pseudoRandom(i * 3 + 4) * 150;
   }
@@ -100,7 +102,6 @@ function buildLookup(buildings: CityBuilding[]): BuildingLookup {
   return { indexByLogin };
 }
 
-
 // ─── Component ──────────────────────────────────────────────────
 interface CitySceneProps {
   buildings: CityBuilding[];
@@ -123,12 +124,18 @@ interface CitySceneProps {
   multiplayerPlayers?: Map<string, CityPlayer>;
 }
 
-function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy" }) {
+function WeatherSystem({
+  weatherMode,
+}: {
+  weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+}) {
   const pointsRef = useRef<THREE.Points>(null);
   const leavesRef = useRef<THREE.Points>(null);
   const { camera } = useThree();
-  
-  const [initialState] = useState(() => createInitialRainState(camera.position.x, camera.position.z));
+
+  const [initialState] = useState(() =>
+    createInitialRainState(camera.position.x, camera.position.z),
+  );
   const [initialLeavesState] = useState(() => {
     // Generate separate particles specifically optimized for swirling leaves!
     const leafCount = Math.floor(WEATHER_PARTICLE_COUNT * 0.08); // 72 leaves (very few!)
@@ -140,10 +147,14 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
 
     for (let i = 0; i < leafCount; i++) {
       const base = i * 3;
-      anchorX[i] = camera.position.x + (pseudoRandom(i * 7 + 2) - 0.5) * WEATHER_AREA;
-      anchorZ[i] = camera.position.z + (pseudoRandom(i * 7 + 5) - 0.5) * WEATHER_AREA;
+      anchorX[i] =
+        camera.position.x + (pseudoRandom(i * 7 + 2) - 0.5) * WEATHER_AREA;
+      anchorZ[i] =
+        camera.position.z + (pseudoRandom(i * 7 + 5) - 0.5) * WEATHER_AREA;
       positions[base] = anchorX[i];
-      positions[base + 1] = WEATHER_BOTTOM + pseudoRandom(i * 7 + 9) * (WEATHER_TOP - WEATHER_BOTTOM);
+      positions[base + 1] =
+        WEATHER_BOTTOM +
+        pseudoRandom(i * 7 + 9) * (WEATHER_TOP - WEATHER_BOTTOM);
       positions[base + 2] = anchorZ[i];
       speeds[i] = 70 + pseudoRandom(i * 7 + 12) * 60; // leaves float slower than rain
     }
@@ -167,7 +178,8 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
     // 1. Simulate Wind/Rain lines
     const pts = pointsRef.current;
     if (pts) {
-      const positionArray = (pts.geometry.attributes.position.array as Float32Array);
+      const positionArray = pts.geometry.attributes.position
+        .array as Float32Array;
       const { speeds } = initialState;
       const anchorX = anchorXRef.current;
       const anchorZ = anchorZRef.current;
@@ -212,8 +224,22 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
 
         if (positionArray[base + 1] < WEATHER_BOTTOM) {
           respawnCycles[i] += 1;
-          anchorX[i] = centerX + (pseudoRandom(i * WEATHER_RESPAWN_X_SEED + respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED) - 0.5) * WEATHER_AREA;
-          anchorZ[i] = centerZ + (pseudoRandom(i * WEATHER_RESPAWN_Z_SEED + respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED * 2) - 0.5) * WEATHER_AREA;
+          anchorX[i] =
+            centerX +
+            (pseudoRandom(
+              i * WEATHER_RESPAWN_X_SEED +
+                respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED,
+            ) -
+              0.5) *
+              WEATHER_AREA;
+          anchorZ[i] =
+            centerZ +
+            (pseudoRandom(
+              i * WEATHER_RESPAWN_Z_SEED +
+                respawnCycles[i] * WEATHER_RESPAWN_CYCLE_SEED * 2,
+            ) -
+              0.5) *
+              WEATHER_AREA;
           positionArray[base] = wrapAroundCenter(anchorX[i], centerX);
           positionArray[base + 1] = WEATHER_TOP;
           positionArray[base + 2] = wrapAroundCenter(anchorZ[i], centerZ);
@@ -225,7 +251,8 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
     // 2. Simulate Swirling Leaves (Only in Windy Weather)
     const leafPts = leavesRef.current;
     if (leafPts && weatherMode === "windy") {
-      const positionArray = (leafPts.geometry.attributes.position.array as Float32Array);
+      const positionArray = leafPts.geometry.attributes.position
+        .array as Float32Array;
       const { speeds } = initialLeavesState;
       const anchorX = leafAnchorXRef.current;
       const anchorZ = leafAnchorZRef.current;
@@ -247,15 +274,20 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
 
         if (positionArray[base + 1] < WEATHER_BOTTOM) {
           respawnCycles[i] += 1;
-          anchorX[i] = centerX + (pseudoRandom(i * 13 + respawnCycles[i] * 17) - 0.5) * WEATHER_AREA;
-          anchorZ[i] = centerZ + (pseudoRandom(i * 19 + respawnCycles[i] * 23) - 0.5) * WEATHER_AREA;
+          anchorX[i] =
+            centerX +
+            (pseudoRandom(i * 13 + respawnCycles[i] * 17) - 0.5) * WEATHER_AREA;
+          anchorZ[i] =
+            centerZ +
+            (pseudoRandom(i * 19 + respawnCycles[i] * 23) - 0.5) * WEATHER_AREA;
           positionArray[base + 1] = WEATHER_TOP;
         }
 
         // Beautiful 3D helical vortex swirl representing movie-like leaf swirls in gusty wind
         const swirlSpeed = 4.5;
         const swirlAngle = state.clock.elapsedTime * swirlSpeed + i * 0.75;
-        const swirlRadius = 7.0 + Math.sin(state.clock.elapsedTime * 1.2 + i) * 3.0;
+        const swirlRadius =
+          7.0 + Math.sin(state.clock.elapsedTime * 1.2 + i) * 3.0;
 
         const swirlX = Math.cos(swirlAngle) * swirlRadius;
         const swirlZ = Math.sin(swirlAngle) * swirlRadius;
@@ -264,19 +296,15 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
         // Position exactly matching the wind's main trajectory plus the swirling vortex offset (completely smooth!)
         positionArray[base] = wrapAroundCenter(anchorX[i], centerX) + swirlX;
         positionArray[base + 1] = positionArray[base + 1] + swirlY;
-        positionArray[base + 2] = wrapAroundCenter(anchorZ[i], centerZ) + swirlZ;
+        positionArray[base + 2] =
+          wrapAroundCenter(anchorZ[i], centerZ) + swirlZ;
       }
       leafPts.geometry.attributes.position.needsUpdate = true;
     }
   });
 
   if (weatherMode === "sunny") {
-    return (
-      <SunnyWeather
-        intensity={1.0}
-        sunPosition={[600, 400, -300]}
-      />
-    );
+    return <SunnyWeather intensity={1.0} sunPosition={[600, 400, -300]} />;
   }
 
   // Weather style adjustments
@@ -302,7 +330,10 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
     <>
       <points ref={pointsRef} frustumCulled={false}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[initialState.positions, 3]} />
+          <bufferAttribute
+            attach="attributes-position"
+            args={[initialState.positions, 3]}
+          />
         </bufferGeometry>
         <pointsMaterial
           color={particleColor}
@@ -318,7 +349,10 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
       {weatherMode === "windy" && (
         <points ref={leavesRef} frustumCulled={false}>
           <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[initialLeavesState.positions, 3]} />
+            <bufferAttribute
+              attach="attributes-position"
+              args={[initialLeavesState.positions, 3]}
+            />
           </bufferGeometry>
           <pointsMaterial
             color="#4ade80" // beautiful vibrant green leaves
@@ -382,7 +416,7 @@ export default function CityScene({
 
   useFrame(({ camera, clock, size }) => {
     const elapsed = clock.elapsedTime;
-    
+
     // Throttled updates (5Hz) for both chunk visibility and focus tracking
     if (elapsed - lastChunkUpdate.current >= 0.2) {
       lastChunkUpdate.current = elapsed;
@@ -405,8 +439,12 @@ export default function CityScene({
 
       // 2. Focus beacon screen positioning updates
       if (onFocusInfo && (focusedLower || focusedBLower)) {
-        const fi = focusedLower ? lookup.indexByLogin.get(focusedLower) : undefined;
-        const fbi = focusedBLower ? lookup.indexByLogin.get(focusedBLower) : undefined;
+        const fi = focusedLower
+          ? lookup.indexByLogin.get(focusedLower)
+          : undefined;
+        const fbi = focusedBLower
+          ? lookup.indexByLogin.get(focusedBLower)
+          : undefined;
         const targetIdx = fi ?? fbi;
         if (targetIdx !== undefined) {
           const b = buildings[targetIdx];
@@ -441,10 +479,14 @@ export default function CityScene({
       }
       arr.push(b);
     }
-    return Array.from(map.values()).map(chunk => {
+    return Array.from(map.values()).map((chunk) => {
       // Calculate center of chunk for distance culling
-      let sumX = 0, sumZ = 0;
-      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
+      let sumX = 0,
+        sumZ = 0;
+      for (const b of chunk) {
+        sumX += b.position[0];
+        sumZ += b.position[2];
+      }
       const cx = sumX / chunk.length;
       const cz = sumZ / chunk.length;
       return { chunk, cx, cz };
@@ -476,8 +518,6 @@ export default function CityScene({
           />
         </group>
       ))}
-
-
 
       {liveByLogin && liveByLogin.size > 0 && (
         <LiveDots buildings={buildings} liveByLogin={liveByLogin} />

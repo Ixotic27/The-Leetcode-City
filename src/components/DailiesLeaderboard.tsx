@@ -50,9 +50,7 @@ export default function DailiesLeaderboard() {
 
   // Find user in leaderboard
   const userIndex = authLogin
-    ? leaderboard.findIndex(
-        (e) => e.github_login?.toLowerCase() === authLogin,
-      )
+    ? leaderboard.findIndex((e) => e.github_login?.toLowerCase() === authLogin)
     : -1;
   const userEntry = userIndex >= 0 ? leaderboard[userIndex] : null;
   const userRank = userIndex >= 0 ? userIndex + 1 : null;
@@ -120,8 +118,7 @@ export default function DailiesLeaderboard() {
           leaderboard.map((entry, i) => {
             const pos = i + 1;
             const isYou =
-              authLogin &&
-              entry.github_login?.toLowerCase() === authLogin;
+              authLogin && entry.github_login?.toLowerCase() === authLogin;
             return (
               <Link
                 key={entry.github_login}
@@ -170,7 +167,9 @@ export default function DailiesLeaderboard() {
 
                 <span
                   className="w-20 text-right text-sm"
-                  style={{ color: entry.dailies_streak >= 3 ? "#f59e0b" : ACCENT }}
+                  style={{
+                    color: entry.dailies_streak >= 3 ? "#f59e0b" : ACCENT,
+                  }}
                 >
                   {entry.dailies_streak}d
                 </span>
@@ -193,8 +192,10 @@ export default function DailiesLeaderboard() {
 
         {error && !loading && (
           <div className="px-5 py-8 text-center">
-            <p className="text-xs text-red-400 normal-case mb-3">Failed to load leaderboard</p>
-            <button 
+            <p className="text-xs text-red-400 normal-case mb-3">
+              Failed to load leaderboard
+            </p>
+            <button
               onClick={fetchLeaderboard}
               className="btn-press border-[2px] border-border px-3 py-1 text-[10px] text-cream hover:border-border-light transition-colors"
             >

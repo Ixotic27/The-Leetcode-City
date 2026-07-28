@@ -7,31 +7,51 @@ interface Props {
   accent: string;
   shadow: string;
   isMobile: boolean;
-  onClaim: () => Promise<{ ok: boolean; streak: number; total: number; freeze_granted: boolean } | null>;
+  onClaim: () => Promise<{
+    ok: boolean;
+    streak: number;
+    total: number;
+    freeze_granted: boolean;
+  } | null>;
   onRefresh: () => Promise<void>;
   onStartFly?: () => void;
 }
 
 function getTimeUntilReset(): string {
   const now = new Date();
-  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const tomorrow = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+  );
   const diff = tomorrow.getTime() - now.getTime();
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
   return `${h}h ${m}m`;
 }
 
-export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim, onRefresh, onStartFly }: Props) {
+export default function DailiesWidget({
+  data,
+  accent,
+  shadow,
+  isMobile,
+  onClaim,
+  onRefresh,
+  onStartFly,
+}: Props) {
   const [open, setOpen] = useState(!isMobile);
   const [claiming, setClaiming] = useState(false);
-  const [claimResult, setClaimResult] = useState<{ freeze_granted: boolean } | null>(null);
+  const [claimResult, setClaimResult] = useState<{
+    freeze_granted: boolean;
+  } | null>(null);
   const [timeLeft, setTimeLeft] = useState(getTimeUntilReset);
   const [desktopOnlyAlert, setDesktopOnlyAlert] = useState(false);
   const [claimMessage, setClaimMessage] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const interval = setInterval(() => setTimeLeft(getTimeUntilReset()), 60_000);
+    const interval = setInterval(
+      () => setTimeLeft(getTimeUntilReset()),
+      60_000,
+    );
     return () => clearInterval(interval);
   }, []);
 
@@ -45,13 +65,18 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
     setStarVerifying(true);
     try {
       const res = await fetch("/api/verify-github-star", { method: "POST" });
-      if (!res.ok) { setStarVerifying(false); return; }
+      if (!res.ok) {
+        setStarVerifying(false);
+        return;
+      }
       const json = await res.json();
       if (json.verified) {
         setStarVerified(true);
         setStarOpened(false);
       }
-    } catch (err) { console.warn("[components/DailiesWidget.tsx] non-critical error:", err); }
+    } catch (err) {
+      console.warn("[components/DailiesWidget.tsx] non-critical error:", err);
+    }
     setStarVerifying(false);
   }, [starVerifying, starVerified, data?.has_github_star]);
 
@@ -88,7 +113,13 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
 
   if (!data) return null;
 
-  const { missions, completed_count, all_completed, reward_claimed, has_github_star } = data;
+  const {
+    missions,
+    completed_count,
+    all_completed,
+    reward_claimed,
+    has_github_star,
+  } = data;
   const canClaim = all_completed && !reward_claimed;
   const showStarMission = !has_github_star && !starVerified;
 
@@ -108,7 +139,11 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
         className={`pointer-events-auto btn-press fixed z-[30] flex items-center gap-1.5 border-[2px] border-border bg-bg/80 px-2.5 py-1.5 text-[10px] backdrop-blur-sm transition-all hover:border-border-light ${
           isMobile ? "top-3 right-3" : "left-4 top-1/2 -translate-y-1/2"
         }`}
-        style={canClaim ? { borderColor: accent, boxShadow: `0 0 8px 2px ${accent}40` } : undefined}
+        style={
+          canClaim
+            ? { borderColor: accent, boxShadow: `0 0 8px 2px ${accent}40` }
+            : undefined
+        }
       >
         <span style={{ color: accent }}>
           {all_completed ? "\u2605" : "\u2606"}
@@ -136,8 +171,13 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
           <div className="flex items-center gap-1.5">
-            <span style={{ color: accent }}>{all_completed ? "\u2605" : "\u2606"}</span>
-            <span className="text-[11px] font-bold tracking-wider" style={{ color: accent }}>
+            <span style={{ color: accent }}>
+              {all_completed ? "\u2605" : "\u2606"}
+            </span>
+            <span
+              className="text-[11px] font-bold tracking-wider"
+              style={{ color: accent }}
+            >
               DAILY MISSIONS
             </span>
             <span className="text-[9px] text-muted">{completed_count}/3</span>
@@ -163,16 +203,27 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
               <div className="min-w-0 flex-1">
                 <div
                   className={`leading-tight ${isMobile ? "text-[12px]" : "text-[10px]"}`}
-                  style={m.completed ? { color: accent, textDecoration: "line-through", opacity: 0.7 } : { color: "#e0d8cc" }}
+                  style={
+                    m.completed
+                      ? {
+                          color: accent,
+                          textDecoration: "line-through",
+                          opacity: 0.7,
+                        }
+                      : { color: "#e0d8cc" }
+                  }
                 >
                   {m.title}
                 </div>
                 {!m.completed && (
-                  <div className={`mt-0.5 leading-tight text-muted ${isMobile ? "text-[10px]" : "text-[9px]"}`}>
+                  <div
+                    className={`mt-0.5 leading-tight text-muted ${isMobile ? "text-[10px]" : "text-[9px]"}`}
+                  >
                     {m.description}
                     {m.threshold > 1 && (
                       <span style={{ color: accent, opacity: 0.8 }}>
-                        {" "}({m.progress}/{m.threshold})
+                        {" "}
+                        ({m.progress}/{m.threshold})
                       </span>
                     )}
                   </div>
@@ -190,14 +241,17 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
               )}
 
               {/* Action shortcut (e.g. Fly) — desktop only */}
-              {!m.completed && onStartFly && m.id.startsWith("fly_") && !isMobile && (
-                <button
-                  onClick={onStartFly}
-                  className="btn-press ml-1 border border-cream/20 bg-cream/5 px-2 py-1 text-[9px] font-bold text-cream transition-colors hover:border-cream/40"
-                >
-                  FLY
-                </button>
-              )}
+              {!m.completed &&
+                onStartFly &&
+                m.id.startsWith("fly_") &&
+                !isMobile && (
+                  <button
+                    onClick={onStartFly}
+                    className="btn-press ml-1 border border-cream/20 bg-cream/5 px-2 py-1 text-[9px] font-bold text-cream transition-colors hover:border-cream/40"
+                  >
+                    FLY
+                  </button>
+                )}
             </div>
           ))}
         </div>
@@ -210,22 +264,40 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
                 if (starOpened) {
                   verifyStarOnReturn();
                 } else {
-                  window.open("https://github.com/Ixotic27/The-Leetcode-City", "_blank");
+                  window.open(
+                    "https://github.com/Ixotic27/The-Leetcode-City",
+                    "_blank",
+                  );
                   setStarOpened(true);
                 }
               }}
               disabled={starVerifying}
               className="w-full flex items-start gap-2.5 rounded border border-[#FFD700]/30 bg-[#FFD700]/5 px-3 py-2 text-left transition-colors hover:bg-[#FFD700]/10"
             >
-              <span className="mt-0.5 text-[12px] leading-none" style={{ color: "#FFD700" }}>
+              <span
+                className="mt-0.5 text-[12px] leading-none"
+                style={{ color: "#FFD700" }}
+              >
                 {starVerifying ? "\u231B" : "\u2B50"}
               </span>
               <div className="min-w-0 flex-1">
-                <div className={`leading-tight font-bold ${isMobile ? "text-[12px]" : "text-[10px]"}`} style={{ color: "#FFD700" }}>
-                  {starVerifying ? "Verifying..." : starOpened ? "I starred it — Verify" : "Star on GitHub"}
+                <div
+                  className={`leading-tight font-bold ${isMobile ? "text-[12px]" : "text-[10px]"}`}
+                  style={{ color: "#FFD700" }}
+                >
+                  {starVerifying
+                    ? "Verifying..."
+                    : starOpened
+                      ? "I starred it — Verify"
+                      : "Star on GitHub"}
                 </div>
-                <div className={`mt-0.5 leading-tight ${isMobile ? "text-[10px]" : "text-[9px]"}`} style={{ color: "#FFD700", opacity: 0.7 }}>
-                  {starOpened ? "Click to check or wait..." : "Star the repo to unlock an exclusive item"}
+                <div
+                  className={`mt-0.5 leading-tight ${isMobile ? "text-[10px]" : "text-[9px]"}`}
+                  style={{ color: "#FFD700", opacity: 0.7 }}
+                >
+                  {starOpened
+                    ? "Click to check or wait..."
+                    : "Star the repo to unlock an exclusive item"}
                 </div>
               </div>
             </button>
@@ -233,10 +305,17 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
         )}
 
         {/* Footer */}
-        <div className={`border-t border-border px-4 ${isMobile ? "py-3 pb-4" : "py-2"}`}>
+        <div
+          className={`border-t border-border px-4 ${isMobile ? "py-3 pb-4" : "py-2"}`}
+        >
           {claimResult ? (
-            <div className="text-center text-[10px] font-bold" style={{ color: accent }}>
-              {claimResult.freeze_granted ? "Streak freeze earned!" : "Dailies complete!"}
+            <div
+              className="text-center text-[10px] font-bold"
+              style={{ color: accent }}
+            >
+              {claimResult.freeze_granted
+                ? "Streak freeze earned!"
+                : "Dailies complete!"}
             </div>
           ) : canClaim ? (
             <button
@@ -254,20 +333,25 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
               {claiming ? "Claiming..." : "Claim Reward"}
             </button>
           ) : reward_claimed && all_completed ? (
-            <div className="text-center text-[10px]" style={{ color: accent, opacity: 0.7 }}>
+            <div
+              className="text-center text-[10px]"
+              style={{ color: accent, opacity: 0.7 }}
+            >
               All done! Resets in {timeLeft}
             </div>
           ) : (
             <div className="flex items-center justify-between text-[10px] text-muted">
               <span>Resets in {timeLeft}</span>
               {completed_count === 2 && (
-                <span className="font-bold" style={{ color: accent }}>1 more!</span>
+                <span className="font-bold" style={{ color: accent }}>
+                  1 more!
+                </span>
               )}
             </div>
           )}
         </div>
       </div>
-    {/* Desktop-only mission alert modal */}
+      {/* Desktop-only mission alert modal */}
       {desktopOnlyAlert && (
         <div
           className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-bg/70 px-6 backdrop-blur-sm"
@@ -282,7 +366,8 @@ export default function DailiesWidget({ data, accent, shadow, isMobile, onClaim,
               PC Only Mission
             </div>
             <div className="mb-4 text-[11px] leading-relaxed text-muted">
-              This mission can only be completed on a PC, not on a phone. Open LeetCode City on your desktop to complete the flying task.
+              This mission can only be completed on a PC, not on a phone. Open
+              LeetCode City on your desktop to complete the flying task.
             </div>
             <button
               onClick={() => setDesktopOnlyAlert(false)}

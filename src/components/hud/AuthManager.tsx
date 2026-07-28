@@ -128,10 +128,10 @@ export default function AuthManager() {
                 (() => {
                   const allDevs = Array.from(liveByLogin.values());
                   const creator = allDevs.find(
-                    (d: any) => d.githubLogin.toLowerCase() === "ixotic27"
+                    (d: any) => d.githubLogin.toLowerCase() === "ixotic27",
                   );
                   const others = allDevs.filter(
-                    (d: any) => d.githubLogin.toLowerCase() !== "ixotic27"
+                    (d: any) => d.githubLogin.toLowerCase() !== "ixotic27",
                   );
                   const displayDevs = [
                     ...(creator ? [creator] : []),
@@ -146,13 +146,16 @@ export default function AuthManager() {
                       </div>
                       <div className="max-h-60 overflow-y-auto">
                         {displayDevs.map((dev: any) => {
-                          const isCreator = dev.githubLogin.toLowerCase() === "ixotic27";
+                          const isCreator =
+                            dev.githubLogin.toLowerCase() === "ixotic27";
                           return (
                             <button
                               key={dev.githubLogin}
                               onClick={() => {
                                 const b = buildings.find(
-                                  (b) => b.login.toLowerCase() === dev.githubLogin.toLowerCase()
+                                  (b) =>
+                                    b.login.toLowerCase() ===
+                                    dev.githubLogin.toLowerCase(),
                                 );
                                 if (b) {
                                   setSelectedBuilding(null);
@@ -168,13 +171,19 @@ export default function AuthManager() {
                                     src={dev.avatarUrl}
                                     alt=""
                                     className="h-6 w-6 rounded-full"
-                                    style={isCreator ? { boxShadow: "0 0 6px #fbbf24" } : undefined}
+                                    style={
+                                      isCreator
+                                        ? { boxShadow: "0 0 6px #fbbf24" }
+                                        : undefined
+                                    }
                                   />
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5">
-                                  <span className={`truncate text-[11px] ${isCreator ? "text-[#fbbf24]" : "text-cream"}`}>
+                                  <span
+                                    className={`truncate text-[11px] ${isCreator ? "text-[#fbbf24]" : "text-cream"}`}
+                                  >
                                     {dev.githubLogin}
                                   </span>
                                   {isCreator && (
@@ -184,7 +193,9 @@ export default function AuthManager() {
                                   )}
                                 </div>
                                 <div className="truncate text-[10px] normal-case text-muted">
-                                  {isCreator ? "building the city" : dev.language || ""}
+                                  {isCreator
+                                    ? "building the city"
+                                    : dev.language || ""}
                                 </div>
                               </div>
                               <span
@@ -232,22 +243,30 @@ export default function AuthManager() {
                               Sign in with LeetCode
                             </button>
                           </div>
-                        ) : Array.from(liveByLogin.keys()).some((k: any) => k.toLowerCase() === selfLogin) ? (
+                        ) : Array.from(liveByLogin.keys()).some(
+                            (k: any) => k.toLowerCase() === selfLogin,
+                          ) ? (
                           <div className="px-5 py-4 text-center">
                             <div className="mb-2 text-lg">⚡</div>
                             <p className="mb-1.5 text-xs font-bold normal-case text-[#4ade80]">
                               Your building is glowing!
                             </p>
                             {(() => {
-                              const mySession: any = Array.from(liveByLogin.values()).find(
-                                (s: any) => s.githubLogin.toLowerCase() === selfLogin
+                              const mySession: any = Array.from(
+                                liveByLogin.values(),
+                              ).find(
+                                (s: any) =>
+                                  s.githubLogin.toLowerCase() === selfLogin,
                               );
                               const othersCount = liveByLogin.size - 1;
                               return (
                                 <>
                                   {mySession?.language && (
                                     <p className="mb-1 text-[10px] normal-case text-muted">
-                                      Coding in <span className="text-cream">{mySession.language}</span>
+                                      Coding in{" "}
+                                      <span className="text-cream">
+                                        {mySession.language}
+                                      </span>
                                     </p>
                                   )}
                                   <p className="text-[10px] normal-case text-muted/70">
@@ -272,7 +291,10 @@ export default function AuthManager() {
                                 onClick={() => {
                                   navigator.clipboard.writeText(vsCodeKey);
                                   setVsCodeKeyCopied(true);
-                                  setTimeout(() => setVsCodeKeyCopied(false), 2000);
+                                  setTimeout(
+                                    () => setVsCodeKeyCopied(false),
+                                    2000,
+                                  );
                                 }}
                                 className="btn-press shrink-0 border border-border px-3 py-2 text-[11px] text-cream transition-colors hover:border-border-light"
                               >
@@ -293,10 +315,12 @@ export default function AuthManager() {
                                 in VS Code
                               </p>
                               <p>
-                                <span className="text-cream">2.</span> Cmd+Shift+P &rarr; &ldquo;Pulse: Connect&rdquo;
+                                <span className="text-cream">2.</span>{" "}
+                                Cmd+Shift+P &rarr; &ldquo;Pulse: Connect&rdquo;
                               </p>
                               <p>
-                                <span className="text-cream">3.</span> Paste key and start coding
+                                <span className="text-cream">3.</span> Paste key
+                                and start coding
                               </p>
                             </div>
                           </div>
@@ -307,7 +331,8 @@ export default function AuthManager() {
                               Your building is sleeping
                             </p>
                             <p className="mb-4 text-[11px] normal-case leading-relaxed text-muted">
-                              Open your IDE and start coding to light up your building.
+                              Open your IDE and start coding to light up your
+                              building.
                             </p>
                             <button
                               onClick={() => setHasVsCodeKey(false)}
@@ -336,16 +361,22 @@ export default function AuthManager() {
                                     setVsCodeKey(data.key);
                                     setHasVsCodeKey(true);
                                     try {
-                                      localStorage.setItem("leetcodecity_has_vscode_key", "1");
+                                      localStorage.setItem(
+                                        "leetcodecity_has_vscode_key",
+                                        "1",
+                                      );
                                     } catch {}
                                     navigator.clipboard.writeText(data.key);
                                     setVsCodeKeyCopied(true);
                                     setTimeout(() => {
-                                      if (mountedRef.current) setVsCodeKeyCopied(false);
+                                      if (mountedRef.current)
+                                        setVsCodeKeyCopied(false);
                                     }, 2000);
                                   }
-                                } catch {} finally {
-                                  if (mountedRef.current) setVsCodeKeyLoading(false);
+                                } catch {
+                                } finally {
+                                  if (mountedRef.current)
+                                    setVsCodeKeyLoading(false);
                                 }
                               }}
                               className="btn-press w-full py-2.5 text-center text-xs text-bg"
@@ -354,7 +385,9 @@ export default function AuthManager() {
                                 boxShadow: "2px 2px 0 0 #16a34a",
                               }}
                             >
-                              {vsCodeKeyLoading ? "Generating..." : "Generate API Key"}
+                              {vsCodeKeyLoading
+                                ? "Generating..."
+                                : "Generate API Key"}
                             </button>
                           </div>
                         )}
@@ -425,7 +458,8 @@ export default function AuthManager() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (linkInput.trim()) setConfirmedUsername(linkInput.trim());
+                        if (linkInput.trim())
+                          setConfirmedUsername(linkInput.trim());
                       }}
                       className="px-3 py-2 text-[11px] border border-border hover:border-border-light text-cream"
                     >
@@ -461,7 +495,9 @@ export default function AuthManager() {
                       </code>
                       <button
                         type="button"
-                        onClick={() => navigator.clipboard.writeText(expectedToken)}
+                        onClick={() =>
+                          navigator.clipboard.writeText(expectedToken)
+                        }
                         className="text-[10px] bg-white/10 px-2 py-1 hover:bg-white/20"
                       >
                         Copy

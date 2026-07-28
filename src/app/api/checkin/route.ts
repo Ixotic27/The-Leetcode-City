@@ -29,11 +29,14 @@ type Developer = {
   lc_streak?: number;
   total_prs?: number;
 };
- 
+
 // A12: Streak reward milestones — {milestone: days, pool: item_ids to pick from}
 const STREAK_MILESTONES = [
   { milestone: 3, pool: ["flag"] },
-  { milestone: 7, pool: ["satellite_dish", "antenna_array", "rooftop_garden", "neon_trim"] },
+  {
+    milestone: 7,
+    pool: ["satellite_dish", "antenna_array", "rooftop_garden", "neon_trim"],
+  },
   { milestone: 14, pool: ["neon_outline", "rooftop_fire", "hologram_ring"] },
   { milestone: 30, pool: ["lightning_aura", "pool_party", "crown_item"] },
 ];
@@ -62,7 +65,9 @@ async function grantStreakReward(
       .select("item_id")
       .eq("developer_id", developerId)
       .eq("status", "completed");
-    const ownedSet = new Set((ownedRows ?? []).map((r: { item_id: string }) => r.item_id));
+    const ownedSet = new Set(
+      (ownedRows ?? []).map((r: { item_id: string }) => r.item_id),
+    );
 
     const unowned = tier.pool.filter((id) => !ownedSet.has(id));
     const itemId =
@@ -75,7 +80,11 @@ async function grantStreakReward(
     const { data: rewardInserted } = await sb
       .from("streak_rewards")
       .upsert(
-        { developer_id: developerId, milestone: tier.milestone, item_id: itemId },
+        {
+          developer_id: developerId,
+          milestone: tier.milestone,
+          item_id: itemId,
+        },
         { onConflict: "developer_id,milestone", ignoreDuplicates: true },
       )
       .select("id")
@@ -108,7 +117,8 @@ async function fetchWeeklyContributions(login: string): Promise<number | null> {
 }
 
 export async function POST() {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -139,7 +149,9 @@ export async function POST() {
   try {
     const { data: v2Data, error: v2Err } = await sb
       .from("developers")
-      .select("easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+      .select(
+        "easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs",
+      )
       .eq("claimed_by", auth.user.id)
       .maybeSingle();
     if (!v2Err && dev && v2Data) {
@@ -157,14 +169,14 @@ export async function POST() {
         error:
           "Your LeetCode stats are still being synced. Please check back in a few minutes!",
       },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
   if (!dev.claimed) {
     return NextResponse.json(
       { error: "Must claim building first" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -197,10 +209,17 @@ export async function POST() {
   // Window: 1 token per 10s — prevents double-submits from double-clicks
   // while still allowing a quick retry after a real failure.
   if (checkinResult.checked_in) {
-    const { ok: successOk } = await rateLimit(`checkin:success:${auth.user.id}`, 1, 10_000);
+    const { ok: successOk } = await rateLimit(
+      `checkin:success:${auth.user.id}`,
+      1,
+      10_000,
+    );
     if (!successOk) {
       // Already processed a successful check-in within the last 10s — deduplicate.
-      return NextResponse.json({ error: "Check-in already processed" }, { status: 429 });
+      return NextResponse.json(
+        { error: "Check-in already processed" },
+        { status: 429 },
+      );
     }
   }
 
@@ -221,8 +240,16 @@ export async function POST() {
   }
 
   let newAchievements: string[] = [];
-  let streakReward: { milestone: number; item_id: string; item_name: string } | null = null;
-  let xpResult: { granted: number; new_total: number; new_level: number } | null = null;
+  let streakReward: {
+    milestone: number;
+    item_id: string;
+    item_name: string;
+  } | null = null;
+  let xpResult: {
+    granted: number;
+    new_total: number;
+    new_level: number;
+  } | null = null;
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -243,45 +270,53 @@ export async function POST() {
         p_source: "checkin",
         p_amount: 10,
       });
-      if (xpData) xpResult = xpData as { granted: number; new_total: number; new_level: number };
+      if (xpData)
+        xpResult = xpData as {
+          granted: number;
+          new_total: number;
+          new_level: number;
+        };
 
       // Coordinate reward side effects: XP grant + achievement check + feed event
       const eventDate = new Date().toISOString().split("T")[0];
-      const coordinationResult = await coordinateRewardSideEffects(sb as never, {
-        developerId: dev.id,
-        actorLogin: githubLogin,
-        stats: {
-          contributions: dev.contributions,
-          public_repos: dev.public_repos,
-          total_stars: dev.total_stars,
-          referral_count: 0,
-          kudos_count: dev.kudos_count ?? 0,
-          gifts_sent: 0,
-          gifts_received: 0,
-          app_streak: checkinResult.streak,
-          easy_solved: dev.easy_solved ?? 0,
-          medium_solved: dev.medium_solved ?? 0,
-          hard_solved: dev.hard_solved ?? 0,
-          contest_rating: dev.contest_rating ?? 0,
-          lc_streak: dev.lc_streak ?? 0,
-          total_prs: dev.total_prs ?? 0,
-        },
-        xpGrants: [], // XP already granted above via grant_xp_atomic RPC
-        feedEvent: {
-          event_type: "streak_checkin",
-          metadata: {
-            login: githubLogin,
-            streak: checkinResult.streak,
-            was_frozen: checkinResult.was_frozen ?? false,
-            reward: null, // Updated later if streak reward exists
+      const coordinationResult = await coordinateRewardSideEffects(
+        sb as never,
+        {
+          developerId: dev.id,
+          actorLogin: githubLogin,
+          stats: {
+            contributions: dev.contributions,
+            public_repos: dev.public_repos,
+            total_stars: dev.total_stars,
+            referral_count: 0,
+            kudos_count: dev.kudos_count ?? 0,
+            gifts_sent: 0,
+            gifts_received: 0,
+            app_streak: checkinResult.streak,
+            easy_solved: dev.easy_solved ?? 0,
+            medium_solved: dev.medium_solved ?? 0,
+            hard_solved: dev.hard_solved ?? 0,
+            contest_rating: dev.contest_rating ?? 0,
+            lc_streak: dev.lc_streak ?? 0,
+            total_prs: dev.total_prs ?? 0,
           },
-          actor_id: dev.id,
-          event_date: eventDate,
-          upsert: true,
-          onConflict: "actor_id,event_type,event_date",
-          ignoreDuplicates: true,
+          xpGrants: [], // XP already granted above via grant_xp_atomic RPC
+          feedEvent: {
+            event_type: "streak_checkin",
+            metadata: {
+              login: githubLogin,
+              streak: checkinResult.streak,
+              was_frozen: checkinResult.was_frozen ?? false,
+              reward: null, // Updated later if streak reward exists
+            },
+            actor_id: dev.id,
+            event_date: eventDate,
+            upsert: true,
+            onConflict: "actor_id,event_type,event_date",
+            ignoreDuplicates: true,
+          },
         },
-      });
+      );
       newAchievements = coordinationResult.newAchievements;
     } else if (!xpLogError.code?.includes("23505")) {
       // Unexpected error (not a duplicate) — log but don't crash
@@ -294,11 +329,23 @@ export async function POST() {
     // Grant 1 free freeze at 30-day streak milestone
     if (checkinResult.streak >= 30 && !dev.streak_freeze_30d_claimed) {
       await sb.rpc("grant_streak_freeze", { p_developer_id: dev.id });
-      await sb.from("developers").update({ streak_freeze_30d_claimed: true }).eq("id", dev.id);
-      await sb.from("streak_freeze_log").upsert(
-        { developer_id: dev.id, action: "granted_milestone", granted_date: today },
-        { onConflict: "developer_id,action,granted_date", ignoreDuplicates: true },
-      );
+      await sb
+        .from("developers")
+        .update({ streak_freeze_30d_claimed: true })
+        .eq("id", dev.id);
+      await sb
+        .from("streak_freeze_log")
+        .upsert(
+          {
+            developer_id: dev.id,
+            action: "granted_milestone",
+            granted_date: today,
+          },
+          {
+            onConflict: "developer_id,action,granted_date",
+            ignoreDuplicates: true,
+          },
+        );
     }
 
     // A12: Streak rewards - grant free items at milestones
@@ -318,24 +365,29 @@ export async function POST() {
     // Update feed event with streak reward info (if exists)
     if (streakReward) {
       const eventDate = new Date().toISOString().split("T")[0];
-      await sb.from("activity_feed").update({
-        metadata: {
-          login: githubLogin,
-          streak: checkinResult.streak,
-          was_frozen: checkinResult.was_frozen ?? false,
-          reward: streakReward.item_id,
-        },
-      })
-      .eq("actor_id", dev.id)
-      .eq("event_type", "streak_checkin")
-      .eq("event_date", eventDate);
+      await sb
+        .from("activity_feed")
+        .update({
+          metadata: {
+            login: githubLogin,
+            streak: checkinResult.streak,
+            was_frozen: checkinResult.was_frozen ?? false,
+            reward: streakReward.item_id,
+          },
+        })
+        .eq("actor_id", dev.id)
+        .eq("event_type", "streak_checkin")
+        .eq("event_date", eventDate);
     }
   }
 
   // Refresh weekly contributions from LeetCode
   const weeklyContribs = await fetchWeeklyContributions(githubLogin);
   if (weeklyContribs !== null) {
-    await sb.from("developers").update({ current_week_contributions: weeklyContribs }).eq("id", dev.id);
+    await sb
+      .from("developers")
+      .update({ current_week_contributions: weeklyContribs })
+      .eq("id", dev.id);
   }
 
   // Count unseen achievements
@@ -354,7 +406,11 @@ export async function POST() {
     .limit(10);
 
   // Fetch raids targeting this dev since last checkin (raids table may not exist yet)
-  let raidsSinceLast: { attacker_login: string; success: boolean; created_at: string }[] = [];
+  let raidsSinceLast: {
+    attacker_login: string;
+    success: boolean;
+    created_at: string;
+  }[] = [];
   try {
     const lastCheckin = dev.last_checkin_date as string | null;
     const { data: recentRaids } = await sb
@@ -369,7 +425,8 @@ export async function POST() {
 
     raidsSinceLast = (recentRaids ?? []).map((r) => ({
       attacker_login:
-        (r.attacker as unknown as { github_login: string })?.github_login ?? "unknown",
+        (r.attacker as unknown as { github_login: string })?.github_login ??
+        "unknown",
       success: r.success,
       created_at: r.created_at,
     }));

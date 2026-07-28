@@ -46,7 +46,7 @@ jobs:
 
             // Find all blocks that start with a closing keyword and are followed by issue numbers
             const BLOCK_REGEX = /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)(?:\s*(?:and|,)?\s*#\d+)+/gi;
-            
+
             const issueNumbers = [];
             let blockMatch;
             while ((blockMatch = BLOCK_REGEX.exec(cleanBody)) !== null) {
@@ -56,7 +56,7 @@ jobs:
                 issueNumbers.push(parseInt(numMatch[1], 10));
               }
             }
-            
+
             // Remove duplicates
             const uniqueIssueNumbers = [...new Set(issueNumbers)];
 

@@ -51,7 +51,10 @@ export default function LeaderboardUserPosition({
         className="flex items-center gap-4 border-t border-border/50 px-5 py-3.5 hover:bg-bg-card"
         style={{ backgroundColor: "rgba(255, 161, 22, 0.08)" }}
       >
-        <span className="w-10 text-center text-sm font-bold" style={{ color: ACCENT }}>
+        <span
+          className="w-10 text-center text-sm font-bold"
+          style={{ color: ACCENT }}
+        >
           {data.position}
         </span>
         <div className="flex flex-1 items-center gap-3 overflow-hidden">
@@ -68,7 +71,9 @@ export default function LeaderboardUserPosition({
           <div className="overflow-hidden">
             <p className="truncate text-sm text-cream">
               {data.name ?? data.github_login}
-              <span className="ml-2 text-[10px]" style={{ color: ACCENT }}>YOU</span>
+              <span className="ml-2 text-[10px]" style={{ color: ACCENT }}>
+                YOU
+              </span>
             </p>
           </div>
         </div>

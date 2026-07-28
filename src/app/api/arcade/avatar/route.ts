@@ -34,29 +34,73 @@ const DEFAULT_LOADOUT: Record<string, string | null> = {
 
 // Map old sprite_id (0-5) to a loadout so existing players get a cozy avatar
 const LEGACY_SPRITE_MAP: Record<number, Record<string, string | null>> = {
-  0: { skin_color: "#e8c4a0", hair_id: "buzzcut", hair_color: "#2c1810", clothes_top_id: "basic", clothes_top_color: "#4a9eff" },
-  1: { skin_color: "#c4956a", hair_id: "curly", hair_color: "#8B4513", clothes_full_id: "overalls", clothes_full_color: "#e74c3c", clothes_top_id: null, clothes_bottom_id: null },
-  2: { skin_color: "#e8c4a0", hair_id: "ponytail", hair_color: "#FFD700", clothes_top_id: "stripe", clothes_top_color: "#9b59b6" },
-  3: { skin_color: "#6b4226", hair_id: "gentleman", hair_color: "#1a1a1a", clothes_full_id: "suit", clothes_full_color: "#2c3e50", clothes_top_id: null, clothes_bottom_id: null },
-  4: { skin_color: "#a0714f", hair_id: "emo", hair_color: "#4169E1", clothes_full_id: "sporty", clothes_full_color: "#c8e64a", clothes_top_id: null, clothes_bottom_id: null },
-  5: { skin_color: "#e8c4a0", hair_id: "bob", hair_color: "#B22222", clothes_full_id: "dress", clothes_full_color: "#e91e63", clothes_top_id: null, clothes_bottom_id: null },
+  0: {
+    skin_color: "#e8c4a0",
+    hair_id: "buzzcut",
+    hair_color: "#2c1810",
+    clothes_top_id: "basic",
+    clothes_top_color: "#4a9eff",
+  },
+  1: {
+    skin_color: "#c4956a",
+    hair_id: "curly",
+    hair_color: "#8B4513",
+    clothes_full_id: "overalls",
+    clothes_full_color: "#e74c3c",
+    clothes_top_id: null,
+    clothes_bottom_id: null,
+  },
+  2: {
+    skin_color: "#e8c4a0",
+    hair_id: "ponytail",
+    hair_color: "#FFD700",
+    clothes_top_id: "stripe",
+    clothes_top_color: "#9b59b6",
+  },
+  3: {
+    skin_color: "#6b4226",
+    hair_id: "gentleman",
+    hair_color: "#1a1a1a",
+    clothes_full_id: "suit",
+    clothes_full_color: "#2c3e50",
+    clothes_top_id: null,
+    clothes_bottom_id: null,
+  },
+  4: {
+    skin_color: "#a0714f",
+    hair_id: "emo",
+    hair_color: "#4169E1",
+    clothes_full_id: "sporty",
+    clothes_full_color: "#c8e64a",
+    clothes_top_id: null,
+    clothes_bottom_id: null,
+  },
+  5: {
+    skin_color: "#e8c4a0",
+    hair_id: "bob",
+    hair_color: "#B22222",
+    clothes_full_id: "dress",
+    clothes_full_color: "#e91e63",
+    clothes_top_id: null,
+    clothes_bottom_id: null,
+  },
 };
 
 export async function GET() {
   const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const admin = getSupabaseAdmin();
   const dev = auth.developer;
 
   if (!dev || dev.id == null) {
-    return NextResponse.json(
-      { error: "Developer not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Developer not found" }, { status: 404 });
   }
 
   // Try new loadout first
@@ -67,9 +111,12 @@ export async function GET() {
     .maybeSingle();
 
   if (loadout) {
-    return NextResponse.json({ loadout }, {
-      headers: { "Cache-Control": "private, max-age=30" },
-    });
+    return NextResponse.json(
+      { loadout },
+      {
+        headers: { "Cache-Control": "private, max-age=30" },
+      },
+    );
   }
 
   // Fallback: check old arcade_avatars and migrate
@@ -86,11 +133,14 @@ export async function GET() {
       const newLoadout = { ...DEFAULT_LOADOUT, ...mapped };
 
       // Auto-migrate: create new loadout
-      await admin.from("arcade_avatar_loadouts").upsert({
-        developer_id: dev.id,
-        ...newLoadout,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "developer_id" });
+      await admin.from("arcade_avatar_loadouts").upsert(
+        {
+          developer_id: dev.id,
+          ...newLoadout,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id" },
+      );
 
       // Grant free items if not already
       const { data: freeItems } = await admin
@@ -105,25 +155,34 @@ export async function GET() {
         );
       }
 
-      return NextResponse.json({ loadout: { developer_id: dev.id, ...newLoadout } }, {
-        headers: { "Cache-Control": "private, max-age=30" },
-      });
+      return NextResponse.json(
+        { loadout: { developer_id: dev.id, ...newLoadout } },
+        {
+          headers: { "Cache-Control": "private, max-age=30" },
+        },
+      );
     }
   } catch (err) {
     console.warn("Supabase query error for old avatar (ignoring):", err);
   }
 
   // No avatar at all — return default (UI will show avatar editor)
-  return NextResponse.json({ loadout: null }, {
-    headers: { "Cache-Control": "private, max-age=30" },
-  });
+  return NextResponse.json(
+    { loadout: null },
+    {
+      headers: { "Cache-Control": "private, max-age=30" },
+    },
+  );
 }
 
 export async function POST(request: Request) {
   const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   let body: Record<string, unknown>;
@@ -138,12 +197,8 @@ export async function POST(request: Request) {
 
   const dev = auth.developer;
 
-  
   if (!dev || dev.id == null) {
-    return NextResponse.json(
-      { error: "Developer not found" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "Developer not found" }, { status: 404 });
   }
 
   // Backwards compat: if old-style { sprite_id } is sent, map it
@@ -154,30 +209,47 @@ export async function POST(request: Request) {
 
     try {
       // Save to old table too for backwards compat
-      await admin.from("arcade_avatars").upsert({
-        user_id: auth.user.id,
-        config: { sprite_id: spriteId },
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      await admin.from("arcade_avatars").upsert(
+        {
+          user_id: auth.user.id,
+          config: { sprite_id: spriteId },
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
 
       // Save to new table
-      await admin.from("arcade_avatar_loadouts").upsert({
-        developer_id: dev.id,
-        ...newLoadout,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "developer_id" });
+      await admin.from("arcade_avatar_loadouts").upsert(
+        {
+          developer_id: dev.id,
+          ...newLoadout,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id" },
+      );
     } catch (e) {
       console.warn("Could not save legacy sprite mapping to database:", e);
     }
 
-    return NextResponse.json({ loadout: { developer_id: dev.id, ...newLoadout } });
+    return NextResponse.json({
+      loadout: { developer_id: dev.id, ...newLoadout },
+    });
   }
 
   // New-style loadout update — validate that player owns all equipped items
   const slotFields = [
-    "hair_id", "clothes_top_id", "clothes_bottom_id", "clothes_full_id",
-    "shoes_id", "acc_hat_id", "acc_face_id", "acc_facial_id", "acc_jewelry_id",
-    "blush_id", "lipstick_id", "pet_id",
+    "hair_id",
+    "clothes_top_id",
+    "clothes_bottom_id",
+    "clothes_full_id",
+    "shoes_id",
+    "acc_hat_id",
+    "acc_face_id",
+    "acc_facial_id",
+    "acc_jewelry_id",
+    "blush_id",
+    "lipstick_id",
+    "pet_id",
   ] as const;
 
   const equippedIds = slotFields
@@ -188,9 +260,13 @@ export async function POST(request: Request) {
     try {
       const ownedSet = new Set<string>();
       for (const itemId of equippedIds) {
-        const isOwned = await entitlementService.ownsInventoryItem(dev.id, itemId, {
-          inventoryTable: "arcade_inventory",
-        });
+        const isOwned = await entitlementService.ownsInventoryItem(
+          dev.id,
+          itemId,
+          {
+            inventoryTable: "arcade_inventory",
+          },
+        );
         if (isOwned) {
           ownedSet.add(itemId);
         }
@@ -206,22 +282,43 @@ export async function POST(request: Request) {
       }
     } catch (error) {
       console.warn("Could not verify item ownership from database:", error);
-      return NextResponse.json({ error: "Failed to verify item ownership" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to verify item ownership" },
+        { status: 500 },
+      );
     }
   }
 
   // Build loadout row — only accept known fields
   const colorFields = new Set([
-    "skin_color", "eyes_color", "hair_color",
-    "clothes_top_color", "clothes_bottom_color", "clothes_full_color",
-    "shoes_color", "acc_hat_color", "acc_face_color",
-    "acc_facial_color", "acc_jewelry_color", "blush_color", "lipstick_color",
+    "skin_color",
+    "eyes_color",
+    "hair_color",
+    "clothes_top_color",
+    "clothes_bottom_color",
+    "clothes_full_color",
+    "shoes_color",
+    "acc_hat_color",
+    "acc_face_color",
+    "acc_facial_color",
+    "acc_jewelry_color",
+    "blush_color",
+    "lipstick_color",
   ]);
 
   const idFields = new Set([
-    "hair_id", "clothes_top_id", "clothes_bottom_id", "clothes_full_id",
-    "shoes_id", "acc_hat_id", "acc_face_id", "acc_facial_id", "acc_jewelry_id",
-    "blush_id", "lipstick_id", "pet_id",
+    "hair_id",
+    "clothes_top_id",
+    "clothes_bottom_id",
+    "clothes_full_id",
+    "shoes_id",
+    "acc_hat_id",
+    "acc_face_id",
+    "acc_facial_id",
+    "acc_jewelry_id",
+    "blush_id",
+    "lipstick_id",
+    "pet_id",
   ]);
 
   const loadoutData: Record<string, unknown> = {
@@ -237,7 +334,10 @@ export async function POST(request: Request) {
       } else if (isValidHex(val)) {
         loadoutData[field] = val;
       } else {
-        return NextResponse.json({ error: `Invalid color for ${field}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Invalid color for ${field}` },
+          { status: 400 },
+        );
       }
     }
   }
@@ -250,7 +350,10 @@ export async function POST(request: Request) {
       } else if (typeof val === "string" && val.length <= 50) {
         loadoutData[field] = val;
       } else {
-        return NextResponse.json({ error: `Invalid value for ${field}` }, { status: 400 });
+        return NextResponse.json(
+          { error: `Invalid value for ${field}` },
+          { status: 400 },
+        );
       }
     }
   }
@@ -262,7 +365,10 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Loadout upsert error:", error);
-      return NextResponse.json({ error: "Failed to save loadout" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to save loadout" },
+        { status: 500 },
+      );
     }
 
     // Return full loadout
@@ -274,7 +380,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ loadout: saved });
   } catch (e) {
-    console.warn("Could not save loadout to database (falling back to returning request loadout):", e);
+    console.warn(
+      "Could not save loadout to database (falling back to returning request loadout):",
+      e,
+    );
     return NextResponse.json({ loadout: loadoutData });
   }
 }

@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("developers")
-    .select("github_login, easy_solved, medium_solved, hard_solved, lc_global_rank")
+    .select(
+      "github_login, easy_solved, medium_solved, hard_solved, lc_global_rank",
+    )
     .ilike("github_login", `%${q}%`)
     .limit(8);
 

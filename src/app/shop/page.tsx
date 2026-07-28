@@ -7,7 +7,8 @@ import SignInButton from "./sign-in-button";
 
 export const metadata: Metadata = {
   title: "Shop - LeetCode City",
-  description: "Customize your building in LeetCode City with effects, structures and more",
+  description:
+    "Customize your building in LeetCode City with effects, structures and more",
 };
 
 const ACCENT = "#ffa116";

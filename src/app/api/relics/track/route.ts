@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -33,19 +34,25 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!dev) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 },
+    );
   }
 
   // 1. Ensure 'relic_progress' exists in items table
-  await admin.from("items").upsert({
-    id: "relic_progress",
-    category: "identity",
-    name: "Relic Progress",
-    price_usd_cents: 0,
-    price_brl_cents: 0,
-    is_active: false,
-    description: "Custom metadata tracking for relics unlock system",
-  }, { onConflict: "id" });
+  await admin.from("items").upsert(
+    {
+      id: "relic_progress",
+      category: "identity",
+      name: "Relic Progress",
+      price_usd_cents: 0,
+      price_brl_cents: 0,
+      is_active: false,
+      description: "Custom metadata tracking for relics unlock system",
+    },
+    { onConflict: "id" },
+  );
 
   // 2. Fetch or create developer customizations config for 'relic_progress'
   const { data: custom } = await admin
@@ -89,7 +96,7 @@ export async function POST(request: Request) {
       config: progress,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "developer_id,item_id" }
+    { onConflict: "developer_id,item_id" },
   );
 
   // 5. If we unlocked a relic, upsert it into developer_relics
@@ -101,7 +108,7 @@ export async function POST(request: Request) {
         relic_id: unlockedRelicId,
         is_equipped: false,
       },
-      { onConflict: "developer_id,relic_id" }
+      { onConflict: "developer_id,relic_id" },
     );
   }
 

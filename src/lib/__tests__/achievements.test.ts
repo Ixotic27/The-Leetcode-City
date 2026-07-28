@@ -3,14 +3,19 @@ import { countGifts } from "../achievements";
 
 // Builds a minimal chainable mock that mirrors the subset of the Supabase
 // query builder used by countGifts: .from().select().eq().eq().not()
-function buildMockAdmin(count: number | null, error: { message: string } | null = null) {
+function buildMockAdmin(
+  count: number | null,
+  error: { message: string } | null = null,
+) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
     not: vi.fn(() => Promise.resolve({ count, error })),
   };
   const from = vi.fn(() => builder);
-  return { from, __builder: builder } as unknown as Parameters<typeof countGifts>[0] & {
+  return { from, __builder: builder } as unknown as Parameters<
+    typeof countGifts
+  >[0] & {
     __builder: typeof builder;
   };
 }
@@ -24,7 +29,11 @@ describe("countGifts", () => {
     expect(result).toBe(3);
     expect(admin.from).toHaveBeenCalledWith("purchases");
     expect(admin.__builder.eq).toHaveBeenNthCalledWith(1, "developer_id", 42);
-    expect(admin.__builder.eq).toHaveBeenNthCalledWith(2, "status", "completed");
+    expect(admin.__builder.eq).toHaveBeenNthCalledWith(
+      2,
+      "status",
+      "completed",
+    );
   });
 
   it("counts gifts received using the gifted_to column", async () => {
@@ -48,7 +57,7 @@ describe("countGifts", () => {
     const admin = buildMockAdmin(null, { message: "connection timeout" });
 
     await expect(countGifts(admin, 1, "sent")).rejects.toThrow(
-      "countGifts(sent) query failed: connection timeout"
+      "countGifts(sent) query failed: connection timeout",
     );
   });
 });

@@ -1,14 +1,28 @@
 import { createBrowserSupabase } from "@/lib/supabase";
-import type { ClientMsg, ServerMsg, PlayerState, ChatLogEntry, GameResult, AvatarLoadout } from "../types";
+import type {
+  ClientMsg,
+  ServerMsg,
+  PlayerState,
+  ChatLogEntry,
+  GameResult,
+  AvatarLoadout,
+} from "../types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "error";
+export type ConnectionStatus =
+  "connecting" | "connected" | "reconnecting" | "error";
 
 export interface ArcadeCallbacks {
   onSync: (players: PlayerState[]) => void;
   onJoin: (player: PlayerState) => void;
   onLeave: (id: string) => void;
-  onMove: (id: string, x: number, y: number, dir: PlayerState["dir"], ackSeq?: number) => void;
+  onMove: (
+    id: string,
+    x: number,
+    y: number,
+    dir: PlayerState["dir"],
+    ackSeq?: number,
+  ) => void;
   onChat: (id: string, text: string) => void;
   onChatHistory: (entries: ChatLogEntry[]) => void;
   onSit: (id: string, x: number, y: number, dir: PlayerState["dir"]) => void;
@@ -41,7 +55,10 @@ let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let activeGameToken: any = null;
 
 // Track recent positions to prevent visual glitches during presence sync
-const recentPositions = new Map<string, { x: number; y: number; dir: PlayerState["dir"] }>();
+const recentPositions = new Map<
+  string,
+  { x: number; y: number; dir: PlayerState["dir"] }
+>();
 
 export function connect(
   token: string,
@@ -70,18 +87,20 @@ export function connect(
 
   async function init() {
     try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionErr,
+      } = await supabase.auth.getSession();
       if (sessionErr || !session) {
         callbacks.onStatusChange("error");
         return;
       }
 
       localUserId = session.user.id;
-      localGithubLogin = (
+      localGithubLogin =
         session.user.user_metadata?.user_name ??
         session.user.user_metadata?.preferred_username ??
-        "anon"
-      );
+        "anon";
       localAvatarUrl = session.user.user_metadata?.avatar_url ?? "";
 
       // Fetch user loadout from Next.js avatar API (cached profile details)
@@ -186,41 +205,61 @@ export function connect(
           recentPositions.set(id, { x, y, dir });
           callbacks.onSit(id, x, y, dir);
         })
-        .on("broadcast", { event: "stand" }, ({ payload }: { payload: any }) => {
-          const { id, x, y } = payload;
-          if (id === localUserId) return;
-          if (recentPositions.has(id)) {
-            recentPositions.get(id)!.x = x;
-            recentPositions.get(id)!.y = y;
-          }
-          callbacks.onStand(id, x, y);
-        })
-        .on("broadcast", { event: "avatar" }, ({ payload }: { payload: any }) => {
-          const { id, sprite_id } = payload;
-          if (id === localUserId) return;
-          callbacks.onAvatar(id, sprite_id);
-        })
-        .on("broadcast", { event: "loadout" }, ({ payload }: { payload: any }) => {
-          const { id, loadout } = payload;
-          if (id === localUserId) return;
-          callbacks.onLoadout(id, loadout);
-        })
+        .on(
+          "broadcast",
+          { event: "stand" },
+          ({ payload }: { payload: any }) => {
+            const { id, x, y } = payload;
+            if (id === localUserId) return;
+            if (recentPositions.has(id)) {
+              recentPositions.get(id)!.x = x;
+              recentPositions.get(id)!.y = y;
+            }
+            callbacks.onStand(id, x, y);
+          },
+        )
+        .on(
+          "broadcast",
+          { event: "avatar" },
+          ({ payload }: { payload: any }) => {
+            const { id, sprite_id } = payload;
+            if (id === localUserId) return;
+            callbacks.onAvatar(id, sprite_id);
+          },
+        )
+        .on(
+          "broadcast",
+          { event: "loadout" },
+          ({ payload }: { payload: any }) => {
+            const { id, loadout } = payload;
+            if (id === localUserId) return;
+            callbacks.onLoadout(id, loadout);
+          },
+        )
         .on("broadcast", { event: "warp" }, ({ payload }: { payload: any }) => {
           const { id, x, y, dir } = payload;
           if (id === localUserId) return;
           recentPositions.set(id, { x, y, dir });
           callbacks.onMove(id, x, y, dir);
         })
-        .on("broadcast", { event: "map_reload" }, ({ payload }: { payload: any }) => {
-          callbacks.onMapReload(payload.map);
-        });
+        .on(
+          "broadcast",
+          { event: "map_reload" },
+          ({ payload }: { payload: any }) => {
+            callbacks.onMapReload(payload.map);
+          },
+        );
 
       chan.subscribe((subStatus: string) => {
         if (subStatus === "SUBSCRIBED") {
           callbacks.onStatusChange("connected");
 
-           // Start position in room
-          recentPositions.set(localUserId, { x: startX, y: startY, dir: "down" });
+          // Start position in room
+          recentPositions.set(localUserId, {
+            x: startX,
+            y: startY,
+            dir: "down",
+          });
 
           chan.track({
             github_login: localGithubLogin,
@@ -249,8 +288,8 @@ export function connect(
           // Register unload handlers for immediate cleanup
           unloadHandler = () => {
             if (localUserId && localToken) {
-              const sbUrl = process.env['NEXT_PUBLIC_SUPABASE_URL'];
-              const sbKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+              const sbUrl = process.env["NEXT_PUBLIC_SUPABASE_URL"];
+              const sbKey = process.env["NEXT_PUBLIC_SUPABASE_ANON_KEY"];
               if (sbUrl && sbKey) {
                 const url = `${sbUrl}/rest/v1/arcade_active_players?user_id=eq.${localUserId}`;
                 fetch(url, {
@@ -278,7 +317,9 @@ export function connect(
   init();
 }
 
-export function sendMove(msg: ClientMsg & { type: "move"; x?: number; y?: number }): void {
+export function sendMove(
+  msg: ClientMsg & { type: "move"; x?: number; y?: number },
+): void {
   if (!channel) return;
   const x = msg.x ?? 0;
   const y = msg.y ?? 0;
@@ -357,7 +398,11 @@ export function sendChat(text: string): void {
   currentCallbacks?.onChat(localUserId, trimmed);
 }
 
-export function sendSit(x: number, y: number, dir: "up" | "down" | "left" | "right"): void {
+export function sendSit(
+  x: number,
+  y: number,
+  dir: "up" | "down" | "left" | "right",
+): void {
   if (!channel) return;
 
   channel.send({
@@ -388,7 +433,11 @@ export function sendSit(x: number, y: number, dir: "up" | "down" | "left" | "rig
 
 export function sendStand(): void {
   if (!channel) return;
-  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || {
+    x: initialStartX,
+    y: initialStartY,
+    dir: "down" as const,
+  };
 
   channel.send({
     type: "broadcast",
@@ -426,7 +475,11 @@ export function sendAvatar(spriteId: number): void {
     },
   });
 
-  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || {
+    x: initialStartX,
+    y: initialStartY,
+    dir: "down" as const,
+  };
   channel.track({
     github_login: localGithubLogin,
     avatar_url: localAvatarUrl,
@@ -453,7 +506,11 @@ export function sendLoadout(loadout: AvatarLoadout): void {
     },
   });
 
-  const currentPos = recentPositions.get(localUserId) || { x: initialStartX, y: initialStartY, dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || {
+    x: initialStartX,
+    y: initialStartY,
+    dir: "down" as const,
+  };
   channel.track({
     github_login: localGithubLogin,
     avatar_url: localAvatarUrl,
@@ -511,7 +568,9 @@ export function sendGameStop(game: string): void {
 
 export function sendWarp(x: number, y: number): void {
   if (!channel) return;
-  const currentPos = recentPositions.get(localUserId) || { dir: "down" as const };
+  const currentPos = recentPositions.get(localUserId) || {
+    dir: "down" as const,
+  };
 
   channel.send({
     type: "broadcast",

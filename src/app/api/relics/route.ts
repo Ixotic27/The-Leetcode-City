@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { resolveAuthenticatedDeveloper, type AuthenticatedDeveloperRecord } from "@/lib/authenticated-developer";
+import {
+  resolveAuthenticatedDeveloper,
+  type AuthenticatedDeveloperRecord,
+} from "@/lib/authenticated-developer";
 import { STATIC_RELICS } from "@/lib/relics";
 import { cookies } from "next/headers";
 import { levelFromXp } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";
 
-function getTrackerNumber(config: Record<string, unknown>, key: string): number {
+function getTrackerNumber(
+  config: Record<string, unknown>,
+  key: string,
+): number {
   const value = config[key];
   return typeof value === "number" ? value : 0;
 }
@@ -22,9 +28,7 @@ export async function GET() {
   const relics = STATIC_RELICS;
 
   // Try to fetch coords overrides from DB relics table if it exists
-  const { data: dbRelics } = await admin
-    .from("relics")
-    .select("*");
+  const { data: dbRelics } = await admin.from("relics").select("*");
 
   let equippedRelicId: string | null = null;
 
@@ -43,7 +47,8 @@ export async function GET() {
 
   if (auth.ok && user) {
     const authDev = await resolveAuthenticatedDeveloper({
-      select: "id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total",
+      select:
+        "id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total",
     });
 
     if (authDev.ok && authDev.developer) {
@@ -142,7 +147,8 @@ export async function GET() {
           locked = false;
         }
       } else if (staticRelic.id === "relic_axi_astral_prism") {
-        const xpTotal = typeof devRecord.xp_total === "number" ? devRecord.xp_total : 0;
+        const xpTotal =
+          typeof devRecord.xp_total === "number" ? devRecord.xp_total : 0;
         const level = levelFromXp(xpTotal);
         if (level >= 30) {
           locked = false;
@@ -161,7 +167,12 @@ export async function GET() {
         const dailiesStreak = devRecord.dailies_streak ?? 0;
         const lcStreak = devRecord.lc_streak ?? 0;
         const dailiesCompleted = devRecord.dailies_completed ?? 0;
-        if (appStreak >= 365 || dailiesStreak >= 365 || lcStreak >= 365 || dailiesCompleted >= 182) {
+        if (
+          appStreak >= 365 ||
+          dailiesStreak >= 365 ||
+          lcStreak >= 365 ||
+          dailiesCompleted >= 182
+        ) {
           locked = false;
         }
       }

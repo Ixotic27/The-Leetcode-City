@@ -6,13 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 // ─── Types ─────────────────────────────────────────────────────
 
 export type LoadingStage =
-  | "init"
-  | "fetching"
-  | "generating"
-  | "rendering"
-  | "ready"
-  | "done"
-  | "error";
+  "init" | "fetching" | "generating" | "rendering" | "ready" | "done" | "error";
 
 interface LoadingScreenProps {
   stage: LoadingStage;
@@ -97,7 +91,7 @@ export default function LoadingScreen({
   }, [fading, onFadeComplete]);
 
   const isError = stage === "error";
-  const message = isError ? error : STAGE_MESSAGES[stage] ?? "";
+  const message = isError ? error : (STAGE_MESSAGES[stage] ?? "");
 
   // Build pixel progress bar with block characters
   const barWidth = 30;
@@ -144,8 +138,7 @@ export default function LoadingScreen({
           className="text-2xl tracking-[0.15em] font-bold sm:text-4xl"
           style={{ color: "#e8dcc8", fontFamily: "monospace" }}
         >
-          LEETCODE{" "}
-          <span style={{ color: accentColor }}>CITY</span>
+          LEETCODE <span style={{ color: accentColor }}>CITY</span>
         </h1>
       </div>
 
@@ -154,7 +147,8 @@ export default function LoadingScreen({
         className="mt-5 text-[10px] tracking-[0.2em] uppercase sm:text-xs"
         style={{ color: accentColor, fontFamily: "monospace", opacity: 0.8 }}
       >
-        {message}{!isError && dots}
+        {message}
+        {!isError && dots}
       </p>
 
       {/* Pixel progress bar */}
@@ -162,13 +156,21 @@ export default function LoadingScreen({
         <div className="mt-5 flex flex-col items-center gap-1">
           <div
             className="text-xs sm:text-sm"
-            style={{ color: accentColor, fontFamily: "monospace", letterSpacing: "1px" }}
+            style={{
+              color: accentColor,
+              fontFamily: "monospace",
+              letterSpacing: "1px",
+            }}
           >
             [{progressBar}]
           </div>
           <p
             className="text-[10px] tracking-widest"
-            style={{ color: accentColor, fontFamily: "monospace", opacity: 0.6 }}
+            style={{
+              color: accentColor,
+              fontFamily: "monospace",
+              opacity: 0.6,
+            }}
           >
             {Math.min(100, Math.round(progress))}%
           </p>

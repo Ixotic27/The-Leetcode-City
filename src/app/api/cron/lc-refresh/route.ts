@@ -17,25 +17,44 @@ interface LCFullProfileData {
   matchedUser?: {
     username: string;
     profile?: {
-      realName?: string; userAvatar?: string; ranking?: number; reputation?: number;
-      countryName?: string; school?: string; company?: string; websites?: string[];
-      linkedinUrl?: string; twitterUrl?: string; githubUrl?: string; aboutMe?: string;
+      realName?: string;
+      userAvatar?: string;
+      ranking?: number;
+      reputation?: number;
+      countryName?: string;
+      school?: string;
+      company?: string;
+      websites?: string[];
+      linkedinUrl?: string;
+      twitterUrl?: string;
+      githubUrl?: string;
+      aboutMe?: string;
     };
-    badges?: Array<{ id: string; name: string; icon: string; displayName: string }>;
+    badges?: Array<{
+      id: string;
+      name: string;
+      icon: string;
+      displayName: string;
+    }>;
     submitStats?: {
       acSubmissionNum: SubmissionStat[];
       totalSubmissionNum: SubmissionStat[];
     };
     tagProblemCounts?: {
-      advanced: LCTagCount[]; intermediate: LCTagCount[]; fundamental: LCTagCount[];
+      advanced: LCTagCount[];
+      intermediate: LCTagCount[];
+      fundamental: LCTagCount[];
     };
     userCalendar?: { streak: number; totalActiveDays: number };
     maxStreak?: number;
     [key: string]: unknown;
   };
   userContestRanking?: {
-    rating?: number; globalRanking?: number; attendedContestsCount?: number;
-    topPercentage?: number; badge?: { name: string };
+    rating?: number;
+    globalRanking?: number;
+    attendedContestsCount?: number;
+    topPercentage?: number;
+    badge?: { name: string };
   };
 }
 
@@ -68,18 +87,22 @@ const USERS_PER_RUN = 50; // How many stale profiles to refresh each invocation
 
 const LC_HEADERS = {
   "Content-Type": "application/json",
-  "Referer": "https://leetcode.com",
+  Referer: "https://leetcode.com",
   "User-Agent": "Mozilla/5.0 (compatible; LeetCodeCity/1.0)",
 };
 
 function calendarAliases(): string {
   const year = new Date().getFullYear();
   return Array.from({ length: year - 2014 }, (_, i) => 2015 + i)
-    .map((y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`)
+    .map(
+      (y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`,
+    )
     .join("");
 }
 
-async function fetchLCFullProfile(username: string): Promise<LCFullProfileData | null> {
+async function fetchLCFullProfile(
+  username: string,
+): Promise<LCFullProfileData | null> {
   const query = `
     query($username: String!) {
       matchedUser(username: $username) {
@@ -119,8 +142,10 @@ async function fetchLCFullProfile(username: string): Promise<LCFullProfileData |
       );
     }
     return json?.data ?? null;
-  } catch (err) { console.warn("[app/api/cron/lc-refresh/route.ts] error:", err); return null;
-   }
+  } catch (err) {
+    console.warn("[app/api/cron/lc-refresh/route.ts] error:", err);
+    return null;
+  }
 }
 
 async function upsertFullProfile(
@@ -133,8 +158,10 @@ async function upsertFullProfile(
 
   const acNums = user.submitStats?.acSubmissionNum ?? [];
   const totNums = user.submitStats?.totalSubmissionNum ?? [];
-  const getAC = (d: string) => acNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 0;
-  const getTot = (d: string) => totNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 1;
+  const getAC = (d: string) =>
+    acNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 0;
+  const getTot = (d: string) =>
+    totNums.find((x: SubmissionStat) => x.difficulty === d)?.count ?? 1;
 
   const totalSolved = getAC("All");
   const totalSub = getTot("All");
@@ -156,7 +183,9 @@ async function upsertFullProfile(
   let weeklyContributions = 0;
 
   for (const year of yearsToCheck) {
-    const calendarStr = (user[`y${year}`] as { submissionCalendar?: string } | undefined)?.submissionCalendar;
+    const calendarStr = (
+      user[`y${year}`] as { submissionCalendar?: string } | undefined
+    )?.submissionCalendar;
     if (calendarStr) {
       try {
         const calendar = JSON.parse(calendarStr);
@@ -167,7 +196,10 @@ async function upsertFullProfile(
           }
         }
       } catch (err) {
-        console.warn(`[lc-refresh] Error parsing calendar for year ${year}:`, err);
+        console.warn(
+          `[lc-refresh] Error parsing calendar for year ${year}:`,
+          err,
+        );
       }
     }
   }
@@ -176,7 +208,8 @@ async function upsertFullProfile(
   const litPercentage = Math.min(0.92, Math.max(0.15, activeDays / 365));
   const realName = user.profile?.realName?.trim() || user.username;
   let hash = 0;
-  for (const ch of username) hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
+  for (const ch of username)
+    hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
 
   const contestStats = data?.userContestRanking;
   const badges = user.badges ?? [];
@@ -207,7 +240,8 @@ async function upsertFullProfile(
       easy_solved: getAC("Easy"),
       medium_solved: getAC("Medium"),
       hard_solved: getAC("Hard"),
-      acceptance_rate: totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0,
+      acceptance_rate:
+        totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0,
       total_submitted: totalSub,
       lc_streak: user.maxStreak ?? user.userCalendar?.streak ?? 0,
       lc_max_streak: user.maxStreak ?? 0,
@@ -219,7 +253,11 @@ async function upsertFullProfile(
       contest_top_percentage: contestStats?.topPercentage ?? null,
       contest_badge_name: contestStats?.badge?.name ?? null,
       lc_badge: badges.length > 0 ? badges[badges.length - 1].name : null,
-      lc_badges_all: badges.map((b) => ({ name: b.name, icon: b.icon, displayName: b.displayName })),
+      lc_badges_all: badges.map((b) => ({
+        name: b.name,
+        icon: b.icon,
+        displayName: b.displayName,
+      })),
       lc_bio: user.profile?.aboutMe ?? null,
       lc_country_code: user.profile?.countryName ?? null,
       lc_school: user.profile?.school ?? null,
@@ -233,7 +271,8 @@ async function upsertFullProfile(
     { onConflict: "github_login" },
   );
 
-  if (error) console.error(`[lc-refresh] DB error for ${username}:`, error.message);
+  if (error)
+    console.error(`[lc-refresh] DB error for ${username}:`, error.message);
   return !error;
 }
 
@@ -255,8 +294,9 @@ async function discoverAndInsertNewUsers(
       body: JSON.stringify({ query, variables: { page } }),
     });
     const json = await res.json();
-    const usernames: string[] = (json?.data?.globalRanking?.rankingNodes ?? [])
-      .map((n: RankingNode) => n.user.username.toLowerCase());
+    const usernames: string[] = (
+      json?.data?.globalRanking?.rankingNodes ?? []
+    ).map((n: RankingNode) => n.user.username.toLowerCase());
 
     if (usernames.length === 0) return 0;
 
@@ -266,7 +306,9 @@ async function discoverAndInsertNewUsers(
       .select("github_login")
       .in("github_login", usernames);
 
-    const existingSet = new Set((existing ?? []).map((d: DBRow) => d.github_login));
+    const existingSet = new Set(
+      (existing ?? []).map((d: DBRow) => d.github_login),
+    );
     const newUsers = usernames.filter((u) => !existingSet.has(u));
 
     if (newUsers.length === 0) return 0;
@@ -274,7 +316,11 @@ async function discoverAndInsertNewUsers(
     // Stub-insert new users so they get picked up by the next refresh cycle
     const stubs = newUsers.map((login) => ({
       github_login: login,
-      github_id: Math.abs(login.split("").reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0)),
+      github_id: Math.abs(
+        login
+          .split("")
+          .reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0),
+      ),
       fetched_at: new Date(0).toISOString(), // epoch — will be picked as most stale immediately
     }));
 
@@ -282,7 +328,8 @@ async function discoverAndInsertNewUsers(
       .from("developers")
       .upsert(stubs, { onConflict: "github_login", ignoreDuplicates: true });
 
-    if (error) console.warn("[lc-refresh] discovery insert error:", error.message);
+    if (error)
+      console.warn("[lc-refresh] discovery insert error:", error.message);
     return error ? 0 : newUsers.length;
   } catch (err) {
     console.warn("[lc-refresh] discovery fetch error:", err);
@@ -298,25 +345,40 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization") ?? "";
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   const expected = `Bearer ${secret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(authHeader, expected)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const sb = getSupabaseAdmin();
-  const results = { refreshed: 0, skipped: 0, failed: 0, users: [] as string[] };
+  const results = {
+    refreshed: 0,
+    skipped: 0,
+    failed: 0,
+    users: [] as string[],
+  };
 
   // ── Discovery: insert new users from ranking page ──
   // Rotate through pages using Unix hour as cursor — no DB state needed
   const discoveryPage = (Math.floor(Date.now() / 3_600_000) % 50) + 1;
   const discovered = await discoverAndInsertNewUsers(sb, discoveryPage);
-  console.log(`[lc-refresh] Discovery: ${discovered} new users inserted from page ${discoveryPage}`);
+  console.log(
+    `[lc-refresh] Discovery: ${discovered} new users inserted from page ${discoveryPage}`,
+  );
 
   // ── Pick most-stale developers (claimed first, then unclaimed) ──
-  const staleClaimedCutoff = new Date(Date.now() - 6 * 3600_000).toISOString();   // 6h
-  const staleUnclaimedCutoff = new Date(Date.now() - 24 * 3600_000).toISOString(); // 24h
+  const staleClaimedCutoff = new Date(Date.now() - 6 * 3600_000).toISOString(); // 6h
+  const staleUnclaimedCutoff = new Date(
+    Date.now() - 24 * 3600_000,
+  ).toISOString(); // 24h
 
   const { data: claimed } = await sb
     .from("developers")
@@ -338,13 +400,19 @@ export async function GET(request: NextRequest) {
       .lt("fetched_at", staleUnclaimedCutoff)
       .order("fetched_at", { ascending: true })
       .limit(remaining);
-    unclaimedLogins.push(...(unclaimed ?? []).map((d: DBRow) => d.github_login));
+    unclaimedLogins.push(
+      ...(unclaimed ?? []).map((d: DBRow) => d.github_login),
+    );
   }
 
   const logins = [...claimedLogins, ...unclaimedLogins];
 
   if (logins.length === 0) {
-    return NextResponse.json({ ok: true, message: "All profiles are fresh", ...results });
+    return NextResponse.json({
+      ok: true,
+      message: "All profiles are fresh",
+      ...results,
+    });
   }
 
   // ── Refresh users in concurrent chunks (5× throughput vs sequential) ──
@@ -376,6 +444,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  console.log(`[lc-refresh] Done: ${results.refreshed} refreshed, ${results.skipped} skipped, ${results.failed} failed`);
+  console.log(
+    `[lc-refresh] Done: ${results.refreshed} refreshed, ${results.skipped} skipped, ${results.failed} failed`,
+  );
   return NextResponse.json({ ok: true, ...results });
 }

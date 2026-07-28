@@ -52,7 +52,7 @@ export default function ShareButtons({
     setDownloading(true);
     try {
       const res = await fetch(
-        `/api/share-card/${login}?format=${format}&lang=${cardLang}`
+        `/api/share-card/${login}?format=${format}&lang=${cardLang}`,
       );
       if (!res.ok) return;
       const blob = await res.blob();
@@ -116,7 +116,9 @@ export default function ShareButtons({
                 style={{
                   color: cardLang === "en" ? accent : muted,
                   borderBottom:
-                    cardLang === "en" ? `2px solid ${accent}` : "2px solid transparent",
+                    cardLang === "en"
+                      ? `2px solid ${accent}`
+                      : "2px solid transparent",
                 }}
               >
                 EN
@@ -127,7 +129,9 @@ export default function ShareButtons({
                 style={{
                   color: cardLang === "pt" ? accent : muted,
                   borderBottom:
-                    cardLang === "pt" ? `2px solid ${accent}` : "2px solid transparent",
+                    cardLang === "pt"
+                      ? `2px solid ${accent}`
+                      : "2px solid transparent",
                 }}
               >
                 PT

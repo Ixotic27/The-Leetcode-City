@@ -36,9 +36,7 @@ async function getStats() {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
   const [devResult, impressionResult, clickResult] = await Promise.all([
-    supabase
-      .from("developers")
-      .select("id", { count: "exact", head: true }),
+    supabase.from("developers").select("id", { count: "exact", head: true }),
     supabase
       .from("sky_ad_events")
       .select("id", { count: "exact", head: true })
@@ -55,7 +53,12 @@ async function getStats() {
   const clicks = clickResult.count ?? 0;
   const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-  return { devCount: devResult.count ?? 0, monthlyImpressions: impressions, monthlyClicks: clicks, ctr };
+  return {
+    devCount: devResult.count ?? 0,
+    monthlyImpressions: impressions,
+    monthlyClicks: clicks,
+    ctr,
+  };
 }
 
 const COMPETITORS = [
@@ -102,8 +105,9 @@ export default async function AdvertisePage() {
           </h1>
           <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted normal-case">
             Planes fly across the sky. Blimps float between buildings.
-            Billboards light up the tallest towers. {devCount.toLocaleString()}+ real
-            LeetCode developers explore this city every week. Your ad lives inside it.
+            Billboards light up the tallest towers. {devCount.toLocaleString()}+
+            real LeetCode developers explore this city every week. Your ad lives
+            inside it.
           </p>
         </div>
 
@@ -210,8 +214,8 @@ export default async function AdvertisePage() {
             </div>
 
             <p className="mt-4 text-xs text-dim normal-case">
-              3D ads inside the world, not banners people train
-              themselves to ignore.
+              3D ads inside the world, not banners people train themselves to
+              ignore.
             </p>
           </div>
         )}
@@ -233,7 +237,11 @@ export default async function AdvertisePage() {
           {/* How it works */}
           <div className="grid gap-8 sm:grid-cols-4">
             {[
-              { n: "01", t: "Pick", d: "Sky or building ads. 5 formats, starting at $9/week" },
+              {
+                n: "01",
+                t: "Pick",
+                d: "Sky or building ads. 5 formats, starting at $9/week",
+              },
               {
                 n: "02",
                 t: "Design",

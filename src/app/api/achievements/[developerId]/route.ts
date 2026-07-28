@@ -6,12 +6,15 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ developerId: string }> }
+  { params }: { params: Promise<{ developerId: string }> },
 ) {
   const { developerId: devIdStr } = await params;
   const developerId = parseInt(devIdStr, 10);
   if (isNaN(developerId)) {
-    return NextResponse.json({ error: "Invalid developer ID" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid developer ID" },
+      { status: 400 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -25,7 +28,7 @@ export async function GET(
   ]);
 
   const unlockedMap = new Map(
-    (unlockedRes.data ?? []).map((r) => [r.achievement_id, r])
+    (unlockedRes.data ?? []).map((r) => [r.achievement_id, r]),
   );
 
   const achievements = (allRes.data ?? []).map((a) => ({
@@ -37,6 +40,10 @@ export async function GET(
 
   return NextResponse.json(
     { achievements },
-    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
+    },
   );
 }

@@ -6,7 +6,10 @@ import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 export async function POST(req: NextRequest) {
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Unauthorized" },
+      { status: auth.status },
+    );
   }
   const user = auth.user;
 
@@ -28,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       // Remove favorite
-      await sb.from("arcade_room_favorites")
+      await sb
+        .from("arcade_room_favorites")
         .delete()
         .eq("user_id", user.id)
         .eq("room_id", room_id);
@@ -36,7 +40,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Add favorite
-    const { error } = await sb.from("arcade_room_favorites")
+    const { error } = await sb
+      .from("arcade_room_favorites")
       .insert({ user_id: user.id, room_id });
 
     if (error) {
@@ -45,7 +50,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ favorited: true });
   } catch (e) {
-    console.warn("Could not toggle favorite in DB, fallback to fake success:", e);
+    console.warn(
+      "Could not toggle favorite in DB, fallback to fake success:",
+      e,
+    );
     // Just toggle locally
     return NextResponse.json({ favorited: true });
   }

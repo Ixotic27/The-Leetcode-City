@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
-import { cacheEmailFromAuth, touchLastActive, ensurePreferences } from "@/lib/notification-helpers";
+import {
+  cacheEmailFromAuth,
+  touchLastActive,
+  ensurePreferences,
+} from "@/lib/notification-helpers";
 import { sendWelcomeNotification } from "@/lib/notification-senders/welcome";
 import { sendReferralJoinedNotification } from "@/lib/notification-senders/referral";
 
@@ -30,7 +34,6 @@ export async function GET(request: Request) {
   const admin = getSupabaseAdmin();
 
   if (githubLogin) {
-    
     const { data: claimResult } = await admin
       .from("developers")
       .update({
@@ -43,7 +46,6 @@ export async function GET(request: Request) {
       .eq("claimed", false)
       .select("id");
 
-    
     if (claimResult && claimResult.length > 0) {
       await admin.from("activity_feed").insert({
         event_type: "dev_joined",
@@ -51,17 +53,17 @@ export async function GET(request: Request) {
         metadata: { login: githubLogin },
       });
 
-      
       cacheEmailFromAuth(claimResult[0].id, data.user.id).catch(() => {});
       ensurePreferences(claimResult[0].id).catch(() => {});
       sendWelcomeNotification(claimResult[0].id, githubLogin);
     }
 
-    
     try {
       const { data: dev } = await admin
         .from("developers")
-        .select("id, contributions, public_repos, total_stars, kudos_count, referral_count, referred_by, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+        .select(
+          "id, contributions, public_repos, total_stars, kudos_count, referral_count, referred_by, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs",
+        )
         .eq("github_login", githubLogin)
         .single();
 
@@ -70,7 +72,6 @@ export async function GET(request: Request) {
         cacheEmailFromAuth(dev.id, data.user.id).catch(() => {});
         touchLastActive(dev.id);
 
-        
         const ref = searchParams.get("ref");
         if (ref && ref !== githubLogin && !dev.referred_by) {
           const { data: referrer } = await admin
@@ -85,74 +86,96 @@ export async function GET(request: Request) {
               .update({ referred_by: referrer.github_login })
               .eq("id", dev.id);
 
-            await admin.rpc("increment_referral_count", { referrer_dev_id: referrer.id });
+            await admin.rpc("increment_referral_count", {
+              referrer_dev_id: referrer.id,
+            });
 
             await admin.from("activity_feed").insert({
               event_type: "referral",
               actor_id: referrer.id,
               target_id: dev.id,
-              metadata: { referrer_login: referrer.github_login, referred_login: githubLogin },
+              metadata: {
+                referrer_login: referrer.github_login,
+                referred_login: githubLogin,
+              },
             });
 
-            
-            sendReferralJoinedNotification(referrer.id, referrer.github_login, githubLogin, dev.id);
+            sendReferralJoinedNotification(
+              referrer.id,
+              referrer.github_login,
+              githubLogin,
+              dev.id,
+            );
 
-            
             const { data: referrerFull } = await admin
               .from("developers")
-              .select("referral_count, kudos_count, contributions, public_repos, total_stars, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+              .select(
+                "referral_count, kudos_count, contributions, public_repos, total_stars, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs",
+              )
               .eq("id", referrer.id)
               .single();
 
             if (referrerFull) {
               const giftsSent = await countGifts(admin, referrer.id, "sent");
-              const giftsReceived = await countGifts(admin, referrer.id, "received");
-              await checkAchievements(referrer.id, {
-                contributions: referrerFull.contributions,
-                public_repos: referrerFull.public_repos,
-                total_stars: referrerFull.total_stars,
-                referral_count: referrerFull.referral_count,
-                kudos_count: referrerFull.kudos_count,
-                gifts_sent: giftsSent,
-                gifts_received: giftsReceived,
-                easy_solved: referrerFull.easy_solved ?? 0,
-                medium_solved: referrerFull.medium_solved ?? 0,
-                hard_solved: referrerFull.hard_solved ?? 0,
-                contest_rating: referrerFull.contest_rating ?? 0,
-                lc_streak: referrerFull.lc_streak ?? 0,
-                total_prs: referrerFull.total_prs ?? 0,
-              }, referrer.github_login);
+              const giftsReceived = await countGifts(
+                admin,
+                referrer.id,
+                "received",
+              );
+              await checkAchievements(
+                referrer.id,
+                {
+                  contributions: referrerFull.contributions,
+                  public_repos: referrerFull.public_repos,
+                  total_stars: referrerFull.total_stars,
+                  referral_count: referrerFull.referral_count,
+                  kudos_count: referrerFull.kudos_count,
+                  gifts_sent: giftsSent,
+                  gifts_received: giftsReceived,
+                  easy_solved: referrerFull.easy_solved ?? 0,
+                  medium_solved: referrerFull.medium_solved ?? 0,
+                  hard_solved: referrerFull.hard_solved ?? 0,
+                  contest_rating: referrerFull.contest_rating ?? 0,
+                  lc_streak: referrerFull.lc_streak ?? 0,
+                  total_prs: referrerFull.total_prs ?? 0,
+                },
+                referrer.github_login,
+              );
             }
           }
         }
 
-        
         const giftsSent = await countGifts(admin, dev.id, "sent");
         const giftsReceived = await countGifts(admin, dev.id, "received");
-        await checkAchievements(dev.id, {
-          contributions: dev.contributions,
-          public_repos: dev.public_repos,
-          total_stars: dev.total_stars,
-          referral_count: dev.referral_count ?? 0,
-          kudos_count: dev.kudos_count ?? 0,
-          gifts_sent: giftsSent,
-          gifts_received: giftsReceived,
-          easy_solved: dev.easy_solved ?? 0,
-          medium_solved: dev.medium_solved ?? 0,
-          hard_solved: dev.hard_solved ?? 0,
-          contest_rating: dev.contest_rating ?? 0,
-          lc_streak: dev.lc_streak ?? 0,
-          total_prs: dev.total_prs ?? 0,
-        }, githubLogin);
+        await checkAchievements(
+          dev.id,
+          {
+            contributions: dev.contributions,
+            public_repos: dev.public_repos,
+            total_stars: dev.total_stars,
+            referral_count: dev.referral_count ?? 0,
+            kudos_count: dev.kudos_count ?? 0,
+            gifts_sent: giftsSent,
+            gifts_received: giftsReceived,
+            easy_solved: dev.easy_solved ?? 0,
+            medium_solved: dev.medium_solved ?? 0,
+            hard_solved: dev.hard_solved ?? 0,
+            contest_rating: dev.contest_rating ?? 0,
+            lc_streak: dev.lc_streak ?? 0,
+            total_prs: dev.total_prs ?? 0,
+          },
+          githubLogin,
+        );
       }
     } catch (err) {
       console.warn("[app/auth/callback/route.ts] error:", err);
-      
-      console.warn("Auth callback: skipping v2 achievement/referral check (migration may not have run)");
+
+      console.warn(
+        "Auth callback: skipping v2 achievement/referral check (migration may not have run)",
+      );
     }
   }
 
-  
   const next = searchParams.get("next");
   if (next === "/shop" && githubLogin) {
     const { data: dev } = await admin

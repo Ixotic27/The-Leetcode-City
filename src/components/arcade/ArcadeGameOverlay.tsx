@@ -23,7 +23,12 @@ const MILESTONE_LABELS: Record<string, string> = {
 };
 
 const MILESTONE_PX: Record<string, number> = {
-  first_try: 5, close_enough: 10, sharp: 25, sniper: 50, inhuman: 100, perfection: 250,
+  first_try: 5,
+  close_enough: 10,
+  sharp: 25,
+  sniper: 50,
+  inhuman: 100,
+  perfection: 250,
 };
 
 function fmtTime(ms: number): string {
@@ -54,12 +59,23 @@ function precisionLabel(ms: number): { text: string; color: string } {
  * Fixed-width digit rendering to prevent Silkscreen jitter.
  * Each character gets an equal-width slot.
  */
-function FixedDigits({ value, size, color }: { value: string; size: number; color?: string }) {
+function FixedDigits({
+  value,
+  size,
+  color,
+}: {
+  value: string;
+  size: number;
+  color?: string;
+}) {
   const charW = size * 0.72;
   const dotW = size * 0.4;
 
   return (
-    <span className="inline-flex justify-center" style={{ lineHeight: 1, color }}>
+    <span
+      className="inline-flex justify-center"
+      style={{ lineHeight: 1, color }}
+    >
       {value.split("").map((ch, i) => (
         <span
           key={i}
@@ -76,16 +92,22 @@ function FixedDigits({ value, size, color }: { value: string; size: number; colo
 /** Visual precision bar — shows how close to 10s */
 function PrecisionBar({ diffMs }: { diffMs: number }) {
   // Map diff to 0-100%. 0ms = 100%, 1000ms+ = 0%
-  const pct = Math.max(0, Math.min(100, 100 - (diffMs / 10)));
+  const pct = Math.max(0, Math.min(100, 100 - diffMs / 10));
   const barColor =
-    pct >= 95 ? "var(--color-lime)"
-    : pct >= 75 ? "var(--color-lime-dark)"
-    : pct >= 50 ? "var(--color-cream-dark)"
-    : "var(--color-dim)";
+    pct >= 95
+      ? "var(--color-lime)"
+      : pct >= 75
+        ? "var(--color-lime-dark)"
+        : pct >= 50
+          ? "var(--color-cream-dark)"
+          : "var(--color-dim)";
 
   return (
     <div className="w-full max-w-[240px]">
-      <div className="w-full h-[6px]" style={{ background: "var(--color-border)" }}>
+      <div
+        className="w-full h-[6px]"
+        style={{ background: "var(--color-border)" }}
+      >
         <div
           className="h-full transition-all duration-300"
           style={{ width: `${pct}%`, background: barColor }}
@@ -125,14 +147,21 @@ export default function ArcadeGameOverlay({
   const fetchLeaderboard = () => {
     fetch("/api/arcade/leaderboard?game=10s_classic&limit=5")
       .then((r) => r.json())
-      .then((data: { leaderboard?: LeaderboardEntry[] }) => setLeaderboard(data.leaderboard ?? []))
+      .then((data: { leaderboard?: LeaderboardEntry[] }) =>
+        setLeaderboard(data.leaderboard ?? []),
+      )
       .catch(() => {})
       .finally(() => setLeaderboardLoading(false));
   };
-  useEffect(() => { fetchLeaderboard(); }, []);
+  useEffect(() => {
+    fetchLeaderboard();
+  }, []);
 
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).__arcadeGameResult = (_game: string, r: GameResult) => {
+    (window as unknown as Record<string, unknown>).__arcadeGameResult = (
+      _game: string,
+      r: GameResult,
+    ) => {
       setServerResult(r);
       bestRef.current = r.best_ms;
     };
@@ -192,7 +221,10 @@ export default function ArcadeGameOverlay({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { doClose(); return; }
+      if (e.key === "Escape") {
+        doClose();
+        return;
+      }
       if (e.key === " " || e.code === "Space") {
         e.preventDefault();
         const s = stateRef.current;
@@ -202,7 +234,7 @@ export default function ArcadeGameOverlay({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const clientDiffMs = Math.round(Math.abs(stoppedMs - 10_000));
@@ -213,7 +245,6 @@ export default function ArcadeGameOverlay({
   return (
     <div className="absolute inset-0 z-[59] flex items-center justify-center bg-black/90">
       <div className="flex flex-col items-center justify-center w-full h-full px-6 py-8">
-
         {/* ═══ ATTRACT ═══ */}
         {state === "attract" && (
           <div className="flex flex-col items-center">
@@ -236,18 +267,40 @@ export default function ArcadeGameOverlay({
               {leaderboardLoading ? (
                 <p className="text-[11px] text-center text-dim">...</p>
               ) : leaderboard.length === 0 ? (
-                <p className="text-[12px] text-center text-dim">No scores yet</p>
+                <p className="text-[12px] text-center text-dim">
+                  No scores yet
+                </p>
               ) : (
                 <div className="space-y-2">
                   {leaderboard.map((entry) => (
-                    <div key={entry.rank} className="flex items-baseline justify-between text-[14px]">
+                    <div
+                      key={entry.rank}
+                      className="flex items-baseline justify-between text-[14px]"
+                    >
                       <span className="flex items-baseline gap-2">
-                        <span className="text-[11px] text-dim">{entry.rank}.</span>
-                        <span style={{ color: entry.rank === 1 ? "var(--color-lime)" : "var(--color-warm)" }}>
+                        <span className="text-[11px] text-dim">
+                          {entry.rank}.
+                        </span>
+                        <span
+                          style={{
+                            color:
+                              entry.rank === 1
+                                ? "var(--color-lime)"
+                                : "var(--color-warm)",
+                          }}
+                        >
                           {entry.login}
                         </span>
                       </span>
-                      <span className="font-bold" style={{ color: entry.rank === 1 ? "var(--color-lime)" : "var(--color-cream-dark)" }}>
+                      <span
+                        className="font-bold"
+                        style={{
+                          color:
+                            entry.rank === 1
+                              ? "var(--color-lime)"
+                              : "var(--color-cream-dark)",
+                        }}
+                      >
                         {fmtDiff(entry.best_ms)}
                       </span>
                     </div>
@@ -256,7 +309,11 @@ export default function ArcadeGameOverlay({
               )}
             </div>
 
-            <button onClick={doStart} className="cursor-pointer animate-pulse" style={{ background: "none", border: "none" }}>
+            <button
+              onClick={doStart}
+              className="cursor-pointer animate-pulse"
+              style={{ background: "none", border: "none" }}
+            >
               <span className="text-[16px] tracking-[0.1em] text-lime font-bold">
                 {isMobile ? "TAP TO START" : "PRESS SPACE"}
               </span>
@@ -269,15 +326,25 @@ export default function ArcadeGameOverlay({
           <div className="flex flex-col items-center">
             <div className="text-center mb-12">
               <div className="text-cream mb-3">
-                <FixedDigits value={fmtTime(displayMs)} size={isMobile ? 56 : 72} />
+                <FixedDigits
+                  value={fmtTime(displayMs)}
+                  size={isMobile ? 56 : 72}
+                />
               </div>
               <p className="text-[10px] tracking-[0.25em] uppercase text-dim">
                 SECONDS
               </p>
             </div>
 
-            <button onClick={doStop} className="cursor-pointer" style={{ background: "none", border: "none" }}>
-              <span className="text-[16px] tracking-[0.1em] font-bold" style={{ color: "#c06050" }}>
+            <button
+              onClick={doStop}
+              className="cursor-pointer"
+              style={{ background: "none", border: "none" }}
+            >
+              <span
+                className="text-[16px] tracking-[0.1em] font-bold"
+                style={{ color: "#c06050" }}
+              >
                 {isMobile ? "TAP TO STOP" : "PRESS SPACE"}
               </span>
             </button>
@@ -287,17 +354,25 @@ export default function ArcadeGameOverlay({
         {/* ═══ RESULT ═══ */}
         {state === "result" && (
           <div className="flex flex-col items-center w-full">
-
             {/* Precision label — the emotional hit */}
-            <p className="text-[14px] sm:text-[16px] font-bold tracking-[0.2em] uppercase mb-3" style={{ color: precision.color }}>
+            <p
+              className="text-[14px] sm:text-[16px] font-bold tracking-[0.2em] uppercase mb-3"
+              style={{ color: precision.color }}
+            >
               {precision.text}
             </p>
 
             {/* THE DIFF — hero number */}
             <div className="mb-2" style={{ color: precision.color }}>
-              <FixedDigits value={diffMs === 0 ? "0" : String(diffMs)} size={isMobile ? 56 : 72} />
+              <FixedDigits
+                value={diffMs === 0 ? "0" : String(diffMs)}
+                size={isMobile ? 56 : 72}
+              />
             </div>
-            <p className="text-[11px] tracking-[0.15em] uppercase mb-5" style={{ color: precision.color, opacity: 0.6 }}>
+            <p
+              className="text-[11px] tracking-[0.15em] uppercase mb-5"
+              style={{ color: precision.color, opacity: 0.6 }}
+            >
               {diffMs === 0 ? "PERFECT SCORE" : "MILLISECONDS OFF"}
             </p>
 
@@ -309,17 +384,26 @@ export default function ArcadeGameOverlay({
             {/* Time + personal best row */}
             <div className="flex items-center gap-4 text-[11px] mb-5">
               <span className="text-dim">
-                Time <span className="text-cream-dark font-bold">{fmtTime(stoppedMs)}s</span>
+                Time{" "}
+                <span className="text-cream-dark font-bold">
+                  {fmtTime(stoppedMs)}s
+                </span>
               </span>
               <span className="text-border">·</span>
               <span className="text-dim">
-                Best <span className="text-cream-dark font-bold">{bestRef.current !== null ? fmtDiff(bestRef.current) : "—"}</span>
+                Best{" "}
+                <span className="text-cream-dark font-bold">
+                  {bestRef.current !== null ? fmtDiff(bestRef.current) : "—"}
+                </span>
               </span>
               {serverResult && (
                 <>
                   <span className="text-border">·</span>
                   <span className="text-dim">
-                    Plays <span className="text-cream-dark font-bold">{serverResult.attempts}</span>
+                    Plays{" "}
+                    <span className="text-cream-dark font-bold">
+                      {serverResult.attempts}
+                    </span>
                   </span>
                 </>
               )}
@@ -335,13 +419,21 @@ export default function ArcadeGameOverlay({
             )}
 
             {/* Server extras (rank, milestones) — appears when ready, no blocking */}
-            {serverResult && serverResult.rank !== null && serverResult.rank <= 10 && (
-              <p className="text-[12px] font-bold tracking-[0.1em] uppercase mb-3" style={{
-                color: serverResult.rank <= 3 ? "var(--color-lime)" : "var(--color-cream-dark)",
-              }}>
-                LEADERBOARD #{serverResult.rank}
-              </p>
-            )}
+            {serverResult &&
+              serverResult.rank !== null &&
+              serverResult.rank <= 10 && (
+                <p
+                  className="text-[12px] font-bold tracking-[0.1em] uppercase mb-3"
+                  style={{
+                    color:
+                      serverResult.rank <= 3
+                        ? "var(--color-lime)"
+                        : "var(--color-cream-dark)",
+                  }}
+                >
+                  LEADERBOARD #{serverResult.rank}
+                </p>
+              )}
 
             {serverResult && serverResult.milestones_earned.length > 0 && (
               <div className="w-full max-w-[280px] mb-4 py-3 px-4 bg-bg-raised border border-border">
@@ -349,9 +441,16 @@ export default function ArcadeGameOverlay({
                   MILESTONES UNLOCKED
                 </p>
                 {serverResult.milestones_earned.map((m) => (
-                  <div key={m} className="flex items-center justify-between text-[11px] py-0.5">
-                    <span className="text-lime">{MILESTONE_LABELS[m] ?? m}</span>
-                    <span className="text-lime-dark">+{MILESTONE_PX[m] ?? 0} PX</span>
+                  <div
+                    key={m}
+                    className="flex items-center justify-between text-[11px] py-0.5"
+                  >
+                    <span className="text-lime">
+                      {MILESTONE_LABELS[m] ?? m}
+                    </span>
+                    <span className="text-lime-dark">
+                      +{MILESTONE_PX[m] ?? 0} PX
+                    </span>
                   </div>
                 ))}
               </div>
@@ -359,12 +458,20 @@ export default function ArcadeGameOverlay({
 
             {/* RETRY — big, prominent, pulsing. The near-miss effect drives retention. */}
             <div className="flex flex-col items-center gap-3 mt-3">
-              <button onClick={doStart} className="cursor-pointer animate-pulse" style={{ background: "none", border: "none" }}>
+              <button
+                onClick={doStart}
+                className="cursor-pointer animate-pulse"
+                style={{ background: "none", border: "none" }}
+              >
                 <span className="text-[16px] tracking-[0.1em] text-lime font-bold">
                   {isMobile ? "TAP TO RETRY" : "SPACE  RETRY"}
                 </span>
               </button>
-              <button onClick={doClose} className="cursor-pointer" style={{ background: "none", border: "none" }}>
+              <button
+                onClick={doClose}
+                className="cursor-pointer"
+                style={{ background: "none", border: "none" }}
+              >
                 <span className="text-[11px] tracking-[0.1em] text-dim">
                   {isMobile ? "CLOSE" : "ESC  EXIT"}
                 </span>

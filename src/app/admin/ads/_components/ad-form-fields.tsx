@@ -64,9 +64,7 @@ export function AdFormFields({ form, onChange }: AdFormFieldsProps) {
 
       {/* Description */}
       <div className="sm:col-span-2 lg:col-span-3">
-        <label className="mb-1 block text-[11px] text-muted">
-          Description
-        </label>
+        <label className="mb-1 block text-[11px] text-muted">Description</label>
         <textarea
           maxLength={200}
           rows={2}

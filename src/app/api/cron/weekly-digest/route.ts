@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendNotificationAsync } from "@/lib/notifications";
 import { buildButton, buildStatsTable } from "@/lib/email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 /**
  * Cron: Monday 10:00 UTC - Weekly recap email for active developers.
@@ -14,7 +15,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tec
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -42,26 +46,27 @@ export async function GET(request: NextRequest) {
     const devIds = devs.map((d) => d.id);
 
     // Fetch weekly activity data in parallel
-    const [kudosResult, raidsResult, achievementsResult] = await Promise.allSettled([
-      // Kudos received this week
-      sb
-        .from("developer_kudos")
-        .select("receiver_id", { count: "exact", head: false })
-        .in("receiver_id", devIds)
-        .gte("given_date", weekStartDate),
-      // Raids this week (as defender)
-      sb
-        .from("raids")
-        .select("defender_id, success")
-        .in("defender_id", devIds)
-        .gte("created_at", weekStart),
-      // Achievements this week
-      sb
-        .from("developer_achievements")
-        .select("developer_id, achievement_id")
-        .in("developer_id", devIds)
-        .gte("unlocked_at", weekStart),
-    ]);
+    const [kudosResult, raidsResult, achievementsResult] =
+      await Promise.allSettled([
+        // Kudos received this week
+        sb
+          .from("developer_kudos")
+          .select("receiver_id", { count: "exact", head: false })
+          .in("receiver_id", devIds)
+          .gte("given_date", weekStartDate),
+        // Raids this week (as defender)
+        sb
+          .from("raids")
+          .select("defender_id, success")
+          .in("defender_id", devIds)
+          .gte("created_at", weekStart),
+        // Achievements this week
+        sb
+          .from("developer_achievements")
+          .select("developer_id, achievement_id")
+          .in("developer_id", devIds)
+          .gte("unlocked_at", weekStart),
+      ]);
 
     // Build lookup maps
     const kudosMap = new Map<number, number>();
@@ -82,9 +87,15 @@ export async function GET(request: NextRequest) {
     }
 
     const achievementsMap = new Map<number, number>();
-    if (achievementsResult.status === "fulfilled" && achievementsResult.value.data) {
+    if (
+      achievementsResult.status === "fulfilled" &&
+      achievementsResult.value.data
+    ) {
       for (const a of achievementsResult.value.data) {
-        achievementsMap.set(a.developer_id, (achievementsMap.get(a.developer_id) ?? 0) + 1);
+        achievementsMap.set(
+          a.developer_id,
+          (achievementsMap.get(a.developer_id) ?? 0) + 1,
+        );
       }
     }
 
@@ -95,7 +106,12 @@ export async function GET(request: NextRequest) {
         const weeklyAchievements = achievementsMap.get(dev.id) ?? 0;
 
         // Skip devs with zero activity
-        if (weeklyKudos === 0 && !weeklyRaids && weeklyAchievements === 0 && (dev.app_streak ?? 0) === 0) {
+        if (
+          weeklyKudos === 0 &&
+          !weeklyRaids &&
+          weeklyAchievements === 0 &&
+          (dev.app_streak ?? 0) === 0
+        ) {
           return Promise.resolve("skipped");
         }
 
@@ -105,7 +121,10 @@ export async function GET(request: NextRequest) {
         ];
 
         if (weeklyRaids) {
-          stats.push({ label: "Battles defended", value: `${weeklyRaids.defended}/${weeklyRaids.total}` });
+          stats.push({
+            label: "Battles defended",
+            value: `${weeklyRaids.defended}/${weeklyRaids.total}`,
+          });
         }
         if (weeklyAchievements > 0) {
           stats.push({ label: "Achievements", value: weeklyAchievements });

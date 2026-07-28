@@ -36,7 +36,8 @@ vi.mock("@/lib/stripe", () => ({
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
-  rateLimit: (...args: Parameters<typeof mockRateLimit>) => mockRateLimit(...args),
+  rateLimit: (...args: Parameters<typeof mockRateLimit>) =>
+    mockRateLimit(...args),
 }));
 
 import { POST } from "./route";
@@ -46,7 +47,10 @@ describe("/api/sky-ads/checkout route", () => {
     vi.clearAllMocks();
     mockGetUser.mockResolvedValue({ data: { user: null } });
     mockRateLimit.mockResolvedValue({ ok: true });
-    mockCreateSession.mockResolvedValue({ id: "sess_123", url: "https://stripe.com/checkout" });
+    mockCreateSession.mockResolvedValue({
+      id: "sess_123",
+      url: "https://stripe.com/checkout",
+    });
 
     mockFrom.mockImplementation(() => ({
       insert: async () => ({ error: null }),
@@ -85,7 +89,9 @@ describe("/api/sky-ads/checkout route", () => {
 
     const res = await POST(request);
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Content contains prohibited language" });
+    expect(await res.json()).toEqual({
+      error: "Content contains prohibited language",
+    });
   });
 
   it("returns 400 for invalid JSON payload", async () => {

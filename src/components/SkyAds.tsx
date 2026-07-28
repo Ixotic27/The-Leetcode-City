@@ -18,13 +18,21 @@ const _sphere = /* @__PURE__ */ new THREE.SphereGeometry(1, 10, 8);
 // so the flag is always set before InstancedBuildings' pointerdown handler.
 
 let _adPointerTs = 0;
-export function markAdPointerConsumed() { _adPointerTs = performance.now(); }
-export function wasAdPointerConsumed() { return performance.now() - _adPointerTs < 300; }
+export function markAdPointerConsumed() {
+  _adPointerTs = performance.now();
+}
+export function wasAdPointerConsumed() {
+  return performance.now() - _adPointerTs < 300;
+}
 
 // Module-level registry of all clickable ad meshes (both sides of banners/screens)
 const _adMeshRegistry = new Set<THREE.Mesh>();
-export function registerAdMesh(mesh: THREE.Mesh) { _adMeshRegistry.add(mesh); }
-export function unregisterAdMesh(mesh: THREE.Mesh) { _adMeshRegistry.delete(mesh); }
+export function registerAdMesh(mesh: THREE.Mesh) {
+  _adMeshRegistry.add(mesh);
+}
+export function unregisterAdMesh(mesh: THREE.Mesh) {
+  _adMeshRegistry.delete(mesh);
+}
 
 // Capture-phase pointerdown guard — raycasts against ad meshes before building handlers
 function SkyAdPointerGuard() {
@@ -156,7 +164,7 @@ function BannerPlane({
 
   const { tex, needsScroll } = useMemo(
     () => createLedTexture(ad.text, ad.color, ad.bgColor),
-    [ad.text, ad.color, ad.bgColor]
+    [ad.text, ad.color, ad.bgColor],
   );
 
   // Single material — same texture for both sides (UV mapping is correct on both)
@@ -169,7 +177,7 @@ function BannerPlane({
         emissiveIntensity: 1.2,
         toneMapped: false,
       }),
-    [tex]
+    [tex],
   );
 
   // Banner dimensions
@@ -183,7 +191,11 @@ function BannerPlane({
     const geo = new THREE.BufferGeometry();
     const ropeVerts = new Float32Array([0, -2, 5, 0, -BANNER_DROP, ROPE_GAP]);
     geo.setAttribute("position", new THREE.BufferAttribute(ropeVerts, 3));
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.5 });
+    const mat = new THREE.LineBasicMaterial({
+      color: "#ffffff",
+      transparent: true,
+      opacity: 0.5,
+    });
     return new THREE.Line(geo, mat);
   }, []);
 
@@ -221,7 +233,11 @@ function BannerPlane({
     const bank = -Math.sin(a) * 0.2;
 
     if (groupRef.current) {
-      groupRef.current.position.set(x, altitude + Math.sin(t * 0.8 + index) * 2, z);
+      groupRef.current.position.set(
+        x,
+        altitude + Math.sin(t * 0.8 + index) * 2,
+        z,
+      );
       groupRef.current.rotation.set(0, yaw, bank, "YXZ");
     }
 
@@ -266,7 +282,11 @@ function BannerPlane({
         position={[0, bannerY / 2, (ROPE_GAP + BANNER_LENGTH) / 2]}
         onClick={handleClick}
         geometry={_box}
-        scale={[12, Math.abs(bannerY) + BANNER_HEIGHT + 12, ROPE_GAP + BANNER_LENGTH + 12]}
+        scale={[
+          12,
+          Math.abs(bannerY) + BANNER_HEIGHT + 12,
+          ROPE_GAP + BANNER_LENGTH + 12,
+        ]}
       >
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
@@ -284,7 +304,8 @@ function BannerPlane({
         ref={(el: THREE.Mesh | null) => {
           side1Ref.current = el;
           if (typeof meshRef === "function") meshRef(el);
-          else if (meshRef && "current" in meshRef) (meshRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
+          else if (meshRef && "current" in meshRef)
+            (meshRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
         }}
         material={ledMat}
         position={[0.15, bannerY, bannerZ]}
@@ -304,7 +325,6 @@ function BannerPlane({
         geometry={_plane}
         scale={[BANNER_LENGTH, BANNER_HEIGHT, 1]}
       />
-
     </group>
   );
 }
@@ -332,7 +352,7 @@ function Blimp({
 
   const { tex, needsScroll } = useMemo(
     () => createLedTexture(ad.text, ad.color, ad.bgColor),
-    [ad.text, ad.color, ad.bgColor]
+    [ad.text, ad.color, ad.bgColor],
   );
 
   const ledMat = useMemo(
@@ -344,7 +364,7 @@ function Blimp({
         emissiveIntensity: 1.2,
         toneMapped: false,
       }),
-    [tex]
+    [tex],
   );
 
   useEffect(() => {
@@ -433,7 +453,11 @@ function Blimp({
       </mesh>
 
       {/* Accent stripe — colored band around belly */}
-      <mesh geometry={_sphere} scale={[0.72 * 15, 0.14 * 15, 1.62 * 15]} position={[0, -1, 0]}>
+      <mesh
+        geometry={_sphere}
+        scale={[0.72 * 15, 0.14 * 15, 1.62 * 15]}
+        position={[0, -1, 0]}
+      >
         <meshStandardMaterial
           color={ad.color}
           emissive={ad.color}
@@ -443,7 +467,11 @@ function Blimp({
       </mesh>
 
       {/* Accent stripe — thin upper trim */}
-      <mesh geometry={_sphere} scale={[0.71 * 15, 0.07 * 15, 1.61 * 15]} position={[0, 3.5, 0]}>
+      <mesh
+        geometry={_sphere}
+        scale={[0.71 * 15, 0.07 * 15, 1.61 * 15]}
+        position={[0, 3.5, 0]}
+      >
         <meshStandardMaterial
           color={ad.color}
           emissive={ad.color}
@@ -454,7 +482,11 @@ function Blimp({
 
       {/* Gondola */}
       <mesh position={[0, -9, 0]} geometry={_box} scale={[6, 3, 10]}>
-        <meshStandardMaterial color="#8890a0" emissive="#404860" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#8890a0"
+          emissive="#404860"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Gondola windows */}
       <mesh position={[3.05, -8.5, 0]} geometry={_box} scale={[0.1, 1.2, 6]}>
@@ -475,25 +507,75 @@ function Blimp({
       </mesh>
 
       {/* Struts — gondola to body */}
-      <mesh position={[2, -6.5, 3]} rotation={[0.15, 0, 0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
-        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      <mesh
+        position={[2, -6.5, 3]}
+        rotation={[0.15, 0, 0.2]}
+        geometry={_box}
+        scale={[0.3, 4, 0.3]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive="#404860"
+          emissiveIntensity={0.2}
+        />
       </mesh>
-      <mesh position={[-2, -6.5, 3]} rotation={[0.15, 0, -0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
-        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      <mesh
+        position={[-2, -6.5, 3]}
+        rotation={[0.15, 0, -0.2]}
+        geometry={_box}
+        scale={[0.3, 4, 0.3]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive="#404860"
+          emissiveIntensity={0.2}
+        />
       </mesh>
-      <mesh position={[2, -6.5, -3]} rotation={[-0.15, 0, 0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
-        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      <mesh
+        position={[2, -6.5, -3]}
+        rotation={[-0.15, 0, 0.2]}
+        geometry={_box}
+        scale={[0.3, 4, 0.3]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive="#404860"
+          emissiveIntensity={0.2}
+        />
       </mesh>
-      <mesh position={[-2, -6.5, -3]} rotation={[-0.15, 0, -0.2]} geometry={_box} scale={[0.3, 4, 0.3]}>
-        <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+      <mesh
+        position={[-2, -6.5, -3]}
+        rotation={[-0.15, 0, -0.2]}
+        geometry={_box}
+        scale={[0.3, 4, 0.3]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive="#404860"
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
       {/* Tail fin — vertical */}
-      <mesh position={[0, 2, -22]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.4, 7, 5]}>
-        <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
+      <mesh
+        position={[0, 2, -22]}
+        rotation={[0.1, 0, 0]}
+        geometry={_box}
+        scale={[0.4, 7, 5]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive={ad.color}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       {/* Tail fin — vertical tip accent */}
-      <mesh position={[0, 5.5, -21]} rotation={[0.1, 0, 0]} geometry={_box} scale={[0.5, 1, 3]}>
+      <mesh
+        position={[0, 5.5, -21]}
+        rotation={[0.1, 0, 0]}
+        geometry={_box}
+        scale={[0.5, 1, 3]}
+      >
         <meshStandardMaterial
           color={ad.color}
           emissive={ad.color}
@@ -503,8 +585,17 @@ function Blimp({
       </mesh>
 
       {/* Tail fin — horizontal */}
-      <mesh position={[0, -1, -22]} rotation={[0.1, 0, 0]} geometry={_box} scale={[6, 0.4, 5]}>
-        <meshStandardMaterial color="#9098a8" emissive={ad.color} emissiveIntensity={0.2} />
+      <mesh
+        position={[0, -1, -22]}
+        rotation={[0.1, 0, 0]}
+        geometry={_box}
+        scale={[6, 0.4, 5]}
+      >
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive={ad.color}
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
       {/* LED Screen — left side (+X) */}
@@ -512,7 +603,9 @@ function Blimp({
         ref={(el: THREE.Mesh | null) => {
           screen1Ref.current = el;
           if (typeof screenRef === "function") screenRef(el);
-          else if (screenRef && "current" in screenRef) (screenRef as React.MutableRefObject<THREE.Mesh | null>).current = el;
+          else if (screenRef && "current" in screenRef)
+            (screenRef as React.MutableRefObject<THREE.Mesh | null>).current =
+              el;
         }}
         material={ledMat}
         position={[10.8, -2, 0]}
@@ -532,7 +625,6 @@ function Blimp({
         geometry={_plane}
         scale={[26, 9, 1]}
       />
-
     </group>
   );
 }
@@ -564,7 +656,10 @@ export function ViewabilityTracker({
 
     const dt = Math.min(delta * 10, 0.2); // accumulate time for skipped frames
 
-    projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    projScreenMatrix.multiplyMatrices(
+      camera.projectionMatrix,
+      camera.matrixWorldInverse,
+    );
     frustum.setFromProjectionMatrix(projScreenMatrix);
 
     for (const [adId, mesh] of meshRefs.current) {
@@ -598,7 +693,13 @@ interface SkyAdsProps {
   onAdViewed?: (adId: string) => void;
 }
 
-export default function SkyAds({ ads, cityRadius, flyMode, onAdClick, onAdViewed }: SkyAdsProps) {
+export default function SkyAds({
+  ads,
+  cityRadius,
+  flyMode,
+  onAdClick,
+  onAdViewed,
+}: SkyAdsProps) {
   const { planeAds, blimpAds } = useMemo(() => getActiveAds(ads), [ads]);
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
 
@@ -641,4 +742,3 @@ export default function SkyAds({ ads, cityRadius, flyMode, onAdClick, onAdViewed
     </group>
   );
 }
-

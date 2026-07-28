@@ -8,7 +8,8 @@ export async function GET() {
   // Fetch today's challenges
   const { data: challenges, error } = await sb
     .from("arena_challenges")
-    .select(`
+    .select(
+      `
       id,
       difficulty,
       challenge_date,
@@ -24,7 +25,8 @@ export async function GET() {
         memory_limit_mb,
         sample_tests
       )
-    `)
+    `,
+    )
     .eq("challenge_date", todayStr);
 
   if (error) {
@@ -32,7 +34,8 @@ export async function GET() {
   }
 
   // Check if user is logged in to return their solve status
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   const user = auth.user;
 
@@ -68,15 +71,16 @@ export async function GET() {
     }
   }
 
-  const formattedChallenges = challenges?.map((ch) => ({
-    id: ch.id,
-    difficulty: ch.difficulty,
-    challenge_date: ch.challenge_date,
-    reward_points: ch.reward_points,
-    reward_xp: ch.reward_xp,
-    problem: ch.problem,
-    status: submissionStatus[ch.id] || "unattempted",
-  })) ?? [];
+  const formattedChallenges =
+    challenges?.map((ch) => ({
+      id: ch.id,
+      difficulty: ch.difficulty,
+      challenge_date: ch.challenge_date,
+      reward_points: ch.reward_points,
+      reward_xp: ch.reward_xp,
+      problem: ch.problem,
+      status: submissionStatus[ch.id] || "unattempted",
+    })) ?? [];
 
   return NextResponse.json({ challenges: formattedChallenges });
 }

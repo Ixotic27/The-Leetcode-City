@@ -32,7 +32,9 @@ export function PixModal({
 }) {
   const [countdown, setCountdown] = useState(PIX_EXPIRY_SECONDS);
   const [copied, setCopied] = useState(false);
-  const [status, setStatus] = useState<"polling" | "completed" | "expired">("polling");
+  const [status, setStatus] = useState<"polling" | "completed" | "expired">(
+    "polling",
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -46,20 +48,28 @@ export function PixModal({
         return prev - 1;
       });
     }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
   useEffect(() => {
     if (status !== "polling") return;
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/pixels/purchase-status?pix_id=${data.pixId}`);
+        const res = await fetch(
+          `/api/pixels/purchase-status?pix_id=${data.pixId}`,
+        );
         if (!res.ok) return;
         const json = await res.json();
         if (json.status === "completed") setStatus("completed");
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }, 3000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [status, data.pixId]);
 
   useEffect(() => {
@@ -74,7 +84,9 @@ export function PixModal({
       await navigator.clipboard.writeText(data.brCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* fallback */ }
+    } catch {
+      /* fallback */
+    }
   }, [data.brCode]);
 
   return (
@@ -101,7 +113,10 @@ export function PixModal({
             <button
               onClick={() => onClose(true)}
               className="btn-press px-6 py-2 text-sm text-bg"
-              style={{ backgroundColor: "#c8e64a", boxShadow: "2px 2px 0 0 #5a7a00" }}
+              style={{
+                backgroundColor: "#c8e64a",
+                boxShadow: "2px 2px 0 0 #5a7a00",
+              }}
             >
               Done
             </button>
@@ -137,7 +152,9 @@ export function PixModal({
             </div>
 
             <div className="mb-4">
-              <p className="mb-1 text-[10px] text-muted">PIX code (copy &amp; paste):</p>
+              <p className="mb-1 text-[10px] text-muted">
+                PIX code (copy &amp; paste):
+              </p>
               <div className="flex items-stretch gap-1">
                 <div className="flex-1 overflow-hidden border-2 border-border bg-bg-card px-2 py-1.5">
                   <p className="truncate text-[10px] text-cream normal-case">

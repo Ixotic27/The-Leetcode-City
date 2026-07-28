@@ -11,9 +11,13 @@ const LINE_1 = "You found the white rabbit.";
 const LINE_2 = "Welcome to the other side.";
 const CHAR_DELAY = 50;
 
-export default function RabbitCompletion({ onComplete }: RabbitCompletionProps) {
+export default function RabbitCompletion({
+  onComplete,
+}: RabbitCompletionProps) {
   const router = useRouter();
-  const [phase, setPhase] = useState<"glitch" | "fade" | "type1" | "type2" | "redirect">("glitch");
+  const [phase, setPhase] = useState<
+    "glitch" | "fade" | "type1" | "type2" | "redirect"
+  >("glitch");
   const [line1, setLine1] = useState("");
   const [line2, setLine2] = useState("");
   const [showCursor, setShowCursor] = useState(true);
@@ -31,11 +35,13 @@ export default function RabbitCompletion({ onComplete }: RabbitCompletionProps) 
     timers.push(setTimeout(() => setPhase("type1"), 1500));
 
     // 7s: redirect
-    timers.push(setTimeout(() => {
-      setPhase("redirect");
-      router.push("/rabbit");
-      onComplete();
-    }, 7000));
+    timers.push(
+      setTimeout(() => {
+        setPhase("redirect");
+        router.push("/rabbit");
+        onComplete();
+      }, 7000),
+    );
 
     return () => timers.forEach(clearTimeout);
   }, [router, onComplete]);
@@ -83,7 +89,10 @@ export default function RabbitCompletion({ onComplete }: RabbitCompletionProps) 
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] pointer-events-none" style={{ fontFamily: "'Silkscreen', monospace" }}>
+    <div
+      className="fixed inset-0 z-[100] pointer-events-none"
+      style={{ fontFamily: "'Silkscreen', monospace" }}
+    >
       {/* Glitch effect */}
       {phase === "glitch" && (
         <div
@@ -111,24 +120,30 @@ export default function RabbitCompletion({ onComplete }: RabbitCompletionProps) 
             className="text-[14px] sm:text-[18px] tracking-widest text-center"
             style={{
               color: "#ffa116",
-              textShadow: "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
+              textShadow:
+                "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
               minHeight: "1.5em",
             }}
           >
             {line1}
-            {phase === "type1" && <span style={{ opacity: showCursor ? 1 : 0 }}>_</span>}
+            {phase === "type1" && (
+              <span style={{ opacity: showCursor ? 1 : 0 }}>_</span>
+            )}
           </p>
           {(phase === "type2" || phase === "redirect") && (
             <p
               className="text-[14px] sm:text-[18px] tracking-widest text-center"
               style={{
                 color: "#ffa116",
-                textShadow: "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
+                textShadow:
+                  "0 0 15px rgba(255,161,22,0.5), 0 0 30px rgba(255,161,22,0.2)",
                 minHeight: "1.5em",
               }}
             >
               {line2}
-              {phase === "type2" && <span style={{ opacity: showCursor ? 1 : 0 }}>_</span>}
+              {phase === "type2" && (
+                <span style={{ opacity: showCursor ? 1 : 0 }}>_</span>
+              )}
             </p>
           )}
         </div>
@@ -136,17 +151,50 @@ export default function RabbitCompletion({ onComplete }: RabbitCompletionProps) 
 
       <style jsx>{`
         @keyframes rabbitGlitch {
-          0% { transform: translate(0, 0) skewX(0deg); filter: hue-rotate(0deg); }
-          10% { transform: translate(-3px, 2px) skewX(-2deg); filter: hue-rotate(90deg); }
-          20% { transform: translate(3px, -1px) skewX(3deg); filter: hue-rotate(180deg); }
-          30% { transform: translate(-2px, 3px) skewX(-1deg); filter: hue-rotate(270deg); }
-          40% { transform: translate(1px, -2px) skewX(2deg); filter: hue-rotate(45deg); }
-          50% { transform: translate(-3px, 1px) skewX(-3deg); filter: hue-rotate(135deg); }
-          60% { transform: translate(2px, -3px) skewX(1deg); filter: hue-rotate(225deg); }
-          70% { transform: translate(-1px, 2px) skewX(-2deg); filter: hue-rotate(315deg); }
-          80% { transform: translate(3px, -1px) skewX(3deg); filter: hue-rotate(60deg); }
-          90% { transform: translate(-2px, 3px) skewX(-1deg); filter: hue-rotate(150deg); }
-          100% { transform: translate(0, 0) skewX(0deg); filter: hue-rotate(0deg); }
+          0% {
+            transform: translate(0, 0) skewX(0deg);
+            filter: hue-rotate(0deg);
+          }
+          10% {
+            transform: translate(-3px, 2px) skewX(-2deg);
+            filter: hue-rotate(90deg);
+          }
+          20% {
+            transform: translate(3px, -1px) skewX(3deg);
+            filter: hue-rotate(180deg);
+          }
+          30% {
+            transform: translate(-2px, 3px) skewX(-1deg);
+            filter: hue-rotate(270deg);
+          }
+          40% {
+            transform: translate(1px, -2px) skewX(2deg);
+            filter: hue-rotate(45deg);
+          }
+          50% {
+            transform: translate(-3px, 1px) skewX(-3deg);
+            filter: hue-rotate(135deg);
+          }
+          60% {
+            transform: translate(2px, -3px) skewX(1deg);
+            filter: hue-rotate(225deg);
+          }
+          70% {
+            transform: translate(-1px, 2px) skewX(-2deg);
+            filter: hue-rotate(315deg);
+          }
+          80% {
+            transform: translate(3px, -1px) skewX(3deg);
+            filter: hue-rotate(60deg);
+          }
+          90% {
+            transform: translate(-2px, 3px) skewX(-1deg);
+            filter: hue-rotate(150deg);
+          }
+          100% {
+            transform: translate(0, 0) skewX(0deg);
+            filter: hue-rotate(0deg);
+          }
         }
       `}</style>
     </div>

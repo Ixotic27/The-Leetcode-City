@@ -13,7 +13,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
 
   const auth = request.headers.get("authorization") ?? "";
@@ -41,10 +44,16 @@ export async function GET(request: NextRequest) {
     const { error } = await sb
       .from("activity_feed")
       .delete()
-      .in("id", rows.map((r: { id: string }) => r.id));
+      .in(
+        "id",
+        rows.map((r: { id: string }) => r.id),
+      );
 
     if (error) {
-      return NextResponse.json({ error: error.message, deleted: totalDeleted }, { status: 500 });
+      return NextResponse.json(
+        { error: error.message, deleted: totalDeleted },
+        { status: 500 },
+      );
     }
 
     deleted = rows.length;

@@ -41,7 +41,12 @@ describe("touchLastActive", () => {
 
     // We stub eq to return an object with then() and catch()
     const mockEqResult = {
-      then: function (resolve?: (value: { data: Record<string, unknown>; error: null }) => void) {
+      then: function (
+        resolve?: (value: {
+          data: Record<string, unknown>;
+          error: null;
+        }) => void,
+      ) {
         if (resolve) resolve({ data: {}, error: null });
         return this;
       },
@@ -58,7 +63,7 @@ describe("touchLastActive", () => {
 
     expect(sbAdmin.from).toHaveBeenCalledWith("developers");
     expect(sbAdmin.from("developers").update).toHaveBeenCalledWith(
-      expect.objectContaining({ last_active_at: expect.any(String) })
+      expect.objectContaining({ last_active_at: expect.any(String) }),
     );
     expect(mockUpdate().eq).toHaveBeenCalledWith("id", 123);
   });
@@ -90,7 +95,7 @@ describe("touchLastActive", () => {
 
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       "Error updating last active time for developer 456:",
-      error
+      error,
     );
   });
 });

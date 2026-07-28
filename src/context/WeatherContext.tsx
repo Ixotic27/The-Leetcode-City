@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from "react";
 
 interface WeatherContextType {
   isRaining: boolean;
@@ -18,7 +18,9 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
   const [isRaining, setIsRaining] = useState(false);
 
   return (
-    <WeatherContext.Provider value={{ isRaining, setIsRaining, isLoading: false, error: null }}>
+    <WeatherContext.Provider
+      value={{ isRaining, setIsRaining, isLoading: false, error: null }}
+    >
       {children}
     </WeatherContext.Provider>
   );
@@ -27,7 +29,7 @@ export function WeatherProvider({ children }: { children: React.ReactNode }) {
 export function useWeather() {
   const context = useContext(WeatherContext);
   if (context === undefined) {
-    throw new Error('useWeather must be used within a WeatherProvider');
+    throw new Error("useWeather must be used within a WeatherProvider");
   }
   return context;
 }

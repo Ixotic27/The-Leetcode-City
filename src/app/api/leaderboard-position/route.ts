@@ -17,7 +17,9 @@ export async function GET(request: Request) {
 
   const { data: dev } = await sb
     .from("developers")
-    .select("id, github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, lc_global_rank, referral_count, kudos_count, lc_streak, contest_rating, xp_total, easy_solved")
+    .select(
+      "id, github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, lc_global_rank, referral_count, kudos_count, lc_streak, contest_rating, xp_total, easy_solved",
+    )
     .eq("github_login", login)
     .single();
 
@@ -38,7 +40,10 @@ export async function GET(request: Request) {
     metricValue = dev.contributions.toLocaleString() + " solved";
   } else if (tab === "lc_rank") {
     position = dev.lc_global_rank;
-    metricValue = dev.lc_global_rank && dev.lc_global_rank < 999999 ? `#${dev.lc_global_rank.toLocaleString()}` : "Unranked";
+    metricValue =
+      dev.lc_global_rank && dev.lc_global_rank < 999999
+        ? `#${dev.lc_global_rank.toLocaleString()}`
+        : "Unranked";
   } else if (tab === "streak") {
     const { count } = await sb
       .from("developers")
@@ -70,9 +75,12 @@ export async function GET(request: Request) {
       .eq("developer_id", dev.id);
     const achCount = userAchCount ?? 0;
     // Count how many devs have more achievements using DB-side aggregation
-    const { count: devsAbove } = await sb.rpc("count_devs_with_more_achievements", {
-      target_count: achCount,
-    });
+    const { count: devsAbove } = await sb.rpc(
+      "count_devs_with_more_achievements",
+      {
+        target_count: achCount,
+      },
+    );
     position = (devsAbove ?? 0) + 1;
     metricValue = String(achCount);
   }
@@ -89,6 +97,6 @@ export async function GET(request: Request) {
       headers: {
         "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
       },
-    }
+    },
   );
 }

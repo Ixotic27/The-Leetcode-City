@@ -62,7 +62,9 @@ interface LeetCodeApiResponse {
 }
 
 async function hashKey(key: string): Promise<string> {
-  const data = new TextEncoder().encode(key + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""));
+  const data = new TextEncoder().encode(
+    key + (process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""),
+  );
   const buf = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -93,10 +95,11 @@ async function recordRateLimitRequest(key: string): Promise<void> {
 
 const LC_HEADERS = {
   "Content-Type": "application/json",
-  "Accept": "*/*",
-  "Origin": "https://leetcode.com",
-  "Referer": "https://leetcode.com",
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+  Accept: "*/*",
+  Origin: "https://leetcode.com",
+  Referer: "https://leetcode.com",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
   "x-csrftoken": "csrftoken",
 };
 
@@ -143,17 +146,27 @@ async function fetchLeetCodeUser(username: string) {
       body: JSON.stringify({ query, variables: { username } }),
     });
     if (!res.ok) {
-      console.error(`[/api/dev] LeetCode responded ${res.status} for user "${username}"`);
+      console.error(
+        `[/api/dev] LeetCode responded ${res.status} for user "${username}"`,
+      );
       return null;
     }
     const rawText = await res.text();
     let json: LeetCodeApiResponse;
-    try { json = JSON.parse(rawText); } catch (err) { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
+    try {
+      json = JSON.parse(rawText);
+    } catch (err) {
+      console.error(
+        `[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`,
+        err,
+      );
       return null;
     }
     if (!json?.data?.matchedUser) {
-      console.error(`[/api/dev] LeetCode returned no matchedUser for "${username}". Status: ${res.status}. firstErr:`, json?.errors?.[0]?.message);
+      console.error(
+        `[/api/dev] LeetCode returned no matchedUser for "${username}". Status: ${res.status}. firstErr:`,
+        json?.errors?.[0]?.message,
+      );
     }
     const apiData = json.data;
     if (apiData?.matchedUser) {
@@ -171,8 +184,10 @@ async function fetchLeetCodeUser(username: string) {
       mu.maxStreak = parseMaxStreak(mu, currentYear);
     }
     return json?.data ?? null;
-  } catch (err) { console.warn("[app/api/dev/[username]/route.ts] error:", err); return null;
-   }
+  } catch (err) {
+    console.warn("[app/api/dev/[username]/route.ts] error:", err);
+    return null;
+  }
 }
 
 /**
@@ -181,7 +196,7 @@ async function fetchLeetCodeUser(username: string) {
  */
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ username: string }> }
+  { params }: { params: Promise<{ username: string }> },
 ) {
   const { username } = await params;
   const { searchParams } = new URL(request.url);
@@ -204,22 +219,26 @@ export async function GET(
     }
   }
 
-  
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   if (!cachedRecord) {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     isAuthenticatedUser = !!auth.user;
-    const key = auth.user ? `user:${auth.user.id}` : (
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
-    );
+    const key = auth.user
+      ? `user:${auth.user.id}`
+      : (request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        "unknown");
     rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;
     if (!skipRateLimit) {
       if (await isRateLimited(key)) {
-        return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+        return NextResponse.json(
+          { error: "Rate limit exceeded" },
+          { status: 429 },
+        );
       }
       // Record immediately, before the LeetCode API call, to prevent race condition
       await recordRateLimitRequest(key);
@@ -235,10 +254,16 @@ export async function GET(
       if (cached) {
         upserted = cached;
       } else {
-        return NextResponse.json({ error: "Failed to fetch LeetCode data" }, { status: 502 });
+        return NextResponse.json(
+          { error: "Failed to fetch LeetCode data" },
+          { status: 502 },
+        );
       }
     } else if (!data.matchedUser) {
-      return NextResponse.json({ error: "User not found on LeetCode" }, { status: 404 });
+      return NextResponse.json(
+        { error: "User not found on LeetCode" },
+        { status: 404 },
+      );
     } else {
       interface SubmissionNum {
         difficulty: string;
@@ -259,25 +284,33 @@ export async function GET(
       }
 
       const user = data.matchedUser;
-      const acNums = (user.submitStats?.acSubmissionNum ?? []) as SubmissionNum[];
-      const totNums = (user.submitStats?.totalSubmissionNum ?? []) as SubmissionNum[];
-      const getAC = (d: string) => acNums.find((x: SubmissionNum) => x.difficulty === d)?.count ?? 0;
-      const getTot = (d: string) => totNums.find((x: SubmissionNum) => x.difficulty === d)?.count ?? 1;
+      const acNums = (user.submitStats?.acSubmissionNum ??
+        []) as SubmissionNum[];
+      const totNums = (user.submitStats?.totalSubmissionNum ??
+        []) as SubmissionNum[];
+      const getAC = (d: string) =>
+        acNums.find((x: SubmissionNum) => x.difficulty === d)?.count ?? 0;
+      const getTot = (d: string) =>
+        totNums.find((x: SubmissionNum) => x.difficulty === d)?.count ?? 1;
 
       const totalSolved = getAC("All");
       const totalSub = getTot("All");
       const activeDays = user.userCalendar?.totalActiveDays ?? 0;
       const lcRank = user.profile?.ranking ?? 999999;
       const languages = (user.languageProblemCount ?? []) as LanguageProblem[];
-      const dominantLanguage = languages.length > 0
-        ? [...languages].sort((a: LanguageProblem, b: LanguageProblem) => 
-        b.problemsSolved - a.problemsSolved)[0].languageName
-        : null;
+      const dominantLanguage =
+        languages.length > 0
+          ? [...languages].sort(
+              (a: LanguageProblem, b: LanguageProblem) =>
+                b.problemsSolved - a.problemsSolved,
+            )[0].languageName
+          : null;
       const litPercentage = Math.min(0.92, Math.max(0.15, activeDays / 365));
       const badges = user.badges ?? [];
 
       let hash = 0;
-      for (const ch of username) hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
+      for (const ch of username)
+        hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
 
       const record = {
         github_login: username.toLowerCase(),
@@ -294,7 +327,8 @@ export async function GET(
         easy_solved: getAC("Easy"),
         medium_solved: getAC("Medium"),
         hard_solved: getAC("Hard"),
-        acceptance_rate: totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0,
+        acceptance_rate:
+          totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0,
         contest_rating: Math.round(data.userContestRanking?.rating ?? 0),
         contest_rank: data.userContestRanking?.globalRanking ?? null,
         lc_streak: user.maxStreak ?? user.userCalendar?.streak ?? 0,
@@ -306,7 +340,11 @@ export async function GET(
         contest_top_percentage: data.userContestRanking?.topPercentage ?? null,
         contest_badge_name: data.userContestRanking?.badge?.name ?? null,
         lc_badge: badges.length > 0 ? badges[badges.length - 1].name : null,
-        lc_badges_all: badges.map((b: Badge) => ({ name: b.name, icon: b.icon, displayName: b.displayName })),
+        lc_badges_all: badges.map((b: Badge) => ({
+          name: b.name,
+          icon: b.icon,
+          displayName: b.displayName,
+        })),
         lc_bio: user.profile?.aboutMe ?? null,
         lc_country_code: user.profile?.countryName ?? null,
         lc_school: user.profile?.school ?? null,
@@ -315,15 +353,20 @@ export async function GET(
         lc_twitter: user.profile?.twitterUrl ?? null,
         lc_linkedin: user.profile?.linkedinUrl ?? null,
         lc_github: user.profile?.githubUrl ?? null,
-        primary_language:dominantLanguage,
+        primary_language: dominantLanguage,
         lc_tag_stats: [
           ...((user.tagProblemCounts?.advanced ?? []) as TagCount[]),
           ...((user.tagProblemCounts?.intermediate ?? []) as TagCount[]),
           ...((user.tagProblemCounts?.fundamental ?? []) as TagCount[]),
         ]
-          .sort((a: TagCount, b: TagCount) => b.problemsSolved - a.problemsSolved)
+          .sort(
+            (a: TagCount, b: TagCount) => b.problemsSolved - a.problemsSolved,
+          )
           .slice(0, 20)
-          .map((t: TagCount) => ({ name: t.tagName, solved: t.problemsSolved })),
+          .map((t: TagCount) => ({
+            name: t.tagName,
+            solved: t.problemsSolved,
+          })),
       };
 
       const newBaseXp = calculateLeetcodeXp({
@@ -331,7 +374,7 @@ export async function GET(
         medium_solved: record.medium_solved,
         hard_solved: record.hard_solved,
         contest_rating: record.contest_rating,
-        lc_streak: record.lc_streak
+        lc_streak: record.lc_streak,
       });
 
       const mergeRecord = {
@@ -381,8 +424,12 @@ export async function GET(
     }
   }
 
-  
-  const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
+  const [
+    purchasesResult,
+    giftPurchasesResult,
+    customizationsResult,
+    raidTagsResult,
+  ] = await Promise.all([
     sb
       .from("purchases")
       .select("item_id, provider, amount_cents")
@@ -398,7 +445,13 @@ export async function GET(
       .from("developer_customizations")
       .select("item_id, config")
       .eq("developer_id", upserted.id)
-      .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner"]),
+      .in("item_id", [
+        "custom_color",
+        "billboard",
+        "loadout",
+        "building_style",
+        "led_banner",
+      ]),
     sb
       .from("raid_tags")
       .select("attacker_login, tag_style, expires_at")
@@ -408,27 +461,60 @@ export async function GET(
 
   const ownedItems = [
     ...(purchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
+      .filter(
+        (p) =>
+          !(
+            p.amount_cents === 0 &&
+            ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+              p.provider,
+            )
+          ),
+      )
+      .map((p) => p.item_id),
     ...(giftPurchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
+      .filter(
+        (p) =>
+          !(
+            p.amount_cents === 0 &&
+            ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+              p.provider,
+            )
+          ),
+      )
+      .map((p) => p.item_id),
   ];
 
-  const customColor = (customizationsResult.data ?? []).find(c => c.item_id === "custom_color")?.config?.color ?? null;
-  const billboardConfig = (customizationsResult.data ?? []).find(c => c.item_id === "billboard")?.config;
-  const billboardImages = Array.isArray(billboardConfig?.images) ? billboardConfig.images : (billboardConfig?.image_url ? [billboardConfig.image_url] : []);
-  const loadoutConfig = (customizationsResult.data ?? []).find(c => c.item_id === "loadout")?.config;
-  const loadout = loadoutConfig ? {
-    crown: loadoutConfig.crown ?? null,
-    roof: loadoutConfig.roof ?? null,
-    aura: loadoutConfig.aura ?? null,
-    faces: loadoutConfig.faces ?? null,
-  } : null;
+  const customColor =
+    (customizationsResult.data ?? []).find((c) => c.item_id === "custom_color")
+      ?.config?.color ?? null;
+  const billboardConfig = (customizationsResult.data ?? []).find(
+    (c) => c.item_id === "billboard",
+  )?.config;
+  const billboardImages = Array.isArray(billboardConfig?.images)
+    ? billboardConfig.images
+    : billboardConfig?.image_url
+      ? [billboardConfig.image_url]
+      : [];
+  const loadoutConfig = (customizationsResult.data ?? []).find(
+    (c) => c.item_id === "loadout",
+  )?.config;
+  const loadout = loadoutConfig
+    ? {
+        crown: loadoutConfig.crown ?? null,
+        roof: loadoutConfig.roof ?? null,
+        aura: loadoutConfig.aura ?? null,
+        faces: loadoutConfig.faces ?? null,
+      }
+    : null;
 
-  const ledBannerText = (customizationsResult.data ?? []).find(c => c.item_id === "led_banner")?.config?.text ?? null;
+  const ledBannerText =
+    (customizationsResult.data ?? []).find((c) => c.item_id === "led_banner")
+      ?.config?.text ?? null;
 
-  const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
+  const buildingStyle =
+    (customizationsResult.data ?? []).find(
+      (c) => c.item_id === "building_style",
+    )?.config?.style ?? "tower";
 
   const result = {
     ...upserted,

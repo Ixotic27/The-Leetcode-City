@@ -6,7 +6,8 @@ import { createPixQrCodeForPackage } from "@/lib/abacatepay";
 const lastCheckout = new Map<string, number>();
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
   const now = Date.now();
   const last = lastCheckout.get(user.id);
   if (last && now - last < 10_000) {
-    return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
+    return NextResponse.json(
+      { error: "Too fast. Wait a few seconds." },
+      { status: 429 },
+    );
   }
   lastCheckout.set(user.id, now);
 
@@ -29,7 +33,10 @@ export async function POST(request: Request) {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No GitHub login found" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No GitHub login found" },
+      { status: 400 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -41,7 +48,10 @@ export async function POST(request: Request) {
     .single();
 
   if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
-    return NextResponse.json({ error: "You must claim your building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "You must claim your building first" },
+      { status: 403 },
+    );
   }
 
   if (dev.suspended) {
@@ -56,8 +66,15 @@ export async function POST(request: Request) {
   }
 
   const { package_id, provider } = body;
-  if (!package_id || !provider || !["stripe", "abacatepay"].includes(provider)) {
-    return NextResponse.json({ error: "Invalid package_id or provider" }, { status: 400 });
+  if (
+    !package_id ||
+    !provider ||
+    !["stripe", "abacatepay"].includes(provider)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid package_id or provider" },
+      { status: 400 },
+    );
   }
 
   // Validate package exists
@@ -117,7 +134,8 @@ export async function POST(request: Request) {
       package_id,
       provider: "stripe",
       provider_tx_id: sessionId,
-      amount_cents: currency === "brl" ? pkg.price_brl_cents : pkg.price_usd_cents,
+      amount_cents:
+        currency === "brl" ? pkg.price_brl_cents : pkg.price_usd_cents,
       currency,
       pixels_credited: 0,
       status: "pending",
@@ -126,6 +144,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ url });
   } catch (err) {
     console.error("Pixel checkout error:", err);
-    return NextResponse.json({ error: "Failed to create checkout" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create checkout" },
+      { status: 500 },
+    );
   }
 }

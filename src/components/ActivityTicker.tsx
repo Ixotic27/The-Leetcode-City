@@ -109,7 +109,11 @@ export default function ActivityTicker({
       >
         <div
           className="ticker-scroll inline-flex whitespace-nowrap"
-          style={{ "--ticker-duration": `${Math.max(20, tickerText.length * 8)}s` } as React.CSSProperties}
+          style={
+            {
+              "--ticker-duration": `${Math.max(20, tickerText.length * 8)}s`,
+            } as React.CSSProperties
+          }
         >
           {[...tickerText, ...tickerText].map((item, i) => (
             <span
@@ -128,13 +132,27 @@ export default function ActivityTicker({
 
       {/* Footer links */}
       <div className="hidden sm:flex items-center gap-2 shrink-0 pr-3 pl-2 border-l border-border/30">
-        <a href="/terms" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">Terms</a>
+        <a
+          href="/terms"
+          className="text-[8px] text-cream/20 transition-colors hover:text-cream/50"
+        >
+          Terms
+        </a>
         <span className="text-[8px] text-cream/10">·</span>
-        <a href="/privacy" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">Privacy</a>
+        <a
+          href="/privacy"
+          className="text-[8px] text-cream/20 transition-colors hover:text-cream/50"
+        >
+          Privacy
+        </a>
         <span className="text-[8px] text-cream/10">·</span>
-        <a href="/support" className="text-[8px] text-cream/20 transition-colors hover:text-cream/50">
+        <a
+          href="/support"
+          className="text-[8px] text-cream/20 transition-colors hover:text-cream/50"
+        >
           Support
-          {renewalProgress && ` [${Math.round((renewalProgress.raised / renewalProgress.target) * 100)}% FUNDED]`}
+          {renewalProgress &&
+            ` [${Math.round((renewalProgress.raised / renewalProgress.target) * 100)}% FUNDED]`}
         </a>
       </div>
 
@@ -146,8 +164,12 @@ export default function ActivityTicker({
           animation-play-state: paused;
         }
         @keyframes ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
       `}</style>
     </div>

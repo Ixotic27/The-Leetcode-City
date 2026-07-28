@@ -14,13 +14,16 @@ export default function SettingsPage() {
   const [linkedLc, setLinkedLc] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
+    null,
+  );
   const [loggedIn, setLoggedIn] = useState(false);
   const [expectedToken, setExpectedToken] = useState("");
 
   // Check if user is logged in and already linked
   useEffect(() => {
-    sb.auth.getUser()
+    sb.auth
+      .getUser()
       .then(({ data: { user } }: { data: { user: User | null } }) => {
         if (!user) {
           setChecking(false);
@@ -64,12 +67,18 @@ export default function SettingsPage() {
         setLinkedLc(data.leetcode_username);
         setLcUsername("");
         setConfirmedUsername("");
-        setMessage({ text: `✅ Linked @${data.leetcode_username}! Your building is now yours.`, ok: true });
+        setMessage({
+          text: `✅ Linked @${data.leetcode_username}! Your building is now yours.`,
+          ok: true,
+        });
       } else {
         setMessage({ text: `❌ ${data.error}`, ok: false });
       }
     } catch {
-      setMessage({ text: "❌ Something went wrong. Please try again.", ok: false });
+      setMessage({
+        text: "❌ Something went wrong. Please try again.",
+        ok: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -100,7 +109,14 @@ export default function SettingsPage() {
                 You need to sign in to link your LeetCode account.
               </p>
               <button
-                onClick={() => sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: `${window.location.origin}/settings` } })}
+                onClick={() =>
+                  sb.auth.signInWithOAuth({
+                    provider: "github",
+                    options: {
+                      redirectTo: `${window.location.origin}/settings`,
+                    },
+                  })
+                }
                 className="mt-4 border-[3px] border-border bg-bg-raised px-6 py-2 text-sm text-cream transition-colors hover:border-[#ffa116]"
               >
                 Sign in with GitHub
@@ -109,14 +125,20 @@ export default function SettingsPage() {
           ) : linkedLc ? (
             <div className="mt-6 text-center">
               <div className="border-[3px] border-border bg-bg p-4">
-                <p className="text-sm text-muted normal-case">Your LeetCode account</p>
+                <p className="text-sm text-muted normal-case">
+                  Your LeetCode account
+                </p>
                 <p className="mt-2 text-lg text-cream">
                   @<span style={{ color: ACCENT }}>{linkedLc}</span>
                 </p>
               </div>
               <p className="mt-4 text-sm text-muted normal-case">
                 Your building is linked! Visit the{" "}
-                <Link href={`/shop/${linkedLc}`} className="underline" style={{ color: ACCENT }}>
+                <Link
+                  href={`/shop/${linkedLc}`}
+                  className="underline"
+                  style={{ color: ACCENT }}
+                >
                   Shop
                 </Link>{" "}
                 to customize it.
@@ -125,7 +147,9 @@ export default function SettingsPage() {
           ) : (
             <form onSubmit={handleVerify} className="mt-6">
               <div className="mb-4">
-                <label className="block text-[10px] text-muted mb-2 font-pixel">1. Enter your LeetCode Username</label>
+                <label className="block text-[10px] text-muted mb-2 font-pixel">
+                  1. Enter your LeetCode Username
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -137,7 +161,10 @@ export default function SettingsPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => { if (lcUsername.trim()) setConfirmedUsername(lcUsername.trim()); }}
+                    onClick={() => {
+                      if (lcUsername.trim())
+                        setConfirmedUsername(lcUsername.trim());
+                    }}
                     className="px-3 py-2 text-[11px] border border-border hover:border-border-light text-cream"
                   >
                     Confirm
@@ -147,19 +174,34 @@ export default function SettingsPage() {
 
               {confirmedUsername && (
                 <div className="mb-6">
-                  <label className="block text-[10px] text-muted mb-2 font-pixel">2. Verify Ownership</label>
+                  <label className="block text-[10px] text-muted mb-2 font-pixel">
+                    2. Verify Ownership
+                  </label>
                   <p className="text-[10px] text-cream mb-3 leading-relaxed normal-case">
                     Copy the code below and paste it into your{" "}
-                    <a href={`https://leetcode.com/u/${confirmedUsername}`} target="_blank" rel="noreferrer" className="underline text-blue-400 hover:text-blue-300">
+                    <a
+                      href={`https://leetcode.com/u/${confirmedUsername}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline text-blue-400 hover:text-blue-300"
+                    >
                       LeetCode Profile → Edit Profile → About Me
-                    </a>. Save, then click Verify.
+                    </a>
+                    . Save, then click Verify.
                   </p>
 
                   <div className="flex items-center gap-2 bg-black/50 border border-border p-3 mb-4">
-                    <code className="text-[12px] flex-1 text-center font-bold" style={{ color: ACCENT }}>{expectedToken}</code>
+                    <code
+                      className="text-[12px] flex-1 text-center font-bold"
+                      style={{ color: ACCENT }}
+                    >
+                      {expectedToken}
+                    </code>
                     <button
                       type="button"
-                      onClick={() => { navigator.clipboard.writeText(expectedToken); }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(expectedToken);
+                      }}
                       className="text-[10px] bg-white/10 px-2 py-1 hover:bg-white/20"
                     >
                       Copy
@@ -169,7 +211,9 @@ export default function SettingsPage() {
               )}
 
               {message && (
-                <p className={`mb-4 text-center text-sm normal-case ${message.ok ? "text-green-400" : "text-red-400"}`}>
+                <p
+                  className={`mb-4 text-center text-sm normal-case ${message.ok ? "text-green-400" : "text-red-400"}`}
+                >
                   {message.text}
                 </p>
               )}
@@ -178,7 +222,9 @@ export default function SettingsPage() {
                 type="submit"
                 disabled={loading || !confirmedUsername}
                 className="w-full border-[3px] border-border px-6 py-2 text-sm text-cream transition-colors hover:border-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
-                style={!loading && confirmedUsername ? { borderColor: ACCENT } : {}}
+                style={
+                  !loading && confirmedUsername ? { borderColor: ACCENT } : {}
+                }
               >
                 {loading ? "Verifying..." : "Verify & Link"}
               </button>

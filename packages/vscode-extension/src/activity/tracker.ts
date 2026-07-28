@@ -50,7 +50,8 @@ let idleTimer: ReturnType<typeof setTimeout> | undefined;
 let activeSecondsTimer: ReturnType<typeof setInterval> | undefined;
 
 // Callback
-let onStatusChange: ((status: "active" | "idle" | "paused") => void) | undefined;
+let onStatusChange:
+  ((status: "active" | "idle" | "paused") => void) | undefined;
 
 const DEBOUNCE_MS = 50;
 
@@ -75,12 +76,17 @@ export function initTracker(
   activeSecondsTimer = setInterval(() => {
     if (state !== "active") return;
     const now = Date.now();
-    if (lastActivityTime > 0 && now - lastActivityTime < getConfig().idleTimeout) {
+    if (
+      lastActivityTime > 0 &&
+      now - lastActivityTime < getConfig().idleTimeout
+    ) {
       activeSecondsAccum++;
     }
   }, 1000);
 
-  context.subscriptions.push({ dispose: () => clearInterval(activeSecondsTimer) });
+  context.subscriptions.push({
+    dispose: () => clearInterval(activeSecondsTimer),
+  });
 }
 
 export function setPaused(paused: boolean) {
@@ -192,7 +198,9 @@ function processEvent(isWrite: boolean) {
   lastFile = currentFile;
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  const projectName = workspaceFolder ? path.basename(workspaceFolder.uri.fsPath) : undefined;
+  const projectName = workspaceFolder
+    ? path.basename(workspaceFolder.uri.fsPath)
+    : undefined;
 
   const hb: RawHeartbeat = {
     timestamp: new Date(now).toISOString(),
@@ -219,7 +227,9 @@ function sendHeartbeatNow() {
   lastFile = editor?.document.uri.fsPath ?? "";
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  const projectName = workspaceFolder ? path.basename(workspaceFolder.uri.fsPath) : undefined;
+  const projectName = workspaceFolder
+    ? path.basename(workspaceFolder.uri.fsPath)
+    : undefined;
 
   const hb: RawHeartbeat = {
     timestamp: new Date(now).toISOString(),

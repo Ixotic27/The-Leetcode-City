@@ -57,11 +57,19 @@ export async function getPitchStats(): Promise<PitchStats> {
     achievementsResult,
   ] = await Promise.all([
     admin.from("developers").select("*", { count: "exact", head: true }),
-    admin.from("developers").select("*", { count: "exact", head: true }).eq("claimed", true),
-    admin.from("sky_ads").select("plan_id, purchaser_email").not("purchaser_email", "is", null),
+    admin
+      .from("developers")
+      .select("*", { count: "exact", head: true })
+      .eq("claimed", true),
+    admin
+      .from("sky_ads")
+      .select("plan_id, purchaser_email")
+      .not("purchaser_email", "is", null),
     admin.from("developer_kudos").select("*", { count: "exact", head: true }),
     admin.from("building_visits").select("*", { count: "exact", head: true }),
-    admin.from("developer_achievements").select("*", { count: "exact", head: true }),
+    admin
+      .from("developer_achievements")
+      .select("*", { count: "exact", head: true }),
   ]);
 
   const developers = devsResult.count ?? 0;
@@ -82,7 +90,8 @@ export async function getPitchStats(): Promise<PitchStats> {
   const achievements = achievementsResult.count ?? 0;
 
   const daysOld = Math.floor((Date.now() - LAUNCH_DATE.getTime()) / 86400000);
-  const conversionRate = developers > 0 ? ((claimed / developers) * 100).toFixed(1) + "%" : "0%";
+  const conversionRate =
+    developers > 0 ? ((claimed / developers) * 100).toFixed(1) + "%" : "0%";
 
   return {
     developers,
@@ -106,6 +115,9 @@ export async function getPitchStats(): Promise<PitchStats> {
     formattedDaysOld: `${daysOld} days old`,
     formattedRevenue: `R$${fmt(KNOWN_REVENUE_BRL)}+`,
     formattedAdRevenue: `R$${fmt(KNOWN_AD_REVENUE_BRL)}`,
-    formattedShopRevenue: KNOWN_SHOP_REVENUE_BRL > 0 ? `R$${fmt(KNOWN_SHOP_REVENUE_BRL)}` : "Early sales",
+    formattedShopRevenue:
+      KNOWN_SHOP_REVENUE_BRL > 0
+        ? `R$${fmt(KNOWN_SHOP_REVENUE_BRL)}`
+        : "Early sales",
   };
 }

@@ -11,20 +11,17 @@ function getArenaCryptoKey(): Buffer {
 
   if (!secret) {
     throw new Error(
-      "ARENA_CRYPTO_KEY must be configured before encrypting arena hidden tests"
+      "ARENA_CRYPTO_KEY must be configured before encrypting arena hidden tests",
     );
   }
 
   if (secret.length < MIN_ARENA_CRYPTO_KEY_LENGTH) {
     throw new Error(
-      `ARENA_CRYPTO_KEY must contain at least ${MIN_ARENA_CRYPTO_KEY_LENGTH} characters`
+      `ARENA_CRYPTO_KEY must contain at least ${MIN_ARENA_CRYPTO_KEY_LENGTH} characters`,
     );
   }
 
-  return crypto
-    .createHash("sha256")
-    .update(secret, "utf8")
-    .digest();
+  return crypto.createHash("sha256").update(secret, "utf8").digest();
 }
 
 export interface CFProblem {
@@ -53,7 +50,8 @@ export interface CFProblemsetResponse {
 }
 
 const CF_HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
 /** Clean HTML from Codeforces page and convert to plain text/markdown structure */
@@ -72,7 +70,7 @@ function cleanHtml(html: string): string {
     .replace(/&apos;/g, "'")
     .replace(/\r/g, "")
     .split("\n")
-    .map(line => line.trimEnd())
+    .map((line) => line.trimEnd())
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -92,14 +90,19 @@ function cleanPreContent(pre: string): string {
 }
 
 /** Scrapes Codeforces problem page for description and sample test cases */
-export async function scrapeCodeforcesProblem(contestId: number, index: string) {
+export async function scrapeCodeforcesProblem(
+  contestId: number,
+  index: string,
+) {
   const url = `https://m1.codeforces.com/problemset/problem/${contestId}/${index}`;
   try {
     const res = await fetch(url, { headers: CF_HEADERS });
     if (!res.ok) {
-      throw new Error(`Failed to fetch Codeforces problem page: HTTP ${res.status}`);
+      throw new Error(
+        `Failed to fetch Codeforces problem page: HTTP ${res.status}`,
+      );
     }
-    const html = await res.ok ? await res.text() : "";
+    const html = (await res.ok) ? await res.text() : "";
     if (!html || html.includes("Redirecting...")) {
       throw new Error("Empty response or redirect on problem page");
     }
@@ -134,54 +137,96 @@ export async function scrapeCodeforcesProblem(contestId: number, index: string) 
       throw new Error("Could not find problem statement element");
     }
 
-    const headerEnd = html.indexOf("</div>", html.indexOf('<div class="header">', statementStart));
+    const headerEnd = html.indexOf(
+      "</div>",
+      html.indexOf('<div class="header">', statementStart),
+    );
     if (headerEnd === -1) {
       throw new Error("Could not parse problem statement header");
     }
 
-    const inputSpecStart = html.indexOf('<div class="input-specification">', headerEnd);
-    const legendHtml = inputSpecStart !== -1 
-      ? html.substring(headerEnd + 6, inputSpecStart) 
-      : html.substring(headerEnd + 6, html.indexOf('<div class="sample-tests">', headerEnd));
+    const inputSpecStart = html.indexOf(
+      '<div class="input-specification">',
+      headerEnd,
+    );
+    const legendHtml =
+      inputSpecStart !== -1
+        ? html.substring(headerEnd + 6, inputSpecStart)
+        : html.substring(
+            headerEnd + 6,
+            html.indexOf('<div class="sample-tests">', headerEnd),
+          );
 
     let markdown = "### Description\n\n" + cleanHtml(legendHtml) + "\n\n";
 
     if (inputSpecStart !== -1) {
-      const outputSpecStart = html.indexOf('<div class="output-specification">', inputSpecStart);
-      const inputHtml = outputSpecStart !== -1
-        ? html.substring(inputSpecStart, outputSpecStart)
-        : html.substring(inputSpecStart);
-      
-      markdown += "### Input Specification\n\n" + cleanHtml(inputHtml.replace(/<div class="section-title">[^<]*<\/div>/i, "")) + "\n\n";
+      const outputSpecStart = html.indexOf(
+        '<div class="output-specification">',
+        inputSpecStart,
+      );
+      const inputHtml =
+        outputSpecStart !== -1
+          ? html.substring(inputSpecStart, outputSpecStart)
+          : html.substring(inputSpecStart);
+
+      markdown +=
+        "### Input Specification\n\n" +
+        cleanHtml(
+          inputHtml.replace(/<div class="section-title">[^<]*<\/div>/i, ""),
+        ) +
+        "\n\n";
 
       if (outputSpecStart !== -1) {
-        const sampleTestsStart = html.indexOf('<div class="sample-tests">', outputSpecStart);
-        const outputHtml = sampleTestsStart !== -1
-          ? html.substring(outputSpecStart, sampleTestsStart)
-          : html.substring(outputSpecStart);
+        const sampleTestsStart = html.indexOf(
+          '<div class="sample-tests">',
+          outputSpecStart,
+        );
+        const outputHtml =
+          sampleTestsStart !== -1
+            ? html.substring(outputSpecStart, sampleTestsStart)
+            : html.substring(outputSpecStart);
 
-        markdown += "### Output Specification\n\n" + cleanHtml(outputHtml.replace(/<div class="section-title">[^<]*<\/div>/i, "")) + "\n\n";
+        markdown +=
+          "### Output Specification\n\n" +
+          cleanHtml(
+            outputHtml.replace(/<div class="section-title">[^<]*<\/div>/i, ""),
+          ) +
+          "\n\n";
       }
     }
 
     const noteStart = html.indexOf('<div class="note">', headerEnd);
     if (noteStart !== -1) {
-      const noteHtml = html.substring(noteStart, html.indexOf("</div>", noteStart + 20));
-      markdown += "### Note\n\n" + cleanHtml(noteHtml.replace(/<div class="section-title">[^<]*<\/div>/i, "")) + "\n\n";
+      const noteHtml = html.substring(
+        noteStart,
+        html.indexOf("</div>", noteStart + 20),
+      );
+      markdown +=
+        "### Note\n\n" +
+        cleanHtml(
+          noteHtml.replace(/<div class="section-title">[^<]*<\/div>/i, ""),
+        ) +
+        "\n\n";
     }
 
     // Fetch details like time/memory limit from HTML if possible, fallback to standard defaults
     let timeLimitMs = 2000;
     let memoryLimitMb = 256;
 
-    const timeLimitMatch = /<div class="time-limit">[\s\S]*?<div class="property-title">time limit per test<\/div>([\s\S]*?)<\/div>/.exec(html);
+    const timeLimitMatch =
+      /<div class="time-limit">[\s\S]*?<div class="property-title">time limit per test<\/div>([\s\S]*?)<\/div>/.exec(
+        html,
+      );
     if (timeLimitMatch) {
       const text = cleanHtml(timeLimitMatch[1]);
       const secVal = parseFloat(text);
       if (!isNaN(secVal)) timeLimitMs = Math.round(secVal * 1000);
     }
 
-    const memoryLimitMatch = /<div class="memory-limit">[\s\S]*?<div class="property-title">memory limit per test<\/div>([\s\S]*?)<\/div>/.exec(html);
+    const memoryLimitMatch =
+      /<div class="memory-limit">[\s\S]*?<div class="property-title">memory limit per test<\/div>([\s\S]*?)<\/div>/.exec(
+        html,
+      );
     if (memoryLimitMatch) {
       const text = cleanHtml(memoryLimitMatch[1]);
       const mbVal = parseInt(text);
@@ -195,27 +240,41 @@ export async function scrapeCodeforcesProblem(contestId: number, index: string) 
       memoryLimitMb,
     };
   } catch (err: unknown) {
-    console.error(`Error scraping problem ${contestId}${index}:`, err instanceof Error ? err.message : err);
+    console.error(
+      `Error scraping problem ${contestId}${index}:`,
+      err instanceof Error ? err.message : err,
+    );
     throw err;
   }
 }
 
 /** Fetch problems list from CF and sync a set of candidates to database */
-export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<number> {
+export async function syncCodeforcesProblems(
+  limitPerDifficulty = 3,
+): Promise<number> {
   const sb = getSupabaseAdmin();
   console.log("Seeding problem pool from local predefined_problems.json...");
 
   try {
-    const filePath = path.join(process.cwd(), "src/lib/predefined_problems.json");
+    const filePath = path.join(
+      process.cwd(),
+      "src/lib/predefined_problems.json",
+    );
     const fileContent = fs.readFileSync(filePath, "utf8");
     const predefinedProblems = JSON.parse(fileContent);
 
     let totalSynced = 0;
-    const difficulties: ("easy" | "medium" | "hard")[] = ["easy", "medium", "hard"];
+    const difficulties: ("easy" | "medium" | "hard")[] = [
+      "easy",
+      "medium",
+      "hard",
+    ];
 
     for (const diff of difficulties) {
       let syncedForDiff = 0;
-      const diffProblems = predefinedProblems.filter((p: Record<string, unknown>) => p.difficulty === diff);
+      const diffProblems = predefinedProblems.filter(
+        (p: Record<string, unknown>) => p.difficulty === diff,
+      );
 
       for (const p of diffProblems) {
         if (syncedForDiff >= limitPerDifficulty) break;
@@ -247,7 +306,7 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
           memory_limit_mb: p.memory_limit_mb,
           sample_tests: p.sample_tests,
           hidden_tests: p.hidden_tests,
-          hints: p.hints
+          hints: p.hints,
         });
 
         if (error) {
@@ -262,12 +321,18 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
     console.log(`Predefined seed complete. Seeded: ${totalSynced} problems.`);
     return totalSynced;
   } catch (err: unknown) {
-    console.warn("Failed to seed from predefined list, falling back to network fetch:", err instanceof Error ? err.message : err);
+    console.warn(
+      "Failed to seed from predefined list, falling back to network fetch:",
+      err instanceof Error ? err.message : err,
+    );
   }
 
   console.log("Fetching problem list from Codeforces API...");
-  
-  const response = await fetch("https://codeforces.com/api/problemset.problems", { headers: CF_HEADERS });
+
+  const response = await fetch(
+    "https://codeforces.com/api/problemset.problems",
+    { headers: CF_HEADERS },
+  );
   if (!response.ok) {
     throw new Error(`Codeforces API returned status ${response.status}`);
   }
@@ -278,7 +343,7 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
   }
 
   const { problems, problemStatistics } = json.result;
-  
+
   // Create stats map for quick lookup
   const statsMap = new Map<string, number>();
   for (const stat of problemStatistics) {
@@ -290,12 +355,19 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
   // Filter problems:
   const filterByDifficulty = (minRating: number, maxRating: number) => {
     return problems
-      .filter(p => p.type === "PROGRAMMING" && p.contestId && p.rating && p.rating >= minRating && p.rating <= maxRating)
-      .map(p => ({
+      .filter(
+        (p) =>
+          p.type === "PROGRAMMING" &&
+          p.contestId &&
+          p.rating &&
+          p.rating >= minRating &&
+          p.rating <= maxRating,
+      )
+      .map((p) => ({
         ...p,
-        solvedCount: statsMap.get(`${p.contestId}${p.index}`) ?? 0
+        solvedCount: statsMap.get(`${p.contestId}${p.index}`) ?? 0,
       }))
-      .filter(p => p.solvedCount > 500)
+      .filter((p) => p.solvedCount > 500)
       .sort((a, b) => b.solvedCount - a.solvedCount);
   };
 
@@ -303,7 +375,11 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
   const mediumCandidates = filterByDifficulty(1300, 1800);
   const hardCandidates = filterByDifficulty(1900, 2400);
 
-  const selectAndScrape = async (candidates: typeof easyCandidates, difficulty: "easy" | "medium" | "hard", limit: number) => {
+  const selectAndScrape = async (
+    candidates: typeof easyCandidates,
+    difficulty: "easy" | "medium" | "hard",
+    limit: number,
+  ) => {
     let synced = 0;
     for (const cand of candidates) {
       if (synced >= limit) break;
@@ -322,8 +398,13 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
       }
 
       try {
-        console.log(`Syncing CF problem ${sourceId} (${cand.name}) - ${difficulty}...`);
-        const scraped = await scrapeCodeforcesProblem(cand.contestId!, cand.index);
+        console.log(
+          `Syncing CF problem ${sourceId} (${cand.name}) - ${difficulty}...`,
+        );
+        const scraped = await scrapeCodeforcesProblem(
+          cand.contestId!,
+          cand.index,
+        );
 
         const { error } = await sb.from("arena_problems").insert({
           source: "codeforces",
@@ -337,7 +418,7 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
           memory_limit_mb: scraped.memoryLimitMb,
           sample_tests: scraped.sampleTests,
           hidden_tests: [],
-          hints: []
+          hints: [],
         });
 
         if (error) {
@@ -347,24 +428,41 @@ export async function syncCodeforcesProblems(limitPerDifficulty = 3): Promise<nu
           synced++;
         }
       } catch (err: unknown) {
-        console.warn(`Skipping candidate ${sourceId} due to sync error:`, err instanceof Error ? err.message : err);
+        console.warn(
+          `Skipping candidate ${sourceId} due to sync error:`,
+          err instanceof Error ? err.message : err,
+        );
       }
 
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
     return synced;
   };
 
   console.log(`Processing Easy problems...`);
-  const easyCount = await selectAndScrape(easyCandidates, "easy", limitPerDifficulty);
-  
+  const easyCount = await selectAndScrape(
+    easyCandidates,
+    "easy",
+    limitPerDifficulty,
+  );
+
   console.log(`Processing Medium problems...`);
-  const mediumCount = await selectAndScrape(mediumCandidates, "medium", limitPerDifficulty);
+  const mediumCount = await selectAndScrape(
+    mediumCandidates,
+    "medium",
+    limitPerDifficulty,
+  );
 
   console.log(`Processing Hard problems...`);
-  const hardCount = await selectAndScrape(hardCandidates, "hard", limitPerDifficulty);
+  const hardCount = await selectAndScrape(
+    hardCandidates,
+    "hard",
+    limitPerDifficulty,
+  );
 
-  console.log(`Sync complete. Easy: ${easyCount}, Medium: ${mediumCount}, Hard: ${hardCount}`);
+  console.log(
+    `Sync complete. Easy: ${easyCount}, Medium: ${mediumCount}, Hard: ${hardCount}`,
+  );
   return easyCount + mediumCount + hardCount;
 }
 
@@ -381,7 +479,9 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
     .eq("type", "daily");
 
   if (existingChallenges && existingChallenges.length >= 3) {
-    console.log(`Daily challenges for ${dateStr} already exist. Skipping rotation.`);
+    console.log(
+      `Daily challenges for ${dateStr} already exist. Skipping rotation.`,
+    );
     return true;
   }
 
@@ -391,7 +491,9 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
     .select("problem_id")
     .eq("type", "daily");
 
-  const usedProblemIds = new Set(usedChallenges?.map(c => c.problem_id) ?? []);
+  const usedProblemIds = new Set(
+    usedChallenges?.map((c) => c.problem_id) ?? [],
+  );
 
   // Get problems for each difficulty
   const fetchRandomProblem = async (difficulty: "easy" | "medium" | "hard") => {
@@ -402,11 +504,13 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
       .eq("difficulty", difficulty);
 
     if (error || !problems || problems.length === 0) {
-      throw new Error(`No problems found in database for difficulty: ${difficulty}`);
+      throw new Error(
+        `No problems found in database for difficulty: ${difficulty}`,
+      );
     }
 
     // Filter out problems that have already been used as daily challenges
-    const unusedProblems = problems.filter(p => !usedProblemIds.has(p.id));
+    const unusedProblems = problems.filter((p) => !usedProblemIds.has(p.id));
 
     // Fallback to all problems if all of them have been used
     const candidates = unusedProblems.length > 0 ? unusedProblems : problems;
@@ -433,7 +537,7 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
         challenge_date: dateStr,
         reward_points: 100,
         reward_xp: 10,
-        reward_item_pool: ["common", "rare"] // Easy drops common (100%), rare (15% in submit route)
+        reward_item_pool: ["common", "rare"], // Easy drops common (100%), rare (15% in submit route)
       },
       {
         type: "daily",
@@ -442,7 +546,7 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
         challenge_date: dateStr,
         reward_points: 250,
         reward_xp: 25,
-        reward_item_pool: ["rare", "epic"] // Medium drops rare (100%), epic (20% in submit route)
+        reward_item_pool: ["rare", "epic"], // Medium drops rare (100%), epic (20% in submit route)
       },
       {
         type: "daily",
@@ -451,8 +555,8 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
         challenge_date: dateStr,
         reward_points: 500,
         reward_xp: 50,
-        reward_item_pool: ["epic", "legendary"] // Hard drops epic (100%), legendary (5% jackpot)
-      }
+        reward_item_pool: ["epic", "legendary"], // Hard drops epic (100%), legendary (5% jackpot)
+      },
     ];
 
     const { error } = await sb
@@ -469,7 +573,10 @@ export async function rotateDailyChallenges(dateStr: string): Promise<boolean> {
     console.log(`Successfully rotated daily challenges for ${dateStr}!`);
     return true;
   } catch (err: unknown) {
-    console.error(`Failed to rotate daily challenges:`, err instanceof Error ? err.message : err);
+    console.error(
+      `Failed to rotate daily challenges:`,
+      err instanceof Error ? err.message : err,
+    );
     return false;
   }
 }
@@ -493,7 +600,9 @@ export async function getAuthenticatedDeveloper(req: Request) {
   // Fall back to browser session cookie
   try {
     const clientSupabase = await createServerSupabase();
-    const { data: { user } } = await clientSupabase.auth.getUser();
+    const {
+      data: { user },
+    } = await clientSupabase.auth.getUser();
     if (user) {
       const { data: dev } = await sb
         .from("developers")
@@ -510,7 +619,10 @@ export async function getAuthenticatedDeveloper(req: Request) {
 }
 
 /** Encrypt hidden tests using AES-256-CBC */
-export function encryptHiddenTests(tests: unknown[]): { iv: string; encryptedData: string } {
+export function encryptHiddenTests(tests: unknown[]): {
+  iv: string;
+  encryptedData: string;
+} {
   const algorithm = "aes-256-cbc";
   const key = getArenaCryptoKey();
   const iv = crypto.randomBytes(16);
@@ -521,7 +633,6 @@ export function encryptHiddenTests(tests: unknown[]): { iv: string; encryptedDat
 
   return {
     iv: iv.toString("hex"),
-    encryptedData: encrypted
+    encryptedData: encrypted,
   };
 }
-

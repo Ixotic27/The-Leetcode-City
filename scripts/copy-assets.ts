@@ -1,7 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 
-const ARTIFACT_DIR = "C:/Users/HP/.gemini/antigravity-ide/brain/c5fb50f4-cc4f-43a2-883d-992e98435916";
+const ARTIFACT_DIR =
+  "C:/Users/HP/.gemini/antigravity-ide/brain/c5fb50f4-cc4f-43a2-883d-992e98435916";
 const DEST_DIR = path.join(process.cwd(), "public/assets/items");
 
 const FILES_TO_COPY: Record<string, string> = {
@@ -16,12 +17,12 @@ const FILES_TO_COPY: Record<string, string> = {
   "items_scrolls_tomes_1780424405208.png": "scrolls.png",
   "arena_items_spritesheet_1780423185178.png": "spritesheet_core.png",
   "arena_potions_buffs_1780423216094.png": "spritesheet_potions.png",
-  "arena_legendary_items_1780423241481.png": "spritesheet_legendary.png"
+  "arena_legendary_items_1780423241481.png": "spritesheet_legendary.png",
 };
 
 function main() {
   console.log("Copying pixel-art item assets from artifacts directory...");
-  
+
   if (!fs.existsSync(DEST_DIR)) {
     fs.mkdirSync(DEST_DIR, { recursive: true });
     console.log(`Created destination directory: ${DEST_DIR}`);

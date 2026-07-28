@@ -13,12 +13,15 @@ vi.mock("../items", () => ({
 }));
 
 vi.mock("../notification-senders/purchase", () => ({
-  sendPurchaseNotification: (...args: unknown[]) => mockSendPurchaseNotification(...args),
-  sendGiftSentNotification: (...args: unknown[]) => mockSendGiftSentNotification(...args),
+  sendPurchaseNotification: (...args: unknown[]) =>
+    mockSendPurchaseNotification(...args),
+  sendGiftSentNotification: (...args: unknown[]) =>
+    mockSendGiftSentNotification(...args),
 }));
 
 vi.mock("../notification-senders/gift", () => ({
-  sendGiftReceivedNotification: (...args: unknown[]) => mockSendGiftReceivedNotification(...args),
+  sendGiftReceivedNotification: (...args: unknown[]) =>
+    mockSendGiftReceivedNotification(...args),
 }));
 
 function createQueryBuilder(result: unknown) {
@@ -75,13 +78,21 @@ describe("orchestratePurchaseFulfillment", () => {
       itemId: "flag",
       githubLogin: "tester",
       supabaseClient: sb as never,
-      claimPendingPurchase: async () => ({ ok: true, purchase_id: "purchase-1" }),
+      claimPendingPurchase: async () => ({
+        ok: true,
+        purchase_id: "purchase-1",
+      }),
     });
 
     expect(result.kind).toBe("completed");
     expect(mockFulfillItemPurchase).toHaveBeenCalledWith(7, "flag", sb);
     expect(mockAutoEquipIfSolo).toHaveBeenCalledWith(7, "flag");
-    expect(mockSendPurchaseNotification).toHaveBeenCalledWith(7, "tester", "purchase-1", "flag");
+    expect(mockSendPurchaseNotification).toHaveBeenCalledWith(
+      7,
+      "tester",
+      "purchase-1",
+      "flag",
+    );
     expect(mockSendGiftSentNotification).not.toHaveBeenCalled();
     expect(mockSendGiftReceivedNotification).not.toHaveBeenCalled();
   });

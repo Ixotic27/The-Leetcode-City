@@ -9,7 +9,12 @@ import { getOwnedItems } from "@/lib/items";
 import { TIER_COLORS } from "@/lib/achievements";
 import { DISTRICT_NAMES, DISTRICT_COLORS } from "@/lib/github";
 import { ITEM_NAMES } from "@/lib/zones";
-import { rankFromLevel, tierFromLevel, levelProgress, xpForLevel } from "@/lib/xp";
+import {
+  rankFromLevel,
+  tierFromLevel,
+  levelProgress,
+  xpForLevel,
+} from "@/lib/xp";
 import ClaimButton from "@/components/ClaimButton";
 import ShareButtons from "@/components/ShareButtons";
 import CompareChallenge from "@/components/CompareChallenge";
@@ -90,7 +95,7 @@ export default async function DevPage({ params }: Props) {
     arenaInventoryRes,
     customizationDataRes,
     referredDevsRes,
-    authRes
+    authRes,
   ] = await Promise.all([
     getOwnedItems(dev.id),
     sb
@@ -113,21 +118,32 @@ export default async function DevPage({ params }: Props) {
       .eq("referred_by", dev.github_login)
       .order("claimed_at", { ascending: false })
       .limit(20),
-    createServerSupabase().then(client => client.auth.getUser())
+    createServerSupabase().then((client) => client.auth.getUser()),
   ]);
 
   const devAchievements = devAchievementsRes.data;
-  const achievements: AchievementRow[] = (devAchievements ?? []).map((a: Record<string, unknown>) => ({
-    achievement_id: a.achievement_id as string,
-    name: (a.achievements as Record<string, unknown>)?.name as string ?? (a.achievement_id as string),
-    tier: (a.achievements as Record<string, unknown>)?.tier as string ?? "bronze",
-  }));
+  const achievements: AchievementRow[] = (devAchievements ?? []).map(
+    (a: Record<string, unknown>) => ({
+      achievement_id: a.achievement_id as string,
+      name:
+        ((a.achievements as Record<string, unknown>)?.name as string) ??
+        (a.achievement_id as string),
+      tier:
+        ((a.achievements as Record<string, unknown>)?.tier as string) ??
+        "bronze",
+    }),
+  );
 
   const arenaInventory = arenaInventoryRes.data;
 
-  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(
+    dev.github_login.toLowerCase(),
+  );
 
-  const ownedTitlesSlugs = (arenaInventory as unknown as { arena_items: { slug: string } | null }[] ?? [])
+  const ownedTitlesSlugs = (
+    (arenaInventory as unknown as { arena_items: { slug: string } | null }[]) ??
+    []
+  )
     .map((inv) => inv.arena_items?.slug)
     .filter((slug): slug is string => typeof slug === "string");
 
@@ -136,40 +152,125 @@ export default async function DevPage({ params }: Props) {
   }
 
   const customizationData = customizationDataRes.data;
-  const selectedTitleSlug = (customizationData?.config as { slug?: string } | null)?.slug ?? null;
+  const selectedTitleSlug =
+    (customizationData?.config as { slug?: string } | null)?.slug ?? null;
 
   const TITLE_PRESETS = [
-    { slug: "title_creator", name: "City Creator", titleText: "The Architect", color: "#ec4899", icon: "/assets/items/crown_of_code.png", priority: 10 },
-    { slug: "title_lead_dev", name: "Core Engineer", titleText: "Root Access", color: "#10b981", icon: "/assets/items/celestial_orb.png", priority: 9 },
-    { slug: "title_sys_op", name: "Database Master", titleText: "SysOp", color: "#3b82f6", icon: "/assets/items/soul_gem.png", priority: 8 },
-    { slug: "crown_of_code", name: "Crown of Code", titleText: "Code King/Queen", color: "#f59e0b", icon: "/assets/items/crown_of_code.png", priority: 7 },
-    { slug: "badge_legendary", name: "Legendary Sentinel", titleText: "The Sentinel", color: "#a855f7", icon: "/assets/items/badge_legendary.png", priority: 6 },
-    { slug: "badge_diamond", name: "Diamond Grandmaster", titleText: "The Grandmaster", color: "#06b6d4", icon: "/assets/items/badge_diamond.png", priority: 5 },
-    { slug: "badge_platinum", name: "Platinum Architect", titleText: "The Architect", color: "#3b82f6", icon: "/assets/items/badge_platinum.png", priority: 4 },
-    { slug: "badge_gold", name: "Gold Developer", titleText: "The Builder", color: "#eab308", icon: "/assets/items/badge_gold.png", priority: 3 },
-    { slug: "badge_silver", name: "Silver Hacker", titleText: "The Script Kiddie", color: "#94a3b8", icon: "/assets/items/badge_silver.png", priority: 2 },
-    { slug: "badge_bronze", name: "Bronze Coder", titleText: "The Apprentice", color: "#b45309", icon: "/assets/items/badge_bronze.png", priority: 1 },
+    {
+      slug: "title_creator",
+      name: "City Creator",
+      titleText: "The Architect",
+      color: "#ec4899",
+      icon: "/assets/items/crown_of_code.png",
+      priority: 10,
+    },
+    {
+      slug: "title_lead_dev",
+      name: "Core Engineer",
+      titleText: "Root Access",
+      color: "#10b981",
+      icon: "/assets/items/celestial_orb.png",
+      priority: 9,
+    },
+    {
+      slug: "title_sys_op",
+      name: "Database Master",
+      titleText: "SysOp",
+      color: "#3b82f6",
+      icon: "/assets/items/soul_gem.png",
+      priority: 8,
+    },
+    {
+      slug: "crown_of_code",
+      name: "Crown of Code",
+      titleText: "Code King/Queen",
+      color: "#f59e0b",
+      icon: "/assets/items/crown_of_code.png",
+      priority: 7,
+    },
+    {
+      slug: "badge_legendary",
+      name: "Legendary Sentinel",
+      titleText: "The Sentinel",
+      color: "#a855f7",
+      icon: "/assets/items/badge_legendary.png",
+      priority: 6,
+    },
+    {
+      slug: "badge_diamond",
+      name: "Diamond Grandmaster",
+      titleText: "The Grandmaster",
+      color: "#06b6d4",
+      icon: "/assets/items/badge_diamond.png",
+      priority: 5,
+    },
+    {
+      slug: "badge_platinum",
+      name: "Platinum Architect",
+      titleText: "The Architect",
+      color: "#3b82f6",
+      icon: "/assets/items/badge_platinum.png",
+      priority: 4,
+    },
+    {
+      slug: "badge_gold",
+      name: "Gold Developer",
+      titleText: "The Builder",
+      color: "#eab308",
+      icon: "/assets/items/badge_gold.png",
+      priority: 3,
+    },
+    {
+      slug: "badge_silver",
+      name: "Silver Hacker",
+      titleText: "The Script Kiddie",
+      color: "#94a3b8",
+      icon: "/assets/items/badge_silver.png",
+      priority: 2,
+    },
+    {
+      slug: "badge_bronze",
+      name: "Bronze Coder",
+      titleText: "The Apprentice",
+      color: "#b45309",
+      icon: "/assets/items/badge_bronze.png",
+      priority: 1,
+    },
   ];
 
-  let activeTitle: typeof TITLE_PRESETS[0] | null = null;
-  if (selectedTitleSlug && selectedTitleSlug !== "auto" && ownedTitlesSlugs.includes(selectedTitleSlug)) {
-    activeTitle = TITLE_PRESETS.find(t => t.slug === selectedTitleSlug) ?? null;
+  let activeTitle: (typeof TITLE_PRESETS)[0] | null = null;
+  if (
+    selectedTitleSlug &&
+    selectedTitleSlug !== "auto" &&
+    ownedTitlesSlugs.includes(selectedTitleSlug)
+  ) {
+    activeTitle =
+      TITLE_PRESETS.find((t) => t.slug === selectedTitleSlug) ?? null;
   } else {
     // Auto-detect: find the highest priority owned title
-    const ownedPresets = TITLE_PRESETS.filter(t => ownedTitlesSlugs.includes(t.slug));
+    const ownedPresets = TITLE_PRESETS.filter((t) =>
+      ownedTitlesSlugs.includes(t.slug),
+    );
     if (ownedPresets.length > 0) {
-      activeTitle = ownedPresets.reduce((highest, current) => current.priority > highest.priority ? current : highest, ownedPresets[0]);
+      activeTitle = ownedPresets.reduce(
+        (highest, current) =>
+          current.priority > highest.priority ? current : highest,
+        ownedPresets[0],
+      );
     }
   }
 
   const referredDevs = referredDevsRes.data;
-  const { data: { user } } = authRes;
+  const {
+    data: { user },
+  } = authRes;
   const authLogin = (
     user?.user_metadata?.user_name ??
     user?.user_metadata?.preferred_username ??
     ""
   ).toLowerCase();
-  const isOwner = !!user && authLogin === dev.github_login.toLowerCase() && dev.claimed;
+  const isOwner =
+    !!user && authLogin === dev.github_login.toLowerCase() && dev.claimed;
 
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ??
@@ -194,7 +295,12 @@ export default async function DevPage({ params }: Props) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "LeetCode City", item: baseUrl },
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "LeetCode City",
+        item: baseUrl,
+      },
       {
         "@type": "ListItem",
         position: 2,
@@ -243,124 +349,167 @@ export default async function DevPage({ params }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-3 w-full">
                 <div className="flex items-center gap-3">
                   {dev.name && (
-                    <h1 className="text-xl text-cream sm:text-2xl">{dev.name}</h1>
+                    <h1 className="text-xl text-cream sm:text-2xl">
+                      {dev.name}
+                    </h1>
                   )}
                 </div>
 
-                {activeTitle && (() => {
-                  const bannerImages: Record<string, string> = {
-                    title_creator: "/assets/banners/banner_city_creator.png",
-                    title_lead_dev: "/assets/banners/banner_core_engineer.png",
-                    title_sys_op: "/assets/banners/banner_database_master.png",
-                  };
+                {activeTitle &&
+                  (() => {
+                    const bannerImages: Record<string, string> = {
+                      title_creator: "/assets/banners/banner_city_creator.png",
+                      title_lead_dev:
+                        "/assets/banners/banner_core_engineer.png",
+                      title_sys_op:
+                        "/assets/banners/banner_database_master.png",
+                    };
 
-                  const imageUrl = bannerImages[activeTitle.slug];
+                    const imageUrl = bannerImages[activeTitle.slug];
 
-                  if (imageUrl) {
-                    return (
-                      <div className="flex-shrink-0 select-none">
-                        <Image
-                          src={imageUrl}
-                          alt={activeTitle.name}
-                          width={180}
-                          height={18}
-                          className="h-[18px] w-[180px]"
-                          style={{ imageRendering: "pixelated" }}
-                        />
-                      </div>
-                    );
-                  }
+                    if (imageUrl) {
+                      return (
+                        <div className="flex-shrink-0 select-none">
+                          <Image
+                            src={imageUrl}
+                            alt={activeTitle.name}
+                            width={180}
+                            height={18}
+                            className="h-[18px] w-[180px]"
+                            style={{ imageRendering: "pixelated" }}
+                          />
+                        </div>
+                      );
+                    }
 
-                  // Dynamic HTML/CSS Banner for other titles
-                  const symbols: Record<string, string> = {
-                    badge_bronze: "[ >_ ] ⛭",
-                    badge_silver: "[ $ ] ⛭",
-                    badge_gold: "[ ■ ] ⚒",
-                    badge_platinum: "[ ❖ ] ✦",
-                    badge_diamond: "[ ◆ ] ✦",
-                    badge_legendary: "[ ⚔ ] ✦",
-                    crown_of_code: "[ ♔ ] ✦",
-                  };
+                    // Dynamic HTML/CSS Banner for other titles
+                    const symbols: Record<string, string> = {
+                      badge_bronze: "[ >_ ] ⛭",
+                      badge_silver: "[ $ ] ⛭",
+                      badge_gold: "[ ■ ] ⚒",
+                      badge_platinum: "[ ❖ ] ✦",
+                      badge_diamond: "[ ◆ ] ✦",
+                      badge_legendary: "[ ⚔ ] ✦",
+                      crown_of_code: "[ ♔ ] ✦",
+                    };
 
-                  const symbol = symbols[activeTitle.slug] ?? "[ ★ ]";
+                    const symbol = symbols[activeTitle.slug] ?? "[ ★ ]";
 
-                  // Design borders based on category (shorter, no description text, smaller)
-                  if (activeTitle.slug === "badge_platinum" || activeTitle.slug === "badge_diamond") {
-                    return (
-                      <div className="relative flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border border-solid flex-shrink-0"
-                        style={{
-                          borderColor: activeTitle.color,
-                          backgroundColor: "#1b1921",
-                          color: activeTitle.color,
-                        }}
-                      >
-                        <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l" style={{ borderColor: activeTitle.color }} />
-                        <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r" style={{ borderColor: activeTitle.color }} />
-                        <div className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l" style={{ borderColor: activeTitle.color }} />
-                        <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r" style={{ borderColor: activeTitle.color }} />
-                        
-                        <span className="font-mono text-[9px]">{symbol}</span>
-                        <span>{activeTitle.name.toUpperCase()}</span>
-                      </div>
-                    );
-                  }
-
-                  if (activeTitle.slug === "badge_legendary" || activeTitle.slug === "crown_of_code") {
-                    return (
-                      <div className="flex items-center flex-shrink-0">
-                        <div className="w-2.5 h-4.5 border-y border-l flex-shrink-0" style={{
-                          borderColor: activeTitle.color,
-                          backgroundColor: "#1b1921",
-                          clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
-                        }} />
-                        
+                    // Design borders based on category (shorter, no description text, smaller)
+                    if (
+                      activeTitle.slug === "badge_platinum" ||
+                      activeTitle.slug === "badge_diamond"
+                    ) {
+                      return (
                         <div
-                          className="flex items-center gap-1.5 py-0.5 px-2 text-[8px] font-bold tracking-wide border-y border-x-[0.5px]"
+                          className="relative flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border border-solid flex-shrink-0"
                           style={{
                             borderColor: activeTitle.color,
                             backgroundColor: "#1b1921",
                             color: activeTitle.color,
                           }}
                         >
+                          <div
+                            className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l"
+                            style={{ borderColor: activeTitle.color }}
+                          />
+                          <div
+                            className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r"
+                            style={{ borderColor: activeTitle.color }}
+                          />
+                          <div
+                            className="absolute bottom-0 left-0 w-1.5 h-1.5 border-b border-l"
+                            style={{ borderColor: activeTitle.color }}
+                          />
+                          <div
+                            className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r"
+                            style={{ borderColor: activeTitle.color }}
+                          />
+
                           <span className="font-mono text-[9px]">{symbol}</span>
                           <span>{activeTitle.name.toUpperCase()}</span>
                         </div>
+                      );
+                    }
 
-                        <div className="w-2.5 h-4.5 border-y border-r flex-shrink-0" style={{
+                    if (
+                      activeTitle.slug === "badge_legendary" ||
+                      activeTitle.slug === "crown_of_code"
+                    ) {
+                      return (
+                        <div className="flex items-center flex-shrink-0">
+                          <div
+                            className="w-2.5 h-4.5 border-y border-l flex-shrink-0"
+                            style={{
+                              borderColor: activeTitle.color,
+                              backgroundColor: "#1b1921",
+                              clipPath: "polygon(100% 0, 0 50%, 100% 100%)",
+                            }}
+                          />
+
+                          <div
+                            className="flex items-center gap-1.5 py-0.5 px-2 text-[8px] font-bold tracking-wide border-y border-x-[0.5px]"
+                            style={{
+                              borderColor: activeTitle.color,
+                              backgroundColor: "#1b1921",
+                              color: activeTitle.color,
+                            }}
+                          >
+                            <span className="font-mono text-[9px]">
+                              {symbol}
+                            </span>
+                            <span>{activeTitle.name.toUpperCase()}</span>
+                          </div>
+
+                          <div
+                            className="w-2.5 h-4.5 border-y border-r flex-shrink-0"
+                            style={{
+                              borderColor: activeTitle.color,
+                              backgroundColor: "#1b1921",
+                              clipPath: "polygon(0 0, 100% 50%, 0 100%)",
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        className="flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border-[2px] border-double flex-shrink-0"
+                        style={{
                           borderColor: activeTitle.color,
                           backgroundColor: "#1b1921",
-                          clipPath: "polygon(0 0, 100% 50%, 0 100%)",
-                        }} />
+                          color: activeTitle.color,
+                        }}
+                      >
+                        <span className="font-mono text-[9px]">{symbol}</span>
+                        <span>{activeTitle.name.toUpperCase()}</span>
                       </div>
                     );
-                  }
-
-                  return (
-                    <div
-                      className="flex items-center gap-1.5 py-0.5 px-2.5 text-[8px] font-bold tracking-wide border-[2px] border-double flex-shrink-0"
-                      style={{
-                        borderColor: activeTitle.color,
-                        backgroundColor: "#1b1921",
-                        color: activeTitle.color,
-                      }}
-                    >
-                      <span className="font-mono text-[9px]">{symbol}</span>
-                      <span>{activeTitle.name.toUpperCase()}</span>
-                    </div>
-                  );
-                })()}
+                  })()}
               </div>
               <p className="mt-1 text-sm text-muted">@{dev.github_login}</p>
 
               {/* Rank Badges — Global LC rank + City ranking */}
               {dev.rank && dev.rank < 999999 && (
                 <div className="mt-2.5 flex flex-wrap gap-2 justify-center sm:justify-start">
-                  <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: accent, color: accent }}>
+                  <div
+                    className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]"
+                    style={{ borderColor: accent, color: accent }}
+                  >
                     🌍 LC Rank #{dev.rank.toLocaleString()}
                   </div>
-                  {((dev as unknown as DeveloperExtended).contest_rating ?? 0) > 0 && (
-                    <div className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]" style={{ borderColor: "#a855f7", color: "#a855f7" }}>
-                      ⚔️ Contest {((dev as unknown as DeveloperExtended).contest_rating ?? 0).toLocaleString()}
+                  {((dev as unknown as DeveloperExtended).contest_rating ?? 0) >
+                    0 && (
+                    <div
+                      className="inline-block border-[1.5px] px-2 py-0.5 text-[9px]"
+                      style={{ borderColor: "#a855f7", color: "#a855f7" }}
+                    >
+                      ⚔️ Contest{" "}
+                      {(
+                        (dev as unknown as DeveloperExtended).contest_rating ??
+                        0
+                      ).toLocaleString()}
                     </div>
                   )}
                 </div>
@@ -371,13 +520,18 @@ export default async function DevPage({ params }: Props) {
                 <div className="mt-2 flex items-center gap-2 justify-center sm:justify-start">
                   <span
                     className="px-1.5 py-0.5 text-[8.5px] text-bg"
-                    style={{ backgroundColor: DISTRICT_COLORS[dev.district] ?? '#888' }}
+                    style={{
+                      backgroundColor: DISTRICT_COLORS[dev.district] ?? "#888",
+                    }}
                   >
                     {DISTRICT_NAMES[dev.district] ?? dev.district}
                   </span>
                   {dev.district_rank && (
                     <span className="text-[8.5px] text-muted">
-                      {dev.district_rank === 1 ? 'Mayor' : `#${dev.district_rank}`} in {DISTRICT_NAMES[dev.district]}
+                      {dev.district_rank === 1
+                        ? "Mayor"
+                        : `#${dev.district_rank}`}{" "}
+                      in {DISTRICT_NAMES[dev.district]}
                     </span>
                   )}
                 </div>
@@ -387,22 +541,34 @@ export default async function DevPage({ params }: Props) {
               {dev.contributions >= 100 && (
                 <div className="mt-3 flex flex-wrap gap-2 justify-center sm:justify-start">
                   {dev.contributions >= 1000 && (
-                    <span className="inline-flex items-center gap-1 bg-[#bc13fe]/20 border border-[#bc13fe] px-2 py-0.5 text-[9px] font-bold text-[#d880ff]" title="1000+ LeetCode problems solved">
+                    <span
+                      className="inline-flex items-center gap-1 bg-[#bc13fe]/20 border border-[#bc13fe] px-2 py-0.5 text-[9px] font-bold text-[#d880ff]"
+                      title="1000+ LeetCode problems solved"
+                    >
                       🚨 Neon Beacon (1k+ solved)
                     </span>
                   )}
                   {dev.contributions >= 500 && (
-                    <span className="inline-flex items-center gap-1 bg-[#ffd700]/20 border border-[#ffd700] px-2 py-0.5 text-[9px] font-bold text-[#ffe680]" title="500+ LeetCode problems solved">
+                    <span
+                      className="inline-flex items-center gap-1 bg-[#ffd700]/20 border border-[#ffd700] px-2 py-0.5 text-[9px] font-bold text-[#ffe680]"
+                      title="500+ LeetCode problems solved"
+                    >
                       🥇 Gold Milestone (500+ solved)
                     </span>
                   )}
                   {dev.contributions >= 300 && (
-                    <span className="inline-flex items-center gap-1 bg-[#c0c0c0]/20 border border-[#c0c0c0] px-2 py-0.5 text-[9px] font-bold text-[#e6e6e6]" title="300+ LeetCode problems solved">
+                    <span
+                      className="inline-flex items-center gap-1 bg-[#c0c0c0]/20 border border-[#c0c0c0] px-2 py-0.5 text-[9px] font-bold text-[#e6e6e6]"
+                      title="300+ LeetCode problems solved"
+                    >
                       🥈 Silver Milestone (300+ solved)
                     </span>
                   )}
                   {dev.contributions >= 100 && (
-                    <span className="inline-flex items-center gap-1 bg-[#cd7f32]/20 border border-[#cd7f32] px-2 py-0.5 text-[9px] font-bold text-[#ffb880]" title="100+ LeetCode problems solved">
+                    <span
+                      className="inline-flex items-center gap-1 bg-[#cd7f32]/20 border border-[#cd7f32] px-2 py-0.5 text-[9px] font-bold text-[#ffb880]"
+                      title="100+ LeetCode problems solved"
+                    >
                       🥉 Bronze Milestone (100+ solved)
                     </span>
                   )}
@@ -411,7 +577,10 @@ export default async function DevPage({ params }: Props) {
 
               {/* Claim */}
               <div className="mt-3">
-                <ClaimButton githubLogin={dev.github_login} claimed={dev.claimed ?? false} />
+                <ClaimButton
+                  githubLogin={dev.github_login}
+                  claimed={dev.claimed ?? false}
+                />
               </div>
             </div>
           </div>
@@ -444,12 +613,18 @@ export default async function DevPage({ params }: Props) {
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold" style={{ color: tier.color }}>
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: tier.color }}
+                    >
                       {rank.title}
                     </span>
                     <span
                       className="px-1.5 py-0.5 text-[8px] font-bold"
-                      style={{ backgroundColor: tier.color + "22", color: tier.color }}
+                      style={{
+                        backgroundColor: tier.color + "22",
+                        color: tier.color,
+                      }}
                     >
                       {tier.name.toUpperCase()}
                     </span>
@@ -465,7 +640,8 @@ export default async function DevPage({ params }: Props) {
                       />
                     </div>
                     <span className="text-[9px] text-muted whitespace-nowrap">
-                      {xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()} XP
+                      {xpCurrent.toLocaleString()} / {xpNeeded.toLocaleString()}{" "}
+                      XP
                     </span>
                   </div>
                 </div>
@@ -514,7 +690,13 @@ export default async function DevPage({ params }: Props) {
               shadow={shadow}
             />
           </div>
-          {!isOwner && <CompareChallenge login={dev.github_login} accent={accent} shadow={shadow} />}
+          {!isOwner && (
+            <CompareChallenge
+              login={dev.github_login}
+              accent={accent}
+              shadow={shadow}
+            />
+          )}
           <div className="text-center mt-2">
             <Link
               href={`/compare?a=${dev.github_login}`}
@@ -545,11 +727,25 @@ export default async function DevPage({ params }: Props) {
             { label: "Visits", value: (dev.visit_count ?? 0).toLocaleString() },
           ];
 
-          const diffStats = hasLCData ? [
-            { label: "🟢 Easy", value: easySolved.toLocaleString(), color: "#22c55e" },
-            { label: "🟡 Medium", value: medSolved.toLocaleString(), color: "#f59e0b" },
-            { label: "🔴 Hard", value: hardSolved.toLocaleString(), color: "#ef4444" },
-          ] : [];
+          const diffStats = hasLCData
+            ? [
+                {
+                  label: "🟢 Easy",
+                  value: easySolved.toLocaleString(),
+                  color: "#22c55e",
+                },
+                {
+                  label: "🟡 Medium",
+                  value: medSolved.toLocaleString(),
+                  color: "#f59e0b",
+                },
+                {
+                  label: "🔴 Hard",
+                  value: hardSolved.toLocaleString(),
+                  color: "#ef4444",
+                },
+              ]
+            : [];
 
           return (
             <>
@@ -557,8 +753,16 @@ export default async function DevPage({ params }: Props) {
               {hasLCData && (
                 <div className="mt-5 grid grid-cols-3 gap-3">
                   {diffStats.map((s) => (
-                    <div key={s.label} className="border-[3px] border-border bg-bg-card p-4 text-center">
-                      <div className="text-xl font-bold" style={{ color: s.color }}>{s.value}</div>
+                    <div
+                      key={s.label}
+                      className="border-[3px] border-border bg-bg-card p-4 text-center"
+                    >
+                      <div
+                        className="text-xl font-bold"
+                        style={{ color: s.color }}
+                      >
+                        {s.value}
+                      </div>
                       <div className="mt-2 text-xs text-muted">{s.label}</div>
                     </div>
                   ))}
@@ -568,15 +772,24 @@ export default async function DevPage({ params }: Props) {
               {/* Main stats */}
               <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {baseStats.map((stat) => (
-                  <div key={stat.label} className="border-[3px] border-border bg-bg-card p-4 text-center">
-                    <div className="text-xl" style={{ color: accent }}>{stat.value}</div>
+                  <div
+                    key={stat.label}
+                    className="border-[3px] border-border bg-bg-card p-4 text-center"
+                  >
+                    <div className="text-xl" style={{ color: accent }}>
+                      {stat.value}
+                    </div>
                     <div className="mt-2 text-xs text-muted">{stat.label}</div>
                   </div>
                 ))}
                 {contestRating > 0 && (
                   <div className="border-[3px] border-border bg-bg-card p-4 text-center">
-                    <div className="text-xl" style={{ color: "#a855f7" }}>{contestRating.toLocaleString()}</div>
-                    <div className="mt-2 text-xs text-muted">⚔️ Contest Rating</div>
+                    <div className="text-xl" style={{ color: "#a855f7" }}>
+                      {contestRating.toLocaleString()}
+                    </div>
+                    <div className="mt-2 text-xs text-muted">
+                      ⚔️ Contest Rating
+                    </div>
                   </div>
                 )}
               </div>
@@ -589,7 +802,9 @@ export default async function DevPage({ params }: Props) {
           <div className="mt-5">
             <h2 className="mb-3 text-sm text-cream">
               Achievements
-              <span className="ml-2 text-[10px] text-muted">{achievements.length}</span>
+              <span className="ml-2 text-[10px] text-muted">
+                {achievements.length}
+              </span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {achievements
@@ -643,7 +858,9 @@ export default async function DevPage({ params }: Props) {
           <div className="mt-5">
             <h2 className="mb-3 text-sm text-cream">
               Invited Devs
-              <span className="ml-2 text-[10px] text-muted">{dev.referral_count ?? referredDevs.length}</span>
+              <span className="ml-2 text-[10px] text-muted">
+                {dev.referral_count ?? referredDevs.length}
+              </span>
             </h2>
             <div className="flex flex-wrap gap-2">
               {referredDevs.map((rd) => (

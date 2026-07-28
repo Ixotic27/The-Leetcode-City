@@ -11,28 +11,39 @@ export async function GET() {
     // Timeout the query to prevent 28s+ hangs seen in production
     const queryPromise = sb
       .from("developer_sessions")
-      .select(`
+      .select(
+        `
         developer_id,
         session_id,
         status,
         current_language,
         last_heartbeat_at,
         developers!inner(github_login, avatar_url)
-      `)
+      `,
+      )
       .in("status", ["active", "idle"])
       .gte("last_heartbeat_at", cutoff);
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Presence query timed out after 8s")), 8_000)
+      setTimeout(
+        () => reject(new Error("Presence query timed out after 8s")),
+        8_000,
+      ),
     );
 
-    const { data: sessions, error } = await Promise.race([queryPromise, timeoutPromise]);
+    const { data: sessions, error } = await Promise.race([
+      queryPromise,
+      timeoutPromise,
+    ]);
 
     if (error) {
       console.warn("[/api/presence] query error:", error.message);
-      return NextResponse.json({ count: 0, developers: [] }, {
-        headers: { "Cache-Control": "no-store" },
-      });
+      return NextResponse.json(
+        { count: 0, developers: [] },
+        {
+          headers: { "Cache-Control": "no-store" },
+        },
+      );
     }
 
     // Deduplicate by developer (keep latest session)
@@ -44,8 +55,11 @@ export async function GET() {
       }
     }
 
-    const developers = Array.from(byDev.values()).map((s) => { 
-      const dev = s.developers as unknown as { github_login: string; avatar_url: string | null };
+    const developers = Array.from(byDev.values()).map((s) => {
+      const dev = s.developers as unknown as {
+        github_login: string;
+        avatar_url: string | null;
+      };
       return {
         githubLogin: dev.github_login,
         avatarUrl: dev.avatar_url,
@@ -64,10 +78,16 @@ export async function GET() {
       },
     );
   } catch (err) {
-    console.warn("[/api/presence] timeout or error:", err instanceof Error ? err.message : err);
+    console.warn(
+      "[/api/presence] timeout or error:",
+      err instanceof Error ? err.message : err,
+    );
     // Return empty result instead of 500 — clients will get fresh data on next poll
-    return NextResponse.json({ count: 0, developers: [] }, {
-      headers: { "Cache-Control": "no-store" },
-    });
+    return NextResponse.json(
+      { count: 0, developers: [] },
+      {
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
   }
 }

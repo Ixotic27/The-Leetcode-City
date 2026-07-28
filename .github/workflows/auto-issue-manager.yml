@@ -27,11 +27,11 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const issueState = issue.state;
-            
+
             if (issueState === 'closed') return;
 
             const currentLabels = issue.labels.map(l => l.name);
-            
+
             // For type:3d issues, skip all automated workflows. Only manual assignment is allowed.
             if (currentLabels.includes('type:3d')) {
               if (context.eventName === 'issues' && context.payload.action === 'assigned') {
@@ -187,7 +187,7 @@ jobs:
               }
               return;
             }
-            
+
             // Handle manual assignment by maintainer through UI
             if (context.eventName === 'issues' && context.payload.action === 'assigned') {
               const assignee = context.payload.assignee.login;

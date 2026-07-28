@@ -30,7 +30,9 @@ async function isStargazer(login: string): Promise<boolean> {
     );
     if (!res.ok) {
       if (res.status === 403 || res.status === 429) {
-        throw new Error("GitHub API rate limit exceeded. Please try again later.");
+        throw new Error(
+          "GitHub API rate limit exceeded. Please try again later.",
+        );
       }
       return false;
     }
@@ -38,7 +40,8 @@ async function isStargazer(login: string): Promise<boolean> {
     const repos = (await res.json()) as { full_name: string }[];
     if (repos.length === 0) break;
 
-    if (repos.some((r) => r.full_name.toLowerCase() === targetRepo)) return true;
+    if (repos.some((r) => r.full_name.toLowerCase() === targetRepo))
+      return true;
     if (repos.length < 100) break;
     page++;
   }
@@ -47,7 +50,8 @@ async function isStargazer(login: string): Promise<boolean> {
 }
 
 export async function POST() {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -66,7 +70,10 @@ export async function POST() {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No GitHub login found in session" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No GitHub login found in session" },
+      { status: 400 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -78,7 +85,10 @@ export async function POST() {
     .single();
 
   if (!dev || !dev.claimed) {
-    return NextResponse.json({ error: "Must claim building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must claim building first" },
+      { status: 403 },
+    );
   }
 
   // Idempotent: already owns the item
@@ -99,7 +109,8 @@ export async function POST() {
   try {
     starred = await isStargazer(githubLogin);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to verify star";
+    const message =
+      err instanceof Error ? err.message : "Failed to verify star";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 

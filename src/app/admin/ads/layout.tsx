@@ -3,9 +3,15 @@ import { createServerSupabase } from "@/lib/supabase-server";
 
 const OWNER_LOGIN = "Ixotic27";
 
-export default async function AdminAdsLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminAdsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) redirect("/");
 

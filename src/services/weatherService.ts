@@ -51,7 +51,10 @@ export interface WeatherData {
   cod: number;
 }
 
-export const fetchWeatherByCoords = async (lat: number, lon: number): Promise<WeatherData> => {
+export const fetchWeatherByCoords = async (
+  lat: number,
+  lon: number,
+): Promise<WeatherData> => {
   const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
 
   if (!response.ok) {

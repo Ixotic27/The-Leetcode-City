@@ -33,7 +33,10 @@ export async function getDeveloperEmail(devId: number): Promise<string | null> {
     if (authEmail) {
       await sb
         .from("developers")
-        .update({ email: authEmail, email_updated_at: new Date().toISOString() })
+        .update({
+          email: authEmail,
+          email_updated_at: new Date().toISOString(),
+        })
         .eq("id", devId);
     }
 
@@ -49,7 +52,10 @@ export async function getDeveloperEmail(devId: number): Promise<string | null> {
  * Check if a developer was active in the last N minutes.
  * Used to skip notifications for users currently online.
  */
-export async function isRecentlyActive(devId: number, minutesAgo = 5): Promise<boolean> {
+export async function isRecentlyActive(
+  devId: number,
+  minutesAgo = 5,
+): Promise<boolean> {
   const sb = getSupabaseAdmin();
   const cutoff = new Date(Date.now() - minutesAgo * 60_000).toISOString();
 
@@ -66,7 +72,9 @@ export async function isRecentlyActive(devId: number, minutesAgo = 5): Promise<b
 /**
  * Get multiple developers' push tokens for batch sends.
  */
-export async function getPushTokens(devId: number): Promise<{ token: string; platform: string }[]> {
+export async function getPushTokens(
+  devId: number,
+): Promise<{ token: string; platform: string }[]> {
   const sb = getSupabaseAdmin();
   const { data } = await sb
     .from("push_subscriptions")
@@ -89,7 +97,10 @@ export function touchLastActive(devId: number): void {
         .update({ last_active_at: new Date().toISOString() })
         .eq("id", devId);
     } catch (err: unknown) {
-      console.error(`Error updating last active time for developer ${devId}:`, err);
+      console.error(
+        `Error updating last active time for developer ${devId}:`,
+        err,
+      );
     }
   })();
 }
@@ -97,7 +108,10 @@ export function touchLastActive(devId: number): void {
 /**
  * Cache email on developers table from auth callback.
  */
-export async function cacheEmailFromAuth(devId: number, authUserId: string): Promise<void> {
+export async function cacheEmailFromAuth(
+  devId: number,
+  authUserId: string,
+): Promise<void> {
   const sb = getSupabaseAdmin();
   const { data: authUser } = await sb.auth.admin.getUserById(authUserId);
   const email = authUser?.user?.email;
@@ -118,5 +132,8 @@ export async function ensurePreferences(devId: number): Promise<void> {
   const sb = getSupabaseAdmin();
   await sb
     .from("notification_preferences")
-    .upsert({ developer_id: devId }, { onConflict: "developer_id", ignoreDuplicates: true });
+    .upsert(
+      { developer_id: devId },
+      { onConflict: "developer_id", ignoreDuplicates: true },
+    );
 }

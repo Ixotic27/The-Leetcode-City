@@ -1,9 +1,9 @@
-import React from 'react';
-import Image from 'next/image';
+import React from "react";
+import Image from "next/image";
 
 interface UserProfileProps {
   shareData: {
-    avatar_url: string | null;  // Changed from string | undefined
+    avatar_url: string | null; // Changed from string | undefined
     login: string;
     rank: number | string | null; // Changed from string | number | undefined
     contributions: number;
@@ -29,13 +29,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ shareData, theme }) => {
       )}
 
       <p className="text-xs text-cream normal-case">
-        <span style={{ color: theme.accent }}>@{shareData.login}</span> joined the city!
+        <span style={{ color: theme.accent }}>@{shareData.login}</span> joined
+        the city!
       </p>
 
       <p className="mt-2 text-[10px] text-muted normal-case">
-        City Rank <span style={{ color: theme.accent }}>#{shareData.rank ?? "?"}</span>
+        City Rank{" "}
+        <span style={{ color: theme.accent }}>#{shareData.rank ?? "?"}</span>
         {" · "}
-        <span style={{ color: theme.accent }}>{shareData.contributions.toLocaleString()}</span> solved
+        <span style={{ color: theme.accent }}>
+          {shareData.contributions.toLocaleString()}
+        </span>{" "}
+        solved
       </p>
     </div>
   );

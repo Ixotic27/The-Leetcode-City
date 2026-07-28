@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
   // Fetch the developer's inventory with full item details joined
   const { data: inventory, error } = await sb
     .from("arena_inventory")
-    .select(`
+    .select(
+      `
       id,
       quantity,
       is_equipped,
@@ -32,7 +33,8 @@ export async function GET(request: NextRequest) {
         max_stack,
         is_tradeable
       )
-    `)
+    `,
+    )
     .eq("user_id", dev.id);
 
   if (error) {

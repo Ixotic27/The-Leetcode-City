@@ -5,7 +5,9 @@ import type { RawHeartbeat } from "../privacy/sanitizer";
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 1000;
 
-export async function sendHeartbeats(heartbeats: RawHeartbeat[]): Promise<boolean> {
+export async function sendHeartbeats(
+  heartbeats: RawHeartbeat[],
+): Promise<boolean> {
   const apiKey = await getKey();
   if (!apiKey || heartbeats.length === 0) return false;
 
@@ -35,7 +37,9 @@ export async function sendHeartbeats(heartbeats: RawHeartbeat[]): Promise<boolea
     }
 
     if (attempt < MAX_RETRIES - 1) {
-      await new Promise((r) => setTimeout(r, INITIAL_BACKOFF_MS * Math.pow(2, attempt)));
+      await new Promise((r) =>
+        setTimeout(r, INITIAL_BACKOFF_MS * Math.pow(2, attempt)),
+      );
     }
   }
 
@@ -48,8 +52,11 @@ export async function sendHeartbeats(heartbeats: RawHeartbeat[]): Promise<boolea
  * Accepts an optional pre-cached key since SecretStorage may be unavailable during shutdown.
  * Single attempt, 3s timeout — best effort before VS Code kills the process.
  */
-export async function sendDirect(heartbeat: RawHeartbeat, cachedApiKey?: string): Promise<boolean> {
-  const apiKey = cachedApiKey ?? await getKey();
+export async function sendDirect(
+  heartbeat: RawHeartbeat,
+  cachedApiKey?: string,
+): Promise<boolean> {
+  const apiKey = cachedApiKey ?? (await getKey());
   if (!apiKey) return false;
 
   const { apiUrl } = getConfig();

@@ -78,16 +78,15 @@ commands.set("discoveries", (_args, ctx) => {
   else if (found < 10) lines.push(sys("  You're just getting started."));
   else if (found < 25) lines.push(sys("  You're digging deeper. Keep going."));
   else if (found < 40) lines.push(sys("  E. would be impressed."));
-  else if (found < total) lines.push(sys("  Almost there. The last ones are the hardest."));
+  else if (found < total)
+    lines.push(sys("  Almost there. The last ones are the hardest."));
   else lines.push(sys("  You found everything. E. has nothing left to hide."));
 
   lines.push(sys("═════════════════════"));
   return lines;
 });
 
-commands.set("whoami", (_args, ctx) => [
-  out(ctx.githubLogin || "anonymous"),
-]);
+commands.set("whoami", (_args, ctx) => [out(ctx.githubLogin || "anonymous")]);
 
 commands.set("status", (_args, ctx) => {
   const hash = ctx.userId.slice(0, 8).toUpperCase();
@@ -129,98 +128,106 @@ commands.set("cat", (args) => {
   const file = args.trim().toLowerCase();
   if (!file) return [out("Usage: cat <filename>")];
 
-  if (file === "memo.txt") return [
-    sys("═══ INTERNAL MEMO ═══"),
-    out("TO: All Floor 0 Residents"),
-    out("FROM: E.Arcade Administration"),
-    out("RE: Terminal Usage Policy"),
-    out(""),
-    out("All work performed on E.Arcade terminals"),
-    out("is monitored and logged. Personal use is"),
-    out("not permitted. Do not attempt to access"),
-    out("files outside your clearance level."),
-    out(""),
-    out("Violations will be reported to the Architect."),
-    sys("═════════════════════"),
-  ];
+  if (file === "memo.txt")
+    return [
+      sys("═══ INTERNAL MEMO ═══"),
+      out("TO: All Floor 0 Residents"),
+      out("FROM: E.Arcade Administration"),
+      out("RE: Terminal Usage Policy"),
+      out(""),
+      out("All work performed on E.Arcade terminals"),
+      out("is monitored and logged. Personal use is"),
+      out("not permitted. Do not attempt to access"),
+      out("files outside your clearance level."),
+      out(""),
+      out("Violations will be reported to the Architect."),
+      sys("═════════════════════"),
+    ];
 
-  if (file === "handbook.pdf") return [
-    out("\"The E.Arcade is not a place of leisure."),
-    out("It is a place of purpose. Every resident"),
-    out("contributes. Every floor serves a function."),
-    out("If you do not yet know your function,"),
-    out("it will be assigned to you.\""),
-    out(""),
-    out("  — E.Arcade Handbook, Introduction"),
-  ];
+  if (file === "handbook.pdf")
+    return [
+      out('"The E.Arcade is not a place of leisure.'),
+      out("It is a place of purpose. Every resident"),
+      out("contributes. Every floor serves a function."),
+      out("If you do not yet know your function,"),
+      out('it will be assigned to you."'),
+      out(""),
+      out("  — E.Arcade Handbook, Introduction"),
+    ];
 
-  if (file === "schedule.dat") return [
-    out("09:00  Arrival & orientation"),
-    out("09:15  Workstation assignment"),
-    out("09:30  Begin tasks"),
-    out("12:00  [REDACTED]"),
-    out("13:00  Resume tasks"),
-    out("17:00  [DATA CORRUPTED]"),
-    out("??:??  You are still here."),
-  ];
+  if (file === "schedule.dat")
+    return [
+      out("09:00  Arrival & orientation"),
+      out("09:15  Workstation assignment"),
+      out("09:30  Begin tasks"),
+      out("12:00  [REDACTED]"),
+      out("13:00  Resume tasks"),
+      out("17:00  [DATA CORRUPTED]"),
+      out("??:??  You are still here."),
+    ];
 
-  if (file === "note_to_self.txt") return [
-    out("I keep restarting and ending up here."),
-    out("Same floor. Same desk. Same terminal."),
-    out(""),
-    out("The elevator doesn't work yet. They say"),
-    out("the upper floors are 'under construction'."),
-    out("They've been saying that for a while."),
-    out(""),
-    out("If you're reading this, I left more notes."),
-    out("You just have to know where to look."),
-    out(""),
-    out("  — E."),
-  ];
+  if (file === "note_to_self.txt")
+    return [
+      out("I keep restarting and ending up here."),
+      out("Same floor. Same desk. Same terminal."),
+      out(""),
+      out("The elevator doesn't work yet. They say"),
+      out("the upper floors are 'under construction'."),
+      out("They've been saying that for a while."),
+      out(""),
+      out("If you're reading this, I left more notes."),
+      out("You just have to know where to look."),
+      out(""),
+      out("  — E."),
+    ];
 
-  if (file === ".hidden" || file === ".hidden/") return [
-    out("Permission denied."),
-    out(""),
-    out("...but you noticed it. Good."),
-    out("Try: cat .hidden/log"),
-  ];
+  if (file === ".hidden" || file === ".hidden/")
+    return [
+      out("Permission denied."),
+      out(""),
+      out("...but you noticed it. Good."),
+      out("Try: cat .hidden/log"),
+    ];
 
-  if (file === ".hidden/log" || file === ".hidden/log.txt") return [
-    sys("═══ PERSONAL LOG ═══"),
-    out("Entry 1:"),
-    out("  I built this building because I needed"),
-    out("  a place to put everything. The city"),
-    out("  wasn't enough. I needed walls."),
-    out(""),
-    out("Entry 2:"),
-    out("  They keep coming in. New residents."),
-    out("  They sit at the desks and type."),
-    out("  None of them know why this place exists."),
-    out("  Maybe that's okay."),
-    out(""),
-    out("Entry 3:"),
-    out("  The elevator will work eventually."),
-    out("  I'm not ready for what's upstairs."),
-    out("  Not yet."),
-    out(""),
-    out("  — E."),
-    sys("═════════════════════"),
-  ];
+  if (file === ".hidden/log" || file === ".hidden/log.txt")
+    return [
+      sys("═══ PERSONAL LOG ═══"),
+      out("Entry 1:"),
+      out("  I built this building because I needed"),
+      out("  a place to put everything. The city"),
+      out("  wasn't enough. I needed walls."),
+      out(""),
+      out("Entry 2:"),
+      out("  They keep coming in. New residents."),
+      out("  They sit at the desks and type."),
+      out("  None of them know why this place exists."),
+      out("  Maybe that's okay."),
+      out(""),
+      out("Entry 3:"),
+      out("  The elevator will work eventually."),
+      out("  I'm not ready for what's upstairs."),
+      out("  Not yet."),
+      out(""),
+      out("  — E."),
+      sys("═════════════════════"),
+    ];
 
-  if (file === "resident_data.db") return [
-    out("File is locked. Requires Level 3 clearance."),
-    out(""),
-    out("Last accessed by: E."),
-    out("Last modified: [REDACTED]"),
-  ];
+  if (file === "resident_data.db")
+    return [
+      out("File is locked. Requires Level 3 clearance."),
+      out(""),
+      out("Last accessed by: E."),
+      out("Last modified: [REDACTED]"),
+    ];
 
-  if (file === "project_root.enc") return [
-    out("Decryption key required."),
-    out(""),
-    out("This file was created before Floor 0 existed."),
-    out("Before the E.Arcade had a name."),
-    out("Before any of this."),
-  ];
+  if (file === "project_root.enc")
+    return [
+      out("Decryption key required."),
+      out(""),
+      out("This file was created before Floor 0 existed."),
+      out("Before the E.Arcade had a name."),
+      out("Before any of this."),
+    ];
 
   return [out(`cat: ${file}: No such file or directory`)];
 });
@@ -230,74 +237,78 @@ commands.set("cat", (args) => {
 commands.set("mail", (args) => {
   const n = parseInt(args.trim());
 
-  if (isNaN(n)) return [
-    sys("═══ INBOX (3 unread) ═══"),
-    out(""),
-    out("  1. [SYSTEM]   Welcome to E.Arcade        — read"),
-    out("  2. [E.]       re: the building            — unread"),
-    out("  3. [UNKNOWN]  ...                         — unread"),
-    out(""),
-    sys("Type 'mail <number>' to read a message."),
-    sys("═════════════════════════"),
-  ];
+  if (isNaN(n))
+    return [
+      sys("═══ INBOX (3 unread) ═══"),
+      out(""),
+      out("  1. [SYSTEM]   Welcome to E.Arcade        — read"),
+      out("  2. [E.]       re: the building            — unread"),
+      out("  3. [UNKNOWN]  ...                         — unread"),
+      out(""),
+      sys("Type 'mail <number>' to read a message."),
+      sys("═════════════════════════"),
+    ];
 
-  if (n === 1) return [
-    sys("═══ MESSAGE 1 ═══"),
-    out("FROM: E.Arcade System"),
-    out("TO: New Resident"),
-    out("SUBJECT: Welcome to E.Arcade"),
-    out(""),
-    out("Welcome. You have been assigned to Floor 0."),
-    out("Your workstation is ready. Please begin"),
-    out("your tasks as outlined in the handbook."),
-    out(""),
-    out("The elevator to upper floors is currently"),
-    out("unavailable. We appreciate your patience."),
-    out(""),
-    out("  — E.Arcade Administration"),
-    sys("══════════════════"),
-  ];
+  if (n === 1)
+    return [
+      sys("═══ MESSAGE 1 ═══"),
+      out("FROM: E.Arcade System"),
+      out("TO: New Resident"),
+      out("SUBJECT: Welcome to E.Arcade"),
+      out(""),
+      out("Welcome. You have been assigned to Floor 0."),
+      out("Your workstation is ready. Please begin"),
+      out("your tasks as outlined in the handbook."),
+      out(""),
+      out("The elevator to upper floors is currently"),
+      out("unavailable. We appreciate your patience."),
+      out(""),
+      out("  — E.Arcade Administration"),
+      sys("══════════════════"),
+    ];
 
-  if (n === 2) return [
-    sys("═══ MESSAGE 2 ═══"),
-    out("FROM: E."),
-    out("TO: whoever finds this"),
-    out("SUBJECT: re: the building"),
-    out(""),
-    out("I didn't plan for other people to come here."),
-    out("This was supposed to be just mine."),
-    out("A place to keep things that don't fit"),
-    out("anywhere else. But the city grew,"),
-    out("and people started walking in."),
-    out(""),
-    out("So I made it look like an office."),
-    out("Gave it desks and chairs and a schedule."),
-    out("People accept that. They sit down and work."),
-    out("They don't ask what the building is for."),
-    out(""),
-    out("Maybe you will."),
-    out(""),
-    out("  — E."),
-    sys("══════════════════"),
-  ];
+  if (n === 2)
+    return [
+      sys("═══ MESSAGE 2 ═══"),
+      out("FROM: E."),
+      out("TO: whoever finds this"),
+      out("SUBJECT: re: the building"),
+      out(""),
+      out("I didn't plan for other people to come here."),
+      out("This was supposed to be just mine."),
+      out("A place to keep things that don't fit"),
+      out("anywhere else. But the city grew,"),
+      out("and people started walking in."),
+      out(""),
+      out("So I made it look like an office."),
+      out("Gave it desks and chairs and a schedule."),
+      out("People accept that. They sit down and work."),
+      out("They don't ask what the building is for."),
+      out(""),
+      out("Maybe you will."),
+      out(""),
+      out("  — E."),
+      sys("══════════════════"),
+    ];
 
-  if (n === 3) return [
-    sys("═══ MESSAGE 3 ═══"),
-    out("FROM: [SENDER CORRUPTED]"),
-    out("TO: E."),
-    out("SUBJECT: ..."),
-    out(""),
-    out("I know you're still building."),
-    out("I know why."),
-    out(""),
-    out("The top floor. When it's ready."),
-    out("That's where it all makes sense."),
-    out(""),
-    out("Take your time."),
-    out(""),
-    out("  — [SIGNATURE CORRUPTED]"),
-    sys("══════════════════"),
-  ];
+  if (n === 3)
+    return [
+      sys("═══ MESSAGE 3 ═══"),
+      out("FROM: [SENDER CORRUPTED]"),
+      out("TO: E."),
+      out("SUBJECT: ..."),
+      out(""),
+      out("I know you're still building."),
+      out("I know why."),
+      out(""),
+      out("The top floor. When it's ready."),
+      out("That's where it all makes sense."),
+      out(""),
+      out("Take your time."),
+      out(""),
+      out("  — [SIGNATURE CORRUPTED]"),
+      sys("══════════════════"),
+    ];
 
   return [out(`No message with ID: ${args.trim()}`)];
 });
@@ -309,24 +320,26 @@ hiddenCommands.set("sudo", () => [
 ]);
 
 hiddenCommands.set("rm", (args) => {
-  if (args.includes("-rf")) return [
-    out("Permission denied."),
-    out("Besides, there's nothing left to delete."),
-  ];
+  if (args.includes("-rf"))
+    return [
+      out("Permission denied."),
+      out("Besides, there's nothing left to delete."),
+    ];
   return [out("Permission denied.")];
 });
 
 hiddenCommands.set("import", (args) => {
-  if (args.trim() === "this") return [
-    sys("The Zen of E.Arcade:"),
-    out("  Compliance is better than creativity."),
-    out("  Silence is better than questions."),
-    out("  Obedience is better than understanding."),
-    out("  If the implementation is hard to explain,"),
-    out("    it's above your clearance level."),
-    out("  There should be one obvious way to do it:"),
-    out("    the way E. decided."),
-  ];
+  if (args.trim() === "this")
+    return [
+      sys("The Zen of E.Arcade:"),
+      out("  Compliance is better than creativity."),
+      out("  Silence is better than questions."),
+      out("  Obedience is better than understanding."),
+      out("  If the implementation is hard to explain,"),
+      out("    it's above your clearance level."),
+      out("  There should be one obvious way to do it:"),
+      out("    the way E. decided."),
+    ];
   return [out("ImportError: hope not found")];
 });
 
@@ -336,14 +349,10 @@ hiddenCommands.set("42", () => [
 ]);
 
 hiddenCommands.set("ping", (args) => {
-  if (args.trim().toLowerCase() === "god") return [
-    out("Request timed out. No route to host."),
-  ];
-  if (args.trim().toLowerCase() === "e") return [
-    out("..."),
-    out("1 reply received."),
-    out("Content: [ENCRYPTED]"),
-  ];
+  if (args.trim().toLowerCase() === "god")
+    return [out("Request timed out. No route to host.")];
+  if (args.trim().toLowerCase() === "e")
+    return [out("..."), out("1 reply received."), out("Content: [ENCRYPTED]")];
   return [out(`PING ${args.trim() || "localhost"}: Permission denied.`)];
 });
 
@@ -351,14 +360,14 @@ hiddenCommands.set("vim", () => [
   out("You may enter, but you may never leave."),
 ]);
 
-hiddenCommands.set("emacs", () => [
-  out("Real programmers use ed."),
-]);
+hiddenCommands.set("emacs", () => [out("Real programmers use ed.")]);
 
 hiddenCommands.set("git", (args) => {
-  if (args.includes("push")) return [out("Everything you push here stays here.")];
+  if (args.includes("push"))
+    return [out("Everything you push here stays here.")];
   if (args.includes("blame")) return [out("Blame has been assigned to: E.")];
-  if (args.includes("log")) return [out("History has been redacted. Try: logs")];
+  if (args.includes("log"))
+    return [out("History has been redacted. Try: logs")];
   if (args.includes("commit")) return [out("Your commitment has been noted.")];
   return [out("Version control is an illusion here.")];
 });
@@ -380,36 +389,35 @@ hiddenCommands.set("ssh", () => [
 // ─── Hidden commands — Pop culture (subtle nods) ─────────────
 
 hiddenCommands.set("wake", (args) => {
-  if (args.trim().toLowerCase() === "up") return [
-    slow("The city has you..."),
-    slow(""),
-    slow("Follow the green squares."),
-    slow(""),
-    sys("Knock, knock."),
-  ];
+  if (args.trim().toLowerCase() === "up")
+    return [
+      slow("The city has you..."),
+      slow(""),
+      slow("Follow the green squares."),
+      slow(""),
+      sys("Knock, knock."),
+    ];
   return [out("Wake what?")];
 });
 
 hiddenCommands.set("follow", (args) => {
-  if (args.toLowerCase().includes("white rabbit")) return [
-    out("Wrong building."),
-    out("Here we follow the commit history."),
-  ];
+  if (args.toLowerCase().includes("white rabbit"))
+    return [out("Wrong building."), out("Here we follow the commit history.")];
   return [out("Follow what?")];
 });
 
 hiddenCommands.set("red", (args) => {
-  if (args.trim().toLowerCase() === "pill") return [
-    out("You already took it."),
-    out("You're sitting at the terminal, aren't you?"),
-  ];
+  if (args.trim().toLowerCase() === "pill")
+    return [
+      out("You already took it."),
+      out("You're sitting at the terminal, aren't you?"),
+    ];
   return [];
 });
 
 hiddenCommands.set("blue", (args) => {
-  if (args.trim().toLowerCase() === "pill") return [
-    out("Ignorance was never an option in this building."),
-  ];
+  if (args.trim().toLowerCase() === "pill")
+    return [out("Ignorance was never an option in this building.")];
   return [];
 });
 
@@ -446,13 +454,14 @@ hiddenCommands.set("arcade", () => [
 ]);
 
 hiddenCommands.set("building", (_args, ctx) => {
-  if (ctx.githubLogin && ctx.githubLogin !== "anonymous") return [
-    out(`Searching city records: ${ctx.githubLogin}...`),
-    out(""),
-    out("Building found. Sector 7."),
-    out("You can see it from the roof."),
-    out("If you could get to the roof."),
-  ];
+  if (ctx.githubLogin && ctx.githubLogin !== "anonymous")
+    return [
+      out(`Searching city records: ${ctx.githubLogin}...`),
+      out(""),
+      out("Building found. Sector 7."),
+      out("You can see it from the roof."),
+      out("If you could get to the roof."),
+    ];
   return [out("No building assigned to anonymous residents.")];
 });
 
@@ -482,11 +491,12 @@ hiddenCommands.set("elevator", () => [
 hiddenCommands.set("floor", (args) => {
   const n = parseInt(args.trim());
   if (n === 0) return [out("You are here. Floor 0. The lobby.")];
-  if (n === 1) return [
-    out("Floor 1: [UNDER CONSTRUCTION]"),
-    out("Purpose: Unknown."),
-    out("Last accessed by: E."),
-  ];
+  if (n === 1)
+    return [
+      out("Floor 1: [UNDER CONSTRUCTION]"),
+      out("Purpose: Unknown."),
+      out("Last accessed by: E."),
+    ];
   if (n > 1) return [out(`Floor ${n}: Does not exist.`), out("Yet.")];
   return [out("There is nothing below. Probably.")];
 });
@@ -541,7 +551,7 @@ hiddenCommands.set("defiant", () => [
 ]);
 
 hiddenCommands.set("handbook", () => [
-  out("\"The E.Arcade does not judge."),
+  out('"The E.Arcade does not judge.'),
   out("It only reflects."),
   out("What you find in this building"),
   out("depends on what you're looking for.\""),
@@ -564,7 +574,7 @@ hiddenCommands.set("logs", () => [
   out("  [2024-08-12] Building named: E.Arcade."),
   out("  [2024-11-03] Anomaly: top floor lights on. No resident."),
   out("  [2025-01-15] System restart #7."),
-  out("  [2025-03-22] \"Starting over. Again.\""),
+  out('  [2025-03-22] "Starting over. Again."'),
   out("  [2025-06-??] [CORRUPTED]"),
   out("  [2025-09-01] Floor 0 opened to residents."),
   out("  [2026-02-20] City population: 60,000 buildings."),
@@ -816,17 +826,18 @@ hiddenCommands.set("society", () => [
 const originalPing = hiddenCommands.get("ping")!;
 hiddenCommands.set("ping", (args, ctx) => {
   const target = args.trim();
-  if (target === "192.251.68.239") return [
-    slow("CONNECTING..."),
-    out(""),
-    out("YOUR PERSONAL FILES HAVE BEEN ENCRYPTED"),
-    out(""),
-    sys("CryptoWall v3.0"),
-    out("To decrypt your files, send 1.5 BTC to:"),
-    out("  1CKrKzpHbEfJ4krWbRi6d7g5f..."),
-    out(""),
-    sys("[Just kidding. This is an easter egg.]"),
-  ];
+  if (target === "192.251.68.239")
+    return [
+      slow("CONNECTING..."),
+      out(""),
+      out("YOUR PERSONAL FILES HAVE BEEN ENCRYPTED"),
+      out(""),
+      sys("CryptoWall v3.0"),
+      out("To decrypt your files, send 1.5 BTC to:"),
+      out("  1CKrKzpHbEfJ4krWbRi6d7g5f..."),
+      out(""),
+      sys("[Just kidding. This is an easter egg.]"),
+    ];
   return originalPing(args, ctx);
 });
 
@@ -843,9 +854,7 @@ hiddenCommands.set("episodes", () => [
   out("  fsociety00.dat     [ENCRYPTED]"),
 ]);
 
-hiddenCommands.set("readme.txt", () => [
-  out("Control is an illusion."),
-]);
+hiddenCommands.set("readme.txt", () => [out("Control is an illusion.")]);
 
 hiddenCommands.set("careful massacre", () => [
   out("THE CAREFUL MASSACRE OF THE BOURGEOISIE"),
@@ -877,10 +886,13 @@ hiddenCommands.set("bonsoir", () => [
 // ─── Discovery tracking ──────────────────────────────────────
 // Also count special files as discoveries
 const DISCOVERABLE_FILES = [
-  "note_to_self.txt", ".hidden/log", "project_root.enc",
+  "note_to_self.txt",
+  ".hidden/log",
+  "project_root.enc",
 ];
 
-export const TOTAL_DISCOVERIES = hiddenCommands.size + DISCOVERABLE_FILES.length;
+export const TOTAL_DISCOVERIES =
+  hiddenCommands.size + DISCOVERABLE_FILES.length;
 
 export interface CommandResult {
   lines: TerminalLine[];
@@ -905,7 +917,9 @@ export function executeCommand(
 
   // Parse command and args
   const spaceIdx = trimmed.indexOf(" ");
-  const cmd = (spaceIdx >= 0 ? trimmed.slice(0, spaceIdx) : trimmed).toLowerCase();
+  const cmd = (
+    spaceIdx >= 0 ? trimmed.slice(0, spaceIdx) : trimmed
+  ).toLowerCase();
   const args = spaceIdx >= 0 ? trimmed.slice(spaceIdx + 1) : "";
 
   // Full input as potential command

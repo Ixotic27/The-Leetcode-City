@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/base-url";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { SKY_AD_PLANS, isValidPlanId, getPriceCents, type AdCurrency } from "@/lib/skyAdPlans";
+import {
+  SKY_AD_PLANS,
+  isValidPlanId,
+  getPriceCents,
+  type AdCurrency,
+} from "@/lib/skyAdPlans";
 import { MAX_TEXT_LENGTH } from "@/lib/skyAds";
 import { rateLimit } from "@/lib/rate-limit";
 import { containsBlockedContent } from "@/lib/ad-moderation";
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
   if (!ok) {
     return NextResponse.json(
       { error: "Too many requests. Try again in a few seconds." },
-      { status: 429 }
+      { status: 429 },
     );
   }
 
@@ -48,8 +53,10 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/sky-ads/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/sky-ads/checkout/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const { plan_id, text, color, bgColor, phone } = body;
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
@@ -59,7 +66,11 @@ export async function POST(request: NextRequest) {
     request.headers.get("cf-ipcountry") ??
     "";
   const isBrazil = country.toUpperCase() === "BR";
-  const currency: AdCurrency = isBrazil ? "brl" : body.currency === "brl" ? "brl" : "usd";
+  const currency: AdCurrency = isBrazil
+    ? "brl"
+    : body.currency === "brl"
+      ? "brl"
+      : "usd";
 
   // Validate plan
   if (!plan_id || !isValidPlanId(plan_id)) {
@@ -73,7 +84,7 @@ export async function POST(request: NextRequest) {
   if (text.length > MAX_TEXT_LENGTH) {
     return NextResponse.json(
       { error: `Text must be ${MAX_TEXT_LENGTH} characters or less` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -82,16 +93,22 @@ export async function POST(request: NextRequest) {
   if (modResult.blocked) {
     return NextResponse.json(
       { error: modResult.reason ?? "Ad text not allowed" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   // Validate colors
   if (!color || !HEX_COLOR.test(color)) {
-    return NextResponse.json({ error: "Invalid text color (use #RRGGBB)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid text color (use #RRGGBB)" },
+      { status: 400 },
+    );
   }
   if (!bgColor || !HEX_COLOR.test(bgColor)) {
-    return NextResponse.json({ error: "Invalid background color (use #RRGGBB)" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid background color (use #RRGGBB)" },
+      { status: 400 },
+    );
   }
 
   const plan = SKY_AD_PLANS[plan_id];
@@ -125,7 +142,8 @@ export async function POST(request: NextRequest) {
   // DEV BYPASS: Allow Ishant_27 to activate ads instantly for free
   let isDev = false;
   const { dev_mode } = body;
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   const user = auth.user;
   if (user) {
@@ -134,7 +152,12 @@ export async function POST(request: NextRequest) {
       .select("github_login")
       .eq("claimed_by", user.id)
       .single();
-    if (["ishant_27", "ixotic", "ixotic27"].includes(dev?.github_login?.toLowerCase() ?? "") && dev_mode === true) {
+    if (
+      ["ishant_27", "ixotic", "ixotic27"].includes(
+        dev?.github_login?.toLowerCase() ?? "",
+      ) &&
+      dev_mode === true
+    ) {
       isDev = true;
     }
   }
@@ -144,7 +167,9 @@ export async function POST(request: NextRequest) {
   if (isDev) {
     console.log(`[DEV] Bypassing payment for sky ad: ${adId}`);
     const now = new Date();
-    const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+    const endsAt = new Date(
+      now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
+    );
 
     await sb
       .from("sky_ads")
@@ -181,10 +206,7 @@ export async function POST(request: NextRequest) {
         externalId: `sky_ad:${adId}`,
       });
 
-      await sb
-        .from("sky_ads")
-        .update({ pix_id: pixId })
-        .eq("id", adId);
+      await sb.from("sky_ads").update({ pix_id: pixId }).eq("id", adId);
 
       return NextResponse.json({ brCode, brCodeBase64, trackingToken });
     }
@@ -213,13 +235,18 @@ export async function POST(request: NextRequest) {
     if (provider === "cashfree") {
       if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
         return NextResponse.json(
-          { error: "A valid 10-digit phone number is required for Cashfree payment" },
-          { status: 400 }
+          {
+            error:
+              "A valid 10-digit phone number is required for Cashfree payment",
+          },
+          { status: 400 },
         );
       }
 
       const USD_TO_INR = 85;
-      const amountINR = Math.round((getPriceCents(plan_id, "usd") / 100) * USD_TO_INR);
+      const amountINR = Math.round(
+        (getPriceCents(plan_id, "usd") / 100) * USD_TO_INR,
+      );
       const returnUrl = `${baseUrl}/advertise/setup/${trackingToken}`;
 
       const { createCashfreeOrder } = await import("@/lib/cashfree");
@@ -238,7 +265,11 @@ export async function POST(request: NextRequest) {
         .update({ stripe_session_id: adId })
         .eq("id", adId);
 
-      return NextResponse.json({ paymentSessionId, cashfreeOrderId: adId, trackingToken });
+      return NextResponse.json({
+        paymentSessionId,
+        cashfreeOrderId: adId,
+        trackingToken,
+      });
     }
 
     // Stripe
@@ -278,8 +309,13 @@ export async function POST(request: NextRequest) {
     // Clean up the orphaned row
     await sb.from("sky_ads").delete().eq("id", adId);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : String(err) || "Payment setup failed" },
-      { status: 500 }
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : String(err) || "Payment setup failed",
+      },
+      { status: 500 },
     );
   }
 }

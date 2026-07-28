@@ -25,7 +25,9 @@ describe("buildFlyLeaderboard", () => {
   it("still resolves login/avatar if the embed arrives as an array (typegen quirk)", () => {
     const result = buildFlyLeaderboard([
       row({
-        developers: [{ github_login: "bob", avatar_url: "https://img/bob.png" }],
+        developers: [
+          { github_login: "bob", avatar_url: "https://img/bob.png" },
+        ],
       }),
     ]);
     expect(result[0].github_login).toBe("bob");
@@ -42,7 +44,11 @@ describe("buildFlyLeaderboard", () => {
     const result = buildFlyLeaderboard([
       row({ developer_id: 1, score: 200 }),
       row({ developer_id: 1, score: 50 }),
-      row({ developer_id: 2, score: 80, developers: { github_login: "carol", avatar_url: null } }),
+      row({
+        developer_id: 2,
+        score: 80,
+        developers: { github_login: "carol", avatar_url: null },
+      }),
     ]);
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ score: 200, github_login: "alice" });
@@ -51,7 +57,10 @@ describe("buildFlyLeaderboard", () => {
 
   it("caps the leaderboard at the requested limit", () => {
     const rows = Array.from({ length: 25 }, (_, i) =>
-      row({ developer_id: i + 1, github_login: `u${i}` } as Partial<FlyScoreRow>),
+      row({
+        developer_id: i + 1,
+        github_login: `u${i}`,
+      } as Partial<FlyScoreRow>),
     );
     expect(buildFlyLeaderboard(rows)).toHaveLength(20);
     expect(buildFlyLeaderboard(rows, 5)).toHaveLength(5);

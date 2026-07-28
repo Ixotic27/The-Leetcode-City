@@ -92,11 +92,15 @@ export default function RelicModal({
         {/* Header */}
         <div className="mb-6 flex items-center justify-between border-b border-border/40 pb-4">
           <div>
-            <h2 className="text-lg font-bold tracking-wider" style={{ color: accentColor }}>
+            <h2
+              className="text-lg font-bold tracking-wider"
+              style={{ color: accentColor }}
+            >
               RELIC VAULT
             </h2>
             <p className="mt-0.5 text-[9px] text-muted normal-case">
-              Select and equip relics to travel to key landmarks in LeetCode City.
+              Select and equip relics to travel to key landmarks in LeetCode
+              City.
             </p>
           </div>
           <button
@@ -133,16 +137,24 @@ export default function RelicModal({
                         isSelected ? "scale-110 shadow-lg" : "hover:scale-105"
                       } ${isLocked ? "opacity-60 saturate-50" : ""}`}
                       style={{
-                        borderColor: isSelected ? accentColor : (isLocked ? "#3f3f46" : theme.border),
-                        background: isLocked ? "radial-gradient(circle, #18181b 0%, #09090b 100%)" : theme.bg,
+                        borderColor: isSelected
+                          ? accentColor
+                          : isLocked
+                            ? "#3f3f46"
+                            : theme.border,
+                        background: isLocked
+                          ? "radial-gradient(circle, #18181b 0%, #09090b 100%)"
+                          : theme.bg,
                         boxShadow: isSelected
                           ? `0 0 15px ${accentColor}80`
-                          : (isLocked ? "none" : `0 0 10px ${theme.border}40`),
+                          : isLocked
+                            ? "none"
+                            : `0 0 10px ${theme.border}40`,
                       }}
                     >
                       {/* Inner metallic ring */}
                       <div className="absolute inset-1 rounded-full border border-dashed border-white/20" />
-                      
+
                       {/* Holographic glyph inside */}
                       <span
                         className="text-lg font-bold transition-transform duration-500 group-hover:rotate-180"
@@ -165,7 +177,9 @@ export default function RelicModal({
 
                     <span
                       className={`text-[8px] text-center tracking-wide font-semibold truncate w-full ${
-                        isSelected ? "text-cream" : "text-muted group-hover:text-cream"
+                        isSelected
+                          ? "text-cream"
+                          : "text-muted group-hover:text-cream"
                       }`}
                     >
                       {relic.name}
@@ -186,13 +200,28 @@ export default function RelicModal({
                     <div
                       className={`flex h-14 w-14 items-center justify-center rounded-full border-[3px] ${selectedRelic.locked ? "opacity-60 saturate-50" : ""}`}
                       style={{
-                        borderColor: selectedRelic.locked ? "#3f3f46" : ERA_THEMES[selectedRelic.era].border,
-                        background: selectedRelic.locked ? "radial-gradient(circle, #18181b 0%, #09090b 100%)" : ERA_THEMES[selectedRelic.era].bg,
-                        boxShadow: selectedRelic.locked ? "none" : `0 0 12px ${ERA_THEMES[selectedRelic.era].border}50`,
+                        borderColor: selectedRelic.locked
+                          ? "#3f3f46"
+                          : ERA_THEMES[selectedRelic.era].border,
+                        background: selectedRelic.locked
+                          ? "radial-gradient(circle, #18181b 0%, #09090b 100%)"
+                          : ERA_THEMES[selectedRelic.era].bg,
+                        boxShadow: selectedRelic.locked
+                          ? "none"
+                          : `0 0 12px ${ERA_THEMES[selectedRelic.era].border}50`,
                       }}
                     >
-                      <span className="text-xl" style={{ color: selectedRelic.locked ? "#71717a" : ERA_THEMES[selectedRelic.era].border }}>
-                        {selectedRelic.locked ? "🔒" : ERA_THEMES[selectedRelic.era].glyph}
+                      <span
+                        className="text-xl"
+                        style={{
+                          color: selectedRelic.locked
+                            ? "#71717a"
+                            : ERA_THEMES[selectedRelic.era].border,
+                        }}
+                      >
+                        {selectedRelic.locked
+                          ? "🔒"
+                          : ERA_THEMES[selectedRelic.era].glyph}
                       </span>
                     </div>
                     <div>
@@ -200,8 +229,12 @@ export default function RelicModal({
                         <div
                           className="text-[8px] font-bold px-1.5 py-0.5 rounded-sm inline-block tracking-wider"
                           style={{
-                            backgroundColor: selectedRelic.locked ? "#27272a" : ERA_THEMES[selectedRelic.era].border + "22",
-                            color: selectedRelic.locked ? "#71717a" : ERA_THEMES[selectedRelic.era].border,
+                            backgroundColor: selectedRelic.locked
+                              ? "#27272a"
+                              : ERA_THEMES[selectedRelic.era].border + "22",
+                            color: selectedRelic.locked
+                              ? "#71717a"
+                              : ERA_THEMES[selectedRelic.era].border,
                             border: `1px solid ${selectedRelic.locked ? "#3f3f46" : ERA_THEMES[selectedRelic.era].border + "40"}`,
                           }}
                         >
@@ -213,7 +246,9 @@ export default function RelicModal({
                           </div>
                         )}
                       </div>
-                      <h3 className="text-xs font-bold text-cream mt-1">{selectedRelic.name}</h3>
+                      <h3 className="text-xs font-bold text-cream mt-1">
+                        {selectedRelic.name}
+                      </h3>
                     </div>
                   </div>
 

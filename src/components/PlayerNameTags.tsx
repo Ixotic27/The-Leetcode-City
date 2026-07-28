@@ -150,9 +150,7 @@ export default function PlayerNameTags({
         // Update login if changed
         if (existing.login !== player.login) {
           existing.texture.dispose();
-          const { texture, aspect } = createTextTexture(
-            `@${player.login}`,
-          );
+          const { texture, aspect } = createTextTexture(`@${player.login}`);
           existing.texture = texture;
           existing.aspect = aspect;
           existing.login = player.login;
@@ -167,9 +165,7 @@ export default function PlayerNameTags({
         }
       } else {
         // Create new tag
-        const { texture, aspect } = createTextTexture(
-          `@${player.login}`,
-        );
+        const { texture, aspect } = createTextTexture(`@${player.login}`);
 
         const spriteMat = new THREE.SpriteMaterial({
           map: texture,
@@ -237,9 +233,11 @@ export default function PlayerNameTags({
       const dz = camera.position.z - tag.currentZ;
       const dist = Math.sqrt(dx * dx + dz * dz);
 
-      const targetOpacity = dist > MAX_VIEW_DISTANCE ? 0 : 1 - dist / MAX_VIEW_DISTANCE;
+      const targetOpacity =
+        dist > MAX_VIEW_DISTANCE ? 0 : 1 - dist / MAX_VIEW_DISTANCE;
       const mat = mesh.material as THREE.SpriteMaterial;
-      mat.opacity += (Math.max(0, Math.min(1, targetOpacity)) - mat.opacity) * 0.1;
+      mat.opacity +=
+        (Math.max(0, Math.min(1, targetOpacity)) - mat.opacity) * 0.1;
     }
   });
 

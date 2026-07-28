@@ -17,44 +17,56 @@ const FACE = "#1a1030";
 const LIT_COLORS = ["#c084fc", "#a855f7", "#7c3aed", "#e9d5ff", "#ddd6fe"];
 
 // Building sections (massive tapered dark-crystal tower)
-const BW = 100, BD = 75, BH = 180;
-const MW = 80, MD = 60, MH = 160;
-const TW = 55, TD = 42, TH = 120;
+const BW = 100,
+  BD = 75,
+  BH = 180;
+const MW = 80,
+  MD = 60,
+  MH = 160;
+const TW = 55,
+  TD = 42,
+  TH = 120;
 const TOTAL_H = BH + MH + TH + 12; // ~472
 
 // ─── Void symbol pixel art (7×9) ────────────────────────────
 const VOID_BM: number[][] = [
-  [0,0,0,1,0,0,0],
-  [0,0,1,1,1,0,0],
-  [0,1,0,1,0,1,0],
-  [1,0,0,1,0,0,1],
-  [1,1,1,1,1,1,1],
-  [1,0,0,1,0,0,1],
-  [0,1,0,1,0,1,0],
-  [0,0,1,1,1,0,0],
-  [0,0,0,1,0,0,0],
+  [0, 0, 0, 1, 0, 0, 0],
+  [0, 0, 1, 1, 1, 0, 0],
+  [0, 1, 0, 1, 0, 1, 0],
+  [1, 0, 0, 1, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 1, 0, 0, 1],
+  [0, 1, 0, 1, 0, 1, 0],
+  [0, 0, 1, 1, 1, 0, 0],
+  [0, 0, 0, 1, 0, 0, 0],
 ];
 
 // Orbiting Voxel Eye Mascot
 function createVoxelEye(accent: string): THREE.Group {
   const group = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({
-    color: accent, emissive: accent, emissiveIntensity: 3.2, toneMapped: false,
+    color: accent,
+    emissive: accent,
+    emissiveIntensity: 3.2,
+    toneMapped: false,
   });
   const darkMat = new THREE.MeshStandardMaterial({
-    color: "#251249", emissive: "#251249", emissiveIntensity: 0.8, toneMapped: false,
+    color: "#251249",
+    emissive: "#251249",
+    emissiveIntensity: 0.8,
+    toneMapped: false,
   });
   const CUBE = 2.4;
   const geo = new THREE.BoxGeometry(CUBE, CUBE, CUBE);
-  
+
   const VOID_EYE_BM: number[][] = [
-    [0,0,1,1,1,0,0],
-    [0,1,0,0,0,1,0],
-    [1,0,0,1,0,0,1],
-    [1,0,1,1,1,0,1],
-    [1,0,0,1,0,0,1],
-    [0,1,0,0,0,1,0],
-    [0,0,1,1,1,0,0],
+    [0, 0, 1, 1, 1, 0, 0],
+    [0, 1, 0, 0, 0, 1, 0],
+    [1, 0, 0, 1, 0, 0, 1],
+    [1, 0, 1, 1, 1, 0, 1],
+    [1, 0, 0, 1, 0, 0, 1],
+    [0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 1, 0, 0],
   ];
   const cols = VOID_EYE_BM[0].length;
   const rows = VOID_EYE_BM.length;
@@ -69,7 +81,7 @@ function createVoxelEye(accent: string): THREE.Group {
         const mesh = new THREE.Mesh(geo, isCore ? mat : darkMat);
         mesh.position.set(
           (c - (cols - 1) / 2) * CUBE,
-          ((rows - 1 - r) - (rows - 1) / 2) * CUBE,
+          (rows - 1 - r - (rows - 1) / 2) * CUBE,
           0,
         );
         plane.add(mesh);
@@ -98,7 +110,9 @@ export default function VoidObelisk({
   const ndc = useRef(new THREE.Vector2());
   const onClickRef = useRef(onClick);
 
-  useEffect(() => { onClickRef.current = onClick; }, [onClick]);
+  useEffect(() => {
+    onClickRef.current = onClick;
+  }, [onClick]);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -114,7 +128,8 @@ export default function VoidObelisk({
 
     let tap: { time: number; x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
-      if (hits(e)) tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      if (hits(e))
+        tap = { time: performance.now(), x: e.clientX, y: e.clientY };
     };
     const onUp = (e: PointerEvent) => {
       if (!tap) return;
@@ -141,39 +156,71 @@ export default function VoidObelisk({
   const txCol = Math.floor((MIN_COLS - VOID_BM[0].length) / 2);
   const txRow = Math.floor((mRows - VOID_BM.length) / 2);
 
-  const mFront = useMemo(() =>
-    createGlassTex(MIN_COLS, mRows, 44, LIT_COLORS, windowOff, FACE, ACCENT, VOID_BM, txCol, txRow),
-    [windowOff, txCol, txRow]
+  const mFront = useMemo(
+    () =>
+      createGlassTex(
+        MIN_COLS,
+        mRows,
+        44,
+        LIT_COLORS,
+        windowOff,
+        FACE,
+        ACCENT,
+        VOID_BM,
+        txCol,
+        txRow,
+      ),
+    [windowOff, txCol, txRow],
   );
-  const mFrontB = useMemo(() =>
-    createGlassTex(MIN_COLS, mRows, 102, LIT_COLORS, windowOff, FACE, ACCENT, VOID_BM, txCol, txRow),
-    [windowOff, txCol, txRow]
+  const mFrontB = useMemo(
+    () =>
+      createGlassTex(
+        MIN_COLS,
+        mRows,
+        102,
+        LIT_COLORS,
+        windowOff,
+        FACE,
+        ACCENT,
+        VOID_BM,
+        txCol,
+        txRow,
+      ),
+    [windowOff, txCol, txRow],
   );
-  const mSide = useMemo(() =>
-    createGlassTex(5, mRows, 85, LIT_COLORS, windowOff, FACE),
-    [windowOff]
+  const mSide = useMemo(
+    () => createGlassTex(5, mRows, 85, LIT_COLORS, windowOff, FACE),
+    [windowOff],
   );
-  const bFront = useMemo(() =>
-    createGlassTex(MIN_COLS, 12, 76, LIT_COLORS, windowOff, FACE),
-    [windowOff]
+  const bFront = useMemo(
+    () => createGlassTex(MIN_COLS, 12, 76, LIT_COLORS, windowOff, FACE),
+    [windowOff],
   );
-  const bSide = useMemo(() =>
-    createGlassTex(6, 12, 89, LIT_COLORS, windowOff, FACE),
-    [windowOff]
+  const bSide = useMemo(
+    () => createGlassTex(6, 12, 89, LIT_COLORS, windowOff, FACE),
+    [windowOff],
   );
-  const tFront = useMemo(() =>
-    createGlassTex(MIN_COLS, 8, 58, LIT_COLORS, windowOff, FACE),
-    [windowOff]
+  const tFront = useMemo(
+    () => createGlassTex(MIN_COLS, 8, 58, LIT_COLORS, windowOff, FACE),
+    [windowOff],
   );
-  const tSide = useMemo(() =>
-    createGlassTex(4, 8, 69, LIT_COLORS, windowOff, FACE),
-    [windowOff]
+  const tSide = useMemo(
+    () => createGlassTex(4, 8, 69, LIT_COLORS, windowOff, FACE),
+    [windowOff],
   );
 
-  useEffect(() => () => {
-    mFront.dispose(); mFrontB.dispose(); mSide.dispose();
-    bFront.dispose(); bSide.dispose(); tFront.dispose(); tSide.dispose();
-  }, [mFront, mFrontB, mSide, bFront, bSide, tFront, tSide]);
+  useEffect(
+    () => () => {
+      mFront.dispose();
+      mFrontB.dispose();
+      mSide.dispose();
+      bFront.dispose();
+      bSide.dispose();
+      tFront.dispose();
+      tSide.dispose();
+    },
+    [mFront, mFrontB, mSide, bFront, bSide, tFront, tSide],
+  );
 
   const B_Y = BH / 2 + 4;
   const M_Y = BH + 4 + MH / 2;
@@ -185,8 +232,9 @@ export default function VoidObelisk({
     const t = clock.getElapsedTime();
     if (beaconRef.current) {
       beaconRef.current.scale.setScalar(1 + Math.sin(t * 1.5) * 0.15);
-      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        2 + Math.sin(t * 1.5) * 0.8;
+      (
+        beaconRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 2 + Math.sin(t * 1.5) * 0.8;
     }
     if (crystalRef.current) {
       crystalRef.current.rotation.y = t * 0.45;
@@ -207,34 +255,61 @@ export default function VoidObelisk({
       <PlatformBase w={BW} d={BD} accent={ACCENT} shellColor={shellColor} />
 
       <BoxSection
-        w={BW} h={BH} d={BD} y={B_Y}
-        shellColor={shellColor} glassFront={bFront} glassSide={bSide}
-        emColor={LIT_COLORS[0]} accent={ACCENT}
+        w={BW}
+        h={BH}
+        d={BD}
+        y={B_Y}
+        shellColor={shellColor}
+        glassFront={bFront}
+        glassSide={bSide}
+        emColor={LIT_COLORS[0]}
+        accent={ACCENT}
       />
       <AccentBand w={BW} d={BD} y={BH + 4} accent={ACCENT} />
 
       <BoxSection
-        w={MW} h={MH} d={MD} y={M_Y}
-        shellColor={shellColor} glassFront={mFront} glassSide={mSide}
-        emColor={LIT_COLORS[0]} accent={ACCENT}
+        w={MW}
+        h={MH}
+        d={MD}
+        y={M_Y}
+        shellColor={shellColor}
+        glassFront={mFront}
+        glassSide={mSide}
+        emColor={LIT_COLORS[0]}
+        accent={ACCENT}
       />
       <AccentBand w={MW} d={MD} y={BH + MH + 4} accent={ACCENT} />
 
       <BoxSection
-        w={TW} h={TH} d={TD} y={T_Y}
-        shellColor={shellColor} glassFront={tFront} glassSide={tSide}
-        emColor={LIT_COLORS[0]} accent={ACCENT}
+        w={TW}
+        h={TH}
+        d={TD}
+        y={T_Y}
+        shellColor={shellColor}
+        glassFront={tFront}
+        glassSide={tSide}
+        emColor={LIT_COLORS[0]}
+        accent={ACCENT}
       />
 
       <mesh position={[0, topY, 0]}>
         <boxGeometry args={[TW + 4, 1.2, TD + 4]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={1} toneMapped={false} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={1}
+          toneMapped={false}
+        />
       </mesh>
 
       {/* Antenna */}
       <mesh position={[0, antennaY, 0]}>
         <cylinderGeometry args={[0.5, 1.5, 42, 4]} />
-        <meshStandardMaterial color={shellColor} roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
 
       {/* Voxel Eye Mascot */}
@@ -248,14 +323,45 @@ export default function VoidObelisk({
       {/* Beacon */}
       <mesh ref={beaconRef} position={[0, antennaY + 68, 0]}>
         <sphereGeometry args={[2.5, 8, 8]} />
-        <meshStandardMaterial color={ACCENT} emissive={ACCENT} emissiveIntensity={2.5} toneMapped={false} transparent opacity={0.85} />
+        <meshStandardMaterial
+          color={ACCENT}
+          emissive={ACCENT}
+          emissiveIntensity={2.5}
+          toneMapped={false}
+          transparent
+          opacity={0.85}
+        />
       </mesh>
-      <pointLight position={[0, antennaY + 68, 0]} color={ACCENT} intensity={20} distance={100} decay={2} />
+      <pointLight
+        position={[0, antennaY + 68, 0]}
+        color={ACCENT}
+        intensity={20}
+        distance={100}
+        decay={2}
+      />
 
       {/* Lights */}
-      <pointLight position={[0, M_Y, MD / 2 + 20]} color={ACCENT} intensity={40} distance={90} decay={2} />
-      <pointLight position={[0, M_Y, -MD / 2 - 20]} color={ACCENT} intensity={40} distance={90} decay={2} />
-      <pointLight position={[0, 10, BD / 2 + 10]} color={ACCENT} intensity={18} distance={50} decay={2} />
+      <pointLight
+        position={[0, M_Y, MD / 2 + 20]}
+        color={ACCENT}
+        intensity={40}
+        distance={90}
+        decay={2}
+      />
+      <pointLight
+        position={[0, M_Y, -MD / 2 - 20]}
+        color={ACCENT}
+        intensity={40}
+        distance={90}
+        decay={2}
+      />
+      <pointLight
+        position={[0, 10, BD / 2 + 10]}
+        color={ACCENT}
+        intensity={18}
+        distance={50}
+        decay={2}
+      />
     </group>
   );
 }

@@ -11,31 +11,43 @@ import {
 } from "./LandmarkUtils";
 
 // ─── CyberStation dimensions ────────────────────────────────
-const BW = 95, BD = 75, BH = 160;   // Base
-const MW = 80, MD = 62, MH = 150;   // Mid
-const TW = 60, TD = 48, TH = 110;   // Top
+const BW = 95,
+  BD = 75,
+  BH = 160; // Base
+const MW = 80,
+  MD = 62,
+  MH = 150; // Mid
+const TW = 60,
+  TD = 48,
+  TH = 110; // Top
 const TOTAL_H = BH + MH + TH + 12;
 
 // Custom neon cyber symbol bitmap (7×7)
 const CYBER_BM: number[][] = [
-  [1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,1],
-  [1,0,1,1,1,0,1],
-  [1,0,1,0,1,0,1],
-  [1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1],
+  [1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0, 1],
+  [1, 0, 1, 1, 1, 0, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+  [1, 0, 1, 1, 1, 0, 1],
+  [1, 0, 0, 0, 0, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1],
 ];
 
 // Orbiting Voxel Planet / Satellite
 function createVoxelSatellite(accent: string): THREE.Group {
   const group = new THREE.Group();
-  
+
   const greenMat = new THREE.MeshStandardMaterial({
-    color: "#22c55e", emissive: "#22c55e", emissiveIntensity: 2.8, toneMapped: false,
+    color: "#22c55e",
+    emissive: "#22c55e",
+    emissiveIntensity: 2.8,
+    toneMapped: false,
   });
   const cyanMat = new THREE.MeshStandardMaterial({
-    color: "#06b6d4", emissive: "#06b6d4", emissiveIntensity: 2.8, toneMapped: false,
+    color: "#06b6d4",
+    emissive: "#06b6d4",
+    emissiveIntensity: 2.8,
+    toneMapped: false,
   });
 
   const CUBE = 2.4;
@@ -93,7 +105,9 @@ export default function CyberStation({
   const raycaster = useRef(new THREE.Raycaster());
   const ndc = useRef(new THREE.Vector2());
   const onClickRef = useRef(onClick);
-  useEffect(() => { onClickRef.current = onClick; }, [onClick]);
+  useEffect(() => {
+    onClickRef.current = onClick;
+  }, [onClick]);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -109,7 +123,8 @@ export default function CyberStation({
 
     let tap: { time: number; x: number; y: number } | null = null;
     const onDown = (e: PointerEvent) => {
-      if (hits(e)) tap = { time: performance.now(), x: e.clientX, y: e.clientY };
+      if (hits(e))
+        tap = { time: performance.now(), x: e.clientX, y: e.clientY };
     };
     const onUp = (e: PointerEvent) => {
       if (!tap) return;
@@ -138,36 +153,59 @@ export default function CyberStation({
   const M_Y = BH + 4 + MH / 2;
   const T_Y = BH + MH + 8 + TH / 2;
 
-  const mFront = useMemo(() =>
-    createGlassTex(12, 12, 88, themeWindowLit, windowOff, themeFace, themeAccent, CYBER_BM, fxCol, fxRow),
-    [themeWindowLit, windowOff, themeFace, themeAccent, fxCol, fxRow]
+  const mFront = useMemo(
+    () =>
+      createGlassTex(
+        12,
+        12,
+        88,
+        themeWindowLit,
+        windowOff,
+        themeFace,
+        themeAccent,
+        CYBER_BM,
+        fxCol,
+        fxRow,
+      ),
+    [themeWindowLit, windowOff, themeFace, themeAccent, fxCol, fxRow],
   );
-  const mSide = useMemo(() =>
-    createGlassTex(8, 12, 94, themeWindowLit, windowOff, themeFace),
-    [themeWindowLit, windowOff, themeFace]
+  const mSide = useMemo(
+    () => createGlassTex(8, 12, 94, themeWindowLit, windowOff, themeFace),
+    [themeWindowLit, windowOff, themeFace],
   );
-  const bFront = useMemo(() =>
-    createGlassTex(12, 9, 33, themeWindowLit, windowOff, themeFace),
-    [themeWindowLit, windowOff, themeFace]
+  const bFront = useMemo(
+    () => createGlassTex(12, 9, 33, themeWindowLit, windowOff, themeFace),
+    [themeWindowLit, windowOff, themeFace],
   );
-  const bSide = useMemo(() =>
-    createGlassTex(6, 9, 44, themeWindowLit, windowOff, themeFace),
-    [themeWindowLit, windowOff, themeFace]
+  const bSide = useMemo(
+    () => createGlassTex(6, 9, 44, themeWindowLit, windowOff, themeFace),
+    [themeWindowLit, windowOff, themeFace],
   );
-  const tFront = useMemo(() =>
-    createGlassTex(12, 7, 55, themeWindowLit, windowOff, themeFace),
-    [themeWindowLit, windowOff, themeFace]
+  const tFront = useMemo(
+    () => createGlassTex(12, 7, 55, themeWindowLit, windowOff, themeFace),
+    [themeWindowLit, windowOff, themeFace],
   );
-  const tSide = useMemo(() =>
-    createGlassTex(5, 7, 66, themeWindowLit, windowOff, themeFace),
-    [themeWindowLit, windowOff, themeFace]
+  const tSide = useMemo(
+    () => createGlassTex(5, 7, 66, themeWindowLit, windowOff, themeFace),
+    [themeWindowLit, windowOff, themeFace],
   );
 
-  useEffect(() => () => {
-    mFront.dispose(); mSide.dispose(); bFront.dispose(); bSide.dispose(); tFront.dispose(); tSide.dispose();
-  }, [mFront, mSide, bFront, bSide, tFront, tSide]);
+  useEffect(
+    () => () => {
+      mFront.dispose();
+      mSide.dispose();
+      bFront.dispose();
+      bSide.dispose();
+      tFront.dispose();
+      tSide.dispose();
+    },
+    [mFront, mSide, bFront, bSide, tFront, tSide],
+  );
 
-  const voxelMascot = useMemo(() => createVoxelSatellite(themeAccent), [themeAccent]);
+  const voxelMascot = useMemo(
+    () => createVoxelSatellite(themeAccent),
+    [themeAccent],
+  );
 
   // Extract the ring group for custom animation
   useEffect(() => {
@@ -194,8 +232,9 @@ export default function CyberStation({
 
     if (beaconRef.current) {
       beaconRef.current.scale.setScalar(1 + Math.sin(t * 1.5) * 0.15);
-      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
-        2 + Math.sin(t * 1.5) * 0.8;
+      (
+        beaconRef.current.material as THREE.MeshStandardMaterial
+      ).emissiveIntensity = 2 + Math.sin(t * 1.5) * 0.8;
     }
   });
 
@@ -209,44 +248,86 @@ export default function CyberStation({
         <meshBasicMaterial />
       </mesh>
 
-      <PlatformBase w={BW} d={BD} accent={themeAccent} shellColor={shellColor} />
+      <PlatformBase
+        w={BW}
+        d={BD}
+        accent={themeAccent}
+        shellColor={shellColor}
+      />
 
       <BoxSection
-        w={BW} h={BH} d={BD} y={B_Y}
-        shellColor={shellColor} glassFront={bFront} glassSide={bSide}
-        emColor={themeWindowLit[0]} accent={themeAccent}
+        w={BW}
+        h={BH}
+        d={BD}
+        y={B_Y}
+        shellColor={shellColor}
+        glassFront={bFront}
+        glassSide={bSide}
+        emColor={themeWindowLit[0]}
+        accent={themeAccent}
       />
 
       <mesh position={[0, BH + 4, 0]}>
         <boxGeometry args={[BW + 2, 1.5, BD + 2]} />
-        <meshStandardMaterial color={themeAccent} emissive={themeAccent} emissiveIntensity={0.8} toneMapped={false} />
+        <meshStandardMaterial
+          color={themeAccent}
+          emissive={themeAccent}
+          emissiveIntensity={0.8}
+          toneMapped={false}
+        />
       </mesh>
 
       <BoxSection
-        w={MW} h={MH} d={MD} y={M_Y}
-        shellColor={shellColor} glassFront={mFront} glassSide={mSide}
-        emColor={themeWindowLit[0]} accent={themeAccent}
+        w={MW}
+        h={MH}
+        d={MD}
+        y={M_Y}
+        shellColor={shellColor}
+        glassFront={mFront}
+        glassSide={mSide}
+        emColor={themeWindowLit[0]}
+        accent={themeAccent}
       />
 
       <mesh position={[0, BH + MH + 8, 0]}>
         <boxGeometry args={[MW + 2, 1.5, MD + 2]} />
-        <meshStandardMaterial color={themeAccent} emissive={themeAccent} emissiveIntensity={0.8} toneMapped={false} />
+        <meshStandardMaterial
+          color={themeAccent}
+          emissive={themeAccent}
+          emissiveIntensity={0.8}
+          toneMapped={false}
+        />
       </mesh>
 
       <BoxSection
-        w={TW} h={TH} d={TD} y={T_Y}
-        shellColor={shellColor} glassFront={tFront} glassSide={tSide}
-        emColor={themeWindowLit[0]} accent={themeAccent}
+        w={TW}
+        h={TH}
+        d={TD}
+        y={T_Y}
+        shellColor={shellColor}
+        glassFront={tFront}
+        glassSide={tSide}
+        emColor={themeWindowLit[0]}
+        accent={themeAccent}
       />
 
       <mesh position={[0, topY, 0]}>
         <boxGeometry args={[TW + 4, 1.2, TD + 4]} />
-        <meshStandardMaterial color={themeAccent} emissive={themeAccent} emissiveIntensity={1} toneMapped={false} />
+        <meshStandardMaterial
+          color={themeAccent}
+          emissive={themeAccent}
+          emissiveIntensity={1}
+          toneMapped={false}
+        />
       </mesh>
 
       <mesh position={[0, antennaY, 0]}>
         <cylinderGeometry args={[0.5, 1.5, 42, 4]} />
-        <meshStandardMaterial color={shellColor} roughness={0.2} metalness={0.9} />
+        <meshStandardMaterial
+          color={shellColor}
+          roughness={0.2}
+          metalness={0.9}
+        />
       </mesh>
 
       {/* Orbiting Voxel Planet */}
@@ -254,14 +335,32 @@ export default function CyberStation({
         <group ref={mascotGroupRef}>
           <primitive object={voxelMascot} />
         </group>
-        <pointLight color={themeAccent} intensity={60} distance={130} decay={2} />
+        <pointLight
+          color={themeAccent}
+          intensity={60}
+          distance={130}
+          decay={2}
+        />
       </group>
 
       <mesh ref={beaconRef} position={[0, antennaY + 68, 0]}>
         <sphereGeometry args={[2.5, 8, 8]} />
-        <meshStandardMaterial color={themeAccent} emissive={themeAccent} emissiveIntensity={2.5} toneMapped={false} transparent opacity={0.85} />
+        <meshStandardMaterial
+          color={themeAccent}
+          emissive={themeAccent}
+          emissiveIntensity={2.5}
+          toneMapped={false}
+          transparent
+          opacity={0.85}
+        />
       </mesh>
-      <pointLight position={[0, antennaY + 68, 0]} color={themeAccent} intensity={20} distance={100} decay={2} />
+      <pointLight
+        position={[0, antennaY + 68, 0]}
+        color={themeAccent}
+        intensity={20}
+        distance={100}
+        decay={2}
+      />
     </group>
   );
 }

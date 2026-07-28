@@ -36,7 +36,7 @@ export default function PitchDeck({ stats }: { stats: PitchStats }) {
       setDir(idx > active ? "next" : "prev");
       setActive(idx);
     },
-    [active]
+    [active],
   );
 
   const next = useCallback(() => go(active + 1), [go, active]);
@@ -151,7 +151,12 @@ export default function PitchDeck({ stats }: { stats: PitchStats }) {
               <div
                 className="h-1.5 w-6 transition-all lg:w-8"
                 style={{
-                  background: i === active ? ACCENT : i < active ? ACCENT + "60" : "#2a2a30",
+                  background:
+                    i === active
+                      ? ACCENT
+                      : i < active
+                        ? ACCENT + "60"
+                        : "#2a2a30",
                 }}
               />
               <span className="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] text-muted opacity-0 transition-opacity group-hover:opacity-100">
@@ -275,8 +280,8 @@ function SlideSolution() {
     <div className="flex w-full max-w-4xl flex-col gap-8">
       <SlideHeader n="03" title="The Solution" />
       <p className="max-w-2xl text-base leading-relaxed text-muted normal-case sm:text-lg">
-        LeetCode City transforms every LeetCode developer into a unique 3D pixel art
-        building. Contributions become height. Repos become width. Activity
+        LeetCode City transforms every LeetCode developer into a unique 3D pixel
+        art building. Contributions become height. Repos become width. Activity
         lights up windows. Together, they form a living city.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -359,8 +364,15 @@ function SlideTraction({ stats }: { stats: PitchStats }) {
         All organic. $0 spent on marketing. {stats.daysOld} days since launch.
       </p>
       <div className="grid gap-5 sm:grid-cols-3">
-        <MetricCard value={stats.formattedDevelopers} label="Developers in the city" accent />
-        <MetricCard value={stats.formattedClaimed} label="Claimed accounts (OAuth)" />
+        <MetricCard
+          value={stats.formattedDevelopers}
+          label="Developers in the city"
+          accent
+        />
+        <MetricCard
+          value={stats.formattedClaimed}
+          label="Claimed accounts (OAuth)"
+        />
         <MetricCard value="21,669" label="Unique visitors" />
         <MetricCard value="56,623" label="Pageviews" />
         <MetricCard value="12%" label="Bounce rate" accent />
@@ -371,9 +383,19 @@ function SlideTraction({ stats }: { stats: PitchStats }) {
           Revenue (first {stats.daysOld} days)
         </p>
         <div className="grid gap-5 sm:grid-cols-3">
-          <MetricCard value={stats.formattedRevenue} label="Total revenue" accent />
-          <MetricCard value={stats.formattedAdCampaigns} label="Paid ad campaigns" />
-          <MetricCard value={stats.formattedUniqueBrands} label="Unique ad brands" />
+          <MetricCard
+            value={stats.formattedRevenue}
+            label="Total revenue"
+            accent
+          />
+          <MetricCard
+            value={stats.formattedAdCampaigns}
+            label="Paid ad campaigns"
+          />
+          <MetricCard
+            value={stats.formattedUniqueBrands}
+            label="Unique ad brands"
+          />
         </div>
       </div>
     </div>
@@ -446,25 +468,55 @@ function SlideCompetition() {
           <thead>
             <tr className="border-b-[2px] border-border text-muted">
               <th className="pb-3 pr-6 text-sm sm:text-base">Feature</th>
-              <th className="pb-3 pr-6 text-sm sm:text-base" style={{ color: ACCENT }}>
+              <th
+                className="pb-3 pr-6 text-sm sm:text-base"
+                style={{ color: ACCENT }}
+              >
                 LeetCode City
               </th>
-              <th className="pb-3 pr-6 text-sm sm:text-base">LeetCode Skyline</th>
+              <th className="pb-3 pr-6 text-sm sm:text-base">
+                LeetCode Skyline
+              </th>
               <th className="pb-3 text-sm sm:text-base">CodersRank</th>
             </tr>
           </thead>
           <tbody className="text-muted">
-            <CompRow feature="3D visualization" gc="Full city" sky="Bar chart" cr="None" />
-            <CompRow feature="Community" gc="Kudos, battles, gifts" sky="None" cr="Basic" />
-            <CompRow feature="Gamification" gc="Achievements, streaks, boards" sky="None" cr="Score" />
-            <CompRow feature="Monetization" gc="Ads + Shop" sky="None (dead)" cr="Premium" />
-            <CompRow feature="Status" gc="Active, growing" sky="Discontinued" cr="Low traction" />
+            <CompRow
+              feature="3D visualization"
+              gc="Full city"
+              sky="Bar chart"
+              cr="None"
+            />
+            <CompRow
+              feature="Community"
+              gc="Kudos, battles, gifts"
+              sky="None"
+              cr="Basic"
+            />
+            <CompRow
+              feature="Gamification"
+              gc="Achievements, streaks, boards"
+              sky="None"
+              cr="Score"
+            />
+            <CompRow
+              feature="Monetization"
+              gc="Ads + Shop"
+              sky="None (dead)"
+              cr="Premium"
+            />
+            <CompRow
+              feature="Status"
+              gc="Active, growing"
+              sky="Discontinued"
+              cr="Low traction"
+            />
           </tbody>
         </table>
       </div>
       <p className="text-sm text-dim normal-case sm:text-base">
-        LeetCode Skyline was discontinued. No active product does what LeetCode City
-        does.
+        LeetCode Skyline was discontinued. No active product does what LeetCode
+        City does.
       </p>
     </div>
   );
@@ -501,7 +553,8 @@ function SlideGTM({ stats }: { stats: PitchStats }) {
           $0
         </p>
         <p className="mt-3 text-sm text-muted normal-case sm:text-base">
-          Customer acquisition cost. {stats.formattedDevelopers} developers joined organically.
+          Customer acquisition cost. {stats.formattedDevelopers} developers
+          joined organically.
         </p>
       </div>
     </div>
@@ -544,8 +597,8 @@ function SlideFounder() {
             </div>
           </div>
           <p className="text-sm leading-relaxed text-muted normal-case sm:text-base">
-            Built LeetCode City in a single day and has been iterating daily since.
-            Handles everything: 3D engine, backend, payments, marketing,
+            Built LeetCode City in a single day and has been iterating daily
+            since. Handles everything: 3D engine, backend, payments, marketing,
             community. Building in public on X/Twitter.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -589,11 +642,36 @@ function SlideRoadmap() {
     <div className="flex w-full max-w-4xl flex-col gap-6">
       <SlideHeader n="12" title="Roadmap" />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <RoadmapItem quarter="Q1 2026" status="done" title="Core City" desc="3D city, leaderboards, achievements, streaks, shop, ads, districts, battles" />
-        <RoadmapItem quarter="Q2 2026" status="next" title="Street Mode" desc="Third-person walking. Visit buildings, discover secrets, vehicles." />
-        <RoadmapItem quarter="Q3 2026" status="planned" title="Pixels Economy" desc="Virtual currency, premium marketplace, season passes." />
-        <RoadmapItem quarter="Q4 2026" status="planned" title="LeetCode City Wrapped" desc="Year-in-review animations. Viral shareable cards." />
-        <RoadmapItem quarter="2027" status="planned" title="100K+ Devs" desc="Enterprise, API, analytics dashboard, global events." />
+        <RoadmapItem
+          quarter="Q1 2026"
+          status="done"
+          title="Core City"
+          desc="3D city, leaderboards, achievements, streaks, shop, ads, districts, battles"
+        />
+        <RoadmapItem
+          quarter="Q2 2026"
+          status="next"
+          title="Street Mode"
+          desc="Third-person walking. Visit buildings, discover secrets, vehicles."
+        />
+        <RoadmapItem
+          quarter="Q3 2026"
+          status="planned"
+          title="Pixels Economy"
+          desc="Virtual currency, premium marketplace, season passes."
+        />
+        <RoadmapItem
+          quarter="Q4 2026"
+          status="planned"
+          title="LeetCode City Wrapped"
+          desc="Year-in-review animations. Viral shareable cards."
+        />
+        <RoadmapItem
+          quarter="2027"
+          status="planned"
+          title="100K+ Devs"
+          desc="Enterprise, API, analytics dashboard, global events."
+        />
       </div>
     </div>
   );
@@ -604,7 +682,8 @@ function SlideContact() {
     <div className="flex w-full max-w-4xl flex-col items-center justify-center gap-10 text-center">
       <SlideHeader n="13" title="Let's Talk" />
       <p className="max-w-xl text-base leading-relaxed text-muted normal-case sm:text-lg">
-        Interested in LeetCode City? Have questions, ideas, or want to collaborate?
+        Interested in LeetCode City? Have questions, ideas, or want to
+        collaborate?
       </p>
       <div className="flex flex-col gap-5">
         <a

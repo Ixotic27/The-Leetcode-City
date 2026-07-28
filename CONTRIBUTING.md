@@ -1,6 +1,6 @@
 # Contributing to LeetCode City
 
-Thanks for your interest in contributing! 
+Thanks for your interest in contributing!
 
 > **🎉 NEW: Zero-Config Contribution Workflow!**
 > We've completely overhauled the setup process for contributors. You no longer need to hunt down API keys, set up services, or manually configure `.env.local` files just to work on the frontend. The new `leetcode-city` CLI handles everything for you automatically!
@@ -8,6 +8,7 @@ Thanks for your interest in contributing!
 ## 🚀 Quick Setup (Zero Keys Needed)
 
 ### Option 1: One-Command Setup
+
 ```bash
 npx leetcode-city init
 cd The-Leetcode-City
@@ -15,6 +16,7 @@ npm run dev
 ```
 
 ### Option 2: Manual Setup
+
 ```bash
 git clone https://github.com/Ixotic27/The-Leetcode-City.git
 cd The-Leetcode-City
@@ -36,24 +38,24 @@ The app runs on [http://localhost:3001](http://localhost:3001).
 
 Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.local` — the public keys are already filled in.
 
-| Variable | Pre-filled? | Needed For |
-|----------|:-----------:|------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Everything (public, safe to share) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Everything (public, safe to share) |
-| `SUPABASE_SERVICE_ROLE_KEY` | ❌ | Auth, writes, API routes |
-| `GITHUB_TOKEN` | ❌ | GitHub API integration |
-| `STRIPE_SECRET_KEY` | ❌ | Payment features only |
-| `RESEND_API_KEY` | ❌ | Email notifications only |
+| Variable                        | Pre-filled? | Needed For                         |
+| ------------------------------- | :---------: | ---------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      |     ✅      | Everything (public, safe to share) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` |     ✅      | Everything (public, safe to share) |
+| `SUPABASE_SERVICE_ROLE_KEY`     |     ❌      | Auth, writes, API routes           |
+| `GITHUB_TOKEN`                  |     ❌      | GitHub API integration             |
+| `STRIPE_SECRET_KEY`             |     ❌      | Payment features only              |
+| `RESEND_API_KEY`                |     ❌      | Email notifications only           |
 
 ### What works without secret keys?
 
-| ✅ Works out of the box | ⚠️ Needs service role key |
-|------------------------|--------------------------|
-| View the 3D city | Sign in / auth |
-| Browse developer profiles | Claiming buildings |
-| UI/CSS/component changes | Shop purchases |
-| 3D rendering & animations | Raids & interactions |
-| Leaderboard & search | API route writes |
+| ✅ Works out of the box   | ⚠️ Needs service role key |
+| ------------------------- | ------------------------- |
+| View the 3D city          | Sign in / auth            |
+| Browse developer profiles | Claiming buildings        |
+| UI/CSS/component changes  | Shop purchases            |
+| 3D rendering & animations | Raids & interactions      |
+| Leaderboard & search      | API route writes          |
 
 > **Need full API access?** DM me on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/) for the service role key.
 
@@ -61,16 +63,16 @@ Run `npm run setup` and it handles everything. Or copy `.env.example` to `.env.l
 
 The E.Arcade multiplayer runs on **Supabase Realtime** (using Broadcast for live movement/chat and Presence for player listings). To enable local testing and deployment with your own Supabase instance:
 
-1. **Run Database Migrations:** 
+1. **Run Database Migrations:**
    Execute the migration SQL file located at [supabase/migrations/066_supabase_realtime_multiplayer.sql](file:///d:/leetcode/supabase/migrations/066_supabase_realtime_multiplayer.sql) on your database. If you use the remote Supabase dashboard, copy the SQL file contents and run it in the **SQL Editor**.
 2. **Enable Realtime Replication on Tables:**
-   * Go to **Database** -> **Replication** in the Supabase Dashboard.
-   * Click on the `supabase_realtime` publication.
-   * Toggle **Source** for `arcade_chat_messages` and `arcade_active_players` to enable Realtime events for these tables.
+   - Go to **Database** -> **Replication** in the Supabase Dashboard.
+   - Click on the `supabase_realtime` publication.
+   - Toggle **Source** for `arcade_chat_messages` and `arcade_active_players` to enable Realtime events for these tables.
 3. **Note on Client-Authoritative Engine:**
-   * Realtime Broadcast is used for broadcasting position coordinates and instant chat messages.
-   * Realtime Presence lists active room users.
-   * Chat message history is logged to the `arcade_chat_messages` table for persistence.
+   - Realtime Broadcast is used for broadcasting position coordinates and instant chat messages.
+   - Realtime Presence lists active room users.
+   - Chat message history is logged to the `arcade_chat_messages` table for persistence.
 
 ## 🏷️ Getting Assigned to an Issue
 
@@ -80,7 +82,9 @@ The E.Arcade multiplayer runs on **Supabase Realtime** (using Broadcast for live
    - Example:
      ```markdown
      assign me!
+
      ### Proposed Solution
+
      I will update the components to use the new API structure...
      ```
 4. The bot will automatically assign you (first-come, first-served) if your comment includes a proposed solution and the issue is approved.
@@ -109,8 +113,10 @@ Run `npm run lint` before submitting.
 
 1. Fork the repo
 2. Create a branch from `main` and name it with the issue number and name (e.g. `git checkout -b 12-issue-name`).
+
 > **🛑 STOP:** Do NOT commit your changes to your fork's `main` branch. You MUST create a new branch. Pull Requests submitted from a `main` or `master` branch will be automatically rejected by our bots.
 > **🔄 IMPORTANT:** This project is currently in a very **active development stage**. While you are working, you should regularly pull the latest changes from the upstream `main` branch (e.g. `git pull origin main --rebase`). If you do not stay up to date, your PR will likely get merge conflicts or overwrite other fixes that were just merged!
+
 3. Make your changes
 4. Run `npm run lint` and fix any issues
 5. Commit with a clear message (e.g. `feat: add rain weather effect`)
@@ -120,6 +126,7 @@ Run `npm run lint` before submitting.
 ### Automated PR Review
 
 Every PR automatically gets:
+
 - 🤖 **GitHub Copilot** reviews your code and provides suggestions
 - 🔍 **Security scan** checks for dangerous patterns (regex-based, zero AI tokens)
 - 🏷️ **Auto-labeling** detects type from title/branch and inherits issue labels
@@ -132,16 +139,16 @@ If CI or Vercel fails, the bot adds a `status:blocked` label and posts instructi
 
 Start with an emoji + type. Single line, present tense, concise.
 
-| Emoji | Type | When |
-| --- | --- | --- |
-| ✨ | `feat` | New features |
-| 🐛 | `fix` | Bug fixes |
-| ♻️ | `refactor` | Code restructuring |
-| 📝 | `docs` | Documentation |
-| 🎨 | `style` | UI/CSS changes |
-| ⚡ | `perf` | Performance |
-| 🧪 | `test` | Tests |
-| 🔧 | `ci` | CI/CD |
+| Emoji | Type       | When               |
+| ----- | ---------- | ------------------ |
+| ✨    | `feat`     | New features       |
+| 🐛    | `fix`      | Bug fixes          |
+| ♻️    | `refactor` | Code restructuring |
+| 📝    | `docs`     | Documentation      |
+| 🎨    | `style`    | UI/CSS changes     |
+| ⚡    | `perf`     | Performance        |
+| 🧪    | `test`     | Tests              |
+| 🔧    | `ci`       | CI/CD              |
 
 **Examples:**
 
@@ -206,35 +213,35 @@ Our bot and maintainers use labels to manage the workflow and review process.
 
 ### Auto-Applied by Bot
 
-| Label | When |
-|-------|------|
+| Label                                         | When                          |
+| --------------------------------------------- | ----------------------------- |
 | `type:bug`, `type:feature`, `type:docs`, etc. | Detected from PR title/branch |
-| `status:blocked` | CI fails |
-| `needs-rebase` | Merge conflicts |
-| `needs-details` | PR template incomplete |
+| `status:blocked`                              | CI fails                      |
+| `needs-rebase`                                | Merge conflicts               |
+| `needs-details`                               | PR template incomplete        |
 
 ### Applied by Maintainer
 
-| Label | Purpose |
-|-------|---------|
-| `level:beginner` / `intermediate` / `advanced` / `critical` | Issue difficulty level |
-| `quality:clean` / `quality:exceptional` | Code quality assessment |
+| Label                                                       | Purpose                 |
+| ----------------------------------------------------------- | ----------------------- |
+| `level:beginner` / `intermediate` / `advanced` / `critical` | Issue difficulty level  |
+| `quality:clean` / `quality:exceptional`                     | Code quality assessment |
 
 ---
 
 ## 🏆 GSSoC 2026 (GirlScript Summer of Code)
 
-If you are participating in GSSoC 2026, LeetCode City is proud to be a participating project! 
+If you are participating in GSSoC 2026, LeetCode City is proud to be a participating project!
 
 ### GSSoC Labels
 
 These labels are specifically used for tracking GSSoC contributions:
 
-| Label | Purpose |
-|-------|---------|
-| `Gssoc 26` | Automatically applied to every assigned issue and opened PR |
-| `gssoc:approved` | Automatically applied when a GSSoC PR is merged |
-| `mentor:username` | Indicates which mentor reviewed this PR |
+| Label             | Purpose                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| `Gssoc 26`        | Automatically applied to every assigned issue and opened PR |
+| `gssoc:approved`  | Automatically applied when a GSSoC PR is merged             |
+| `mentor:username` | Indicates which mentor reviewed this PR                     |
 
 ### 📊 GSSoC Scoring System
 

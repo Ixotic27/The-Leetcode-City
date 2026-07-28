@@ -86,7 +86,10 @@ function normalizeLogin(value: unknown): string | null {
 function mergeSelectColumns(columns: string): string {
   const required = ["id", "claimed", "claimed_by"];
   const seen = new Set<string>();
-  const merged = [...required, ...columns.split(",").map((column) => column.trim())]
+  const merged = [
+    ...required,
+    ...columns.split(",").map((column) => column.trim()),
+  ]
     .filter(Boolean)
     .filter((column) => {
       if (seen.has(column)) return false;
@@ -169,30 +172,58 @@ export async function findRaidAttackerForUser(
   const developerAdmin = admin as DeveloperAdmin;
   const selectColumns = mergeSelectColumns(columns);
 
-  const claimedBySession = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-    query.eq("claimed_by", user.id).limit(1).maybeSingle(),
+  const claimedBySession = await selectDeveloper(
+    developerAdmin,
+    selectColumns,
+    (query) => query.eq("claimed_by", user.id).limit(1).maybeSingle(),
   );
-  const directAttacker = await prepareAttacker(developerAdmin, claimedBySession, user.id, true);
+  const directAttacker = await prepareAttacker(
+    developerAdmin,
+    claimedBySession,
+    user.id,
+    true,
+  );
   if (directAttacker) return directAttacker;
 
   for (const login of getAuthLoginCandidates(user)) {
-    const loginMatchedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-      query.ilike("github_login", login).limit(1).maybeSingle(),
+    const loginMatchedDeveloper = await selectDeveloper(
+      developerAdmin,
+      selectColumns,
+      (query) => query.ilike("github_login", login).limit(1).maybeSingle(),
     );
-    const loginAttacker = await prepareAttacker(developerAdmin, loginMatchedDeveloper, user.id, false);
+    const loginAttacker = await prepareAttacker(
+      developerAdmin,
+      loginMatchedDeveloper,
+      user.id,
+      false,
+    );
     if (loginAttacker) return loginAttacker;
 
-    const lcUsernameMatchedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-      query.ilike("lc_username", login).limit(1).maybeSingle(),
+    const lcUsernameMatchedDeveloper = await selectDeveloper(
+      developerAdmin,
+      selectColumns,
+      (query) => query.ilike("lc_username", login).limit(1).maybeSingle(),
     );
-    const lcUsernameAttacker = await prepareAttacker(developerAdmin, lcUsernameMatchedDeveloper, user.id, false);
+    const lcUsernameAttacker = await prepareAttacker(
+      developerAdmin,
+      lcUsernameMatchedDeveloper,
+      user.id,
+      false,
+    );
     if (lcUsernameAttacker) return lcUsernameAttacker;
 
     for (const profileUrl of getGitHubProfileVariants(login)) {
-      const profileLinkedDeveloper = await selectDeveloper(developerAdmin, selectColumns, (query) =>
-        query.ilike("lc_github", profileUrl).limit(1).maybeSingle(),
+      const profileLinkedDeveloper = await selectDeveloper(
+        developerAdmin,
+        selectColumns,
+        (query) => query.ilike("lc_github", profileUrl).limit(1).maybeSingle(),
       );
-      const profileLinkedAttacker = await prepareAttacker(developerAdmin, profileLinkedDeveloper, user.id, true);
+      const profileLinkedAttacker = await prepareAttacker(
+        developerAdmin,
+        profileLinkedDeveloper,
+        user.id,
+        true,
+      );
       if (profileLinkedAttacker) return profileLinkedAttacker;
     }
   }

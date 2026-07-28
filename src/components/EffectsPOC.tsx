@@ -244,7 +244,9 @@ export const StarBeam = memo(function StarBeam({
     <group position={[0, height, 0]}>
       {/* Inner beam */}
       <mesh ref={beamRef} position={[0, beamH / 2, 0]}>
-        <cylinderGeometry args={[beamRadius * 0.5, beamRadius * 1.5, beamH, 8, 1, true]} />
+        <cylinderGeometry
+          args={[beamRadius * 0.5, beamRadius * 1.5, beamH, 8, 1, true]}
+        />
         <meshBasicMaterial
           color={color}
           transparent
@@ -257,7 +259,9 @@ export const StarBeam = memo(function StarBeam({
 
       {/* Outer glow */}
       <mesh ref={outerRef} position={[0, beamH / 2, 0]}>
-        <cylinderGeometry args={[beamRadius * 1.5, beamRadius * 3, beamH * 0.9, 8, 1, true]} />
+        <cylinderGeometry
+          args={[beamRadius * 1.5, beamRadius * 3, beamH * 0.9, 8, 1, true]}
+        />
         <meshBasicMaterial
           color={color}
           transparent
@@ -284,10 +288,7 @@ export const StarBeam = memo(function StarBeam({
       {/* Star particles floating up */}
       <points ref={particlesRef}>
         <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            args={[positions, 3]}
-          />
+          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
         </bufferGeometry>
         <pointsMaterial
           color={color}
@@ -366,7 +367,7 @@ export const Starfall = memo(function Starfall({
       m.position.set(
         s.x + Math.sin(t * s.swaySpeed + s.sway) * 2,
         s.y,
-        s.z + Math.cos(t * s.swaySpeed + s.sway) * 2
+        s.z + Math.cos(t * s.swaySpeed + s.sway) * 2,
       );
       m.rotation.y = t * s.rotSpeed;
       m.rotation.z = t * s.rotSpeed * 0.5;
@@ -406,7 +407,7 @@ export const Starfall = memo(function Starfall({
 function createStarShape(
   outerR: number,
   innerR: number,
-  points = 5
+  points = 5,
 ): THREE.Shape {
   const shape = new THREE.Shape();
   for (let i = 0; i < points * 2; i++) {
@@ -483,7 +484,11 @@ export const LeetCodeStar = memo(function LeetCodeStar({
   return (
     <group>
       {/* Star body */}
-      <group ref={starRef} position={[0, floatY, 0]} scale={[starScale, starScale, starScale]}>
+      <group
+        ref={starRef}
+        position={[0, floatY, 0]}
+        scale={[starScale, starScale, starScale]}
+      >
         <mesh geometry={_starGeo} rotation={[0, 0, 0]}>
           <meshStandardMaterial
             color={color}
@@ -495,7 +500,11 @@ export const LeetCodeStar = memo(function LeetCodeStar({
           />
         </mesh>
         {/* Back face */}
-        <mesh geometry={_starGeo} rotation={[0, Math.PI, 0]} position={[0, 0, 0.4]}>
+        <mesh
+          geometry={_starGeo}
+          rotation={[0, Math.PI, 0]}
+          position={[0, 0, 0.4]}
+        >
           <meshStandardMaterial
             color={color}
             emissive={color}
@@ -527,7 +536,11 @@ export const LeetCodeStar = memo(function LeetCodeStar({
           return (
             <mesh
               key={i}
-              position={[Math.cos(angle) * rayLen * 0.5, Math.sin(angle) * rayLen * 0.5, 0]}
+              position={[
+                Math.cos(angle) * rayLen * 0.5,
+                Math.sin(angle) * rayLen * 0.5,
+                0,
+              ]}
               rotation={[0, 0, angle - Math.PI / 2]}
               scale={[0.3, rayLen, 0.1]}
               geometry={_box}
@@ -585,10 +598,10 @@ export const StarOrbit = memo(function StarOrbit({
   const trailRef = useRef<THREE.Points>(null);
   const trailPositions = useMemo(
     () => new Float32Array(ORBIT_STARS * TRAIL_PER_STAR * 3),
-    []
+    [],
   );
   const trailHistories = useRef<number[][]>(
-    Array.from({ length: ORBIT_STARS }, () => [])
+    Array.from({ length: ORBIT_STARS }, () => []),
   );
 
   useFrame((state) => {
@@ -627,7 +640,8 @@ export const StarOrbit = memo(function StarOrbit({
 
     // Write all trails to buffer
     if (trailRef.current) {
-      const arr = trailRef.current.geometry.attributes.position.array as Float32Array;
+      const arr = trailRef.current.geometry.attributes.position
+        .array as Float32Array;
       for (let i = 0; i < ORBIT_STARS; i++) {
         const hist = trailHistories.current[i];
         const baseIdx = i * TRAIL_PER_STAR * 3;
@@ -703,7 +717,8 @@ export const CommitStream = memo(function CommitStream({
 
   const commits = useMemo(() => {
     return Array.from({ length: COMMIT_COUNT }, () => {
-      const green = COMMIT_GREENS[Math.floor(Math.random() * COMMIT_GREENS.length)];
+      const green =
+        COMMIT_GREENS[Math.floor(Math.random() * COMMIT_GREENS.length)];
       return {
         x: (Math.random() - 0.5) * spread * 2,
         y: botY + Math.random() * (topY - botY),
@@ -713,7 +728,14 @@ export const CommitStream = memo(function CommitStream({
         sway: Math.random() * Math.PI * 2,
         swaySpeed: 0.2 + Math.random() * 0.5,
         color: green,
-        emissiveIntensity: green === "#39d353" ? 3.5 : green === "#26a641" ? 2.5 : green === "#006d32" ? 1.5 : 0.8,
+        emissiveIntensity:
+          green === "#39d353"
+            ? 3.5
+            : green === "#26a641"
+              ? 2.5
+              : green === "#006d32"
+                ? 1.5
+                : 0.8,
       };
     });
   }, [spread, topY, botY]);
@@ -744,13 +766,18 @@ export const CommitStream = memo(function CommitStream({
       m.position.set(
         c.x + Math.sin(t * c.swaySpeed + c.sway) * 1.5,
         c.y,
-        c.z + Math.cos(t * c.swaySpeed + c.sway) * 1.5
+        c.z + Math.cos(t * c.swaySpeed + c.sway) * 1.5,
       );
       m.rotation.y = t * 0.3;
 
       // Fade at edges
       const heightPct = (c.y - botY) / (topY - botY);
-      const fade = heightPct < 0.1 ? heightPct / 0.1 : heightPct > 0.9 ? (1 - heightPct) / 0.1 : 1;
+      const fade =
+        heightPct < 0.1
+          ? heightPct / 0.1
+          : heightPct > 0.9
+            ? (1 - heightPct) / 0.1
+            : 1;
       const mat = m.material as THREE.MeshStandardMaterial;
       mat.opacity = fade * 0.9;
     }
@@ -786,7 +813,14 @@ export const CommitStream = memo(function CommitStream({
 const POC_ZONES: Record<string, string[]> = {
   crown: [...ZONE_ITEMS.crown, "github_star"],
   roof: [...ZONE_ITEMS.roof],
-  aura: [...ZONE_ITEMS.aura, "shooting_star", "star_beam", "starfall", "star_orbit", "commit_stream"],
+  aura: [
+    ...ZONE_ITEMS.aura,
+    "shooting_star",
+    "star_beam",
+    "starfall",
+    "star_orbit",
+    "commit_stream",
+  ],
 };
 
 const POC_NAMES: Record<string, string> = {
@@ -809,7 +843,14 @@ const POC_EMOJIS: Record<string, string> = {
   commit_stream: "🟩",
 };
 
-const NEW_ITEMS = new Set(["shooting_star", "star_beam", "starfall", "github_star", "star_orbit", "commit_stream"]);
+const NEW_ITEMS = new Set([
+  "shooting_star",
+  "star_beam",
+  "starfall",
+  "github_star",
+  "star_orbit",
+  "commit_stream",
+]);
 
 // ─── Window texture (from ShopPreview) ───────────────────────
 
@@ -817,7 +858,7 @@ function createPreviewWindowTexture(
   rows: number,
   cols: number,
   seed: number,
-  faceColor?: string | null
+  faceColor?: string | null,
 ): THREE.CanvasTexture {
   const WS = 6;
   const GAP = 2;
@@ -931,7 +972,12 @@ function PreviewScene({
   loadout,
   dims,
 }: {
-  loadout: { crown: string | null; roof: string | null; aura: string | null; faces: string | null };
+  loadout: {
+    crown: string | null;
+    roof: string | null;
+    aura: string | null;
+    faces: string | null;
+  };
   dims: BuildingDims;
 }) {
   const { width: W, height: H, depth: D } = dims;
@@ -947,7 +993,7 @@ function PreviewScene({
     const side = createPreviewWindowTexture(
       floors,
       sideWindowsPerFloor,
-      seed + 7919
+      seed + 7919,
     );
     return { front, side };
   }, [floors, windowsPerFloor, sideWindowsPerFloor]);
@@ -1010,10 +1056,7 @@ function PreviewScene({
         target={[0, H * 0.05, 0]}
       />
 
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -H / 2, 0]}
-      >
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -H / 2, 0]}>
         <planeGeometry args={[groundSize, groundSize]} />
         <meshStandardMaterial color={THEME.groundColor} />
       </mesh>
@@ -1121,14 +1164,18 @@ export default function EffectsPOC() {
   const dims: BuildingDims = { width: 24, height: 42, depth: 18 };
   const camDist = Math.max(80, dims.height * 2.5);
 
-  const setZone = (zone: "crown" | "roof" | "aura" | "faces") => (id: string | null) => {
-    setLoadout((prev) => ({ ...prev, [zone]: id }));
-  };
+  const setZone =
+    (zone: "crown" | "roof" | "aura" | "faces") => (id: string | null) => {
+      setLoadout((prev) => ({ ...prev, [zone]: id }));
+    };
 
   return (
     <div className="flex h-screen bg-[#0a0e1a] text-white">
       {/* 3D Preview */}
-      <div className="flex-1 relative" style={{ backgroundColor: THEME.fogColor }}>
+      <div
+        className="flex-1 relative"
+        style={{ backgroundColor: THEME.fogColor }}
+      >
         <Canvas
           camera={{
             position: [camDist * 0.5, camDist * 0.3, camDist * 0.7],

@@ -19,8 +19,7 @@
   <a href="https://github.com/Ixotic27/The-Leetcode-City/blob/main/LICENSE"><img src="https://badgen.net/github/license/Ixotic27/The-Leetcode-City?color=ffa116" alt="License" /></a>
 </p>
 
-
-## Table of Contents 
+## Table of Contents
 
 - <a href="#-screenshots">📸 Screenshots</a>
 - <a href="#what-is-leetcode-city">What is LeetCode City?</a>
@@ -63,12 +62,12 @@ LeetCode City transforms every LeetCode profile into a unique pixel art building
 
 ## How Buildings Work
 
-| Metric         | Affects           | Example                                |
-|----------------|-------------------|----------------------------------------|
-| Submissions    | Building height   | 1,000 solved → taller building         |
-| Active Days    | Building width    | More active days → wider base          |
-| Points         | Window brightness | More points → more lit windows         |
-| Recent Activity| Window pattern    | Recent solve → distinct glow pattern   |
+| Metric          | Affects           | Example                              |
+| --------------- | ----------------- | ------------------------------------ |
+| Submissions     | Building height   | 1,000 solved → taller building       |
+| Active Days     | Building width    | More active days → wider base        |
+| Points          | Window brightness | More points → more lit windows       |
+| Recent Activity | Window pattern    | Recent solve → distinct glow pattern |
 
 Buildings are rendered with instanced meshes and a LOD (Level of Detail) system for performance. Close buildings show full detail with animated windows; distant buildings use simplified geometry.
 
@@ -117,14 +116,14 @@ All building windows share a single **2048×2048 canvas texture** generated once
 
 City decorations are rendered as `THREE.InstancedMesh` — one GPU draw call per geometry type regardless of how many instances exist in the scene:
 
-| Mesh type | Instances |
-|-----------|-----------|
-| Tree trunks & canopies | All trees in the city |
-| Lamp poles & lights | All street lamps |
-| Car bodies & cabins | All parked cars |
-| Benches, fountain parts | All plaza furniture |
-| Sidewalk tiles | All pavement |
-| Collectibles (fly mode) | Up to 40 coins |
+| Mesh type               | Instances             |
+| ----------------------- | --------------------- |
+| Tree trunks & canopies  | All trees in the city |
+| Lamp poles & lights     | All street lamps      |
+| Car bodies & cabins     | All parked cars       |
+| Benches, fountain parts | All plaza furniture   |
+| Sidewalk tiles          | All pavement          |
+| Collectibles (fly mode) | Up to 40 coins        |
 
 Building bodies are handled individually in `Building3D.tsx` since each needs a unique size, color, and effect set.
 
@@ -137,22 +136,22 @@ Buildings switch detail level based on camera distance, computed per frame:
 
 This keeps frame rate stable regardless of city size — adding more buildings only affects the far-LOD bucket, which has near-zero per-building GPU cost.
 
-##  LeetCode Data Pipeline
+## LeetCode Data Pipeline
 
 LeetCode City transforms real LeetCode activity into a fully rendered 3D city. This section explains how developer data is discovered, processed, stored, and ultimately converted into buildings.
 
 ---
 
-##  The Journey of a Single Developer
+## The Journey of a Single Developer
 
 Imagine a LeetCode user with the following profile:
 
-| Metric | Value |
-|----------|----------|
-| Problems Solved | 1200 |
-| Contest Rating | 1850 |
-| Active Days | 310 |
-| Current Streak | 97 Days |
+| Metric          | Value   |
+| --------------- | ------- |
+| Problems Solved | 1200    |
+| Contest Rating  | 1850    |
+| Active Days     | 310     |
+| Current Streak  | 97 Days |
 
 Before appearing in the city, that profile travels through the entire data pipeline:
 
@@ -185,20 +184,20 @@ By the time rendering occurs, the raw profile data has been transformed into a c
 
 ---
 
-##  Data Source
+## Data Source
 
 Developer statistics are fetched directly from the LeetCode GraphQL API.
 
 The application retrieves:
 
-| Data | Purpose |
-|--------|----------|
-| Easy / Medium / Hard solved counts | Building generation |
-| Contest rating | Building dimensions |
-| Submission history | Activity analysis |
-| Active days | Lighting calculations |
-| Streak information | Activity effects |
-| Reputation & ranking | Progression metrics |
+| Data                               | Purpose               |
+| ---------------------------------- | --------------------- |
+| Easy / Medium / Hard solved counts | Building generation   |
+| Contest rating                     | Building dimensions   |
+| Submission history                 | Activity analysis     |
+| Active days                        | Lighting calculations |
+| Streak information                 | Activity effects      |
+| Reputation & ranking               | Progression metrics   |
 
 ### Primary Files
 
@@ -211,7 +210,7 @@ src/lib/leetcode.ts
 
 ---
 
-##  Data Collection Pipeline
+## Data Collection Pipeline
 
 The city is populated using automated seeding scripts that continuously discover real LeetCode users.
 
@@ -266,17 +265,17 @@ Using an upsert operation ensures:
 
 ---
 
-##  Rate Limiting & Reliability
+## Rate Limiting & Reliability
 
 Because the project relies on public LeetCode APIs, requests are intentionally throttled.
 
-| Strategy | Purpose |
-|------------|-----------|
-| 1 second delay between profiles | Reduce API pressure |
-| 2 second delay between ranking pages | Prevent bursts |
-| Retry & backoff logic | Recover from temporary failures |
-| State persistence | Resume long imports |
-| Snapshot generation | Reduce runtime work |
+| Strategy                             | Purpose                         |
+| ------------------------------------ | ------------------------------- |
+| 1 second delay between profiles      | Reduce API pressure             |
+| 2 second delay between ranking pages | Prevent bursts                  |
+| Retry & backoff logic                | Recover from temporary failures |
+| State persistence                    | Resume long imports             |
+| Snapshot generation                  | Reduce runtime work             |
 
 ### Infinite Seeder Recovery
 
@@ -290,7 +289,7 @@ If the process stops unexpectedly, the next run resumes from the last processed 
 
 ---
 
-##  Database Layer
+## Database Layer
 
 Processed developer records are stored in the Supabase `developers` table.
 
@@ -311,7 +310,7 @@ These fields later become inputs for city generation.
 
 ---
 
-##  Building Generation
+## Building Generation
 
 After data is loaded from Supabase, `generateCityLayout()` transforms developer records into renderable city objects.
 
@@ -336,20 +335,20 @@ CityBuilding
 
 ### How LeetCode Stats Affect Buildings
 
-| LeetCode Metric | Visual Result |
-|-----------------|---------------|
-| Total Problems Solved | Building Height |
-| Active Days | Building Width |
-| Contest Rating | Building Depth |
-| Submission Activity | Window Lighting |
-| Streak Length | Activity Effects |
-| Easy / Medium / Hard Distribution | Window Patterns |
+| LeetCode Metric                   | Visual Result    |
+| --------------------------------- | ---------------- |
+| Total Problems Solved             | Building Height  |
+| Active Days                       | Building Width   |
+| Contest Rating                    | Building Depth   |
+| Submission Activity               | Window Lighting  |
+| Streak Length                     | Activity Effects |
+| Easy / Medium / Hard Distribution | Window Patterns  |
 
 A building is not randomly generated. Every visual characteristic originates from real LeetCode activity.
 
 ---
 
-##  City Rendering
+## City Rendering
 
 Client pages first attempt to load a pre-generated city snapshot.
 
@@ -394,15 +393,15 @@ The final output is the interactive city visible throughout the application.
 
 ## 📁 Key Files
 
-| File | Responsibility |
-|---------|----------------|
-| `scripts/seed-lc.ts` | Initial seeding |
-| `scripts/seed-lc-mass.ts` | Bulk imports |
-| `scripts/seed-lc-infinite.ts` | Continuous expansion |
-| `src/lib/leetcode.ts` | LeetCode utility functions |
-| `src/lib/github.ts` | Building generation pipeline |
-| `src/app/wallpaper/page.tsx` | Snapshot & city loading |
-| `src/components/CityCanvas.tsx` | Three.js rendering |
+| File                            | Responsibility               |
+| ------------------------------- | ---------------------------- |
+| `scripts/seed-lc.ts`            | Initial seeding              |
+| `scripts/seed-lc-mass.ts`       | Bulk imports                 |
+| `scripts/seed-lc-infinite.ts`   | Continuous expansion         |
+| `src/lib/leetcode.ts`           | LeetCode utility functions   |
+| `src/lib/github.ts`             | Building generation pipeline |
+| `src/app/wallpaper/page.tsx`    | Snapshot & city loading      |
+| `src/components/CityCanvas.tsx` | Three.js rendering           |
 
 ## Tech Stack
 
@@ -460,25 +459,25 @@ Open [http://localhost:3001](http://localhost:3001) to see the city.
 
 The `.env.example` file comes **pre-filled with public read-only keys** so you can start developing immediately. No extra configuration needed for frontend work.
 
-| Variable | Pre-filled? | Needed For |
-|----------|:-----------:|------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Everything (public key) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Everything (public key) |
-| `SUPABASE_SERVICE_ROLE_KEY` | ❌ | Auth, writes, API routes |
-| `GITHUB_TOKEN` | ❌ | GitHub API integration |
-| `STRIPE_SECRET_KEY` | ❌ | Payment features only |
-| `RESEND_API_KEY` | ❌ | Email notifications only |
-| `NOWPAYMENTS_API_KEY` | ❌ | Crypto payments only |
+| Variable                        | Pre-filled? | Needed For               |
+| ------------------------------- | :---------: | ------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`      |     ✅      | Everything (public key)  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` |     ✅      | Everything (public key)  |
+| `SUPABASE_SERVICE_ROLE_KEY`     |     ❌      | Auth, writes, API routes |
+| `GITHUB_TOKEN`                  |     ❌      | GitHub API integration   |
+| `STRIPE_SECRET_KEY`             |     ❌      | Payment features only    |
+| `RESEND_API_KEY`                |     ❌      | Email notifications only |
+| `NOWPAYMENTS_API_KEY`           |     ❌      | Crypto payments only     |
 
 ### What works without secret keys?
 
-| ✅ Works out of the box | ⚠️ Needs service role key |
-|------------------------|--------------------------|
-| View the 3D city | Sign in / auth |
-| Browse developer profiles | Claiming buildings |
-| UI/CSS/component changes | Shop purchases |
-| 3D rendering & animations | Raids & interactions |
-| Leaderboard & search | API route writes |
+| ✅ Works out of the box   | ⚠️ Needs service role key |
+| ------------------------- | ------------------------- |
+| View the 3D city          | Sign in / auth            |
+| Browse developer profiles | Claiming buildings        |
+| UI/CSS/component changes  | Shop purchases            |
+| 3D rendering & animations | Raids & interactions      |
+| Leaderboard & search      | API route writes          |
 
 > **Need full access?** DM me on [LinkedIn](https://www.linkedin.com/in/ishant-singh-bisht-247a4b322/) for the service role key.
 
@@ -498,6 +497,7 @@ For detailed setup instructions (applying migrations and enabling realtime repli
 > We've just made contributing 10x easier. You no longer need to set up any API keys to work on the UI, 3D scenes, or styling. Just run `npx leetcode-city init` and start coding immediately! See [Getting Started](CONTRIBUTING.md) for details.
 
 Please see our comprehensive [Contributing Guide](CONTRIBUTING.md) for full details on:
+
 - 🚀 How to set up the project (Zero-config)
 - 📝 Assignment rules and PR guidelines
 - 🏷️ Our label system and automated reviews

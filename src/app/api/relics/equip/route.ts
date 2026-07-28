@@ -5,7 +5,8 @@ import { STATIC_RELICS } from "@/lib/relics";
 import { levelFromXp } from "@/lib/xp";
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -39,7 +40,9 @@ export async function POST(request: Request) {
   // Fetch developer details, progress, and status
   const { data: dev } = await admin
     .from("developers")
-    .select("id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total")
+    .select(
+      "id, github_login, claimed, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, app_streak, dailies_completed, dailies_streak, xp_total",
+    )
     .eq("claimed_by", user.id)
     .eq("claimed", true)
     .maybeSingle();
@@ -88,7 +91,8 @@ export async function POST(request: Request) {
               const lcStreak = dev.lc_streak ?? 0;
               const appStreak = dev.app_streak ?? 0;
               const dailiesStreak = dev.dailies_streak ?? 0;
-              isUnlocked = lcStreak >= 7 || appStreak >= 7 || dailiesStreak >= 7;
+              isUnlocked =
+                lcStreak >= 7 || appStreak >= 7 || dailiesStreak >= 7;
             } else if (relicId === "relic_lith_harbor_key") {
               isUnlocked = (trackerProgress.docks_visits ?? 0) >= 5;
             } else if (relicId === "relic_meso_core_oscillator") {
@@ -97,7 +101,7 @@ export async function POST(request: Request) {
               const easy = dev.easy_solved ?? 0;
               const medium = dev.medium_solved ?? 0;
               const hard = dev.hard_solved ?? 0;
-              isUnlocked = (easy + medium + hard) >= 5;
+              isUnlocked = easy + medium + hard >= 5;
             } else if (relicId === "relic_neo_cyber_sigil") {
               isUnlocked = hasPurchases;
             } else if (relicId === "relic_neo_holo_visor") {
@@ -113,13 +117,20 @@ export async function POST(request: Request) {
               const dailiesStreak = dev.dailies_streak ?? 0;
               const lcStreak = dev.lc_streak ?? 0;
               const dailiesCompleted = dev.dailies_completed ?? 0;
-              isUnlocked = appStreak >= 365 || dailiesStreak >= 365 || lcStreak >= 365 || dailiesCompleted >= 182;
+              isUnlocked =
+                appStreak >= 365 ||
+                dailiesStreak >= 365 ||
+                lcStreak >= 365 ||
+                dailiesCompleted >= 182;
             }
           }
         }
 
         if (!isUnlocked) {
-          return NextResponse.json({ error: "Relic is locked" }, { status: 403 });
+          return NextResponse.json(
+            { error: "Relic is locked" },
+            { status: 403 },
+          );
         }
       }
     }
@@ -132,16 +143,14 @@ export async function POST(request: Request) {
 
     // 2. Upsert/Equip the selected relic
     if (hasRelicId) {
-      await admin
-        .from("developer_relics")
-        .upsert(
-          {
-            developer_id: dev.id,
-            relic_id: relicId,
-            is_equipped: true,
-          },
-          { onConflict: "developer_id,relic_id" }
-        );
+      await admin.from("developer_relics").upsert(
+        {
+          developer_id: dev.id,
+          relic_id: relicId,
+          is_equipped: true,
+        },
+        { onConflict: "developer_id,relic_id" },
+      );
     }
   }
 

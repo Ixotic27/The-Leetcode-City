@@ -16,7 +16,9 @@ export async function POST(request: Request) {
   const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    console.error("[app/api/webhooks/resend/route.ts] RESEND_WEBHOOK_SECRET is not configured — webhook disabled");
+    console.error(
+      "[app/api/webhooks/resend/route.ts] RESEND_WEBHOOK_SECRET is not configured — webhook disabled",
+    );
     return NextResponse.json(
       { error: "Webhook not configured" },
       { status: 503 },
@@ -31,7 +33,10 @@ export async function POST(request: Request) {
   const svix_signature = request.headers.get("svix-signature");
 
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return NextResponse.json({ error: "Missing svix headers" }, { status: 401 });
+    return NextResponse.json(
+      { error: "Missing svix headers" },
+      { status: 401 },
+    );
   }
 
   try {
@@ -59,7 +64,12 @@ export async function POST(request: Request) {
           await sb
             .from("notification_suppressions")
             .upsert(
-              { identifier: email, channel: "email", reason: "bounce", created_at: now },
+              {
+                identifier: email,
+                channel: "email",
+                reason: "bounce",
+                created_at: now,
+              },
               { onConflict: "identifier,channel" },
             );
         }
@@ -67,7 +77,11 @@ export async function POST(request: Request) {
         if (emailId) {
           await sb
             .from("notification_log")
-            .update({ status: "bounced", failed_at: now, failure_reason: "bounced" })
+            .update({
+              status: "bounced",
+              failed_at: now,
+              failure_reason: "bounced",
+            })
             .eq("provider_id", emailId);
         }
         break;
@@ -81,7 +95,12 @@ export async function POST(request: Request) {
           await sb
             .from("notification_suppressions")
             .upsert(
-              { identifier: email, channel: "email", reason: "complaint", created_at: now },
+              {
+                identifier: email,
+                channel: "email",
+                reason: "complaint",
+                created_at: now,
+              },
               { onConflict: "identifier,channel" },
             );
         }
@@ -89,7 +108,11 @@ export async function POST(request: Request) {
         if (emailId) {
           await sb
             .from("notification_log")
-            .update({ status: "complained", failed_at: now, failure_reason: "spam_complaint" })
+            .update({
+              status: "complained",
+              failed_at: now,
+              failure_reason: "spam_complaint",
+            })
             .eq("provider_id", emailId);
         }
         break;

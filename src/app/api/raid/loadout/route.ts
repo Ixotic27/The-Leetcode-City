@@ -18,7 +18,8 @@ export async function GET(request: Request) {
     developerId = parseInt(devId, 10);
   } else {
     // Auth-based: resolve developer_id from session
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     if (!auth.ok || !auth.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -56,7 +57,8 @@ export async function GET(request: Request) {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -66,7 +68,6 @@ export async function POST(request: Request) {
 
   const admin = getSupabaseAdmin();
 
-
   const { data: dev } = await admin
     .from("developers")
     .select("id, claimed, claimed_by")
@@ -75,7 +76,10 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!dev || !dev.claimed) {
-    return NextResponse.json({ error: "Must own a claimed building" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must own a claimed building" },
+      { status: 403 },
+    );
   }
 
   const body = await request.json();
@@ -98,7 +102,8 @@ export async function POST(request: Request) {
     .eq("item_id", "raid_loadout")
     .maybeSingle();
 
-  const current = (currentData?.config as { vehicle?: string; tag?: string }) ?? {};
+  const current =
+    (currentData?.config as { vehicle?: string; tag?: string }) ?? {};
   const config: { vehicle: string; tag: string } = {
     vehicle: current.vehicle ?? "airplane",
     tag: current.tag ?? "default",
@@ -111,7 +116,10 @@ export async function POST(request: Request) {
     } else if (RAID_VEHICLE_ITEMS.includes(vehicle) && ownedSet.has(vehicle)) {
       config.vehicle = vehicle;
     } else {
-      return NextResponse.json({ error: "Vehicle not owned or invalid" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Vehicle not owned or invalid" },
+        { status: 403 },
+      );
     }
   }
 
@@ -122,29 +130,40 @@ export async function POST(request: Request) {
     } else if (RAID_TAG_ITEMS.includes(tag) && ownedSet.has(tag)) {
       config.tag = tag;
     } else {
-      return NextResponse.json({ error: "Tag not owned or invalid" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Tag not owned or invalid" },
+        { status: 403 },
+      );
     }
   }
 
   // Upsert
-  const { error: upsertError } = await admin.from("developer_customizations").upsert(
-    {
-      developer_id: dev.id,
-      item_id: "raid_loadout",
-      config,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "developer_id,item_id" }
-  );
+  const { error: upsertError } = await admin
+    .from("developer_customizations")
+    .upsert(
+      {
+        developer_id: dev.id,
+        item_id: "raid_loadout",
+        config,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "developer_id,item_id" },
+    );
 
   if (upsertError) {
-    console.error("[api/raid/loadout] Failed to save raid loadout:", upsertError);
+    console.error(
+      "[api/raid/loadout] Failed to save raid loadout:",
+      upsertError,
+    );
     return NextResponse.json(
       { error: "Database error saving raid loadout" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
-  return NextResponse.json({ ok: true, vehicle: config.vehicle, tag: config.tag });
-
+  return NextResponse.json({
+    ok: true,
+    vehicle: config.vehicle,
+    tag: config.tag,
+  });
 }

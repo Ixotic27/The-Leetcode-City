@@ -42,7 +42,7 @@ describe("/api/claim route", () => {
 
     expect(response.status).toBe(400);
     expect(json.error).toBe(
-      "GitHub profile information could not be retrieved. Please log in again."
+      "GitHub profile information could not be retrieved. Please log in again.",
     );
     expect(json.error).not.toMatch(/leetcode username/i);
   });

@@ -58,18 +58,36 @@ const VEHICLE_ART: Record<string, string[]> = {
   ],
 };
 
-export default function TransitScreen({ active = true, fromDistrict, toDistrict, accentColor }: TransitScreenProps) {
+export default function TransitScreen({
+  active = true,
+  fromDistrict,
+  toDistrict,
+  accentColor,
+}: TransitScreenProps) {
   const [progress, setProgress] = useState(0);
   const [dialogue, setDialogue] = useState("");
   const [dots, setDots] = useState("");
 
-  const fromCity = useMemo(() => DISTRICT_NAMES[fromDistrict] ?? fromDistrict, [fromDistrict]);
-  const toCity = useMemo(() => DISTRICT_NAMES[toDistrict] ?? toDistrict, [toDistrict]);
+  const fromCity = useMemo(
+    () => DISTRICT_NAMES[fromDistrict] ?? fromDistrict,
+    [fromDistrict],
+  );
+  const toCity = useMemo(
+    () => DISTRICT_NAMES[toDistrict] ?? toDistrict,
+    [toDistrict],
+  );
 
   const transitMode = useMemo(() => {
-    if (toDistrict === "backend" || fromDistrict === "backend") return "rickshaw";
-    if (toDistrict === "fullstack" || fromDistrict === "fullstack" || toDistrict === "devops") return "metro";
-    if (toDistrict === "downtown" && fromDistrict === "frontend") return "express";
+    if (toDistrict === "backend" || fromDistrict === "backend")
+      return "rickshaw";
+    if (
+      toDistrict === "fullstack" ||
+      fromDistrict === "fullstack" ||
+      toDistrict === "devops"
+    )
+      return "metro";
+    if (toDistrict === "downtown" && fromDistrict === "frontend")
+      return "express";
     return "bus";
   }, [fromDistrict, toDistrict]);
 
@@ -126,7 +144,8 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
       <div
         className="pointer-events-none absolute inset-0"
         style={{
-          background: "linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.2) 50%)",
+          background:
+            "linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.2) 50%)",
           backgroundSize: "100% 4px",
         }}
       />
@@ -168,7 +187,10 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
           <div className="relative h-2 w-full border border-[#ffa116]/40 bg-black">
             <div
               className="absolute inset-y-0 left-0 origin-left bg-[#ffa116]/60"
-              style={{ transform: `scaleX(${progress / 100})`, transition: "transform 0.1s linear" }}
+              style={{
+                transform: `scaleX(${progress / 100})`,
+                transition: "transform 0.1s linear",
+              }}
             />
             <div
               className="absolute -top-1.5 -translate-x-1/2 text-sm"
@@ -185,7 +207,8 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
             <div className="flex flex-col items-center space-y-4">
               <div className="text-6xl animate-bounce">🚌</div>
               <div className="text-sm text-white/80 max-w-sm">
-                Boarding <span className="text-[#ffa116] font-bold">BMTC RED BUS</span>
+                Boarding{" "}
+                <span className="text-[#ffa116] font-bold">BMTC RED BUS</span>
               </div>
               <div className="border border-[#ffa116]/30 px-3 py-1 bg-black/40 text-xs text-white/60">
                 TICKET: {fromCity} &rarr; {toCity}
@@ -197,7 +220,10 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
             <div className="flex flex-col items-center space-y-4">
               <div className="text-6xl animate-pulse">🚇</div>
               <div className="text-sm text-white/80 max-w-sm">
-                Riding the <span className="text-[#ffa116] font-bold">Elevated Metro Line</span>
+                Riding the{" "}
+                <span className="text-[#ffa116] font-bold">
+                  Elevated Metro Line
+                </span>
               </div>
               <div className="text-xs text-[#00ffcc] animate-pulse">
                 &bull; Doors Closing... Next Station: {toCity} &bull;
@@ -207,9 +233,17 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
 
           {transitMode === "rickshaw" && (
             <div className="flex flex-col items-center space-y-4">
-              <div className="text-6xl animate-bounce" style={{ animationDuration: '0.4s' }}>🛺</div>
+              <div
+                className="text-6xl animate-bounce"
+                style={{ animationDuration: "0.4s" }}
+              >
+                🛺
+              </div>
               <div className="text-sm text-white/80 max-w-sm">
-                Cruising in a <span className="text-[#ffa116] font-bold">Tuk-Tuk Auto Rickshaw</span>
+                Cruising in a{" "}
+                <span className="text-[#ffa116] font-bold">
+                  Tuk-Tuk Auto Rickshaw
+                </span>
               </div>
               <div className="text-xs italic text-yellow-200/70 border-t border-b border-[#ffa116]/20 py-2 px-4 max-w-xs">
                 &ldquo;{dialogue}&rdquo;
@@ -221,7 +255,10 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
             <div className="flex flex-col items-center space-y-4">
               <div className="text-6xl text-white">🚂</div>
               <div className="text-sm text-white/80 max-w-sm">
-                Departing on <span className="text-[#ffa116] font-bold">Rajdhani Express</span>
+                Departing on{" "}
+                <span className="text-[#ffa116] font-bold">
+                  Rajdhani Express
+                </span>
               </div>
               <div className="text-xs text-red-400">
                 PLATFORM 3 &bull; Chai Wallah ready
@@ -232,7 +269,10 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
 
         {/* Progress bar at bottom */}
         <div className="w-full space-y-2">
-          <div className="flex justify-between text-[10px] tracking-[0.15em] uppercase" style={{ color: accent }}>
+          <div
+            className="flex justify-between text-[10px] tracking-[0.15em] uppercase"
+            style={{ color: accent }}
+          >
             <span>TRANSITING{dots}</span>
             <span>{progress}%</span>
           </div>
@@ -240,7 +280,10 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
           <div className="w-full h-6 border-2 border-[#ffa116] p-0.5 bg-black overflow-hidden">
             <div
               className="h-full origin-left bg-[#ffa116] shadow-[0_0_10px_#ffa116]"
-              style={{ transform: `scaleX(${progress / 100})`, transition: "transform 0.1s linear" }}
+              style={{
+                transform: `scaleX(${progress / 100})`,
+                transition: "transform 0.1s linear",
+              }}
             />
           </div>
           <div className="text-center text-[10px] text-white/40 tracking-widest pt-2">
@@ -250,7 +293,8 @@ export default function TransitScreen({ active = true, fromDistrict, toDistrict,
             className="text-center text-[9px] tracking-[0.2em] uppercase pt-1"
             style={{ color: "#e8dcc8", opacity: 0.3 }}
           >
-            ARRIVING AT {toCity.toUpperCase()}{dots}
+            ARRIVING AT {toCity.toUpperCase()}
+            {dots}
           </p>
         </div>
       </div>

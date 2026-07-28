@@ -16,7 +16,7 @@ interface ProblemRow {
 
 export async function GET(
   request: NextRequest,
-  props: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> },
 ) {
   const params = await props.params;
   // Authenticate user (supporting extension API key or browser cookie)
@@ -31,7 +31,8 @@ export async function GET(
   // Fetch the challenge
   const { data: challenge, error } = await sb
     .from("arena_challenges")
-    .select(`
+    .select(
+      `
       id,
       difficulty,
       challenge_date,
@@ -48,7 +49,8 @@ export async function GET(
         sample_tests,
         hidden_tests
       )
-    `)
+    `,
+    )
     .eq("id", challengeId)
     .maybeSingle();
 
@@ -58,7 +60,10 @@ export async function GET(
 
   const prob = challenge.problem as unknown as ProblemRow | null;
   if (!prob) {
-    return NextResponse.json({ error: "Associated problem not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Associated problem not found" },
+      { status: 404 },
+    );
   }
 
   const responsePayload = {
@@ -76,8 +81,8 @@ export async function GET(
       time_limit_ms: prob.time_limit_ms,
       memory_limit_mb: prob.memory_limit_mb,
       sample_tests: prob.sample_tests,
-      hidden_tests: prob.hidden_tests || []
-    }
+      hidden_tests: prob.hidden_tests || [],
+    },
   };
 
   return NextResponse.json(responsePayload);

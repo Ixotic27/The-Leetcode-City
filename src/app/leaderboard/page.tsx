@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import LeaderboardTracker from "@/components/LeaderboardTracker";
-import LeaderboardYouBadge, { LeaderboardAuthProvider } from "@/components/LeaderboardYouBadge";
+import LeaderboardYouBadge, {
+  LeaderboardAuthProvider,
+} from "@/components/LeaderboardYouBadge";
 import LeaderboardUserPosition from "@/components/LeaderboardUserPosition";
 import LeaderboardYouVsNext from "@/components/LeaderboardYouVsNext";
 import FlyLeaderboard from "@/components/FlyLeaderboard";
@@ -23,12 +25,12 @@ interface Developer {
   github_login: string;
   name: string | null;
   avatar_url: string | null;
-  contributions: number;       // LC: total solved
+  contributions: number; // LC: total solved
   contributions_total: number | null;
-  total_stars: number;         // LC: reputation
-  public_repos: number;        // LC: rank boost
+  total_stars: number; // LC: reputation
+  public_repos: number; // LC: rank boost
   primary_language: string | null;
-  rank: number | null;         // LC: global ranking number
+  rank: number | null; // LC: global ranking number
   referral_count: number;
   kudos_count: number;
   created_at?: string;
@@ -77,11 +79,16 @@ export default async function LeaderboardPage({
 
   // Sort column per tab
   const orderColumn =
-    activeTab === "solved" ? "contributions"
-      : activeTab === "lc_rank" ? "lc_global_rank"
-        : activeTab === "streak" ? "lc_streak"
-          : activeTab === "contest" ? "contest_rating"
-            : activeTab === "xp" ? "xp_total"
+    activeTab === "solved"
+      ? "contributions"
+      : activeTab === "lc_rank"
+        ? "lc_global_rank"
+        : activeTab === "streak"
+          ? "lc_streak"
+          : activeTab === "contest"
+            ? "contest_rating"
+            : activeTab === "xp"
+              ? "xp_total"
               : "contributions";
   // LC rank: lower is better (ascending), all others: descending
   const orderAscending = activeTab === "lc_rank";
@@ -91,27 +98,37 @@ export default async function LeaderboardPage({
 
   if (activeTab === "achievers") {
     // DB-side aggregation: get top 50 devs by achievement count
-    const { data: topAchievers } = await supabase
-      .rpc("top_achievers", { lim: 50 });
+    const { data: topAchievers } = await supabase.rpc("top_achievers", {
+      lim: 50,
+    });
 
-    const achieverIds = (topAchievers ?? []).map((a: { developer_id: number }) => a.developer_id);
+    const achieverIds = (topAchievers ?? []).map(
+      (a: { developer_id: number }) => a.developer_id,
+    );
     const achCountMap: Record<number, number> = {};
     for (const a of topAchievers ?? []) {
       achCountMap[a.developer_id] = a.ach_count;
     }
 
     // Fetch dev details only for the top achievers
-    const { data: achieverDevs } = achieverIds.length > 0
-      ? await supabase
-        .from("developers")
-        .select("id, github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, primary_language, rank, referral_count, kudos_count, created_at, xp_total, xp_level")
-        .in("id", achieverIds)
-      : { data: [] };
+    const { data: achieverDevs } =
+      achieverIds.length > 0
+        ? await supabase
+            .from("developers")
+            .select(
+              "id, github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, primary_language, rank, referral_count, kudos_count, created_at, xp_total, xp_level",
+            )
+            .in("id", achieverIds)
+        : { data: [] };
 
     // Sort by achievement count (preserving DB order)
     const sorted = (achieverDevs ?? [])
       .map((d) => ({ ...d, ach_count: achCountMap[d.id] ?? 0 }))
-      .sort((a, b) => b.ach_count - a.ach_count || new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      .sort(
+        (a, b) =>
+          b.ach_count - a.ach_count ||
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
 
     devs = sorted as unknown as Developer[];
     for (const d of sorted) {
@@ -120,7 +137,9 @@ export default async function LeaderboardPage({
   } else {
     const { data } = await supabase
       .from("developers")
-      .select("github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, primary_language, rank, referral_count, kudos_count, created_at, xp_total, xp_level, easy_solved, medium_solved, hard_solved, contest_rating, contest_rank, lc_global_rank, lc_streak, active_days_last_year")
+      .select(
+        "github_login, name, avatar_url, contributions, contributions_total, total_stars, public_repos, primary_language, rank, referral_count, kudos_count, created_at, xp_total, xp_level, easy_solved, medium_solved, hard_solved, contest_rating, contest_rank, lc_global_rank, lc_streak, active_days_last_year",
+      )
       .gt("contributions", 0)
       .order(orderColumn, { ascending: orderAscending, nullsFirst: false })
       .order("created_at", { ascending: true })
@@ -134,17 +153,27 @@ export default async function LeaderboardPage({
 
   function getMetricValue(dev: Developer): string {
     switch (activeTab) {
-      case "solved": return dev.contributions.toLocaleString() + " solved";
-      case "lc_rank": return dev.lc_global_rank && dev.lc_global_rank < 999999 ? `#${dev.lc_global_rank.toLocaleString()}` : "Unranked";
-      case "streak": return dev.lc_streak ? `${dev.lc_streak} days` : "--";
+      case "solved":
+        return dev.contributions.toLocaleString() + " solved";
+      case "lc_rank":
+        return dev.lc_global_rank && dev.lc_global_rank < 999999
+          ? `#${dev.lc_global_rank.toLocaleString()}`
+          : "Unranked";
+      case "streak":
+        return dev.lc_streak ? `${dev.lc_streak} days` : "--";
       case "contest": {
         if (!dev.contest_rating) return "--";
-        const rankStr = dev.contest_rank ? ` (#${dev.contest_rank.toLocaleString()})` : "";
+        const rankStr = dev.contest_rank
+          ? ` (#${dev.contest_rank.toLocaleString()})`
+          : "";
         return `${dev.contest_rating.toLocaleString()}${rankStr}`;
       }
-      case "achievers": return String(achieverCounts[dev.github_login] ?? 0);
-      case "xp": return (dev.xp_total ?? 0).toLocaleString();
-      default: return "";
+      case "achievers":
+        return String(achieverCounts[dev.github_login] ?? 0);
+      case "xp":
+        return (dev.xp_total ?? 0).toLocaleString();
+      default:
+        return "";
     }
   }
 
@@ -156,24 +185,39 @@ export default async function LeaderboardPage({
   }
 
   const metricLabel =
-    activeTab === "solved" ? "Solved"
-      : activeTab === "lc_rank" ? "LC Rank"
-        : activeTab === "streak" ? "Streak"
-          : activeTab === "contest" ? "Contest Rating"
-            : activeTab === "achievers" ? "Achievements"
-              : activeTab === "xp" ? "XP"
+    activeTab === "solved"
+      ? "Solved"
+      : activeTab === "lc_rank"
+        ? "LC Rank"
+        : activeTab === "streak"
+          ? "Streak"
+          : activeTab === "contest"
+            ? "Contest Rating"
+            : activeTab === "achievers"
+              ? "Achievements"
+              : activeTab === "xp"
+                ? "XP"
                 : "Referrals";
 
   // A4: Raw metric values for "You vs. Next" component
   function getMetricValueRaw(dev: Developer): number {
     switch (activeTab) {
-      case "solved": return dev.contributions;
-      case "lc_rank": return dev.lc_global_rank && dev.lc_global_rank < 999999 ? dev.lc_global_rank : 999999;
-      case "streak": return dev.lc_streak ?? 0;
-      case "contest": return dev.contest_rating ?? 0;
-      case "achievers": return achieverCounts[dev.github_login] ?? 0;
-      case "xp": return dev.xp_total ?? 0;
-      default: return 0;
+      case "solved":
+        return dev.contributions;
+      case "lc_rank":
+        return dev.lc_global_rank && dev.lc_global_rank < 999999
+          ? dev.lc_global_rank
+          : 999999;
+      case "streak":
+        return dev.lc_streak ?? 0;
+      case "contest":
+        return dev.contest_rating ?? 0;
+      case "achievers":
+        return achieverCounts[dev.github_login] ?? 0;
+      case "xp":
+        return dev.xp_total ?? 0;
+      default:
+        return 0;
     }
   }
 
@@ -187,8 +231,10 @@ export default async function LeaderboardPage({
   const sevenDaysAgo = Date.now() - 7 * 86400000;
   const newLogins = new Set(
     devs
-      .filter((d) => d.created_at && new Date(d.created_at).getTime() > sevenDaysAgo)
-      .map((d) => d.github_login.toLowerCase())
+      .filter(
+        (d) => d.created_at && new Date(d.created_at).getTime() > sevenDaysAgo,
+      )
+      .map((d) => d.github_login.toLowerCase()),
   );
 
   return (
@@ -223,7 +269,10 @@ export default async function LeaderboardPage({
                 className="px-5 py-2 text-[11px] transition-colors"
                 style={{
                   color: mode === "developers" ? ACCENT : "var(--color-muted)",
-                  backgroundColor: mode === "developers" ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                  backgroundColor:
+                    mode === "developers"
+                      ? "rgba(255, 161, 22, 0.1)"
+                      : "transparent",
                 }}
               >
                 Developers
@@ -233,7 +282,8 @@ export default async function LeaderboardPage({
                 className="relative border-l-[2px] border-border px-5 py-2 text-[11px] transition-colors"
                 style={{
                   color: mode === "game" ? ACCENT : "var(--color-muted)",
-                  backgroundColor: mode === "game" ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                  backgroundColor:
+                    mode === "game" ? "rgba(255, 161, 22, 0.1)" : "transparent",
                 }}
               >
                 Game
@@ -243,7 +293,10 @@ export default async function LeaderboardPage({
                 className="relative border-l-[2px] border-border px-5 py-2 text-[11px] transition-colors"
                 style={{
                   color: mode === "dailies" ? ACCENT : "var(--color-muted)",
-                  backgroundColor: mode === "dailies" ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                  backgroundColor:
+                    mode === "dailies"
+                      ? "rgba(255, 161, 22, 0.1)"
+                      : "transparent",
                 }}
               >
                 Dailies
@@ -271,9 +324,14 @@ export default async function LeaderboardPage({
                     href={`/leaderboard?tab=${tab.id}`}
                     className="px-3 py-1.5 text-[10px] transition-colors border-[2px]"
                     style={{
-                      borderColor: activeTab === tab.id ? ACCENT : "var(--color-border)",
-                      color: activeTab === tab.id ? ACCENT : "var(--color-muted)",
-                      backgroundColor: activeTab === tab.id ? "rgba(255, 161, 22, 0.1)" : "transparent",
+                      borderColor:
+                        activeTab === tab.id ? ACCENT : "var(--color-border)",
+                      color:
+                        activeTab === tab.id ? ACCENT : "var(--color-muted)",
+                      backgroundColor:
+                        activeTab === tab.id
+                          ? "rgba(255, 161, 22, 0.1)"
+                          : "transparent",
                     }}
                   >
                     {tab.label}
@@ -282,7 +340,10 @@ export default async function LeaderboardPage({
               </div>
 
               {/* A4: "You vs. Next" banner */}
-              <LeaderboardYouVsNext metrics={devMetrics} metricLabel={metricLabel} />
+              <LeaderboardYouVsNext
+                metrics={devMetrics}
+                metricLabel={metricLabel}
+              />
 
               {/* Table */}
               <div className="mt-6 border-[3px] border-border">
@@ -290,7 +351,9 @@ export default async function LeaderboardPage({
                 <div className="flex items-center gap-4 border-b-[3px] border-border bg-bg-card px-5 py-3 text-xs text-muted">
                   <span className="w-10 text-center">#</span>
                   <span className="flex-1">Developer</span>
-                  <span className="hidden w-24 text-right sm:block">{activeTab === "xp" ? "Rank" : "Language"}</span>
+                  <span className="hidden w-24 text-right sm:block">
+                    {activeTab === "xp" ? "Rank" : "Language"}
+                  </span>
                   <span className="w-28 text-right">{metricLabel}</span>
                 </div>
 
@@ -311,7 +374,10 @@ export default async function LeaderboardPage({
                           {pos}
                         </span>
                         {newLogins.has(dev.github_login.toLowerCase()) && (
-                          <span className="block text-[7px] font-bold" style={{ color: "#ffd700" }}>
+                          <span
+                            className="block text-[7px] font-bold"
+                            style={{ color: "#ffd700" }}
+                          >
                             NEW
                           </span>
                         )}
@@ -332,7 +398,11 @@ export default async function LeaderboardPage({
                           <p className="truncate text-sm text-cream">
                             {dev.name ?? dev.github_login}
                             {dev.github_login.toLowerCase() === "ishant_27" && (
-                              <span className="ml-1 text-[10px]" title="First Citizen of LeetCode City" style={{ color: ACCENT }}>
+                              <span
+                                className="ml-1 text-[10px]"
+                                title="First Citizen of LeetCode City"
+                                style={{ color: ACCENT }}
+                              >
                                 👑 IXOTIC
                               </span>
                             )}
@@ -349,15 +419,27 @@ export default async function LeaderboardPage({
                       <span className="hidden w-24 text-right text-xs text-muted sm:block">
                         {activeTab === "xp"
                           ? (() => {
-                            const badge = getXpBadge(dev);
-                            return badge ? (
-                              <span style={{ color: badge.color }}>{badge.title}</span>
-                            ) : "\u2014";
-                          })()
+                              const badge = getXpBadge(dev);
+                              return badge ? (
+                                <span style={{ color: badge.color }}>
+                                  {badge.title}
+                                </span>
+                              ) : (
+                                "\u2014"
+                              );
+                            })()
                           : (dev.primary_language ?? "\u2014")}
                       </span>
 
-                      <span className="w-28 text-right text-sm" style={{ color: activeTab === "xp" ? tierFromLevel(dev.xp_level ?? 1).color : ACCENT }}>
+                      <span
+                        className="w-28 text-right text-sm"
+                        style={{
+                          color:
+                            activeTab === "xp"
+                              ? tierFromLevel(dev.xp_level ?? 1).color
+                              : ACCENT,
+                        }}
+                      >
                         {getMetricValue(dev)}
                       </span>
                     </Link>
@@ -365,7 +447,10 @@ export default async function LeaderboardPage({
                 })}
 
                 {/* "YOU" row if not in top 50 — handled client-side */}
-                <LeaderboardUserPosition tab={activeTab} topLogins={topLogins} />
+                <LeaderboardUserPosition
+                  tab={activeTab}
+                  topLogins={topLogins}
+                />
 
                 {devs.length === 0 && (
                   <div className="px-5 py-8 text-center text-xs text-muted normal-case">

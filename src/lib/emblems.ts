@@ -72,7 +72,10 @@ export async function evaluateEmblems(
       .select("id, name, tier, criteria")
       .eq("active", true)
       .not("criteria", "is", null),
-    sb.from("emblem_grants").select("emblem_id").eq("developer_id", developerId),
+    sb
+      .from("emblem_grants")
+      .select("emblem_id")
+      .eq("developer_id", developerId),
   ]);
 
   const owned = new Set((grantsRes.data ?? []).map((r) => r.emblem_id));

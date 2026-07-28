@@ -24,42 +24,57 @@ export interface ChallengeData {
   };
 }
 
-export async function fetchChallenge(challengeId: string, origin?: string): Promise<ChallengeData> {
+export async function fetchChallenge(
+  challengeId: string,
+  origin?: string,
+): Promise<ChallengeData> {
   const { apiUrl: configApiUrl } = getConfig();
   const apiUrl = origin || configApiUrl;
   const apiKey = await getKey();
   if (!apiKey) {
-    throw new Error("Pulse key not found. Please connect your extension to LeetCode City first.");
+    throw new Error(
+      "Pulse key not found. Please connect your extension to LeetCode City first.",
+    );
   }
-  
+
   // Using global fetch (available in modern VS Code node environments)
-  const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/challenge/${challengeId}`, {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`
-    }
-  });
-  
+  const res = await (globalThis as any).fetch(
+    `${apiUrl}/api/arena/challenge/${challengeId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    },
+  );
+
   if (!res.ok) {
     const errorJson = await res.json().catch(() => ({}));
     throw new Error(errorJson.error || `HTTP error ${res.status}`);
   }
-  
-  return await res.json() as ChallengeData;
+
+  return (await res.json()) as ChallengeData;
 }
 
-export async function fetchTodayChallenges(origin?: string): Promise<ChallengeData[]> {
+export async function fetchTodayChallenges(
+  origin?: string,
+): Promise<ChallengeData[]> {
   const { apiUrl: configApiUrl } = getConfig();
   const apiUrl = origin || configApiUrl;
   const apiKey = await getKey();
   if (!apiKey) {
-    throw new Error("Pulse key not found. Please connect your extension to LeetCode City first.");
+    throw new Error(
+      "Pulse key not found. Please connect your extension to LeetCode City first.",
+    );
   }
 
-  const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/challenge/today`, {
-    headers: {
-      "Authorization": `Bearer ${apiKey}`
-    }
-  });
+  const res = await (globalThis as any).fetch(
+    `${apiUrl}/api/arena/challenge/today`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    },
+  );
 
   if (!res.ok) {
     const errorJson = await res.json().catch(() => ({}));
@@ -74,10 +89,10 @@ export async function fetchTodayChallenges(origin?: string): Promise<ChallengeDa
 export function slugifyTitle(title: string): string {
   return title
     .toLowerCase()
-    .replace(/[\s\-]+/g, "_")           // spaces/hyphens → underscores
-    .replace(/[^a-z0-9_]/g, "")         // remove non-alphanumeric
-    .replace(/_+/g, "_")                // collapse consecutive underscores
-    .replace(/^_|_$/g, "");             // trim leading/trailing underscores
+    .replace(/[\s\-]+/g, "_") // spaces/hyphens → underscores
+    .replace(/[^a-z0-9_]/g, "") // remove non-alphanumeric
+    .replace(/_+/g, "_") // collapse consecutive underscores
+    .replace(/^_|_$/g, ""); // trim leading/trailing underscores
 }
 
 /** Convert a problem title to PascalCase for Java class names */
@@ -89,7 +104,7 @@ export function pascalCaseTitle(title: string): string {
   return cleanTitle
     .replace(/[^a-zA-Z0-9\s]/g, "")
     .split(/\s+/)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join("");
 }
 
@@ -118,12 +133,17 @@ function generateBoilerplate(ext: string, title: string): string {
   }
 }
 
-export async function setupChallengeWorkspace(challenge: ChallengeData, ext: string): Promise<string> {
+export async function setupChallengeWorkspace(
+  challenge: ChallengeData,
+  ext: string,
+): Promise<string> {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
-    throw new Error("Please open a folder or workspace in VS Code to start the challenge.");
+    throw new Error(
+      "Please open a folder or workspace in VS Code to start the challenge.",
+    );
   }
-  
+
   const rootPath = folders[0].uri.fsPath;
   const arenaDir = path.join(rootPath, ".leetcode-city-arena");
   if (!fs.existsSync(arenaDir)) {
@@ -144,10 +164,13 @@ export async function setupChallengeWorkspace(challenge: ChallengeData, ext: str
     const boilerplate = generateBoilerplate(ext, challenge.problem.title);
     fs.writeFileSync(solutionPath, boilerplate, "utf8");
   }
-  
+
   // Open the solution file in editor
   const doc = await vscode.workspace.openTextDocument(solutionPath);
-  await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
+  await vscode.window.showTextDocument(doc, {
+    preview: false,
+    viewColumn: vscode.ViewColumn.One,
+  });
 
   return solutionPath;
 }
@@ -157,12 +180,14 @@ export async function fetchArenaStats(origin?: string): Promise<any> {
   const apiUrl = origin || configApiUrl;
   const apiKey = await getKey();
   if (!apiKey) {
-    throw new Error("Pulse key not found. Please connect your extension to LeetCode City first.");
+    throw new Error(
+      "Pulse key not found. Please connect your extension to LeetCode City first.",
+    );
   }
   const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/stats/me`, {
     headers: {
-      "Authorization": `Bearer ${apiKey}`
-    }
+      Authorization: `Bearer ${apiKey}`,
+    },
   });
   if (!res.ok) {
     const errorJson = await res.json().catch(() => ({}));
@@ -174,7 +199,9 @@ export async function fetchArenaStats(origin?: string): Promise<any> {
 export async function fetchArenaLeaderboard(origin?: string): Promise<any> {
   const { apiUrl: configApiUrl } = getConfig();
   const apiUrl = origin || configApiUrl;
-  const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/leaderboard?limit=10`);
+  const res = await (globalThis as any).fetch(
+    `${apiUrl}/api/arena/leaderboard?limit=10`,
+  );
   if (!res.ok) {
     const errorJson = await res.json().catch(() => ({}));
     throw new Error(errorJson.error || `HTTP error ${res.status}`);
@@ -191,8 +218,8 @@ export async function fetchRabbitProgress(origin?: string): Promise<any> {
   }
   const res = await (globalThis as any).fetch(`${apiUrl}/api/rabbit?check=1`, {
     headers: {
-      "Authorization": `Bearer ${apiKey}`
-    }
+      Authorization: `Bearer ${apiKey}`,
+    },
   });
   if (!res.ok) {
     return { progress: 0, completed: false };
@@ -202,17 +229,19 @@ export async function fetchRabbitProgress(origin?: string): Promise<any> {
 
 export async function fetchDungeonBoss(): Promise<any> {
   try {
-    const res = await (globalThis as any).fetch("https://alfa-leetcode-api.onrender.com/daily");
+    const res = await (globalThis as any).fetch(
+      "https://alfa-leetcode-api.onrender.com/daily",
+    );
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug) return null;
+    if (!data?.questionTitle || !data?.difficulty || !data?.titleSlug)
+      return null;
     return {
       title: data.questionTitle,
       difficulty: data.difficulty,
-      titleSlug: data.titleSlug
+      titleSlug: data.titleSlug,
     };
   } catch (e) {
     return null;
   }
 }
-

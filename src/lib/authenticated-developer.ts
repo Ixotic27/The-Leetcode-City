@@ -38,7 +38,10 @@ export interface ResolveAuthenticatedDeveloperOptions {
   ownerField?: string;
   loadDeveloper?: boolean;
   applyQuery?: (query: DeveloperLookupQuery) => DeveloperLookupQuery;
-  validateDeveloper?: (developer: AuthenticatedDeveloperRecord | null, user: User | null) => {
+  validateDeveloper?: (
+    developer: AuthenticatedDeveloperRecord | null,
+    user: User | null,
+  ) => {
     ok: boolean;
     error?: string;
     status?: number;
@@ -55,7 +58,7 @@ export interface AuthenticatedDeveloperResult {
 }
 
 export async function resolveAuthenticatedDeveloper(
-  options: ResolveAuthenticatedDeveloperOptions = {}
+  options: ResolveAuthenticatedDeveloperOptions = {},
 ): Promise<AuthenticatedDeveloperResult> {
   const {
     requireAuth = true,
@@ -67,7 +70,10 @@ export async function resolveAuthenticatedDeveloper(
   } = options;
 
   const supabase = await createServerSupabase();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
   if (authError || !user) {
     if (requireAuth) {
@@ -119,11 +125,17 @@ export async function resolveAuthenticatedDeveloper(
   let developerError: { code?: string; message?: string } | null = null;
 
   if (maybeSingle) {
-    const response = (await maybeSingle()) as { data: AuthenticatedDeveloperRecord | null; error: { code?: string; message?: string } | null };
+    const response = (await maybeSingle()) as {
+      data: AuthenticatedDeveloperRecord | null;
+      error: { code?: string; message?: string } | null;
+    };
     developer = response.data;
     developerError = response.error;
   } else if (single) {
-    const response = (await single()) as { data: AuthenticatedDeveloperRecord | null; error: { code?: string; message?: string } | null };
+    const response = (await single()) as {
+      data: AuthenticatedDeveloperRecord | null;
+      error: { code?: string; message?: string } | null;
+    };
     developer = response.data;
     developerError = response.error;
   }

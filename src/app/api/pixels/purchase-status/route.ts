@@ -7,7 +7,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Missing pix_id" }, { status: 400 });
   }
 
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

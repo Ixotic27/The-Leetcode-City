@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
   // Fetch item and user's inventory record
   const { data: invRecord, error: invError } = await sb
     .from("arena_inventory")
-    .select(`
+    .select(
+      `
       id,
       quantity,
       is_equipped,
@@ -33,21 +34,30 @@ export async function POST(request: NextRequest) {
         effect_type,
         effect_value
       )
-    `)
+    `,
+    )
     .eq("user_id", dev.id)
     .eq("item_id", item_id)
     .maybeSingle();
 
   if (invError || !invRecord) {
-    return NextResponse.json({ error: "Item not found in inventory" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Item not found in inventory" },
+      { status: 404 },
+    );
   }
 
   const item = invRecord.item as any;
   if (!item) {
-    return NextResponse.json({ error: "Item definition not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Item definition not found" },
+      { status: 404 },
+    );
   }
 
-  const isEquippable = ["gear", "cosmetic", "legendary", "companion"].includes(item.item_type);
+  const isEquippable = ["gear", "cosmetic", "legendary", "companion"].includes(
+    item.item_type,
+  );
 
   if (isEquippable) {
     // 1. Equippable Gear: Toggle equipped status
@@ -59,10 +69,12 @@ export async function POST(request: NextRequest) {
       // Unequip items of the same type first (e.g. only one companion or weapon equipped at a time)
       const { data: equippedSameType } = await sb
         .from("arena_inventory")
-        .select(`
+        .select(
+          `
           id,
           item:arena_items!inner(id, item_type)
-        `)
+        `,
+        )
         .eq("user_id", dev.id)
         .eq("is_equipped", true);
 
@@ -92,9 +104,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       action: newEquipped ? "equipped" : "unequipped",
-      item: { id: item.id, name: item.name, slug: item.slug }
+      item: { id: item.id, name: item.name, slug: item.slug },
     });
-
   } else if (item.item_type === "consumable" || item.item_type === "material") {
     // 2. Consumable item: consume it!
     if (invRecord.quantity < 1) {
@@ -106,7 +117,10 @@ export async function POST(request: NextRequest) {
     if (newQuantity === 0) {
       await sb.from("arena_inventory").delete().eq("id", invRecord.id);
     } else {
-      await sb.from("arena_inventory").update({ quantity: newQuantity }).eq("id", invRecord.id);
+      await sb
+        .from("arena_inventory")
+        .update({ quantity: newQuantity })
+        .eq("id", invRecord.id);
     }
 
     // Apply consumable effect
@@ -121,19 +135,25 @@ export async function POST(request: NextRequest) {
         .select("streak_freezes_available")
         .eq("id", dev.id)
         .single();
-      
-      const newFreezes = Math.min((devRec?.streak_freezes_available || 0) + (effVal.amount || 1), 2);
+
+      const newFreezes = Math.min(
+        (devRec?.streak_freezes_available || 0) + (effVal.amount || 1),
+        2,
+      );
       await sb
         .from("developers")
         .update({ streak_freezes_available: newFreezes })
         .eq("id", dev.id);
 
       appliedEffect = `streak_freezes_increased_to_${newFreezes}`;
-
-    } else if (["xp_boost", "time_bonus", "raid_shield", "raid_attack"].includes(effType)) {
+    } else if (
+      ["xp_boost", "time_bonus", "raid_shield", "raid_attack"].includes(effType)
+    ) {
       // Timed buff consumable: add to active buffs table
       const durationHours = effVal.duration_hours || 24;
-      const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(
+        Date.now() + durationHours * 60 * 60 * 1000,
+      ).toISOString();
       const multiplier = effVal.multiplier || 1.25;
 
       await sb.from("arena_active_buffs").insert({
@@ -141,11 +161,10 @@ export async function POST(request: NextRequest) {
         item_id: item.id,
         buff_type: effType,
         buff_value: multiplier,
-        expires_at: expiresAt
+        expires_at: expiresAt,
       });
 
       appliedEffect = `buff_${effType}_applied_for_${durationHours}h`;
-
     } else if (effType === "reset_daily_challenge") {
       // Phoenix Token: Reset a failed daily challenge submission for today
       const todayStr = new Date().toISOString().split("T")[0];
@@ -155,7 +174,7 @@ export async function POST(request: NextRequest) {
         .eq("challenge_date", todayStr);
 
       if (challenges && challenges.length > 0) {
-        const challengeIds = challenges.map(c => c.id);
+        const challengeIds = challenges.map((c) => c.id);
         // Delete WRONG_ANSWER / failed submissions for today's challenges
         const { error: delErr } = await sb
           .from("arena_submissions")
@@ -163,7 +182,7 @@ export async function POST(request: NextRequest) {
           .eq("user_id", dev.id)
           .in("challenge_id", challengeIds)
           .neq("status", "accepted");
-        
+
         if (delErr) {
           console.error("Error deleting submissions:", delErr.message);
         }
@@ -178,7 +197,7 @@ export async function POST(request: NextRequest) {
       success: true,
       action: "consumed",
       item: { id: item.id, name: item.name, slug: item.slug },
-      effect: appliedEffect
+      effect: appliedEffect,
     });
   }
 

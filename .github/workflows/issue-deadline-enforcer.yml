@@ -3,7 +3,7 @@ name: Issue Assignment Deadline Enforcer
 on:
   schedule:
     # Run every 2 hours to check for stale assignments
-    - cron: '0 */2 * * *'
+    - cron: "0 */2 * * *"
   workflow_dispatch: {}
 
 permissions:

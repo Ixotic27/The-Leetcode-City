@@ -19,7 +19,12 @@ export interface CityPresenceState {
   chatMessages: ChatMessage[];
   status: ConnectionStatus;
   sendChat: (text: string) => void;
-  sendMove: (cx: number, cy: number, cz: number, focusedBuilding: string | null) => void;
+  sendMove: (
+    cx: number,
+    cy: number,
+    cz: number,
+    focusedBuilding: string | null,
+  ) => void;
   isJoined: boolean;
 }
 
@@ -35,13 +40,23 @@ export function useCityPresence(
 
   const playersRef = useRef<Map<string, CityPlayer>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const recentMovements = useRef<Map<string, { cx: number; cy: number; cz: number; focusedBuilding: string | null }>>(new Map());
-  
+  const recentMovements = useRef<
+    Map<
+      string,
+      { cx: number; cy: number; cz: number; focusedBuilding: string | null }
+    >
+  >(new Map());
+
   const lastMoveSent = useRef(0);
   const lastPresenceTrack = useRef(0);
   const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingMove = useRef<{ cx: number; cy: number; cz: number; focusedBuilding: string | null } | null>(null);
-  
+  const pendingMove = useRef<{
+    cx: number;
+    cy: number;
+    cz: number;
+    focusedBuilding: string | null;
+  } | null>(null);
+
   const loginRef = useRef(login);
   const avatarUrlRef = useRef(avatarUrl);
   // Sync latest prop values into refs so async callbacks always read the current value
@@ -141,63 +156,71 @@ export function useCityPresence(
       if (elapsedMove >= MOVE_THROTTLE_MS) {
         performMove();
       } else if (!moveTimerRef.current) {
-        moveTimerRef.current = setTimeout(performMove, MOVE_THROTTLE_MS - elapsedMove);
+        moveTimerRef.current = setTimeout(
+          performMove,
+          MOVE_THROTTLE_MS - elapsedMove,
+        );
       }
     },
     [isJoined],
   );
 
   // ── Send Chat ──────────────────────────────────────────────
-  const sendChat = useCallback((text: string) => {
-    const chan = channelRef.current;
-    if (!chan || !isJoined || !loginRef.current) return;
-    const trimmed = text.trim().slice(0, 120);
-    if (trimmed.length === 0) return;
+  const sendChat = useCallback(
+    (text: string) => {
+      const chan = channelRef.current;
+      if (!chan || !isJoined || !loginRef.current) return;
+      const trimmed = text.trim().slice(0, 120);
+      if (trimmed.length === 0) return;
 
-    const payload = {
-      id: localUserIdRef.current,
-      login: loginRef.current,
-      text: trimmed,
-      ts: Date.now(),
-    };
+      const payload = {
+        id: localUserIdRef.current,
+        login: loginRef.current,
+        text: trimmed,
+        ts: Date.now(),
+      };
 
-    // 1. Broadcast to other active clients
-    chan.send({
-      type: "broadcast",
-      event: "chat",
-      payload,
-    });
+      // 1. Broadcast to other active clients
+      chan.send({
+        type: "broadcast",
+        event: "chat",
+        payload,
+      });
 
-    // 2. Update local state instantly for self
-    const selfMsg: ChatMessage = {
-      id: `${localUserIdRef.current}-${Date.now()}`,
-      login: loginRef.current,
-      text: trimmed,
-      ts: Date.now(),
-      isSelf: true,
-    };
-    setChatMessages((prev) => {
-      const next = [...prev, selfMsg];
-      return next.length > 50 ? next.slice(-50) : next;
-    });
+      // 2. Update local state instantly for self
+      const selfMsg: ChatMessage = {
+        id: `${localUserIdRef.current}-${Date.now()}`,
+        login: loginRef.current,
+        text: trimmed,
+        ts: Date.now(),
+        isSelf: true,
+      };
+      setChatMessages((prev) => {
+        const next = [...prev, selfMsg];
+        return next.length > 50 ? next.slice(-50) : next;
+      });
 
-    // 3. Persist to Supabase Database
-    const supabase = createBrowserSupabase();
-    supabase.auth.getSession().then((res: { data: { session: Session | null } }) => {
-      const session = res.data.session;
-      if (session) {
-        supabase
-          .from("arcade_chat_messages")
-          .insert({
-            room_id: ROOM_ID,
-            user_id: session.user.id,
-            username: loginRef.current!,
-            text: trimmed,
-          })
-          .then(() => {});
-      }
-    });
-  }, [isJoined]);
+      // 3. Persist to Supabase Database
+      const supabase = createBrowserSupabase();
+      supabase.auth
+        .getSession()
+        .then((res: { data: { session: Session | null } }) => {
+          const session = res.data.session;
+          if (session) {
+            supabase
+              .from("arcade_chat_messages")
+              .insert({
+                room_id: ROOM_ID,
+                user_id: session.user.id,
+                username: loginRef.current!,
+                text: trimmed,
+              })
+              .then(() => {});
+          }
+        });
+    },
+    [isJoined],
+  );
 
   // ── Supabase Realtime Subscription ─────────────────────────
   useEffect(() => {
@@ -206,9 +229,13 @@ export function useCityPresence(
     let cleanChannel: (() => void) | null = null;
 
     async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!active) return;
-      const localId = session?.user?.id ?? `spectator-${Math.random().toString(36).slice(2, 11)}`;
+      const localId =
+        session?.user?.id ??
+        `spectator-${Math.random().toString(36).slice(2, 11)}`;
       localUserIdRef.current = localId;
 
       // 1. Fetch Chat History
@@ -218,19 +245,26 @@ export function useCityPresence(
         .eq("room_id", ROOM_ID)
         .order("created_at", { ascending: true })
         .limit(30)
-        .then((res: { data: { username: string; text: string; created_at: string }[] | null }) => {
-          const data = res.data;
-          if (data) {
-            const history = data.map((msg, i: number) => ({
-              id: `history-${i}-${msg.created_at}`,
-              login: msg.username,
-              text: msg.text,
-              ts: new Date(msg.created_at).getTime(),
-              isSelf: msg.username.toLowerCase() === loginRef.current?.toLowerCase(),
-            }));
-            setChatMessages(history);
-          }
-        });
+        .then(
+          (res: {
+            data:
+              { username: string; text: string; created_at: string }[] | null;
+          }) => {
+            const data = res.data;
+            if (data) {
+              const history = data.map((msg, i: number) => ({
+                id: `history-${i}-${msg.created_at}`,
+                login: msg.username,
+                text: msg.text,
+                ts: new Date(msg.created_at).getTime(),
+                isSelf:
+                  msg.username.toLowerCase() ===
+                  loginRef.current?.toLowerCase(),
+              }));
+              setChatMessages(history);
+            }
+          },
+        );
 
       // 2. Setup Realtime Channel
       const channel = supabase.channel(`city:presence`, {
@@ -252,39 +286,61 @@ export function useCityPresence(
           recentMovements.current.delete(key);
           syncPlayers();
         })
-        .on("broadcast", { event: "move" }, ({ payload }: { payload: { id: string; cx: number; cy: number; cz: number; focusedBuilding: string | null } }) => {
-          const { id, cx, cy, cz, focusedBuilding } = payload;
-          if (id === localUserIdRef.current) return; // skip self
+        .on(
+          "broadcast",
+          { event: "move" },
+          ({
+            payload,
+          }: {
+            payload: {
+              id: string;
+              cx: number;
+              cy: number;
+              cz: number;
+              focusedBuilding: string | null;
+            };
+          }) => {
+            const { id, cx, cy, cz, focusedBuilding } = payload;
+            if (id === localUserIdRef.current) return; // skip self
 
-          recentMovements.current.set(id, { cx, cy, cz, focusedBuilding });
+            recentMovements.current.set(id, { cx, cy, cz, focusedBuilding });
 
-          const player = playersRef.current.get(id);
-          if (player) {
-            // Mutate the CityPlayer object in-place — avoids { ...existing } spread allocation
-            player.cx = cx;
-            player.cy = cy;
-            player.cz = cz;
-            player.focusedBuilding = focusedBuilding;
-            // Signal React with a new Map wrapper; entries are shared, no per-entry copy needed
-            setPlayers(new Map(playersRef.current));
-          }
-        })
-        .on("broadcast", { event: "chat" }, ({ payload }: { payload: { id: string; login: string; text: string; ts: number } }) => {
-          const { id, login: msgLogin, text, ts } = payload;
-          if (id === localUserIdRef.current) return; // skip self
+            const player = playersRef.current.get(id);
+            if (player) {
+              // Mutate the CityPlayer object in-place — avoids { ...existing } spread allocation
+              player.cx = cx;
+              player.cy = cy;
+              player.cz = cz;
+              player.focusedBuilding = focusedBuilding;
+              // Signal React with a new Map wrapper; entries are shared, no per-entry copy needed
+              setPlayers(new Map(playersRef.current));
+            }
+          },
+        )
+        .on(
+          "broadcast",
+          { event: "chat" },
+          ({
+            payload,
+          }: {
+            payload: { id: string; login: string; text: string; ts: number };
+          }) => {
+            const { id, login: msgLogin, text, ts } = payload;
+            if (id === localUserIdRef.current) return; // skip self
 
-          const chatMsg: ChatMessage = {
-            id: `${id}-${ts}`,
-            login: msgLogin,
-            text,
-            ts,
-            isSelf: false,
-          };
-          setChatMessages((prev) => {
-            const next = [...prev, chatMsg];
-            return next.length > 50 ? next.slice(-50) : next;
-          });
-        });
+            const chatMsg: ChatMessage = {
+              id: `${id}-${ts}`,
+              login: msgLogin,
+              text,
+              ts,
+              isSelf: false,
+            };
+            setChatMessages((prev) => {
+              const next = [...prev, chatMsg];
+              return next.length > 50 ? next.slice(-50) : next;
+            });
+          },
+        );
 
       setStatus("connecting");
 

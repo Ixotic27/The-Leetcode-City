@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (!developerId || isNaN(developerId)) {
     return NextResponse.json(
       { error: "developer_id is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -25,7 +25,12 @@ export async function GET(request: Request) {
     .from("developer_customizations")
     .select("item_id, config")
     .eq("developer_id", developerId)
-    .in("item_id", ["custom_color", "billboard", "led_banner", "selected_title"]);
+    .in("item_id", [
+      "custom_color",
+      "billboard",
+      "led_banner",
+      "selected_title",
+    ]);
 
   let customColor: string | null = null;
   let billboardImages: string[] = [];
@@ -33,23 +38,23 @@ export async function GET(request: Request) {
   let selectedTitle: string | null = null;
 
   for (const row of data ?? []) {
-     const config = row.config as Record<string, unknown>;
-     if (row.item_id === "custom_color" && typeof config?.color === "string") {
-       customColor = config.color;
-     }
-     if (row.item_id === "billboard") {
-       if (Array.isArray(config?.images)) {
-         billboardImages = config.images as string[];
-       } else if (typeof config?.image_url === "string") {
-         billboardImages = [config.image_url];
-       }
-     }
-     if (row.item_id === "led_banner" && typeof config?.text === "string") {
-       ledBannerText = config.text;
-     }
-     if (row.item_id === "selected_title" && typeof config?.slug === "string") {
-       selectedTitle = config.slug;
-     }
+    const config = row.config as Record<string, unknown>;
+    if (row.item_id === "custom_color" && typeof config?.color === "string") {
+      customColor = config.color;
+    }
+    if (row.item_id === "billboard") {
+      if (Array.isArray(config?.images)) {
+        billboardImages = config.images as string[];
+      } else if (typeof config?.image_url === "string") {
+        billboardImages = [config.image_url];
+      }
+    }
+    if (row.item_id === "led_banner" && typeof config?.text === "string") {
+      ledBannerText = config.text;
+    }
+    if (row.item_id === "selected_title" && typeof config?.slug === "string") {
+      selectedTitle = config.slug;
+    }
   }
 
   return NextResponse.json({
@@ -64,7 +69,8 @@ export async function GET(request: Request) {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({});
 
   if (!auth.ok || !auth.user) {
@@ -85,11 +91,17 @@ export async function POST(request: Request) {
   if (!dev || !dev.claimed || dev.claimed_by !== auth.user.id) {
     return NextResponse.json(
       { error: "Building not found or not yours" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
-  let body: { item_id: string; color?: string | null; text?: string | null; slug?: string | null; dev_mode?: boolean };
+  let body: {
+    item_id: string;
+    color?: string | null;
+    text?: string | null;
+    slug?: string | null;
+    dev_mode?: boolean;
+  };
   try {
     body = await request.json();
   } catch (err) {
@@ -98,14 +110,17 @@ export async function POST(request: Request) {
   }
   const { item_id, color, text, slug, dev_mode } = body;
 
-  if (item_id !== "custom_color" && item_id !== "led_banner" && item_id !== "selected_title") {
-    return NextResponse.json(
-      { error: "Invalid item_id" },
-      { status: 400 }
-    );
+  if (
+    item_id !== "custom_color" &&
+    item_id !== "led_banner" &&
+    item_id !== "selected_title"
+  ) {
+    return NextResponse.json({ error: "Invalid item_id" }, { status: 400 });
   }
 
-  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(
+    githubLogin.toLowerCase(),
+  );
   const isDev = isDeveloper && dev_mode === true;
 
   if (item_id !== "selected_title") {
@@ -115,7 +130,7 @@ export async function POST(request: Request) {
       if (!ownsReal) {
         return NextResponse.json(
           { error: "You don't own this item" },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -123,16 +138,30 @@ export async function POST(request: Request) {
 
   if (item_id === "selected_title") {
     if (!slug || slug === "auto") {
-      const { error: deleteError } = await sb.from("developer_customizations")
-        .delete().eq("developer_id", dev.id).eq("item_id", "selected_title");
-      if (deleteError) return NextResponse.json({ error: "Failed to remove customization" }, { status: 500 });
+      const { error: deleteError } = await sb
+        .from("developer_customizations")
+        .delete()
+        .eq("developer_id", dev.id)
+        .eq("item_id", "selected_title");
+      if (deleteError)
+        return NextResponse.json(
+          { error: "Failed to remove customization" },
+          { status: 500 },
+        );
       return NextResponse.json({ success: true, slug: null });
     }
 
-    const isDevTitle = ["title_creator", "title_lead_dev", "title_sys_op"].includes(slug);
+    const isDevTitle = [
+      "title_creator",
+      "title_lead_dev",
+      "title_sys_op",
+    ].includes(slug);
 
     if (isDevTitle && !isDeveloper) {
-      return NextResponse.json({ error: "This title is reserved for LeetCode City developers" }, { status: 403 });
+      return NextResponse.json(
+        { error: "This title is reserved for LeetCode City developers" },
+        { status: 403 },
+      );
     }
 
     if (!isDevTitle) {
@@ -145,57 +174,88 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (itemData) {
-          const ownsArenaItem = await entitlementService.ownsInventoryItem(dev.id, itemData.id, {
-            inventoryTable: "arena_inventory",
-            ownerColumn: "user_id",
-          });
+          const ownsArenaItem = await entitlementService.ownsInventoryItem(
+            dev.id,
+            itemData.id,
+            {
+              inventoryTable: "arena_inventory",
+              ownerColumn: "user_id",
+            },
+          );
 
           if (!ownsArenaItem) {
-            return NextResponse.json({ error: "You must unlock this title badge in the Arena first" }, { status: 403 });
+            return NextResponse.json(
+              { error: "You must unlock this title badge in the Arena first" },
+              { status: 403 },
+            );
           }
         } else {
           const ownsShopItem = await entitlementService.ownsItem(dev.id, slug);
 
           if (!ownsShopItem) {
-            return NextResponse.json({ error: "Invalid title slug or you don't own this title" }, { status: 403 });
+            return NextResponse.json(
+              { error: "Invalid title slug or you don't own this title" },
+              { status: 403 },
+            );
           }
         }
       }
     }
 
-    const { error: upsertError } = await sb.from("developer_customizations").upsert(
-      { developer_id: dev.id, item_id: "selected_title", config: { slug } },
-      { onConflict: "developer_id,item_id" }
-    );
-    if (upsertError) return NextResponse.json({ error: "Failed to save customization" }, { status: 500 });
+    const { error: upsertError } = await sb
+      .from("developer_customizations")
+      .upsert(
+        { developer_id: dev.id, item_id: "selected_title", config: { slug } },
+        { onConflict: "developer_id,item_id" },
+      );
+    if (upsertError)
+      return NextResponse.json(
+        { error: "Failed to save customization" },
+        { status: 500 },
+      );
     return NextResponse.json({ success: true, slug });
   }
 
   if (item_id === "custom_color") {
     if (color !== null && color !== undefined) {
       if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
-        return NextResponse.json({ error: "Invalid hex color (use #RRGGBB)" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid hex color (use #RRGGBB)" },
+          { status: 400 },
+        );
       }
     }
 
     if (color === null) {
-      const { error: deleteError } = await sb.from("developer_customizations")
-        .delete().eq("developer_id", dev.id).eq("item_id", "custom_color");
-      if (deleteError) return NextResponse.json({ error: "Failed to remove customization" }, { status: 500 });
+      const { error: deleteError } = await sb
+        .from("developer_customizations")
+        .delete()
+        .eq("developer_id", dev.id)
+        .eq("item_id", "custom_color");
+      if (deleteError)
+        return NextResponse.json(
+          { error: "Failed to remove customization" },
+          { status: 500 },
+        );
       return NextResponse.json({ success: true, color: null });
     }
 
-    const { error: upsertError } = await sb.from("developer_customizations").upsert(
-      { developer_id: dev.id, item_id: "custom_color", config: { color } },
-      { onConflict: "developer_id,item_id" }
-    );
+    const { error: upsertError } = await sb
+      .from("developer_customizations")
+      .upsert(
+        { developer_id: dev.id, item_id: "custom_color", config: { color } },
+        { onConflict: "developer_id,item_id" },
+      );
     if (upsertError) {
       console.error("[custom_color upsert] error:", upsertError);
       // In local dev, pretend it succeeded so localStorage overrides still apply
       if (process.env.NODE_ENV === "development") {
         return NextResponse.json({ success: true, color, mocked: true });
       }
-      return NextResponse.json({ error: "Failed to save customization" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to save customization" },
+        { status: 500 },
+      );
     }
     return NextResponse.json({ success: true, color });
   }
@@ -206,17 +266,34 @@ export async function POST(request: Request) {
     const sanitized = text ? sanitizeLedBannerText(text) : null;
 
     if (!sanitized) {
-      const { error: deleteError } = await sb.from("developer_customizations")
-        .delete().eq("developer_id", dev.id).eq("item_id", "led_banner");
-      if (deleteError) return NextResponse.json({ error: "Failed to remove customization" }, { status: 500 });
+      const { error: deleteError } = await sb
+        .from("developer_customizations")
+        .delete()
+        .eq("developer_id", dev.id)
+        .eq("item_id", "led_banner");
+      if (deleteError)
+        return NextResponse.json(
+          { error: "Failed to remove customization" },
+          { status: 500 },
+        );
       return NextResponse.json({ success: true, text: null });
     }
 
-    const { error: upsertError } = await sb.from("developer_customizations").upsert(
-      { developer_id: dev.id, item_id: "led_banner", config: { text: sanitized } },
-      { onConflict: "developer_id,item_id" }
-    );
-    if (upsertError) return NextResponse.json({ error: "Failed to save customization" }, { status: 500 });
+    const { error: upsertError } = await sb
+      .from("developer_customizations")
+      .upsert(
+        {
+          developer_id: dev.id,
+          item_id: "led_banner",
+          config: { text: sanitized },
+        },
+        { onConflict: "developer_id,item_id" },
+      );
+    if (upsertError)
+      return NextResponse.json(
+        { error: "Failed to save customization" },
+        { status: 500 },
+      );
     return NextResponse.json({ success: true, text: sanitized });
   }
 }

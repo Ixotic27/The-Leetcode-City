@@ -29,7 +29,10 @@ async function reconcile() {
     .from("special_code_usages")
     .select("id, code_id, developer_id, created_at");
 
-  if (usageErr) { console.error("Error fetching usages:", usageErr); return; }
+  if (usageErr) {
+    console.error("Error fetching usages:", usageErr);
+    return;
+  }
 
   let orphanedUsages = 0;
   for (const usage of usages ?? []) {
@@ -41,7 +44,9 @@ async function reconcile() {
       .limit(1);
 
     if (!purchases || purchases.length === 0) {
-      console.log(`[ORPHANED USAGE] id=${usage.id} code_id=${usage.code_id} dev_id=${usage.developer_id} — no purchases found. Deleting...`);
+      console.log(
+        `[ORPHANED USAGE] id=${usage.id} code_id=${usage.code_id} dev_id=${usage.developer_id} — no purchases found. Deleting...`,
+      );
       await sb.from("special_code_usages").delete().eq("id", usage.id);
       orphanedUsages++;
     }
@@ -54,7 +59,10 @@ async function reconcile() {
     .select("id, developer_id, item_id, provider_tx_id")
     .like("provider_tx_id", "special_code_%");
 
-  if (purchErr) { console.error("Error fetching purchases:", purchErr); return; }
+  if (purchErr) {
+    console.error("Error fetching purchases:", purchErr);
+    return;
+  }
 
   let orphanedPurchases = 0;
   for (const p of purchases ?? []) {
@@ -73,7 +81,9 @@ async function reconcile() {
       .maybeSingle();
 
     if (!usage) {
-      console.log(`[ORPHANED PURCHASE] id=${p.id} tx=${p.provider_tx_id} — no usage record. Deleting...`);
+      console.log(
+        `[ORPHANED PURCHASE] id=${p.id} tx=${p.provider_tx_id} — no usage record. Deleting...`,
+      );
       await sb.from("purchases").delete().eq("id", p.id);
       orphanedPurchases++;
     }

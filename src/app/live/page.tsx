@@ -25,11 +25,13 @@ export default function LivePage() {
         .then((data) => {
           if (data.developers) {
             // Creator first, then alphabetical
-            const sorted = [...data.developers].sort((a: PresenceDev, b: PresenceDev) => {
-              if (a.githubLogin.toLowerCase() === CREATOR_LOGIN) return -1;
-              if (b.githubLogin.toLowerCase() === CREATOR_LOGIN) return 1;
-              return a.githubLogin.localeCompare(b.githubLogin);
-            });
+            const sorted = [...data.developers].sort(
+              (a: PresenceDev, b: PresenceDev) => {
+                if (a.githubLogin.toLowerCase() === CREATOR_LOGIN) return -1;
+                if (b.githubLogin.toLowerCase() === CREATOR_LOGIN) return 1;
+                return a.githubLogin.localeCompare(b.githubLogin);
+              },
+            );
             setDevelopers(sorted);
           }
           setLoading(false);
@@ -54,17 +56,23 @@ export default function LivePage() {
             &larr; Back to city
           </Link>
           <div className="flex items-center gap-3">
-            <span className="live-dot h-3 w-3 rounded-full bg-[#4ade80]" aria-hidden="true" />
+            <span
+              className="live-dot h-3 w-3 rounded-full bg-[#4ade80]"
+              aria-hidden="true"
+            />
             <h1 className="text-2xl text-cream">Live Now</h1>
             <span className="text-xs text-muted">
-              {developers.length} developer{developers.length !== 1 ? "s" : ""} coding
+              {developers.length} developer{developers.length !== 1 ? "s" : ""}{" "}
+              coding
             </span>
           </div>
           <p className="mt-3 text-xs normal-case text-muted">
-            These developers are keeping the city alive. Their buildings are glowing right now.
+            These developers are keeping the city alive. Their buildings are
+            glowing right now.
           </p>
           <p className="mt-1 text-[10px] normal-case text-muted/60">
-            Only username and language are shown. Developers control what they share via VS Code settings.
+            Only username and language are shown. Developers control what they
+            share via VS Code settings.
           </p>
         </div>
 
@@ -73,7 +81,9 @@ export default function LivePage() {
           <div className="py-12 text-center text-sm text-muted">Loading...</div>
         ) : developers.length === 0 ? (
           <div className="border-[3px] border-border bg-bg/50 p-10 text-center">
-            <p className="mb-2 text-sm text-cream">The city is dark right now</p>
+            <p className="mb-2 text-sm text-cream">
+              The city is dark right now
+            </p>
             <p className="text-xs normal-case text-muted">
               No one is coding. Install Pulse to be the first to light it up.
             </p>
@@ -93,7 +103,9 @@ export default function LivePage() {
                       src={dev.avatarUrl}
                       alt=""
                       className="h-10 w-10 rounded-full"
-                      style={isCreator ? { boxShadow: "0 0 8px #fbbf24" } : undefined}
+                      style={
+                        isCreator ? { boxShadow: "0 0 8px #fbbf24" } : undefined
+                      }
                     />
                     <span
                       className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bg ${isCreator ? "bg-[#fbbf24]" : "bg-[#4ade80]"}`}
@@ -103,18 +115,24 @@ export default function LivePage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm ${isCreator ? "text-[#fbbf24]" : "text-cream"}`}>
+                      <span
+                        className={`text-sm ${isCreator ? "text-[#fbbf24]" : "text-cream"}`}
+                      >
                         {dev.githubLogin}
                       </span>
                       {isCreator && (
-                        <span className="text-[9px] text-[#fbbf24]/70">CREATOR</span>
+                        <span className="text-[9px] text-[#fbbf24]/70">
+                          CREATOR
+                        </span>
                       )}
                       {dev.status === "idle" && (
                         <span className="text-[9px] text-muted">IDLE</span>
                       )}
                     </div>
                     <div className="text-[10px] normal-case text-muted">
-                      {isCreator ? "building the city" : dev.language || "coding"}
+                      {isCreator
+                        ? "building the city"
+                        : dev.language || "coding"}
                     </div>
                   </div>
                   <span className="text-xs text-muted">&rarr;</span>
@@ -128,14 +146,18 @@ export default function LivePage() {
         <div className="mt-10 border-[3px] border-border bg-bg/50 p-8 text-center">
           <p className="mb-2 text-sm text-cream">The city needs your signal</p>
           <p className="mb-5 text-xs normal-case text-muted">
-            Every dev who codes keeps a building lit. Install Pulse to power yours.
+            Every dev who codes keeps a building lit. Install Pulse to power
+            yours.
           </p>
           <a
             href="https://marketplace.visualstudio.com/items?itemName=leetcode-city.leetcodecity"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-press inline-block px-8 py-3 text-xs text-bg"
-            style={{ backgroundColor: "#4ade80", boxShadow: "2px 2px 0 0 #16a34a" }}
+            style={{
+              backgroundColor: "#4ade80",
+              boxShadow: "2px 2px 0 0 #16a34a",
+            }}
           >
             Get Pulse for VS Code
           </a>

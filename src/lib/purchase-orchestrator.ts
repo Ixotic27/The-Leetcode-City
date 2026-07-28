@@ -1,10 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
+import {
+  sendPurchaseNotification,
+  sendGiftSentNotification,
+} from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { InfrastructureError } from "@/lib/errors";
 
-export type PurchaseProvider = "stripe" | "cashfree" | "nowpayments" | "abacatepay" | string;
+export type PurchaseProvider =
+  "stripe" | "cashfree" | "nowpayments" | "abacatepay" | string;
 
 export interface ClaimPendingPurchaseResult {
   ok: boolean;
@@ -23,7 +27,9 @@ export interface PurchaseClaimContext {
   supabaseClient: SupabaseClient;
 }
 
-export type ClaimPendingPurchaseFn = (ctx: PurchaseClaimContext) => Promise<ClaimPendingPurchaseResult>;
+export type ClaimPendingPurchaseFn = (
+  ctx: PurchaseClaimContext,
+) => Promise<ClaimPendingPurchaseResult>;
 
 export interface PurchaseOrchestrationOptions {
   provider: PurchaseProvider;
@@ -42,7 +48,14 @@ export interface PurchaseOrchestrationOptions {
 export interface PurchaseOrchestrationResult {
   kind: "completed" | "duplicate" | "sold_out" | "not_found" | "failed";
   purchaseId?: string;
-  status?: "completed" | "delivered" | "processing" | "pending" | "expired" | "failed" | "refunded";
+  status?:
+    | "completed"
+    | "delivered"
+    | "processing"
+    | "pending"
+    | "expired"
+    | "failed"
+    | "refunded";
   ownerId?: number;
   reason?: string;
 }
@@ -73,23 +86,46 @@ export async function orchestratePurchaseFulfillment({
 
   if (!claimResult.ok) {
     if (claimResult.error_code === "sold_out") {
-      return { kind: "sold_out", purchaseId: claimResult.purchase_id, reason: "sold_out" };
+      return {
+        kind: "sold_out",
+        purchaseId: claimResult.purchase_id,
+        reason: "sold_out",
+      };
     }
-    if (claimResult.already_claimed || claimResult.reason === "already_claimed") {
-      return { kind: "duplicate", purchaseId: claimResult.purchase_id, reason: "already_claimed" };
+    if (
+      claimResult.already_claimed ||
+      claimResult.reason === "already_claimed"
+    ) {
+      return {
+        kind: "duplicate",
+        purchaseId: claimResult.purchase_id,
+        reason: "already_claimed",
+      };
     }
-    return { kind: "not_found", purchaseId: claimResult.purchase_id, reason: claimResult.reason ?? "claim_failed" };
+    return {
+      kind: "not_found",
+      purchaseId: claimResult.purchase_id,
+      reason: claimResult.reason ?? "claim_failed",
+    };
   }
 
   const pendingPurchaseId = claimResult.purchase_id;
   if (!pendingPurchaseId) {
-    throw new InfrastructureError(`[purchase-orchestrator] Missing purchase_id after claiming ${transactionId}`);
+    throw new InfrastructureError(
+      `[purchase-orchestrator] Missing purchase_id after claiming ${transactionId}`,
+    );
   }
 
   const ownerId = (giftedTo ?? 0) > 0 ? Number(giftedTo) : Number(developerId);
 
-  console.log(`[purchase-orchestrator] Fulfilling purchase ${pendingPurchaseId} via ${provider}`);
-  const { status: purchaseStatus } = await fulfillItemPurchase(ownerId, itemId, sb);
+  console.log(
+    `[purchase-orchestrator] Fulfilling purchase ${pendingPurchaseId} via ${provider}`,
+  );
+  const { status: purchaseStatus } = await fulfillItemPurchase(
+    ownerId,
+    itemId,
+    sb,
+  );
 
   await sb
     .from("purchases")
@@ -175,34 +211,48 @@ export async function claimPendingPurchaseAtomically({
   supabaseClient,
 }: PurchaseClaimContext): Promise<ClaimPendingPurchaseResult> {
   if (typeof supabaseClient.rpc === "function") {
-    const { data: claimData, error: claimError } = await supabaseClient.rpc("claim_pending_purchase_atomic", {
-      p_developer_id: developerId,
-      p_item_id: itemId,
-      p_provider: provider,
-      p_tx_id: transactionId,
-      ...(purchaseId ? { p_purchase_id: purchaseId } : {}),
-    });
+    const { data: claimData, error: claimError } = await supabaseClient.rpc(
+      "claim_pending_purchase_atomic",
+      {
+        p_developer_id: developerId,
+        p_item_id: itemId,
+        p_provider: provider,
+        p_tx_id: transactionId,
+        ...(purchaseId ? { p_purchase_id: purchaseId } : {}),
+      },
+    );
 
     if (claimError) {
       throw new InfrastructureError(
         `[purchase-orchestrator] Failed to claim pending purchase ${transactionId}: ${claimError.message}`,
-        claimError
+        claimError,
       );
     }
 
     const claimResult = Array.isArray(claimData) ? claimData[0] : claimData;
     if (claimResult?.error_code === "sold_out") {
-      return { ok: false, purchase_id: claimResult.purchase_id, error_code: "sold_out" };
+      return {
+        ok: false,
+        purchase_id: claimResult.purchase_id,
+        error_code: "sold_out",
+      };
     }
 
     if (claimResult?.ok && claimResult.purchase_id) {
       return { ok: true, purchase_id: String(claimResult.purchase_id) };
     }
 
-    return { ok: false, purchase_id: claimResult?.purchase_id, already_claimed: true, reason: "already_claimed" };
+    return {
+      ok: false,
+      purchase_id: claimResult?.purchase_id,
+      already_claimed: true,
+      reason: "already_claimed",
+    };
   }
 
-  const updateBuilder = supabaseClient.from("purchases").update({ status: "processing" });
+  const updateBuilder = supabaseClient
+    .from("purchases")
+    .update({ status: "processing" });
 
   if (purchaseId) {
     updateBuilder.eq("id", purchaseId);
@@ -216,12 +266,14 @@ export async function claimPendingPurchaseAtomically({
     }
   }
 
-  const { data: claimed, error } = await updateBuilder.select("id").maybeSingle();
+  const { data: claimed, error } = await updateBuilder
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     throw new InfrastructureError(
       `[purchase-orchestrator] Failed to claim pending purchase ${transactionId}: ${error.message}`,
-      error
+      error,
     );
   }
 
@@ -229,5 +281,8 @@ export async function claimPendingPurchaseAtomically({
     return { ok: false, purchase_id: purchaseId, reason: "not_found" };
   }
 
-  return { ok: true, purchase_id: String(claimed.id ?? purchaseId ?? developerId) };
+  return {
+    ok: true,
+    purchase_id: String(claimed.id ?? purchaseId ?? developerId),
+  };
 }

@@ -37,7 +37,11 @@ function randomLauncherPos(radius: number) {
   return { x: Math.cos(angle) * r, z: Math.sin(angle) * r };
 }
 
-const Fireworks = memo(function Fireworks({ cityRadius }: { cityRadius: number }) {
+const Fireworks = memo(function Fireworks({
+  cityRadius,
+}: {
+  cityRadius: number;
+}) {
   const pointsRef = useRef<THREE.Points>(null);
   const frameCount = useRef(0);
 
@@ -220,13 +224,19 @@ const Confetti = memo(function Confetti() {
       phases[i] = Math.random() * Math.PI * 2;
       speeds[i] = 15 + Math.random() * 25;
 
-      const c = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+      const c =
+        CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
       col[i * 3] = c.r;
       col[i * 3 + 1] = c.g;
       col[i * 3 + 2] = c.b;
     }
 
-    return { positions: pos, colors: col, driftPhases: phases, fallSpeeds: speeds };
+    return {
+      positions: pos,
+      colors: col,
+      driftPhases: phases,
+      fallSpeeds: speeds,
+    };
   }, []);
 
   useFrame((state, delta) => {
@@ -279,7 +289,11 @@ const Confetti = memo(function Confetti() {
 
 // ─── Combined ───────────────────────────────────────────────
 
-export default memo(function CelebrationEffect({ cityRadius }: { cityRadius: number }) {
+export default memo(function CelebrationEffect({
+  cityRadius,
+}: {
+  cityRadius: number;
+}) {
   return (
     <>
       <Fireworks cityRadius={cityRadius} />

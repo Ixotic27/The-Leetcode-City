@@ -38,7 +38,8 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       {
         id: "leaderboard",
         name: "Leaderboard & Compare",
-        description: "Rankings by contributions, stars, repos + head-to-head comparison",
+        description:
+          "Rankings by contributions, stars, repos + head-to-head comparison",
         status: "done",
       },
       {
@@ -68,7 +69,8 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       {
         id: "districts",
         name: "Districts",
-        description: "10 specialized neighborhoods: Frontend, Backend, DevOps, and more",
+        description:
+          "10 specialized neighborhoods: Frontend, Backend, DevOps, and more",
         status: "done",
       },
     ],
@@ -88,31 +90,36 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       {
         id: "dailies",
         name: "Standup / Dailies",
-        description: "Quick daily activities: Push, Code Review, Bug Hunt, Deploy",
+        description:
+          "Quick daily activities: Push, Code Review, Bug Hunt, Deploy",
         status: "done",
       },
       {
         id: "xp-leveling",
         name: "XP & Leveling",
-        description: "Earn XP from coding and exploring. Rank up from Intern to Founder",
+        description:
+          "Earn XP from coding and exploring. Rank up from Intern to Founder",
         status: "planned",
       },
       {
         id: "pixels-currency",
         name: "Pixels (PX) Currency",
-        description: "Virtual currency earned through gameplay, spent on cosmetics & vehicles",
+        description:
+          "Virtual currency earned through gameplay, spent on cosmetics & vehicles",
         status: "planned",
       },
       {
         id: "git-log",
         name: "Git Log / Passport",
-        description: "Collect stamps by visiting buildings. Complete districts for badges",
+        description:
+          "Collect stamps by visiting buildings. Complete districts for badges",
         status: "planned",
       },
       {
         id: "onboarding",
         name: "Onboarding Tutorial",
-        description: "Guided first 90 seconds: fly, explore, visit, learn the loop",
+        description:
+          "Guided first 90 seconds: fly, explore, visit, learn the loop",
         status: "building",
       },
     ],
@@ -199,19 +206,22 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
       {
         id: "driveby-firewall",
         name: "Drive-by Battles & Firewall",
-        description: "Drive to a building to battle it. Auto-shield after 3 battles/day",
+        description:
+          "Drive to a building to battle it. Auto-shield after 3 battles/day",
         status: "planned",
       },
       {
         id: "living-city",
         name: "Living City",
-        description: "NPCs, real-time commit pulses, visual decay for inactive buildings",
+        description:
+          "NPCs, real-time commit pulses, visual decay for inactive buildings",
         status: "planned",
       },
       {
         id: "live-ops",
         name: "Live Ops & Events",
-        description: "Seasonal events, tournaments, and surprises from the creator",
+        description:
+          "Seasonal events, tournaments, and surprises from the creator",
         status: "planned",
       },
     ],
@@ -220,7 +230,7 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
 
 // All valid item IDs (for server-side vote validation)
 export const VALID_ITEM_IDS = new Set(
-  ROADMAP_PHASES.flatMap((phase) => phase.items.map((item) => item.id))
+  ROADMAP_PHASES.flatMap((phase) => phase.items.map((item) => item.id)),
 );
 
 // Items that can be voted on (not done, not mystery)
@@ -228,6 +238,6 @@ export const VOTABLE_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) =>
     phase.items
       .filter((item) => item.status !== "done" && !item.mystery)
-      .map((item) => item.id)
-  )
+      .map((item) => item.id),
+  ),
 );

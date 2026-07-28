@@ -21,7 +21,11 @@ describe("EntitlementService", () => {
             or: () => ({
               eq: () => ({
                 eq: () => ({
-                  maybeSingle: vi.fn().mockResolvedValue({ data: { id: "p1", provider: "stripe", amount_cents: 0 } }),
+                  maybeSingle: vi
+                    .fn()
+                    .mockResolvedValue({
+                      data: { id: "p1", provider: "stripe", amount_cents: 0 },
+                    }),
                 }),
               }),
             }),
@@ -42,7 +46,9 @@ describe("EntitlementService", () => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                maybeSingle: vi.fn().mockResolvedValue({ data: { item_id: "pet_dragon" } }),
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: { item_id: "pet_dragon" } }),
               }),
             }),
           }),
@@ -52,7 +58,11 @@ describe("EntitlementService", () => {
     });
 
     const service = new EntitlementService();
-    await expect(service.ownsInventoryItem(42, "pet_dragon", { inventoryTable: "arcade_inventory" })).resolves.toBe(true);
+    await expect(
+      service.ownsInventoryItem(42, "pet_dragon", {
+        inventoryTable: "arcade_inventory",
+      }),
+    ).resolves.toBe(true);
   });
 
   it("evaluates mixed ownership checks in a single call", async () => {
@@ -63,7 +73,11 @@ describe("EntitlementService", () => {
             or: () => ({
               eq: () => ({
                 eq: () => ({
-                  maybeSingle: vi.fn().mockResolvedValue({ data: { id: "p1", provider: "stripe", amount_cents: 100 } }),
+                  maybeSingle: vi
+                    .fn()
+                    .mockResolvedValue({
+                      data: { id: "p1", provider: "stripe", amount_cents: 100 },
+                    }),
                 }),
               }),
             }),
@@ -75,7 +89,9 @@ describe("EntitlementService", () => {
           select: () => ({
             eq: () => ({
               eq: () => ({
-                maybeSingle: vi.fn().mockResolvedValue({ data: { item_id: "pet_dragon" } }),
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: { item_id: "pet_dragon" } }),
               }),
             }),
           }),
@@ -85,7 +101,11 @@ describe("EntitlementService", () => {
     });
 
     const service = new EntitlementService();
-    const result = await service.evaluate({ developerId: 42, itemIds: ["flag", "pet_dragon"], inventoryTable: "arcade_inventory" });
+    const result = await service.evaluate({
+      developerId: 42,
+      itemIds: ["flag", "pet_dragon"],
+      inventoryTable: "arcade_inventory",
+    });
 
     expect(result.owned).toEqual(["flag", "pet_dragon"]);
     expect(result.missing).toEqual([]);

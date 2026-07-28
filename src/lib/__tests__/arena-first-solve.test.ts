@@ -12,7 +12,17 @@ function buildMockSb(wonRace: boolean, claimError: any = null) {
       eq: vi.fn().mockReturnThis(),
       gt: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-      single: vi.fn().mockResolvedValue({ data: { rating: 1200, problems_solved: 0, problems_attempted: 0, current_streak: 0, best_streak: 0 } }),
+      single: vi
+        .fn()
+        .mockResolvedValue({
+          data: {
+            rating: 1200,
+            problems_solved: 0,
+            problems_attempted: 0,
+            current_streak: 0,
+            best_streak: 0,
+          },
+        }),
     }),
     rpc: vi.fn().mockImplementation((name: string) => {
       if (name === "claim_first_solve") {
@@ -22,7 +32,10 @@ function buildMockSb(wonRace: boolean, claimError: any = null) {
         });
       }
       if (name === "grant_xp_atomic") {
-        return Promise.resolve({ data: { granted: 10, new_total: 110, new_level: 1 }, error: null });
+        return Promise.resolve({
+          data: { granted: 10, new_total: 110, new_level: 1 },
+          error: null,
+        });
       }
       return Promise.resolve({ data: null, error: null });
     }),
@@ -63,7 +76,7 @@ describe("Arena first-solve idempotency — application layer", () => {
     const problem_id = "P001";
     const params = {
       p_challenge_id: challenge_id || null,
-      p_problem_id:   challenge_id ? null : problem_id,
+      p_problem_id: challenge_id ? null : problem_id,
     };
     expect(params.p_challenge_id).toBe("abc-123");
     expect(params.p_problem_id).toBeNull();
@@ -74,7 +87,7 @@ describe("Arena first-solve idempotency — application layer", () => {
     const problem_id = "P001";
     const params = {
       p_challenge_id: challenge_id || null,
-      p_problem_id:   challenge_id ? null : problem_id,
+      p_problem_id: challenge_id ? null : problem_id,
     };
     expect(params.p_challenge_id).toBeNull();
     expect(params.p_problem_id).toBe("P001");
@@ -87,18 +100,32 @@ describe("Arena first-solve idempotency — application layer", () => {
     // Simulate the route's conditional: only call grant_xp_atomic if isFirstSolve
     const isFirstSolve = true;
     if (isFirstSolve) {
-      await sb.rpc("grant_xp_atomic", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
+      await sb.rpc("grant_xp_atomic", {
+        p_developer_id: 1,
+        p_source: "arena_medium",
+        p_amount: 10,
+      });
     }
-    expect(sb.rpc).toHaveBeenCalledWith("grant_xp_atomic", expect.objectContaining({ p_amount: 10 }));
+    expect(sb.rpc).toHaveBeenCalledWith(
+      "grant_xp_atomic",
+      expect.objectContaining({ p_amount: 10 }),
+    );
   });
 
   it("grant_xp is NOT called when won_race is false", async () => {
     const sb = buildMockSb(false);
     const isFirstSolve = false;
     if (isFirstSolve) {
-      await sb.rpc("grant_xp_atomic", { p_developer_id: 1, p_source: "arena_medium", p_amount: 10 });
+      await sb.rpc("grant_xp_atomic", {
+        p_developer_id: 1,
+        p_source: "arena_medium",
+        p_amount: 10,
+      });
     }
-    expect(sb.rpc).not.toHaveBeenCalledWith("grant_xp_atomic", expect.anything());
+    expect(sb.rpc).not.toHaveBeenCalledWith(
+      "grant_xp_atomic",
+      expect.anything(),
+    );
   });
 
   // ── Multiplier calculation ─────────────────────────────────────
@@ -106,11 +133,11 @@ describe("Arena first-solve idempotency — application layer", () => {
   it("xp multiplier accumulates correctly from active xp_boost buffs", () => {
     const activeBuffs = [
       { buff_type: "xp_boost", buff_value: 1.25 },
-      { buff_type: "xp_boost", buff_value: 1.50 },
+      { buff_type: "xp_boost", buff_value: 1.5 },
     ];
     let xpMultiplier = 1.0;
     for (const buff of activeBuffs) {
-      if (buff.buff_type === "xp_boost") xpMultiplier += (buff.buff_value - 1.0);
+      if (buff.buff_type === "xp_boost") xpMultiplier += buff.buff_value - 1.0;
     }
     expect(xpMultiplier).toBeCloseTo(1.75);
   });
@@ -119,7 +146,8 @@ describe("Arena first-solve idempotency — application layer", () => {
     const activeBuffs = [{ buff_type: "xp_boost", buff_value: 1.25 }];
     let pointsMultiplier = 1.0;
     for (const buff of activeBuffs) {
-      if (buff.buff_type === "reward_multiplier") pointsMultiplier += (buff.buff_value - 1.0);
+      if (buff.buff_type === "reward_multiplier")
+        pointsMultiplier += buff.buff_value - 1.0;
     }
     expect(pointsMultiplier).toBe(1.0);
   });
@@ -130,8 +158,8 @@ describe("Arena first-solve idempotency — application layer", () => {
     let pointsMultiplier = 1.0;
     for (const buff of activeBuffs) {
       if (buff.buff_type === "reward_multiplier") {
-        xpMultiplier += (buff.buff_value - 1.0);
-        pointsMultiplier += (buff.buff_value - 1.0);
+        xpMultiplier += buff.buff_value - 1.0;
+        pointsMultiplier += buff.buff_value - 1.0;
       }
     }
     expect(xpMultiplier).toBeCloseTo(1.5);
@@ -162,13 +190,17 @@ describe("Arena first-solve idempotency — application layer", () => {
 
   it("returns 500 when claim_first_solve RPC errors", async () => {
     const sb = buildMockSb(false, { message: "DB error" });
-    const { data: claimResult, error: claimError } = await sb.rpc("claim_first_solve", {});
+    const { data: claimResult, error: claimError } = await sb.rpc(
+      "claim_first_solve",
+      {},
+    );
     expect(claimError).not.toBeNull();
     expect(claimResult).toBeNull();
   });
 });
 
-describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  type ChallengeRow = {
+describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {
+  type ChallengeRow = {
     challenge_date: string;
     type: string;
     difficulty: string;
@@ -206,9 +238,24 @@ describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  t
   const DATE = "2026-06-16";
 
   const CHALLENGES: ChallengeRow[] = [
-    { challenge_date: DATE, type: "daily", difficulty: "easy",   problem_id: "P1" },
-    { challenge_date: DATE, type: "daily", difficulty: "medium", problem_id: "P2" },
-    { challenge_date: DATE, type: "daily", difficulty: "hard",   problem_id: "P3" },
+    {
+      challenge_date: DATE,
+      type: "daily",
+      difficulty: "easy",
+      problem_id: "P1",
+    },
+    {
+      challenge_date: DATE,
+      type: "daily",
+      difficulty: "medium",
+      problem_id: "P2",
+    },
+    {
+      challenge_date: DATE,
+      type: "daily",
+      difficulty: "hard",
+      problem_id: "P3",
+    },
   ];
 
   it("OLD behaviour (plain insert): two concurrent invocations produce 6 rows — demonstrating the bug", () => {
@@ -237,7 +284,10 @@ describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  t
     store.upsert(CHALLENGES, true);
     store.upsert(CHALLENGES, true); // concurrent duplicate
 
-    const difficulties = store.rows().map((r) => r.difficulty).sort();
+    const difficulties = store
+      .rows()
+      .map((r) => r.difficulty)
+      .sort();
     expect(difficulties).toEqual(["easy", "hard", "medium"]);
   });
 
@@ -260,7 +310,7 @@ describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  t
     }));
 
     store.upsert(CHALLENGES, true); // today
-    store.upsert(tomorrow, true);   // tomorrow
+    store.upsert(tomorrow, true); // tomorrow
 
     expect(store.count()).toBe(6); // 3 per date — correct
   });
@@ -284,10 +334,20 @@ describe("rotateDailyChallenges — concurrent-rotation idempotency", () => {  t
     const store = makeStore();
 
     const firstWriterChallenges: ChallengeRow[] = [
-      { challenge_date: DATE, type: "daily", difficulty: "easy", problem_id: "FIRST" },
+      {
+        challenge_date: DATE,
+        type: "daily",
+        difficulty: "easy",
+        problem_id: "FIRST",
+      },
     ];
     const secondWriterChallenges: ChallengeRow[] = [
-      { challenge_date: DATE, type: "daily", difficulty: "easy", problem_id: "SECOND" },
+      {
+        challenge_date: DATE,
+        type: "daily",
+        difficulty: "easy",
+        problem_id: "SECOND",
+      },
     ];
 
     store.upsert(firstWriterChallenges, true);

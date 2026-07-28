@@ -7,15 +7,26 @@ export async function POST() {
   const auth = await resolveAuthenticatedDeveloper({
     select: "id, github_login, claimed, claimed_by",
     validateDeveloper: (developer, user) => {
-      if (!developer || !developer.claimed || developer.claimed_by !== user?.id) {
-        return { ok: false, error: "You must claim your building first", status: 403 };
+      if (
+        !developer ||
+        !developer.claimed ||
+        developer.claimed_by !== user?.id
+      ) {
+        return {
+          ok: false,
+          error: "You must claim your building first",
+          status: 403,
+        };
       }
       return { ok: true };
     },
   });
 
   if (!auth.ok || !auth.user || !auth.developer) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const dev = auth.developer;

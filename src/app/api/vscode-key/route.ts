@@ -8,10 +8,14 @@ function hashKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 
-async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: string; status: number }> {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+async function getAuthenticatedDevId(): Promise<
+  { devId: number } | { error: string; status: number }
+> {
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
-  if (!auth.ok || !auth.user) return { error: "Not authenticated", status: 401 };
+  if (!auth.ok || !auth.user)
+    return { error: "Not authenticated", status: 401 };
   const user = auth.user;
 
   const githubLogin = (
@@ -42,7 +46,10 @@ async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: str
     if (dev) return { devId: dev.id };
   }
 
-  return { error: "Developer not found. Claim your building first.", status: 404 };
+  return {
+    error: "Developer not found. Claim your building first.",
+    status: 404,
+  };
 }
 
 export async function GET() {
@@ -77,7 +84,10 @@ export async function POST() {
     .eq("id", auth.devId);
 
   if (error) {
-    return NextResponse.json({ error: "Failed to generate key" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate key" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ key: newKey });

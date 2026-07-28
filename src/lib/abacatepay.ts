@@ -18,9 +18,7 @@ interface PixQrCodeResponse {
  * x-webhook-token header (not HMAC-signed). We compare with
  * crypto.timingSafeEqual to prevent timing attacks.
  */
-export function verifyAbacatePayWebhook(
-  receivedToken: string | null,
-): boolean {
+export function verifyAbacatePayWebhook(receivedToken: string | null): boolean {
   const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET;
   if (!expectedSecret || !receivedToken) return false;
 
@@ -80,7 +78,7 @@ export async function createPixQrCodeRaw(opts: {
 export async function createPixQrCode(
   itemId: string,
   developerId: number,
-  githubLogin: string
+  githubLogin: string,
 ): Promise<{ brCode: string; brCodeBase64: string; pixId: string }> {
   const sb = getSupabaseAdmin();
 
@@ -122,4 +120,3 @@ export async function createPixQrCodeForPackage(
     externalId: `px:${developerId}:${packageId}`,
   });
 }
-

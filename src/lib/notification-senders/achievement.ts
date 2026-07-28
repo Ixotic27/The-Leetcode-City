@@ -2,7 +2,8 @@ import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 import { TIER_EMOJI } from "../achievements";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 interface AchievementInfo {
   id: string;
@@ -21,12 +22,18 @@ export function sendAchievementNotification(
   achievements: AchievementInfo[],
 ) {
   // Filter to gold/diamond only
-  const notable = achievements.filter((a) => a.tier === "gold" || a.tier === "diamond");
+  const notable = achievements.filter(
+    (a) => a.tier === "gold" || a.tier === "diamond",
+  );
   if (notable.length === 0) return;
 
-  const dedupKey = notable.length === 1
-    ? `achievement:${devId}:${notable[0].id}`
-    : `achievement_batch:${devId}:${notable.map((a) => a.id).sort().join("|")}`;
+  const dedupKey =
+    notable.length === 1
+      ? `achievement:${devId}:${notable[0].id}`
+      : `achievement_batch:${devId}:${notable
+          .map((a) => a.id)
+          .sort()
+          .join("|")}`;
 
   const isSingle = notable.length === 1;
   const first = notable[0];
@@ -72,7 +79,11 @@ export function sendAchievementNotification(
     batchKey: `achievements:${devId}`,
     batchWindowMinutes: 30,
     batchEventData: {
-      achievements: notable.map((a) => ({ id: a.id, name: a.name, tier: a.tier })),
+      achievements: notable.map((a) => ({
+        id: a.id,
+        name: a.name,
+        tier: a.tier,
+      })),
     },
   });
 }

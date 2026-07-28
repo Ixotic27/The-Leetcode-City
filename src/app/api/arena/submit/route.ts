@@ -150,27 +150,42 @@ export async function POST(request: NextRequest) {
   }
 
   if (typeof status !== "string" || !ALLOWED_STATUSES.has(status)) {
-    return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid status value" },
+      { status: 400 },
+    );
   }
 
   if (language !== undefined && language !== null) {
     if (typeof language !== "string" || !ALLOWED_LANGUAGES.has(language)) {
-      return NextResponse.json({ error: "Invalid language value" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid language value" },
+        { status: 400 },
+      );
     }
   }
 
   if (code !== undefined && code !== null) {
     if (typeof code !== "string") {
-      return NextResponse.json({ error: "Invalid code value" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid code value" },
+        { status: 400 },
+      );
     }
     if (new TextEncoder().encode(code).length > MAX_CODE_BYTES) {
-      return NextResponse.json({ error: "Code exceeds maximum size limit" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Code exceeds maximum size limit" },
+        { status: 400 },
+      );
     }
   }
 
   if (code_hash !== undefined && code_hash !== null) {
     if (typeof code_hash !== "string" || !CODE_HASH_RE.test(code_hash)) {
-      return NextResponse.json({ error: "Invalid code_hash format" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid code_hash format" },
+        { status: 400 },
+      );
     }
   }
 
@@ -184,7 +199,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (problemLookupError) {
-    return NextResponse.json({ error: "Failed to validate problem" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to validate problem" },
+      { status: 500 },
+    );
   }
 
   if (!problemRow) {
@@ -192,7 +210,11 @@ export async function POST(request: NextRequest) {
   }
 
   // 1. Fetch challenge details (if linked) and developer timezone in parallel
-  let challenge: { difficulty: string; reward_points: number; reward_xp: number } | null = null;
+  let challenge: {
+    difficulty: string;
+    reward_points: number;
+    reward_xp: number;
+  } | null = null;
   let difficulty = "medium";
   let basePoints = 100;
   let baseXp = 10;
@@ -285,7 +307,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (claimResponse.error) {
-      console.error("[arena/submit] claim_first_solve_and_update_arena_ratings_atomic error:", claimResponse.error);
+      console.error(
+        "[arena/submit] claim_first_solve_and_update_arena_ratings_atomic error:",
+        claimResponse.error,
+      );
       return NextResponse.json(
         { error: "Failed to process submission" },
         { status: 500 },
@@ -300,13 +325,19 @@ export async function POST(request: NextRequest) {
 
       // Track arena solve to update relic progress atomically
       try {
-        const { data: newSolves, error: relicErr } = await sb.rpc("increment_relic_progress", {
-          p_developer_id: dev.id,
-          p_field: "arena_solves",
-        });
+        const { data: newSolves, error: relicErr } = await sb.rpc(
+          "increment_relic_progress",
+          {
+            p_developer_id: dev.id,
+            p_field: "arena_solves",
+          },
+        );
 
         if (relicErr) {
-          console.error("[arena/submit] increment_relic_progress error:", relicErr.message);
+          console.error(
+            "[arena/submit] increment_relic_progress error:",
+            relicErr.message,
+          );
         } else if ((newSolves ?? 0) >= 20) {
           await sb.from("developer_relics").upsert(
             {
@@ -315,24 +346,33 @@ export async function POST(request: NextRequest) {
               is_equipped: false,
               created_at: new Date().toISOString(),
             },
-            { onConflict: "developer_id,relic_id" }
+            { onConflict: "developer_id,relic_id" },
           );
         }
       } catch (err) {
-        console.error("[arena/submit] Failed to track arena solve for relic:", err);
+        console.error(
+          "[arena/submit] Failed to track arena solve for relic:",
+          err,
+        );
       }
     }
   } else {
-    const { error: ratingsError } = await sb.rpc("update_arena_ratings_atomic", {
-      p_user_id: dev.id,
-      p_is_accepted: false,
-      p_is_first_solve: false,
-      p_difficulty: difficulty,
-      p_timezone: devTimezone,
-    });
+    const { error: ratingsError } = await sb.rpc(
+      "update_arena_ratings_atomic",
+      {
+        p_user_id: dev.id,
+        p_is_accepted: false,
+        p_is_first_solve: false,
+        p_difficulty: difficulty,
+        p_timezone: devTimezone,
+      },
+    );
 
     if (ratingsError) {
-      console.error("[arena/submit] update_arena_ratings_atomic error:", ratingsError);
+      console.error(
+        "[arena/submit] update_arena_ratings_atomic error:",
+        ratingsError,
+      );
       return NextResponse.json(
         { error: "Failed to update ratings" },
         { status: 500 },

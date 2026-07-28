@@ -16,7 +16,10 @@ type DevLoginRow = {
 // GET /api/arcade/leaderboard?game=10s_classic&limit=10
 export async function GET(req: NextRequest) {
   const game = req.nextUrl.searchParams.get("game") ?? "10s_classic";
-  const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10), 50);
+  const limit = Math.min(
+    parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10),
+    50,
+  );
 
   const sb = getSupabaseAdmin();
   let data: ScoreRow[] = [];
@@ -49,7 +52,9 @@ export async function GET(req: NextRequest) {
 
       const devs = (devRows ?? []) as DevLoginRow[];
       if (devs.length > 0) {
-        loginMap = Object.fromEntries(devs.map((d) => [d.user_id, d.github_login]));
+        loginMap = Object.fromEntries(
+          devs.map((d) => [d.user_id, d.github_login]),
+        );
       }
     } catch (e) {
       console.warn("Could not query developers for leaderboard logins:", e);
@@ -63,7 +68,12 @@ export async function GET(req: NextRequest) {
     attempts: row.attempts,
   }));
 
-  return NextResponse.json({ leaderboard }, {
-    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
-  });
+  return NextResponse.json(
+    { leaderboard },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    },
+  );
 }

@@ -19,7 +19,8 @@ interface FlyScoreDev {
 }
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -101,7 +102,10 @@ export async function POST(request: Request) {
       .single();
 
     if (!existing) {
-      return NextResponse.json({ error: "Existing score not found" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Existing score not found" },
+        { status: 500 },
+      );
     }
 
     const { data: higherDevs } = await admin
@@ -124,15 +128,29 @@ export async function POST(request: Request) {
     uniqueHigher.delete(dev.id);
     const rankToday = uniqueHigher.size + 1;
 
-    const { data: allDevs } = await admin.from("fly_scores").select("developer_id").eq("seed", seed);
-    const totalDevs = new Set((allDevs ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
+    const { data: allDevs } = await admin
+      .from("fly_scores")
+      .select("developer_id")
+      .eq("seed", seed);
+    const totalDevs = new Set(
+      (allDevs ?? []).map((r: FlyScoreDev) => r.developer_id),
+    ).size;
 
-    return NextResponse.json({ id: existing.id, score: existing.score, rank_today: rankToday, total: totalDevs });
+    return NextResponse.json({
+      id: existing.id,
+      score: existing.score,
+      rank_today: rankToday,
+      total: totalDevs,
+    });
   }
 
   const flyXp = Math.floor(score * 0.1);
   if (flyXp > 0) {
-    await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "fly", p_amount: flyXp });
+    await admin.rpc("grant_xp_atomic", {
+      p_developer_id: dev.id,
+      p_source: "fly",
+      p_amount: flyXp,
+    });
   }
 
   await trackDailyMission(dev.id, "fly_score_50", { score });
@@ -158,8 +176,12 @@ export async function POST(request: Request) {
   uniqueHigher.delete(dev.id);
   const rank_today = uniqueHigher.size + 1;
 
-  const { data: allDevs } = await admin.from("fly_scores").select("developer_id").eq("seed", seed);
-  const total = new Set((allDevs ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
+  const { data: allDevs } = await admin
+    .from("fly_scores")
+    .select("developer_id")
+    .eq("seed", seed);
+  const total = new Set((allDevs ?? []).map((r: FlyScoreDev) => r.developer_id))
+    .size;
 
   return NextResponse.json({ id: row?.id, score, rank_today, total });
 }
@@ -173,15 +195,14 @@ export async function GET(request: Request) {
   const [{ data, error }, { data: devIds }] = await Promise.all([
     admin
       .from("fly_scores")
-      .select("score, collected, max_combo, flight_ms, created_at, developer_id, developers!inner(github_login, avatar_url)")
+      .select(
+        "score, collected, max_combo, flight_ms, created_at, developer_id, developers!inner(github_login, avatar_url)",
+      )
       .eq("seed", seed)
       .order("score", { ascending: false })
       .order("flight_ms", { ascending: true })
       .limit(200),
-    admin
-      .from("fly_scores")
-      .select("developer_id")
-      .eq("seed", seed),
+    admin.from("fly_scores").select("developer_id").eq("seed", seed),
   ]);
 
   if (error) {
@@ -194,7 +215,8 @@ export async function GET(request: Request) {
     (data ?? []) as unknown as FlyScoreRow[],
   );
 
-  const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id)).size;
+  const total = new Set((devIds ?? []).map((r: FlyScoreDev) => r.developer_id))
+    .size;
 
   return NextResponse.json(
     { seed, leaderboard, total },

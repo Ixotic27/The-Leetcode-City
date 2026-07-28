@@ -13,12 +13,12 @@ When you're coding, your building glows in the city and you appear in the live f
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `Pulse: Connect` | Link your building to the city |
-| `Pulse: Disconnect` | Unlink your building |
-| `Pulse: Toggle` | Pause/resume your transmitter |
-| `Pulse: Open City` | Open Leetcode City in your browser |
+| Command             | Description                        |
+| ------------------- | ---------------------------------- |
+| `Pulse: Connect`    | Link your building to the city     |
+| `Pulse: Disconnect` | Unlink your building               |
+| `Pulse: Toggle`     | Pause/resume your transmitter      |
+| `Pulse: Open City`  | Open Leetcode City in your browser |
 
 ## Status bar
 
@@ -35,14 +35,14 @@ Click the status bar item to toggle your transmitter on/off.
 
 **You control what gets transmitted.**
 
-| Data | Public? | Can disable? |
-|------|---------|-------------|
-| Username | Yes (your GitHub login) | No (identifies your building) |
-| Language | Yes (e.g. "TypeScript") | Yes, via `leetcodecity.privacy.shareLanguage` |
-| Project name | **No, never public** | Yes, via `leetcodecity.privacy.shareProject` |
-| Branch name | **No, never public** | Excluded with project |
-| File paths | **Never sent** | N/A |
-| Code contents | **Never sent** | N/A |
+| Data          | Public?                 | Can disable?                                  |
+| ------------- | ----------------------- | --------------------------------------------- |
+| Username      | Yes (your GitHub login) | No (identifies your building)                 |
+| Language      | Yes (e.g. "TypeScript") | Yes, via `leetcodecity.privacy.shareLanguage` |
+| Project name  | **No, never public**    | Yes, via `leetcodecity.privacy.shareProject`  |
+| Branch name   | **No, never public**    | Excluded with project                         |
+| File paths    | **Never sent**          | N/A                                           |
+| Code contents | **Never sent**          | N/A                                           |
 
 **What is never collected:** file contents, code, diffs, clipboard, terminal output, file paths, or any intellectual property.
 

@@ -16,7 +16,10 @@ export async function GET() {
       .lt("last_heartbeat", pruneCutoff)
       .then(({ error }) => {
         if (error) {
-          console.warn("[counts] Failed to prune stale active players:", error.message);
+          console.warn(
+            "[counts] Failed to prune stale active players:",
+            error.message,
+          );
         }
       });
 
@@ -39,13 +42,18 @@ export async function GET() {
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string } | null;
     if (err && err.code === "PGRST205") {
-      console.warn("Could not query active players count: 'arcade_active_players' table is missing from schema cache (migration 066 not applied).");
+      console.warn(
+        "Could not query active players count: 'arcade_active_players' table is missing from schema cache (migration 066 not applied).",
+      );
     } else {
       console.warn("Could not query active players count:", e);
     }
   }
 
-  return NextResponse.json({ counts: activeCounts, totalOnline }, {
-    headers: { "Cache-Control": "no-store" },
-  });
+  return NextResponse.json(
+    { counts: activeCounts, totalOnline },
+    {
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
 }

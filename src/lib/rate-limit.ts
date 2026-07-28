@@ -60,7 +60,11 @@ function rateLimitLocal(
       cleanup(true);
     }
     store.set(key, { count: 1, resetAt: now + windowMs });
-    return { ok: true, remaining: Math.max(0, limit - 1), reset: now + windowMs };
+    return {
+      ok: true,
+      remaining: Math.max(0, limit - 1),
+      reset: now + windowMs,
+    };
   }
 
   if (entry.count >= limit) {

@@ -11,7 +11,15 @@ interface BridgeProps {
 }
 
 // Helper to draw a dashed lane divider
-function RoadMarkings({ start, end, y = 0.2 }: { start: THREE.Vector3; end: THREE.Vector3; y?: number }) {
+function RoadMarkings({
+  start,
+  end,
+  y = 0.2,
+}: {
+  start: THREE.Vector3;
+  end: THREE.Vector3;
+  y?: number;
+}) {
   return useMemo(() => {
     const markings: React.ReactNode[] = [];
     const dir = new THREE.Vector3().subVectors(end, start);
@@ -35,7 +43,7 @@ function RoadMarkings({ start, end, y = 0.2 }: { start: THREE.Vector3; end: THRE
             emissiveIntensity={1.2}
             toneMapped={false}
           />
-        </mesh>
+        </mesh>,
       );
     }
     return <>{markings}</>;
@@ -43,13 +51,22 @@ function RoadMarkings({ start, end, y = 0.2 }: { start: THREE.Vector3; end: THRE
 }
 
 // ─── 1. Suspension Bridge (Golden Gate / LeetCode Style) ───────────
-export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeProps) {
+export function SuspensionBridge({
+  start: startCoords,
+  end: endCoords,
+}: BridgeProps) {
   const start = useMemo(() => new THREE.Vector3(...startCoords), [startCoords]);
   const end = useMemo(() => new THREE.Vector3(...endCoords), [endCoords]);
-  const dir = useMemo(() => new THREE.Vector3().subVectors(end, start), [start, end]);
+  const dir = useMemo(
+    () => new THREE.Vector3().subVectors(end, start),
+    [start, end],
+  );
   const length = useMemo(() => dir.length(), [dir]);
   const angle = useMemo(() => Math.atan2(dir.x, dir.z), [dir]);
-  const center = useMemo(() => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5), [start, end]);
+  const center = useMemo(
+    () => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5),
+    [start, end],
+  );
 
   // Towers are placed at 22% and 78% of the span
   const towerPositions = useMemo(() => {
@@ -63,15 +80,17 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
     const mainCableSegments: React.ReactNode[] = [];
     const suspenders: React.ReactNode[] = [];
     const segmentsCount = 16;
-    
+
     // Bridge relative vectors for side offset
-    const rightOffset = new THREE.Vector3(dir.z, 0, -dir.x).normalize().multiplyScalar(15);
+    const rightOffset = new THREE.Vector3(dir.z, 0, -dir.x)
+      .normalize()
+      .multiplyScalar(15);
 
     // Towers coordinates
     const [t1, t2] = towerPositions;
     const tower1X = 0.22 * length;
     const tower2X = 0.78 * length;
-    
+
     // Parabolic main cable height profile along span
     const getCableHeight = (xDist: number) => {
       if (xDist < tower1X) {
@@ -96,10 +115,14 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
     for (let i = 0; i < segmentsCount; i++) {
       const d1 = (i / segmentsCount) * length;
       const d2 = ((i + 1) / segmentsCount) * length;
-      
-      const p1Base = new THREE.Vector3().addScaledVector(dir, i / segmentsCount).add(start);
-      const p2Base = new THREE.Vector3().addScaledVector(dir, (i + 1) / segmentsCount).add(start);
-      
+
+      const p1Base = new THREE.Vector3()
+        .addScaledVector(dir, i / segmentsCount)
+        .add(start);
+      const p2Base = new THREE.Vector3()
+        .addScaledVector(dir, (i + 1) / segmentsCount)
+        .add(start);
+
       const h1 = getCableHeight(d1);
       const h2 = getCableHeight(d2);
 
@@ -113,7 +136,9 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
 
         const segDir = new THREE.Vector3().subVectors(p2, p1);
         const segLen = segDir.length();
-        const segCenter = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+        const segCenter = new THREE.Vector3()
+          .addVectors(p1, p2)
+          .multiplyScalar(0.5);
 
         // Angle calculation for segments
         const yaw = Math.atan2(segDir.x, segDir.z);
@@ -132,7 +157,7 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
               emissiveIntensity={2.5}
               toneMapped={false}
             />
-          </mesh>
+          </mesh>,
         );
 
         // Vertical suspender drop line (if inside the anchorage zones)
@@ -154,7 +179,7 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
                   emissiveIntensity={0.8}
                   toneMapped={false}
                 />
-              </mesh>
+              </mesh>,
             );
           }
         }
@@ -167,20 +192,19 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
   return (
     <group>
       {/* 1. Road Deck */}
-      <mesh
-        position={[center.x, 3, center.z]}
-        rotation={[0, angle, 0]}
-      >
+      <mesh position={[center.x, 3, center.z]} rotation={[0, angle, 0]}>
         <boxGeometry args={[32, 2, length]} />
         <meshStandardMaterial color="#2d2d30" roughness={0.9} />
       </mesh>
-      
+
       {/* Road Markings */}
       <RoadMarkings start={start} end={end} y={4.1} />
 
       {/* Bridge Side Barriers (LeetCode Orange glow rails) */}
       {[-1, 1].map((side) => {
-        const perp = new THREE.Vector3(dir.z, 0, -dir.x).normalize().multiplyScalar(15.5 * side);
+        const perp = new THREE.Vector3(dir.z, 0, -dir.x)
+          .normalize()
+          .multiplyScalar(15.5 * side);
         const barrierPos = center.clone().add(perp);
         return (
           <mesh
@@ -196,7 +220,11 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
 
       {/* 2. Architectural Towers (Indian Style Pillar/Arch) */}
       {towerPositions.map((tPos, idx) => (
-        <group key={`tower-${idx}`} position={[tPos.x, 0, tPos.z]} rotation={[0, angle, 0]}>
+        <group
+          key={`tower-${idx}`}
+          position={[tPos.x, 0, tPos.z]}
+          rotation={[0, angle, 0]}
+        >
           {/* Main columns left & right */}
           {[-16, 16].map((columnOffset) => (
             <group key={columnOffset} position={[columnOffset, 0, 0]}>
@@ -214,7 +242,12 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
               {[40, 80, 120, 160].map((h) => (
                 <mesh key={h} position={[0, h, 0]}>
                   <boxGeometry args={[9.5, 2, 9.5]} />
-                  <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={1.5} toneMapped={false} />
+                  <meshStandardMaterial
+                    color="#ffa116"
+                    emissive="#ffa116"
+                    emissiveIntensity={1.5}
+                    toneMapped={false}
+                  />
                 </mesh>
               ))}
               {/* Top cupola dome (Indian style) */}
@@ -224,7 +257,12 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
               </mesh>
               <mesh position={[0, 196, 0]}>
                 <sphereGeometry args={[3.5, 8, 6]} />
-                <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={3} toneMapped={false} />
+                <meshStandardMaterial
+                  color="#ffa116"
+                  emissive="#ffa116"
+                  emissiveIntensity={3}
+                  toneMapped={false}
+                />
               </mesh>
             </group>
           ))}
@@ -236,7 +274,7 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
               <meshStandardMaterial color="#d1c5b0" roughness={0.7} />
             </mesh>
           ))}
-          
+
           {/* Glowing Arch badge */}
           <mesh position={[0, 168, 2.6]}>
             <boxGeometry args={[16, 6, 0.4]} />
@@ -244,7 +282,12 @@ export function SuspensionBridge({ start: startCoords, end: endCoords }: BridgeP
           </mesh>
           <mesh position={[0, 168, 2.9]}>
             <boxGeometry args={[14, 3, 0.1]} />
-            <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={2.5} toneMapped={false} />
+            <meshStandardMaterial
+              color="#ffa116"
+              emissive="#ffa116"
+              emissiveIntensity={2.5}
+              toneMapped={false}
+            />
           </mesh>
         </group>
       ))}
@@ -268,7 +311,7 @@ function SignboardText({ text }: { text: string }) {
     canvas.width = 512;
     canvas.height = 128;
     const ctx = canvas.getContext("2d")!;
-    
+
     ctx.fillStyle = "#0c2813";
     ctx.fillRect(0, 0, 512, 128);
 
@@ -303,13 +346,23 @@ export interface HighwayFlyoverProps {
   labelText?: string;
 }
 
-export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }: HighwayFlyoverProps) {
+export function HighwayFlyover({
+  start: startCoords,
+  end: endCoords,
+  labelText,
+}: HighwayFlyoverProps) {
   const start = useMemo(() => new THREE.Vector3(...startCoords), [startCoords]);
   const end = useMemo(() => new THREE.Vector3(...endCoords), [endCoords]);
-  const dir = useMemo(() => new THREE.Vector3().subVectors(end, start), [start, end]);
+  const dir = useMemo(
+    () => new THREE.Vector3().subVectors(end, start),
+    [start, end],
+  );
   const length = useMemo(() => dir.length(), [dir]);
   const angle = useMemo(() => Math.atan2(dir.x, dir.z), [dir]);
-  const center = useMemo(() => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5), [start, end]);
+  const center = useMemo(
+    () => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5),
+    [start, end],
+  );
 
   const pillarsAndLamps = useMemo(() => {
     const pillars: React.ReactNode[] = [];
@@ -320,28 +373,36 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
 
     for (let d = 50; d < length - 50; d += step) {
       const pos = new THREE.Vector3().addScaledVector(normDir, d).add(start);
-      
+
       // Concrete pillar supporting the flyover deck at Y=15
       pillars.push(
         <mesh key={`pillar-${d}`} position={[pos.x, 7.5, pos.z]}>
           <cylinderGeometry args={[2.5, 3.2, 15, 6]} />
           <meshStandardMaterial color="#888c94" roughness={0.8} />
-        </mesh>
+        </mesh>,
       );
 
       // Support crossbeam
       pillars.push(
-        <mesh key={`crossbeam-${d}`} position={[pos.x, 14, pos.z]} rotation={[0, angle, 0]}>
+        <mesh
+          key={`crossbeam-${d}`}
+          position={[pos.x, 14, pos.z]}
+          rotation={[0, angle, 0]}
+        >
           <boxGeometry args={[22, 2, 4]} />
           <meshStandardMaterial color="#747880" roughness={0.85} />
-        </mesh>
+        </mesh>,
       );
 
       // Street lamps on sides
       [-1, 1].forEach((side) => {
         const sidePos = pos.clone().addScaledVector(rightOffset, 12 * side);
         lamps.push(
-          <group key={`lamp-${d}-${side}`} position={[sidePos.x, 15, sidePos.z]} rotation={[0, angle + (side > 0 ? 0 : Math.PI), 0]}>
+          <group
+            key={`lamp-${d}-${side}`}
+            position={[sidePos.x, 15, sidePos.z]}
+            rotation={[0, angle + (side > 0 ? 0 : Math.PI), 0]}
+          >
             {/* Lamp post */}
             <mesh position={[0, 8, 0]}>
               <cylinderGeometry args={[0.2, 0.35, 16, 5]} />
@@ -355,9 +416,14 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
             {/* Glowing lantern */}
             <mesh position={[3.5, 14.5, 0]}>
               <sphereGeometry args={[0.9, 8, 6]} />
-              <meshStandardMaterial color="#ffc107" emissive="#ffc107" emissiveIntensity={3} toneMapped={false} />
+              <meshStandardMaterial
+                color="#ffc107"
+                emissive="#ffc107"
+                emissiveIntensity={3}
+                toneMapped={false}
+              />
             </mesh>
-          </group>
+          </group>,
         );
       });
     }
@@ -376,10 +442,12 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
         <boxGeometry args={[20, 1.2, length]} />
         <meshStandardMaterial color="#3e4147" roughness={0.85} />
       </mesh>
-      
+
       {/* Side barrier walls */}
       {[-1, 1].map((side) => {
-        const perp = new THREE.Vector3(dir.z, 0, -dir.x).normalize().multiplyScalar(9.6 * side);
+        const perp = new THREE.Vector3(dir.z, 0, -dir.x)
+          .normalize()
+          .multiplyScalar(9.6 * side);
         const barrierPos = center.clone().add(perp);
         return (
           <mesh
@@ -401,7 +469,10 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
       {pillarsAndLamps.lamps}
 
       {/* Highway signs */}
-      <group position={[signboardPos.x, signboardPos.y, signboardPos.z]} rotation={[0, angle, 0]}>
+      <group
+        position={[signboardPos.x, signboardPos.y, signboardPos.z]}
+        rotation={[0, angle, 0]}
+      >
         {/* Support structure */}
         <mesh position={[-9, -8, 0]}>
           <cylinderGeometry args={[0.3, 0.35, 18, 5]} />
@@ -411,7 +482,7 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
           <cylinderGeometry args={[0.3, 0.35, 18, 5]} />
           <meshStandardMaterial color="#2d2d30" />
         </mesh>
-        
+
         {/* Signboard */}
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[18, 5, 0.4]} />
@@ -420,7 +491,12 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
         {/* Glow neon border */}
         <mesh position={[0, 0, 0.22]}>
           <boxGeometry args={[17.4, 4.4, 0.05]} />
-          <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={1.5} toneMapped={false} />
+          <meshStandardMaterial
+            color="#ffa116"
+            emissive="#ffa116"
+            emissiveIntensity={1.5}
+            toneMapped={false}
+          />
         </mesh>
         {/* Sign text label background */}
         <mesh position={[0, 0, 0.25]}>
@@ -434,13 +510,22 @@ export function HighwayFlyover({ start: startCoords, end: endCoords, labelText }
 }
 
 // ─── 3. Jungle/Forest Corridor ───────────────────────────────────
-export function JungleCorridor({ start: startCoords, end: endCoords }: BridgeProps) {
+export function JungleCorridor({
+  start: startCoords,
+  end: endCoords,
+}: BridgeProps) {
   const start = useMemo(() => new THREE.Vector3(...startCoords), [startCoords]);
   const end = useMemo(() => new THREE.Vector3(...endCoords), [endCoords]);
-  const dir = useMemo(() => new THREE.Vector3().subVectors(end, start), [start, end]);
+  const dir = useMemo(
+    () => new THREE.Vector3().subVectors(end, start),
+    [start, end],
+  );
   const length = useMemo(() => dir.length(), [dir]);
   const angle = useMemo(() => Math.atan2(dir.x, dir.z), [dir]);
-  const center = useMemo(() => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5), [start, end]);
+  const center = useMemo(
+    () => new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5),
+    [start, end],
+  );
 
   // Forest foliage scattering along the road corridor
   const trees = useMemo(() => {
@@ -458,15 +543,15 @@ export function JungleCorridor({ start: startCoords, end: endCoords }: BridgePro
     for (let i = 0; i < treeCount; i++) {
       const dist = (i / treeCount) * length;
       const pos = new THREE.Vector3().addScaledVector(normDir, dist).add(start);
-      
+
       // Place tree randomly on the left or right side of the road corridor
       const side = prng(i * 351 + 79) > 0.5 ? 1 : -1;
       const offDist = 18 + prng(i * 773 + 13) * 35; // keep road clear
       const treePos = pos.clone().addScaledVector(rightOffset, offDist * side);
-      
+
       const height = 12 + prng(i * 123) * 18;
       const width = 6 + prng(i * 456) * 8;
-      
+
       list.push(
         <group key={`jtree-${i}`} position={[treePos.x, 0, treePos.z]}>
           {/* Trunk */}
@@ -483,10 +568,17 @@ export function JungleCorridor({ start: startCoords, end: endCoords }: BridgePro
           {prng(i * 888) > 0.6 && (
             <mesh position={[0, height + 4, 0]}>
               <sphereGeometry args={[width * 0.3, 5, 4]} />
-              <meshStandardMaterial color="#22c87a" emissive="#22c87a" emissiveIntensity={2.5} toneMapped={false} transparent opacity={0.6} />
+              <meshStandardMaterial
+                color="#22c87a"
+                emissive="#22c87a"
+                emissiveIntensity={2.5}
+                toneMapped={false}
+                transparent
+                opacity={0.6}
+              />
             </mesh>
           )}
-        </group>
+        </group>,
       );
     }
     return list;
@@ -499,10 +591,10 @@ export function JungleCorridor({ start: startCoords, end: endCoords }: BridgePro
         <boxGeometry args={[16, 0.2, length]} />
         <meshStandardMaterial color="#232529" roughness={0.95} />
       </mesh>
-      
+
       {/* Road Markings */}
       <RoadMarkings start={start} end={end} y={0.22} />
-      
+
       {/* Surrounding Forest */}
       {trees}
     </group>
@@ -518,45 +610,98 @@ export default function InterCityConnections() {
     const o = DISTRICT_ORIGINS;
 
     // Connect Downtown (Bengaluru) to all main suburbs
-    
+
     // 1. Downtown to Mumbai (frontend) - Suspension Bridge
     if (o.downtown && o.frontend) {
-      list.push(<SuspensionBridge key="bengaluru-mumbai" start={o.downtown} end={o.frontend} />);
+      list.push(
+        <SuspensionBridge
+          key="bengaluru-mumbai"
+          start={o.downtown}
+          end={o.frontend}
+        />,
+      );
     }
 
     // 2. Downtown to Hyderabad (backend) - Highway Flyover
     if (o.downtown && o.backend) {
-      list.push(<HighwayFlyover key="bengaluru-hyderabad" start={o.downtown} end={o.backend} labelText="HYDERABAD 2.5 KM ->" />);
+      list.push(
+        <HighwayFlyover
+          key="bengaluru-hyderabad"
+          start={o.downtown}
+          end={o.backend}
+          labelText="HYDERABAD 2.5 KM ->"
+        />,
+      );
     }
- 
+
     // 3. Downtown to Pune (mobile) - Highway Flyover
     if (o.downtown && o.mobile) {
-      list.push(<HighwayFlyover key="bengaluru-pune" start={o.downtown} end={o.mobile} labelText="PUNE 1.8 KM ->" />);
+      list.push(
+        <HighwayFlyover
+          key="bengaluru-pune"
+          start={o.downtown}
+          end={o.mobile}
+          labelText="PUNE 1.8 KM ->"
+        />,
+      );
     }
- 
+
     // 4. Mumbai (frontend) to Chennai (security) - Jungle Corridor
     if (o.frontend && o.security) {
-      list.push(<JungleCorridor key="mumbai-chennai" start={o.frontend} end={o.security} />);
+      list.push(
+        <JungleCorridor
+          key="mumbai-chennai"
+          start={o.frontend}
+          end={o.security}
+        />,
+      );
     }
- 
+
     // 5. Hyderabad (backend) to Chennai (security) - Highway Flyover
     if (o.backend && o.security) {
-      list.push(<HighwayFlyover key="hyderabad-chennai" start={o.backend} end={o.security} labelText="CHENNAI 3.2 KM ->" />);
+      list.push(
+        <HighwayFlyover
+          key="hyderabad-chennai"
+          start={o.backend}
+          end={o.security}
+          labelText="CHENNAI 3.2 KM ->"
+        />,
+      );
     }
- 
+
     // 6. Mumbai (frontend) to Ahmedabad (data_ai) - Suspension Bridge
     if (o.frontend && o.data_ai) {
-      list.push(<SuspensionBridge key="mumbai-ahmedabad" start={o.frontend} end={o.data_ai} />);
+      list.push(
+        <SuspensionBridge
+          key="mumbai-ahmedabad"
+          start={o.frontend}
+          end={o.data_ai}
+        />,
+      );
     }
- 
+
     // 7. Pune (mobile) to Ahmedabad (data_ai) - Highway Flyover
     if (o.mobile && o.data_ai) {
-      list.push(<HighwayFlyover key="pune-ahmedabad" start={o.mobile} end={o.data_ai} labelText="MUMBAI 4.1 KM ->" />);
+      list.push(
+        <HighwayFlyover
+          key="pune-ahmedabad"
+          start={o.mobile}
+          end={o.data_ai}
+          labelText="MUMBAI 4.1 KM ->"
+        />,
+      );
     }
- 
+
     // 8. Pune (mobile) to Kolkata (devops) - Highway Flyover
     if (o.mobile && o.devops) {
-      list.push(<HighwayFlyover key="pune-kolkata" start={o.mobile} end={o.devops} labelText="KOLKATA 5.0 KM ->" />);
+      list.push(
+        <HighwayFlyover
+          key="pune-kolkata"
+          start={o.mobile}
+          end={o.devops}
+          labelText="KOLKATA 5.0 KM ->"
+        />,
+      );
     }
 
     return list;

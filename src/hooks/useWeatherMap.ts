@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { fetchWeatherByCoords } from '@/services/weatherService';
+import { useState, useEffect } from "react";
+import useSWR from "swr";
+import { fetchWeatherByCoords } from "@/services/weatherService";
 
 export function useWeatherMap() {
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(() =>
-    typeof navigator !== 'undefined' && !navigator.geolocation
-      ? 'Geolocation is not supported by your browser'
-      : null
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
+    null,
   );
-  const [isGeoLoading, setIsGeoLoading] = useState(() =>
-    typeof navigator !== 'undefined' && !!navigator.geolocation
+  const [geoError, setGeoError] = useState<string | null>(() =>
+    typeof navigator !== "undefined" && !navigator.geolocation
+      ? "Geolocation is not supported by your browser"
+      : null,
+  );
+  const [isGeoLoading, setIsGeoLoading] = useState(
+    () => typeof navigator !== "undefined" && !!navigator.geolocation,
   );
 
   useEffect(() => {
@@ -30,24 +32,33 @@ export function useWeatherMap() {
         if (cancel) return;
         setGeoError(err.message);
         setIsGeoLoading(false);
-      }
+      },
     );
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, []);
 
-  const { data, error, isLoading: isSWRILoading } = useSWR(
-    coords ? ['weather', coords.lat, coords.lon] : null,
+  const {
+    data,
+    error,
+    isLoading: isSWRILoading,
+  } = useSWR(
+    coords ? ["weather", coords.lat, coords.lon] : null,
     () => fetchWeatherByCoords(coords!.lat, coords!.lon),
-    { refreshInterval: 600000 }
+    { refreshInterval: 600000 },
   );
 
   const weatherId = data?.weather?.[0]?.id;
-  const isRaining = weatherId !== undefined && weatherId >= 200 && weatherId < 600;
+  const isRaining =
+    weatherId !== undefined && weatherId >= 200 && weatherId < 600;
 
   const errorMessage = geoError
     ? geoError
     : error
-      ? (error instanceof Error ? error.message : String(error))
+      ? error instanceof Error
+        ? error.message
+        : String(error)
       : null;
 
   const isLoading = isGeoLoading || (isSWRILoading && !geoError);

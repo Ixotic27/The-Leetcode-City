@@ -7,19 +7,25 @@ import { createBrowserSupabase } from "@/lib/supabase";
 // Context: single auth fetch shared by all badges + user position
 const AuthLoginContext = createContext<string>("");
 
-export function LeaderboardAuthProvider({ children }: { children: React.ReactNode }) {
+export function LeaderboardAuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [authLogin, setAuthLogin] = useState("");
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
-      const login = (
-        user?.user_metadata?.user_name ??
-        user?.user_metadata?.preferred_username ??
-        ""
-      ).toLowerCase();
-      setAuthLogin(login);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data: { user } }: { data: { user: User | null } }) => {
+        const login = (
+          user?.user_metadata?.user_name ??
+          user?.user_metadata?.preferred_username ??
+          ""
+        ).toLowerCase();
+        setAuthLogin(login);
+      });
   }, []);
 
   return (

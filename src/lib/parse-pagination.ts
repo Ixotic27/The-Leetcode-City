@@ -12,7 +12,7 @@
 export function parsePagination(
   rawLimit: string | null,
   rawOffset: string | null,
-  defaultLimit = 20
+  defaultLimit = 20,
 ): { limit: number; offset: number } {
   const parsedLimit = parseInt(rawLimit ?? "", 10);
   const limit = Number.isNaN(parsedLimit)

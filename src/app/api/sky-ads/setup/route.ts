@@ -32,8 +32,10 @@ export async function POST(request: NextRequest) {
   };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/sky-ads/setup/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/sky-ads/setup/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const { token } = body;
 
   if (!token || typeof token !== "string" || token.length < 10) {
@@ -66,7 +68,10 @@ export async function POST(request: NextRequest) {
     }
     const modText = containsBlockedContent(safeText);
     if (modText.blocked) {
-      return NextResponse.json({ error: modText.reason ?? "Text not allowed" }, { status: 400 });
+      return NextResponse.json(
+        { error: modText.reason ?? "Text not allowed" },
+        { status: 400 },
+      );
     }
     update.text = safeText;
   }
@@ -76,7 +81,10 @@ export async function POST(request: NextRequest) {
     if (safeBrand) {
       const modBrand = containsBlockedContent(safeBrand);
       if (modBrand.blocked) {
-        return NextResponse.json({ error: modBrand.reason ?? "Brand not allowed" }, { status: 400 });
+        return NextResponse.json(
+          { error: modBrand.reason ?? "Brand not allowed" },
+          { status: 400 },
+        );
       }
     }
     update.brand = safeBrand || null;
@@ -87,7 +95,10 @@ export async function POST(request: NextRequest) {
     if (safeDesc) {
       const modDesc = containsBlockedContent(safeDesc);
       if (modDesc.blocked) {
-        return NextResponse.json({ error: modDesc.reason ?? "Description not allowed" }, { status: 400 });
+        return NextResponse.json(
+          { error: modDesc.reason ?? "Description not allowed" },
+          { status: 400 },
+        );
       }
     }
     update.description = safeDesc || null;
@@ -102,7 +113,10 @@ export async function POST(request: NextRequest) {
       );
     }
     if (safeLink && isSuspiciousLink(safeLink)) {
-      return NextResponse.json({ error: "This link is not allowed" }, { status: 400 });
+      return NextResponse.json(
+        { error: "This link is not allowed" },
+        { status: 400 },
+      );
     }
     update.link = safeLink || null;
   }

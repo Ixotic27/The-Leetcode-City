@@ -52,7 +52,7 @@ export async function toggleVote(itemId: string) {
         developer_id: dev.id,
         item_id: itemId,
       },
-      { onConflict: "developer_id,item_id", ignoreDuplicates: true }
+      { onConflict: "developer_id,item_id", ignoreDuplicates: true },
     );
   }
 

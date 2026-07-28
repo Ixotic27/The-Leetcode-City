@@ -272,8 +272,8 @@ export default memo(function InstancedLabels({
       const row = Math.floor(i / ATLAS_COLS);
 
       // UV: offset + repeat for this cell
-      uv[i * 4 + 0] = col * CELL_W / ATLAS_SIZE;
-      uv[i * 4 + 1] = row * CELL_H / ATLAS_SIZE;
+      uv[i * 4 + 0] = (col * CELL_W) / ATLAS_SIZE;
+      uv[i * 4 + 1] = (row * CELL_H) / ATLAS_SIZE;
       uv[i * 4 + 2] = CELL_W / ATLAS_SIZE;
       uv[i * 4 + 3] = CELL_H / ATLAS_SIZE;
 
@@ -318,11 +318,14 @@ export default memo(function InstancedLabels({
   // Pre-compute lowercased logins (avoid 1000+ toLowerCase calls per tick)
   const loginsLower = useMemo(
     () => buildings.slice(0, count).map((b) => b.login.toLowerCase()),
-    [buildings, count]
+    [buildings, count],
   );
 
   // Spatial grid for fast nearby-building queries
-  const grid = useMemo(() => new SpatialGrid2D(buildings, count), [buildings, count]);
+  const grid = useMemo(
+    () => new SpatialGrid2D(buildings, count),
+    [buildings, count],
+  );
 
   // Throttled target alphas + per-frame lerp
   const targetAlphas = useRef<Float32Array | null>(null);
@@ -332,7 +335,9 @@ export default memo(function InstancedLabels({
   useFrame(({ camera, clock }) => {
     const mesh = meshRef.current;
     if (!mesh) return;
-    const alphaAttr = mesh.geometry.getAttribute("aAlpha") as THREE.InstancedBufferAttribute;
+    const alphaAttr = mesh.geometry.getAttribute(
+      "aAlpha",
+    ) as THREE.InstancedBufferAttribute;
     if (!alphaAttr) return;
     const arr = alphaAttr.array as Float32Array;
 
@@ -363,7 +368,8 @@ export default memo(function InstancedLabels({
           // Focus mode: dim all, highlight focused (must check all labels)
           for (let i = 0; i < count; i++) {
             const loginLow = loginsLower[i];
-            const isFocused = loginLow === focusedLower || loginLow === focusedBLower;
+            const isFocused =
+              loginLow === focusedLower || loginLow === focusedBLower;
             targets[i] = isFocused ? 0 : 0.15;
           }
         } else {

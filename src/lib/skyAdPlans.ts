@@ -97,19 +97,27 @@ export function isValidPlanId(id: string): id is SkyAdPlanId {
   return id in SKY_AD_PLANS;
 }
 
-export function getFullPriceCents(planId: SkyAdPlanId, currency: AdCurrency): number {
+export function getFullPriceCents(
+  planId: SkyAdPlanId,
+  currency: AdCurrency,
+): number {
   const plan = SKY_AD_PLANS[planId];
   return currency === "brl" ? plan.brl_cents : plan.usd_cents;
 }
 
-export function getPriceCents(planId: SkyAdPlanId, currency: AdCurrency): number {
+export function getPriceCents(
+  planId: SkyAdPlanId,
+  currency: AdCurrency,
+): number {
   const full = getFullPriceCents(planId, currency);
   return Math.round(full * PROMO_DISCOUNT);
 }
 
 export function formatPrice(cents: number, currency: AdCurrency): string {
   const value = cents / 100;
-  const formatted = Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2);
+  const formatted = Number.isInteger(value)
+    ? value.toFixed(0)
+    : value.toFixed(2);
   if (currency === "brl") return `R$${formatted}`;
   return `$${formatted}`;
 }

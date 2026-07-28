@@ -23,7 +23,7 @@ describe("sendAchievementNotification", () => {
       expect.objectContaining({
         dedupKey: "achievement:42:gold_ach",
         title: "Achievement Unlocked: Gold Achievement (gold)",
-      })
+      }),
     );
   });
 
@@ -39,7 +39,7 @@ describe("sendAchievementNotification", () => {
       expect.objectContaining({
         dedupKey: "achievement_batch:42:diamond_ach|gold_ach",
         title: "2 Achievements Unlocked!",
-      })
+      }),
     );
   });
 });

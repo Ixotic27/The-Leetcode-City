@@ -5,10 +5,22 @@ export interface Track {
 }
 
 export const TRACKS: Track[] = [
-  { id: "midnight-commit", title: "Midnight Commit", src: "/audio/midnight-commit.mp3" },
+  {
+    id: "midnight-commit",
+    title: "Midnight Commit",
+    src: "/audio/midnight-commit.mp3",
+  },
   { id: "push-to-prod", title: "Push to Prod", src: "/audio/push-to-prod.mp3" },
-  { id: "merge-conflict", title: "Merge Conflict", src: "/audio/merge-conflict.mp3" },
-  { id: "refactor-rain", title: "Refactor Rain", src: "/audio/refactor-rain.mp3" },
+  {
+    id: "merge-conflict",
+    title: "Merge Conflict",
+    src: "/audio/merge-conflict.mp3",
+  },
+  {
+    id: "refactor-rain",
+    title: "Refactor Rain",
+    src: "/audio/refactor-rain.mp3",
+  },
 ];
 
 export interface RadioState {
@@ -19,7 +31,11 @@ export interface RadioState {
 
 const STORAGE_KEY = "gc_radio";
 
-const DEFAULT_STATE: RadioState = { volume: 0.15, trackIndex: 0, shuffle: false };
+const DEFAULT_STATE: RadioState = {
+  volume: 0.15,
+  trackIndex: 0,
+  shuffle: false,
+};
 
 export function loadRadioState(): RadioState {
   if (typeof window === "undefined") return DEFAULT_STATE;

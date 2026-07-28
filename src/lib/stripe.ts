@@ -100,7 +100,8 @@ export async function createPixelCheckoutSession(
   if (!pkg) throw new Error("Package not found");
 
   const stripe = getStripe();
-  const unitAmount = currency === "brl" ? pkg.price_brl_cents : pkg.price_usd_cents;
+  const unitAmount =
+    currency === "brl" ? pkg.price_brl_cents : pkg.price_usd_cents;
   const totalPx = pkg.pixels + pkg.bonus_pixels;
 
   const session = await stripe.checkout.sessions.create({
@@ -133,4 +134,3 @@ export async function createPixelCheckoutSession(
 
   return { url: session.url!, sessionId: session.id };
 }
-

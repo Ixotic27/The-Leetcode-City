@@ -6,7 +6,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  */
 export async function POST(request: Request) {
   // Must be logged in
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
   if (!dev?.claimed) {
     return NextResponse.json(
       { error: "You must claim your building first to redeem codes." },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -33,8 +34,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     code = (body.code ?? "").trim().toUpperCase();
-  } catch (err) { console.warn("[app/api/shop/redeem/route.ts] error:", err); return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/shop/redeem/route.ts] error:", err);
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
+  }
   if (!code) {
     return NextResponse.json({ error: "No code provided" }, { status: 400 });
   }
@@ -47,21 +53,33 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (!redeemCode) {
-    return NextResponse.json({ error: "Invalid or expired code." }, { status: 404 });
+    return NextResponse.json(
+      { error: "Invalid or expired code." },
+      { status: 404 },
+    );
   }
 
   // Check expiry
   if (redeemCode.expires_at && new Date(redeemCode.expires_at) < new Date()) {
     // Delete expired code to clean up
     await sb.from("redeem_codes").delete().eq("id", redeemCode.id);
-    return NextResponse.json({ error: "This code has expired." }, { status: 410 });
+    return NextResponse.json(
+      { error: "This code has expired." },
+      { status: 410 },
+    );
   }
 
   // Check uses remaining (max_uses = -1 means unlimited)
-  if (redeemCode.max_uses !== -1 && redeemCode.used_count >= redeemCode.max_uses) {
+  if (
+    redeemCode.max_uses !== -1 &&
+    redeemCode.used_count >= redeemCode.max_uses
+  ) {
     // All uses exhausted — clean up
     await sb.from("redeem_codes").delete().eq("id", redeemCode.id);
-    return NextResponse.json({ error: "This code has already been fully used." }, { status: 409 });
+    return NextResponse.json(
+      { error: "This code has already been fully used." },
+      { status: 409 },
+    );
   }
 
   const itemId = redeemCode.item_id;
@@ -74,7 +92,10 @@ export async function POST(request: Request) {
     .single();
 
   if (!item || !item.is_active) {
-    return NextResponse.json({ error: "The item linked to this code is no longer available." }, { status: 410 });
+    return NextResponse.json(
+      { error: "The item linked to this code is no longer available." },
+      { status: 410 },
+    );
   }
 
   // Check user doesn't already own it
@@ -87,7 +108,10 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existing) {
-    return NextResponse.json({ error: `You already own "${item.name}".` }, { status: 409 });
+    return NextResponse.json(
+      { error: `You already own "${item.name}".` },
+      { status: 409 },
+    );
   }
 
   // Grant the item — insert a completed purchase with amount 0
@@ -102,7 +126,10 @@ export async function POST(request: Request) {
   });
 
   if (purchaseError) {
-    return NextResponse.json({ error: "Failed to grant item. Please try again." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to grant item. Please try again." },
+      { status: 500 },
+    );
   }
 
   // Atomically increment used_count — only succeeds if uses still remain
@@ -118,11 +145,16 @@ export async function POST(request: Request) {
 
   if (!atomicUpdate) {
     // Another concurrent request already incremented — this request loses the race
-    return NextResponse.json({ error: "This code has already been fully used." }, { status: 409 });
+    return NextResponse.json(
+      { error: "This code has already been fully used." },
+      { status: 409 },
+    );
   }
 
   // Clean up if now fully exhausted
-  const fullyUsed = atomicUpdate.max_uses !== -1 && atomicUpdate.used_count >= atomicUpdate.max_uses;
+  const fullyUsed =
+    atomicUpdate.max_uses !== -1 &&
+    atomicUpdate.used_count >= atomicUpdate.max_uses;
   if (fullyUsed) {
     await sb.from("redeem_codes").delete().eq("id", atomicUpdate.id);
   }

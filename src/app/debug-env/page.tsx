@@ -8,9 +8,8 @@ export default function DebugEnv() {
           email: process.env.VAPID_EMAIL,
         },
         null,
-        2
+        2,
       )}
     </pre>
   );
 }
-

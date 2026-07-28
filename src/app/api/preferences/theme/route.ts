@@ -14,7 +14,10 @@ export async function GET() {
   });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const dev = auth.developer;
@@ -40,13 +43,21 @@ export async function PATCH(request: Request) {
   });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const body = await request.json();
   const theme = body.city_theme;
 
-  if (typeof theme !== "number" || theme < 0 || theme > MAX_THEME || !Number.isInteger(theme)) {
+  if (
+    typeof theme !== "number" ||
+    theme < 0 ||
+    theme > MAX_THEME ||
+    !Number.isInteger(theme)
+  ) {
     return NextResponse.json({ error: "Invalid theme index" }, { status: 400 });
   }
 

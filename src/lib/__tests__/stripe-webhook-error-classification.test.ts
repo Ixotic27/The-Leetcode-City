@@ -18,10 +18,12 @@ interface PurchaseRow {
  *  - throw a BusinessLogicError (item not found, already owned)
  */
 async function mockFulfill(
-  mode: "success" | "infra-error" | "business-error"
+  mode: "success" | "infra-error" | "business-error",
 ): Promise<{ status: "completed" | "delivered" }> {
   if (mode === "infra-error") {
-    throw new InfrastructureError("Supabase RPC timed out", { code: "PGRST_TIMEOUT" });
+    throw new InfrastructureError("Supabase RPC timed out", {
+      code: "PGRST_TIMEOUT",
+    });
   }
   if (mode === "business-error") {
     throw new BusinessLogicError("Item not found in catalog");
@@ -85,7 +87,9 @@ describe("Webhook catch block — InfrastructureError → 500", () => {
   });
 
   it("returns 500 for nested RPC failures wrapped as InfrastructureError", async () => {
-    const err = new InfrastructureError("grant_streak_freeze failed", { code: "500" });
+    const err = new InfrastructureError("grant_streak_freeze failed", {
+      code: "500",
+    });
     expect(webhookResponseStatus(err)).toBe(500);
   });
 });

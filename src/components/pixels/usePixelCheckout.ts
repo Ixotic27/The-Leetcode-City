@@ -136,7 +136,13 @@ export function usePixelCheckout({
           redirectUrl: opts.redirectUrl,
         };
       },
-      onConfirm: async ({ quoteId, txHash }: { quoteId: string; txHash: `0x${string}` }) => {
+      onConfirm: async ({
+        quoteId,
+        txHash,
+      }: {
+        quoteId: string;
+        txHash: `0x${string}`;
+      }) => {
         const res = await fetch("/api/pixels/checkout/gitc-confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -23,25 +23,25 @@ jobs:
             const issueNumber = context.issue.number;
             const eventName = context.eventName;
             const action = context.payload.action;
-            
+
             // Allow bots and the maintainer (Ixotic27) to do anything
             if (actor.includes('[bot]') || actor === 'Ixotic27' || actor === 'github-actions') {
               console.log(`Action performed by allowed user/bot: ${actor}. Exiting.`);
               return;
             }
-            
+
             // Get current labels on the issue
             const issueData = await github.rest.issues.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber
             });
-            
+
             const currentLabels = issueData.data.labels.map(l => l.name);
             console.log(`Current labels: ${currentLabels.join(', ')}`);
-            
+
             const unauthorizedLabels = [];
-            
+
             // Check all current labels to see if any are unauthorized
             for (const label of currentLabels) {
               const labelLower = label.toLowerCase();
@@ -57,14 +57,14 @@ jobs:
                 unauthorizedLabels.push(label);
               }
             }
-            
+
             if (unauthorizedLabels.length === 0) {
               console.log('No unauthorized labels found.');
               return;
             }
-            
+
             console.log(`Found unauthorized labels added by ${actor}: ${unauthorizedLabels.join(', ')}`);
-            
+
             // Remove all unauthorized labels
             for (const label of unauthorizedLabels) {
               try {
@@ -79,7 +79,7 @@ jobs:
                 console.log(`Failed to remove label ${label}: ${e.message}`);
               }
             }
-            
+
             // Add a polite comment explaining why
             await github.rest.issues.createComment({
               owner: context.repo.owner,

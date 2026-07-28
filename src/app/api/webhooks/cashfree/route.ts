@@ -3,8 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { verifyCashfreeWebhook, getCashfreeOrderStatus } from "@/lib/cashfree";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { InfrastructureError } from "@/lib/errors";
-import { claimPendingPurchaseAtomically, orchestratePurchaseFulfillment } from "@/lib/purchase-orchestrator";
-
+import {
+  claimPendingPurchaseAtomically,
+  orchestratePurchaseFulfillment,
+} from "@/lib/purchase-orchestrator";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,11 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
 
   // Verify webhook signature
-  if (!signature || !timestamp || !verifyCashfreeWebhook(signature, rawBody, timestamp)) {
+  if (
+    !signature ||
+    !timestamp ||
+    !verifyCashfreeWebhook(signature, rawBody, timestamp)
+  ) {
     console.error("[Cashfree webhook] Invalid signature");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -67,15 +73,20 @@ export async function POST(request: Request) {
           .eq("idempotency_key", idempotencyKey)
           .maybeSingle();
         if (existingIdem) {
-          console.log(`[Cashfree webhook] Duplicate event for ${orderId}, skipping`);
+          console.log(
+            `[Cashfree webhook] Duplicate event for ${orderId}, skipping`,
+          );
           break;
         }
 
         // Double-check order status with Cashfree API
-        const { orderStatus, orderAmount } = await getCashfreeOrderStatus(orderId);
+        const { orderStatus, orderAmount } =
+          await getCashfreeOrderStatus(orderId);
 
         if (orderStatus !== "PAID") {
-          console.warn(`[Cashfree webhook] Order ${orderId} status is ${orderStatus}, not PAID`);
+          console.warn(
+            `[Cashfree webhook] Order ${orderId} status is ${orderStatus}, not PAID`,
+          );
           break;
         }
 
@@ -89,9 +100,11 @@ export async function POST(request: Request) {
               .insert({ order_id: orderId, amount_inr: supportAmountInr })
               .select("id")
               .maybeSingle();
-            
+
             if (insertError || !inserted) {
-              console.log(`[Cashfree webhook] Support donation ${orderId} already processed — skipping`);
+              console.log(
+                `[Cashfree webhook] Support donation ${orderId} already processed — skipping`,
+              );
               break;
             }
 
@@ -102,7 +115,8 @@ export async function POST(request: Request) {
               .eq("id", "support_renewal")
               .single();
 
-            const currentMeta = (item?.metadata as Record<string, unknown>) || {};
+            const currentMeta =
+              (item?.metadata as Record<string, unknown>) || {};
             const currentRaised = Number(currentMeta.raised_inr || 0);
             const targetInr = Number(currentMeta.target_inr || 2900);
 
@@ -113,11 +127,13 @@ export async function POST(request: Request) {
                   ...currentMeta,
                   raised_inr: currentRaised + supportAmountInr,
                   target_inr: targetInr,
-                }
+                },
               })
               .eq("id", "support_renewal");
 
-            console.log(`[Cashfree webhook] Support renewal updated: +${supportAmountInr} INR. New total: ${currentRaised + supportAmountInr} INR.`);
+            console.log(
+              `[Cashfree webhook] Support renewal updated: +${supportAmountInr} INR. New total: ${currentRaised + supportAmountInr} INR.`,
+            );
           }
           break;
         }
@@ -135,7 +151,9 @@ export async function POST(request: Request) {
             if (planId && isValidPlanId(planId)) {
               const plan = SKY_AD_PLANS[planId];
               const now = new Date();
-              const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+              const endsAt = new Date(
+                now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
+              );
 
               await sb
                 .from("sky_ads")
@@ -143,7 +161,8 @@ export async function POST(request: Request) {
                   active: true,
                   starts_at: now.toISOString(),
                   ends_at: endsAt.toISOString(),
-                  purchaser_email: body.data?.customer_details?.customer_email ?? null,
+                  purchaser_email:
+                    body.data?.customer_details?.customer_email ?? null,
                 })
                 .eq("id", ad.id)
                 .eq("active", false);
@@ -169,46 +188,61 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (!purchase) {
-          console.warn(`[Cashfree webhook] No purchase found for order ${orderId}`);
+          console.warn(
+            `[Cashfree webhook] No purchase found for order ${orderId}`,
+          );
           break;
         }
 
         if (purchase.status !== "pending") {
-          console.log(`[Cashfree webhook] Purchase ${purchase.id} already ${purchase.status} — skipping`);
+          console.log(
+            `[Cashfree webhook] Purchase ${purchase.id} already ${purchase.status} — skipping`,
+          );
           break;
         }
 
         // Atomic claim: transition pending → processing in one UPDATE with stock check.
-        const { data: claimData, error: claimError } = await sb.rpc("claim_pending_purchase_atomic", {
-          p_developer_id: purchase.developer_id,
-          p_item_id: purchase.item_id,
-          p_provider: "cashfree",
-          p_tx_id: orderId,
-          p_purchase_id: purchase.id
-        });
+        const { data: claimData, error: claimError } = await sb.rpc(
+          "claim_pending_purchase_atomic",
+          {
+            p_developer_id: purchase.developer_id,
+            p_item_id: purchase.item_id,
+            p_provider: "cashfree",
+            p_tx_id: orderId,
+            p_purchase_id: purchase.id,
+          },
+        );
 
         if (claimError) {
           throw new InfrastructureError(
             `[Cashfree webhook] Failed to claim pending purchase ${orderId}: ${claimError.message}`,
-            claimError
+            claimError,
           );
         }
 
         const claimResult = Array.isArray(claimData) ? claimData[0] : claimData;
 
-        if (claimResult && claimResult.error_code === 'sold_out') {
-          console.error(`[Cashfree webhook] Item ${purchase.item_id} oversold. Manual refund required for ${orderId}.`);
+        if (claimResult && claimResult.error_code === "sold_out") {
+          console.error(
+            `[Cashfree webhook] Item ${purchase.item_id} oversold. Manual refund required for ${orderId}.`,
+          );
           if (claimResult.purchase_id) {
-            await sb.from("purchases").update({
-              status: "failed",
-              provider_tx_id: orderId,
-            }).eq("id", claimResult.purchase_id).eq("status", "pending");
+            await sb
+              .from("purchases")
+              .update({
+                status: "failed",
+                provider_tx_id: orderId,
+              })
+              .eq("id", claimResult.purchase_id)
+              .eq("status", "pending");
           }
           break;
         }
 
         if (!claimResult || !claimResult.ok) {
-          console.log(`[Cashfree webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`);
+          console.log(
+            `[Cashfree webhook] Purchase ${purchase.id} already claimed by concurrent request — skipping`,
+          );
           break;
         }
 
@@ -221,7 +255,13 @@ export async function POST(request: Request) {
           giftedTo: purchase.gifted_to,
           idempotencyKey,
           supabaseClient: sb,
-          claimPendingPurchase: async ({ transactionId, developerId: claimDeveloperId, itemId: claimItemId, purchaseId: pendingPurchaseId, supabaseClient: claimSb }) =>
+          claimPendingPurchase: async ({
+            transactionId,
+            developerId: claimDeveloperId,
+            itemId: claimItemId,
+            purchaseId: pendingPurchaseId,
+            supabaseClient: claimSb,
+          }) =>
             claimPendingPurchaseAtomically({
               provider: "cashfree",
               transactionId,
@@ -234,9 +274,15 @@ export async function POST(request: Request) {
 
         if (orchestrationResult.kind !== "completed") {
           if (orchestrationResult.kind === "sold_out") {
-            await sb.from("purchases").update({ status: "failed", provider_tx_id: orderId }).eq("id", purchase.id).eq("status", "pending");
+            await sb
+              .from("purchases")
+              .update({ status: "failed", provider_tx_id: orderId })
+              .eq("id", purchase.id)
+              .eq("status", "pending");
           }
-          console.log(`[Cashfree webhook] Purchase ${purchase.id} finished with result ${orchestrationResult.kind}`);
+          console.log(
+            `[Cashfree webhook] Purchase ${purchase.id} finished with result ${orchestrationResult.kind}`,
+          );
         }
         break;
       }
@@ -262,10 +308,20 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     if (err instanceof InfrastructureError) {
-      console.error("[Cashfree webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      console.error(
+        "[Cashfree webhook] Infrastructure error, returning 500 for retry:",
+        err.message,
+        err.cause,
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
     }
-    console.error("[Cashfree webhook] Business logic or unexpected error:", err);
+    console.error(
+      "[Cashfree webhook] Business logic or unexpected error:",
+      err,
+    );
   }
 
   return NextResponse.json({ received: true });

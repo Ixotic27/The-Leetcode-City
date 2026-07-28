@@ -30,7 +30,7 @@ function resolveByProviderTxId(
   orderId: string,
 ): Array<{ id: string; provider_tx_id: string; status: string }> {
   return purchases.filter(
-    (p) => p.provider_tx_id === orderId && p.status === "pending"
+    (p) => p.provider_tx_id === orderId && p.status === "pending",
   );
 }
 
@@ -82,8 +82,16 @@ describe("new key format — purchase UUID, unique per row", () => {
 
   it("first webhook resolves exactly purchase A", () => {
     const purchases = [
-      { id: "uuid-aaaa-1111", provider_tx_id: "uuid-aaaa-1111", status: "pending" },
-      { id: "uuid-bbbb-2222", provider_tx_id: "uuid-bbbb-2222", status: "pending" },
+      {
+        id: "uuid-aaaa-1111",
+        provider_tx_id: "uuid-aaaa-1111",
+        status: "pending",
+      },
+      {
+        id: "uuid-bbbb-2222",
+        provider_tx_id: "uuid-bbbb-2222",
+        status: "pending",
+      },
     ];
     const matches = resolveByProviderTxId(purchases, "uuid-aaaa-1111");
     expect(matches.length).toBe(1);
@@ -92,8 +100,16 @@ describe("new key format — purchase UUID, unique per row", () => {
 
   it("second webhook resolves exactly purchase B", () => {
     const purchases = [
-      { id: "uuid-aaaa-1111", provider_tx_id: "uuid-aaaa-1111", status: "completed" },
-      { id: "uuid-bbbb-2222", provider_tx_id: "uuid-bbbb-2222", status: "pending" },
+      {
+        id: "uuid-aaaa-1111",
+        provider_tx_id: "uuid-aaaa-1111",
+        status: "completed",
+      },
+      {
+        id: "uuid-bbbb-2222",
+        provider_tx_id: "uuid-bbbb-2222",
+        status: "pending",
+      },
     ];
     const matches = resolveByProviderTxId(purchases, "uuid-bbbb-2222");
     expect(matches.length).toBe(1);
@@ -102,8 +118,16 @@ describe("new key format — purchase UUID, unique per row", () => {
 
   it("each webhook delivers exactly one item — neither is lost", () => {
     const purchases = [
-      { id: "uuid-aaaa-1111", provider_tx_id: "uuid-aaaa-1111", status: "pending" },
-      { id: "uuid-bbbb-2222", provider_tx_id: "uuid-bbbb-2222", status: "pending" },
+      {
+        id: "uuid-aaaa-1111",
+        provider_tx_id: "uuid-aaaa-1111",
+        status: "pending",
+      },
+      {
+        id: "uuid-bbbb-2222",
+        provider_tx_id: "uuid-bbbb-2222",
+        status: "pending",
+      },
     ];
 
     // Simulate both webhooks arriving
@@ -117,7 +141,11 @@ describe("new key format — purchase UUID, unique per row", () => {
 
   it("completed purchase is not re-fulfilled by a duplicate webhook", () => {
     const purchases = [
-      { id: "uuid-aaaa-1111", provider_tx_id: "uuid-aaaa-1111", status: "completed" },
+      {
+        id: "uuid-aaaa-1111",
+        provider_tx_id: "uuid-aaaa-1111",
+        status: "completed",
+      },
     ];
     // Duplicate webhook for same purchase (NOWPayments can retry)
     const matches = resolveByProviderTxId(purchases, "uuid-aaaa-1111");
@@ -126,7 +154,11 @@ describe("new key format — purchase UUID, unique per row", () => {
 
   it("unknown order_id resolves nothing (no crash, no ghost fulfillment)", () => {
     const purchases = [
-      { id: "uuid-aaaa-1111", provider_tx_id: "uuid-aaaa-1111", status: "pending" },
+      {
+        id: "uuid-aaaa-1111",
+        provider_tx_id: "uuid-aaaa-1111",
+        status: "pending",
+      },
     ];
     const matches = resolveByProviderTxId(purchases, "uuid-unknown-9999");
     expect(matches.length).toBe(0);
@@ -135,7 +167,7 @@ describe("new key format — purchase UUID, unique per row", () => {
 
 describe("provider_tx_id uniqueness across items and users", () => {
   it("same user, different items → different keys (new format)", () => {
-    const keyFreeze  = newProviderTxId("uuid-freeze-purchase");
+    const keyFreeze = newProviderTxId("uuid-freeze-purchase");
     const keyMissile = newProviderTxId("uuid-missile-purchase");
     expect(keyFreeze).not.toBe(keyMissile);
   });
@@ -148,10 +180,14 @@ describe("provider_tx_id uniqueness across items and users", () => {
 
   it("old format: different users same item produce different keys (was safe for non-consumables)", () => {
     // This was the only case the old format handled correctly
-    expect(oldProviderTxId(1, "streak_freeze")).not.toBe(oldProviderTxId(2, "streak_freeze"));
+    expect(oldProviderTxId(1, "streak_freeze")).not.toBe(
+      oldProviderTxId(2, "streak_freeze"),
+    );
   });
 
   it("old format: same user different items produce different keys (was safe for non-consumables)", () => {
-    expect(oldProviderTxId(1, "streak_freeze")).not.toBe(oldProviderTxId(1, "anti_missile_system"));
+    expect(oldProviderTxId(1, "streak_freeze")).not.toBe(
+      oldProviderTxId(1, "anti_missile_system"),
+    );
   });
 });

@@ -9,7 +9,9 @@ export default function SignInButton({ accent }: { accent: string }) {
     const supabase = createBrowserSupabase();
     await supabase.auth.signInWithOAuth({
       provider: "github",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/shop` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=/shop`,
+      },
     });
   };
 

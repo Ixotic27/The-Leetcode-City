@@ -22,7 +22,12 @@ function signToken(userId: string, game: string, startTime: number): string {
     .digest("hex");
 }
 
-function verifyToken(userId: string, game: string, startTime: number, sig: string): boolean {
+function verifyToken(
+  userId: string,
+  game: string,
+  startTime: number,
+  sig: string,
+): boolean {
   return signToken(userId, game, startTime) === sig;
 }
 
@@ -33,7 +38,10 @@ export async function POST(req: NextRequest) {
     const { action, game, slug } = body;
 
     if (!action || !game || !VALID_GAMES.includes(game)) {
-      return NextResponse.json({ error: "Invalid request parameters" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid request parameters" },
+        { status: 400 },
+      );
     }
 
     // Auth check
@@ -43,17 +51,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: { user }, error: authError } = await sb.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await sb.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const userId = user.id;
-    const login = (
+    const login =
       user.user_metadata?.user_name ??
       user.user_metadata?.preferred_username ??
-      "anonymous"
-    );
+      "anonymous";
 
     const now = Date.now();
 
@@ -70,13 +80,23 @@ export async function POST(req: NextRequest) {
     // ─── STOP GAME ────────────────────────────────────────────
     if (action === "stop") {
       const { game_token } = body;
-      if (!game_token || typeof game_token.startTime !== "number" || !game_token.signature) {
-        return NextResponse.json({ error: "Missing game token" }, { status: 400 });
+      if (
+        !game_token ||
+        typeof game_token.startTime !== "number" ||
+        !game_token.signature
+      ) {
+        return NextResponse.json(
+          { error: "Missing game token" },
+          { status: 400 },
+        );
       }
 
       const { startTime, signature } = game_token;
       if (!verifyToken(userId, game, startTime, signature)) {
-        return NextResponse.json({ error: "Tampered game token" }, { status: 403 });
+        return NextResponse.json(
+          { error: "Tampered game token" },
+          { status: 403 },
+        );
       }
 
       const elapsed = now - startTime;
@@ -114,13 +134,16 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        const { data: rpcData, error: rpcErr } = await sb.rpc("submit_arcade_score", {
-          p_developer_id: developerId,
-          p_user_id: userId,
-          p_game: game,
-          p_diff_ms: diff_ms,
-          p_slug: slug ?? null,
-        });
+        const { data: rpcData, error: rpcErr } = await sb.rpc(
+          "submit_arcade_score",
+          {
+            p_developer_id: developerId,
+            p_user_id: userId,
+            p_game: game,
+            p_diff_ms: diff_ms,
+            p_slug: slug ?? null,
+          },
+        );
 
         if (rpcErr) throw rpcErr;
         const raw = Array.isArray(rpcData) ? rpcData[0] : rpcData;
@@ -135,7 +158,10 @@ export async function POST(req: NextRequest) {
         }
       } catch (err) {
         console.error("[api/arcade/game] submit_arcade_score RPC error:", err);
-        return NextResponse.json({ error: "Failed to submit score" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to submit score" },
+          { status: 500 },
+        );
       }
 
       // 5. Check achievements
@@ -158,7 +184,9 @@ export async function POST(req: NextRequest) {
               .select("achievement_id")
               .eq("developer_id", developerId);
 
-            const unlocked = new Set((unlockedAchievements ?? []).map((a) => a.achievement_id));
+            const unlocked = new Set(
+              (unlockedAchievements ?? []).map((a) => a.achievement_id),
+            );
             const newAchievements = allAchievements.filter((a) => {
               if (unlocked.has(a.id)) return false;
               if (a.id === "arcade_hello_friend") return true;
@@ -168,7 +196,12 @@ export async function POST(req: NextRequest) {
             if (newAchievements.length > 0) {
               await sb
                 .from("developer_achievements")
-                .insert(newAchievements.map((a) => ({ developer_id: developerId, achievement_id: a.id })));
+                .insert(
+                  newAchievements.map((a) => ({
+                    developer_id: developerId,
+                    achievement_id: a.id,
+                  })),
+                );
             }
           }
         }
@@ -189,7 +222,7 @@ export async function POST(req: NextRequest) {
       // 6. If top 10 new record, broadcast to room and insert into DB chat messages
       if (is_new_record && rank !== null && rank <= 10 && slug) {
         const chatText = `${login} scored ${diff_ms}ms off on 10s Challenge! (#${rank})`;
-        
+
         // Save system message in database
         await sb.from("arcade_chat_messages").insert({
           room_id: slug,
@@ -216,7 +249,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err: unknown) {
     console.error("[api/arcade/game] error:", err);
-    const message = err instanceof Error ? err.message : "Internal server error";
+    const message =
+      err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

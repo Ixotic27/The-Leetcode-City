@@ -11,10 +11,16 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization") ?? "";
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   const expected = `Bearer ${secret}`;
-  if (authHeader.length !== expected.length || !timingSafeEqual(authHeader, expected)) {
+  if (
+    authHeader.length !== expected.length ||
+    !timingSafeEqual(authHeader, expected)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -33,7 +39,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(results);
   }
 
-  const groups = new Map<string, Array<{ provider_tx_id: string; id: string; status: string; created_at: string }>>();
+  const groups = new Map<
+    string,
+    Array<{
+      provider_tx_id: string;
+      id: string;
+      status: string;
+      created_at: string;
+    }>
+  >();
   for (const row of duplicates) {
     const key = row.provider_tx_id;
     if (!groups.has(key)) groups.set(key, []);
@@ -53,7 +67,10 @@ export async function GET(request: NextRequest) {
           .eq("id", dup.id);
 
         if (updateError) {
-          console.error(`Failed to mark duplicate purchase ${dup.id} as refunded:`, updateError);
+          console.error(
+            `Failed to mark duplicate purchase ${dup.id} as refunded:`,
+            updateError,
+          );
           results.errors++;
         } else {
           results.merged++;
@@ -65,7 +82,10 @@ export async function GET(request: NextRequest) {
           .eq("id", dup.id);
 
         if (deleteError) {
-          console.error(`Failed to delete duplicate purchase ${dup.id}:`, deleteError);
+          console.error(
+            `Failed to delete duplicate purchase ${dup.id}:`,
+            deleteError,
+          );
           results.errors++;
         } else {
           results.merged++;

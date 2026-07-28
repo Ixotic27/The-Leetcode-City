@@ -3,47 +3,95 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 import { getAuthenticatedDeveloper } from "@/lib/arena";
 
-function getRankTitle(rating: number, rank: number): { title: string; badge: string; rarity: string } {
-  if (rank > 0 && rank <= 10) return { title: "The Sentinel", badge: "badge_legendary", rarity: "legendary" };
-  if (rating >= 2200) return { title: "The Grandmaster", badge: "badge_diamond", rarity: "epic" };
-  if (rating >= 1800) return { title: "The Architect", badge: "badge_platinum", rarity: "epic" };
-  if (rating >= 1500) return { title: "The Builder", badge: "badge_gold", rarity: "rare" };
-  if (rating >= 1200) return { title: "The Script Kiddie", badge: "badge_silver", rarity: "rare" };
+function getRankTitle(
+  rating: number,
+  rank: number,
+): { title: string; badge: string; rarity: string } {
+  if (rank > 0 && rank <= 10)
+    return {
+      title: "The Sentinel",
+      badge: "badge_legendary",
+      rarity: "legendary",
+    };
+  if (rating >= 2200)
+    return { title: "The Grandmaster", badge: "badge_diamond", rarity: "epic" };
+  if (rating >= 1800)
+    return { title: "The Architect", badge: "badge_platinum", rarity: "epic" };
+  if (rating >= 1500)
+    return { title: "The Builder", badge: "badge_gold", rarity: "rare" };
+  if (rating >= 1200)
+    return {
+      title: "The Script Kiddie",
+      badge: "badge_silver",
+      rarity: "rare",
+    };
   return { title: "The Apprentice", badge: "badge_bronze", rarity: "common" };
 }
 
 export async function GET(
   request: NextRequest,
-  props: { params: Promise<{ username: string }> }
+  props: { params: Promise<{ username: string }> },
 ) {
   const params = await props.params;
   const username = params.username.toLowerCase();
   const sb = getSupabaseAdmin();
 
   // 1. Fetch developer by username
-  type DevStats = { id: number; name: string | null; github_login: string; avatar_url: string | null; xp_level: number };
+  type DevStats = {
+    id: number;
+    name: string | null;
+    github_login: string;
+    avatar_url: string | null;
+    xp_level: number;
+  };
   let dev: DevStats | null = null;
   let devError: { message: string; code?: string } | null = null;
 
   // Check if authenticated user is fetching their own stats
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
-    const auth = await resolveAuthenticatedDeveloper({ select: "id, name, github_login, avatar_url, xp_level" });
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
+    const auth = await resolveAuthenticatedDeveloper({
+      select: "id, name, github_login, avatar_url, xp_level",
+    });
     if (auth.ok && auth.developer) {
       const developerLogin = auth.developer.github_login?.toLowerCase() ?? "";
-      const metaUser = (auth.user?.user_metadata?.user_name ?? auth.user?.user_metadata?.preferred_username ?? "").toLowerCase();
-      if (username === "me" || username === developerLogin || username === metaUser) {
+      const metaUser = (
+        auth.user?.user_metadata?.user_name ??
+        auth.user?.user_metadata?.preferred_username ??
+        ""
+      ).toLowerCase();
+      if (
+        username === "me" ||
+        username === developerLogin ||
+        username === metaUser
+      ) {
         dev = {
           id: typeof auth.developer.id === "number" ? auth.developer.id : 0,
-          name: typeof auth.developer.name === "string" ? auth.developer.name : null,
-          github_login: typeof auth.developer.github_login === "string" ? auth.developer.github_login : "",
-          avatar_url: typeof auth.developer.avatar_url === "string" ? auth.developer.avatar_url : null,
-          xp_level: typeof auth.developer.xp_level === "number" ? auth.developer.xp_level : 0,
+          name:
+            typeof auth.developer.name === "string"
+              ? auth.developer.name
+              : null,
+          github_login:
+            typeof auth.developer.github_login === "string"
+              ? auth.developer.github_login
+              : "",
+          avatar_url:
+            typeof auth.developer.avatar_url === "string"
+              ? auth.developer.avatar_url
+              : null,
+          xp_level:
+            typeof auth.developer.xp_level === "number"
+              ? auth.developer.xp_level
+              : 0,
         };
       }
     }
   } catch (e) {
-    console.error("[app/api/arena/stats/[username]/route.ts] auth getUser failure:", e);
+    console.error(
+      "[app/api/arena/stats/[username]/route.ts] auth getUser failure:",
+      e,
+    );
   }
 
   // Support VS Code extension apiKey or cookie session via getAuthenticatedDeveloper if username === "me"
@@ -84,7 +132,7 @@ export async function GET(
     .maybeSingle();
 
   const rating = ratingRecord?.rating ?? 1200;
-  
+
   // Calculate leaderboard rank
   let rank = 0;
   if (ratingRecord) {
@@ -102,7 +150,8 @@ export async function GET(
   // 3. Fetch recent submissions
   const { data: submissions, error: subError } = await sb
     .from("arena_submissions")
-    .select(`
+    .select(
+      `
       id,
       language,
       status,
@@ -115,7 +164,8 @@ export async function GET(
         title,
         difficulty
       )
-    `)
+    `,
+    )
     .eq("user_id", dev.id)
     .order("submitted_at", { ascending: false })
     .limit(10);
@@ -126,7 +176,7 @@ export async function GET(
       name: dev.name || dev.github_login,
       github_login: dev.github_login,
       avatar_url: dev.avatar_url,
-      xp_level: dev.xp_level
+      xp_level: dev.xp_level,
     },
     stats: {
       rating,
@@ -138,18 +188,20 @@ export async function GET(
       last_solved_at: ratingRecord?.last_solved_at ?? null,
       rank_title: rankInfo.title,
       rank_badge: rankInfo.badge,
-      rank_rarity: rankInfo.rarity
+      rank_rarity: rankInfo.rarity,
     },
-    recent_submissions: (submissions || []).map((sub: Record<string, unknown>) => ({
-      id: sub.id,
-      language: sub.language,
-      status: sub.status,
-      tests_passed: sub.tests_passed,
-      tests_total: sub.tests_total,
-      execution_time_ms: sub.execution_time_ms,
-      submitted_at: sub.submitted_at,
-      problem: sub.problem
-    }))
+    recent_submissions: (submissions || []).map(
+      (sub: Record<string, unknown>) => ({
+        id: sub.id,
+        language: sub.language,
+        status: sub.status,
+        tests_passed: sub.tests_passed,
+        tests_total: sub.tests_total,
+        execution_time_ms: sub.execution_time_ms,
+        submitted_at: sub.submitted_at,
+        problem: sub.problem,
+      }),
+    ),
   };
 
   return NextResponse.json(formattedStats);

@@ -16,7 +16,11 @@ const RED_EYE = "#ff0000";
 // Shared geometry — prevents GPU leaks on mount/unmount
 const _box = /* @__PURE__ */ new THREE.BoxGeometry(1, 1, 1);
 
-export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbitProps) {
+export default function WhiteRabbit({
+  position,
+  visible,
+  onCaught,
+}: WhiteRabbitProps) {
   const groupRef = useRef<THREE.Group>(null);
   const { gl, camera } = useThree();
   const raycaster = useRef(new THREE.Raycaster());
@@ -66,17 +70,19 @@ export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbit
     // Cursor
     const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     let lastMove = 0;
-    const onMove = isTouch ? null : (e: PointerEvent) => {
-      const now = performance.now();
-      if (now - lastMove < 66) return;
-      lastMove = now;
-      if (hitsRabbit(e)) {
-        document.body.style.cursor = "pointer";
-        (window as any).__rabbitCursor = true;
-      } else if ((window as any).__rabbitCursor) {
-        (window as any).__rabbitCursor = false;
-      }
-    };
+    const onMove = isTouch
+      ? null
+      : (e: PointerEvent) => {
+          const now = performance.now();
+          if (now - lastMove < 66) return;
+          lastMove = now;
+          if (hitsRabbit(e)) {
+            document.body.style.cursor = "pointer";
+            (window as any).__rabbitCursor = true;
+          } else if ((window as any).__rabbitCursor) {
+            (window as any).__rabbitCursor = false;
+          }
+        };
 
     canvas.addEventListener("pointerdown", onDown, true);
     window.addEventListener("pointerup", onUp, true);
@@ -107,7 +113,8 @@ export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbit
         const intensity = Math.sin(t * Math.PI * 4) * 5;
         group.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
-            const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+            const mat = (child as THREE.Mesh)
+              .material as THREE.MeshStandardMaterial;
             if (mat.emissive) mat.emissiveIntensity = Math.max(0, intensity);
           }
         });
@@ -148,57 +155,105 @@ export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbit
 
       {/* Body (torso) */}
       <mesh position={[0, 4, 0]} geometry={_box} scale={[6, 7, 5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.15} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.15}
+        />
       </mesh>
 
       {/* Head */}
       <mesh position={[0, 10, 0]} geometry={_box} scale={[5, 4, 4]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.15} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.15}
+        />
       </mesh>
 
       {/* Left ear */}
       <mesh position={[-1.2, 14.5, 0]} geometry={_box} scale={[1.2, 4, 1]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.15} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.15}
+        />
       </mesh>
 
       {/* Right ear */}
       <mesh position={[1.2, 14.5, 0]} geometry={_box} scale={[1.2, 4, 1]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.15} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.15}
+        />
       </mesh>
 
       {/* Left eye (red - Matrix reference) */}
-      <mesh position={[-1.2, 10.5, 2.1]} geometry={_box} scale={[0.8, 0.8, 0.3]}>
-        <meshStandardMaterial color={RED_EYE} emissive={RED_EYE} emissiveIntensity={3} />
+      <mesh
+        position={[-1.2, 10.5, 2.1]}
+        geometry={_box}
+        scale={[0.8, 0.8, 0.3]}
+      >
+        <meshStandardMaterial
+          color={RED_EYE}
+          emissive={RED_EYE}
+          emissiveIntensity={3}
+        />
       </mesh>
 
       {/* Right eye (red) */}
       <mesh position={[1.2, 10.5, 2.1]} geometry={_box} scale={[0.8, 0.8, 0.3]}>
-        <meshStandardMaterial color={RED_EYE} emissive={RED_EYE} emissiveIntensity={3} />
+        <meshStandardMaterial
+          color={RED_EYE}
+          emissive={RED_EYE}
+          emissiveIntensity={3}
+        />
       </mesh>
 
       {/* Front left leg */}
       <mesh position={[-1.8, 0.5, 1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.1} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.1}
+        />
       </mesh>
 
       {/* Front right leg */}
       <mesh position={[1.8, 0.5, 1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.1} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.1}
+        />
       </mesh>
 
       {/* Back left leg */}
       <mesh position={[-1.8, 0.5, -1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.1} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.1}
+        />
       </mesh>
 
       {/* Back right leg */}
       <mesh position={[1.8, 0.5, -1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.1} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.1}
+        />
       </mesh>
 
       {/* Tail (round puff) */}
       <mesh position={[0, 4, -3.2]} geometry={_box} scale={[2, 2, 2]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
       {/* Subtle white glow */}
@@ -214,7 +269,15 @@ export default function WhiteRabbit({ position, visible, onCaught }: WhiteRabbit
 }
 
 // Mini version for building crown effect
-export function MiniWhiteRabbit({ height, width, depth }: { height: number; width: number; depth: number }) {
+export function MiniWhiteRabbit({
+  height,
+  width,
+  depth,
+}: {
+  height: number;
+  width: number;
+  depth: number;
+}) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame(({ clock }) => {
@@ -225,7 +288,7 @@ export function MiniWhiteRabbit({ height, width, depth }: { height: number; widt
     // Occasional hop every ~5s
     const hopCycle = t % 5;
     if (hopCycle < 0.3) {
-      group.position.y = height + Math.sin(hopCycle / 0.3 * Math.PI) * 3;
+      group.position.y = height + Math.sin((hopCycle / 0.3) * Math.PI) * 3;
     } else {
       group.position.y = height;
     }
@@ -234,56 +297,114 @@ export function MiniWhiteRabbit({ height, width, depth }: { height: number; widt
   const s = 0.6;
 
   return (
-    <group ref={groupRef} position={[width * 0.3, height, depth * 0.3]} scale={[s, s, s]}>
+    <group
+      ref={groupRef}
+      position={[width * 0.3, height, depth * 0.3]}
+      scale={[s, s, s]}
+    >
       {/* Body */}
       <mesh position={[0, 4, 0]} geometry={_box} scale={[6, 7, 5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
       {/* Head */}
       <mesh position={[0, 10, 0]} geometry={_box} scale={[5, 4, 4]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
       {/* Left ear */}
       <mesh position={[-1.2, 14.5, 0]} geometry={_box} scale={[1.2, 4, 1]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
       {/* Right ear */}
       <mesh position={[1.2, 14.5, 0]} geometry={_box} scale={[1.2, 4, 1]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
       {/* Eyes (red) */}
-      <mesh position={[-1.2, 10.5, 2.1]} geometry={_box} scale={[0.8, 0.8, 0.3]}>
-        <meshStandardMaterial color={RED_EYE} emissive={RED_EYE} emissiveIntensity={2} />
+      <mesh
+        position={[-1.2, 10.5, 2.1]}
+        geometry={_box}
+        scale={[0.8, 0.8, 0.3]}
+      >
+        <meshStandardMaterial
+          color={RED_EYE}
+          emissive={RED_EYE}
+          emissiveIntensity={2}
+        />
       </mesh>
       <mesh position={[1.2, 10.5, 2.1]} geometry={_box} scale={[0.8, 0.8, 0.3]}>
-        <meshStandardMaterial color={RED_EYE} emissive={RED_EYE} emissiveIntensity={2} />
+        <meshStandardMaterial
+          color={RED_EYE}
+          emissive={RED_EYE}
+          emissiveIntensity={2}
+        />
       </mesh>
 
       {/* Legs */}
       <mesh position={[-1.8, 0.5, 1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       <mesh position={[1.8, 0.5, 1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       <mesh position={[-1.8, 0.5, -1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       <mesh position={[1.8, 0.5, -1]} geometry={_box} scale={[1.5, 2, 1.5]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.2}
+        />
       </mesh>
 
       {/* Tail */}
       <mesh position={[0, 4, -3.2]} geometry={_box} scale={[2, 2, 2]}>
-        <meshStandardMaterial color={WHITE} emissive={WHITE} emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color={WHITE}
+          emissive={WHITE}
+          emissiveIntensity={0.3}
+        />
       </mesh>
 
       {/* Glow */}
-      <pointLight position={[0, 8, 0]} color="#ffffff" intensity={5} distance={30} decay={2} />
+      <pointLight
+        position={[0, 8, 0]}
+        color="#ffffff"
+        intensity={5}
+        distance={30}
+        decay={2}
+      />
     </group>
   );
 }

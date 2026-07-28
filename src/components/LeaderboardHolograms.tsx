@@ -28,17 +28,23 @@ export default function LeaderboardHolograms({
     if (!buildings || buildings.length === 0) return null;
 
     // 1. Top Contributor: Highest contributions (solved problems)
-    const contributorList = [...buildings].sort((a, b) => b.contributions - a.contributions);
+    const contributorList = [...buildings].sort(
+      (a, b) => b.contributions - a.contributions,
+    );
     const topContributor = contributorList[0];
 
     // 2. Top Competitor: Highest contest_rating, excluding Top Contributor
     const competitorList = [...buildings]
-      .filter((b) => b.login !== topContributor?.login && (b.contest_rating ?? 0) > 0)
+      .filter(
+        (b) => b.login !== topContributor?.login && (b.contest_rating ?? 0) > 0,
+      )
       .sort((a, b) => (b.contest_rating ?? 0) - (a.contest_rating ?? 0));
     const topCompetitor = competitorList[0] || contributorList[1]; // fallback to 2nd contributor
 
     // 3. Top Survivor: Highest active streak (lc_streak or app_streak), excluding the top 2
-    const topTwoLogins = new Set([topContributor?.login, topCompetitor?.login].filter(Boolean));
+    const topTwoLogins = new Set(
+      [topContributor?.login, topCompetitor?.login].filter(Boolean),
+    );
     const survivorList = [...buildings]
       .filter((b) => !topTwoLogins.has(b.login))
       .sort((a, b) => {
@@ -93,8 +99,8 @@ export default function LeaderboardHolograms({
           config.type === "contributor"
             ? topDevs.contributor
             : config.type === "competitor"
-            ? topDevs.competitor
-            : topDevs.survivor;
+              ? topDevs.competitor
+              : topDevs.survivor;
 
         if (!dev) return null;
 
@@ -216,7 +222,12 @@ interface HologramBuildingProps {
   onClick: () => void;
 }
 
-function HologramBuilding({ position, dev, color, onClick }: HologramBuildingProps) {
+function HologramBuilding({
+  position,
+  dev,
+  color,
+  onClick,
+}: HologramBuildingProps) {
   const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
 
@@ -225,7 +236,8 @@ function HologramBuilding({ position, dev, color, onClick }: HologramBuildingPro
     if (groupRef.current) {
       groupRef.current.rotation.y = clock.getElapsedTime() * 0.45;
       // Soft floating bobbing effect
-      groupRef.current.position.y = position[1] + Math.sin(clock.getElapsedTime() * 1.5) * 0.35;
+      groupRef.current.position.y =
+        position[1] + Math.sin(clock.getElapsedTime() * 1.5) * 0.35;
     }
   });
 
@@ -300,13 +312,9 @@ function HologramBuilding({ position, dev, color, onClick }: HologramBuildingPro
       ))}
 
       {/* Orbiting Hologram Particle Ring */}
-      <mesh position={[0, Math.sin(0) * (h/2), 0]} rotation={[0.2, 0, 0]}>
+      <mesh position={[0, Math.sin(0) * (h / 2), 0]} rotation={[0.2, 0, 0]}>
         <torusGeometry args={[Math.max(w, d) * 0.9, 0.1, 8, 24]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.3}
-        />
+        <meshBasicMaterial color={color} transparent opacity={0.3} />
       </mesh>
 
       {/* Floating Crown / Category Icon on Top */}

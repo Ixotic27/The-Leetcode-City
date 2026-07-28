@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
     if (!auth.ok || !auth.user) {
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
     if (!subscription?.endpoint) {
       return NextResponse.json(
         { error: "Missing required field: subscription.endpoint" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,7 +31,10 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (!dev) {
-      return NextResponse.json({ error: "Developer profile not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Developer profile not found" },
+        { status: 404 },
+      );
     }
 
     const { error } = await admin.from("push_subscriptions").upsert(
@@ -41,7 +45,7 @@ export async function POST(req: Request) {
         active: true,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "token" }
+      { onConflict: "token" },
     );
 
     if (error) {
@@ -52,13 +56,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/push/subscribe] POST error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
 export async function DELETE(req: Request) {
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
     if (!auth.ok || !auth.user) {
@@ -71,7 +79,7 @@ export async function DELETE(req: Request) {
     if (!endpoint) {
       return NextResponse.json(
         { error: "Missing required field: endpoint" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -85,7 +93,10 @@ export async function DELETE(req: Request) {
       .maybeSingle();
 
     if (!dev) {
-      return NextResponse.json({ error: "Developer profile not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Developer profile not found" },
+        { status: 404 },
+      );
     }
 
     const { error } = await admin
@@ -102,6 +113,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[api/push/subscribe] DELETE error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

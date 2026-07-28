@@ -14,12 +14,14 @@ scripts/
 ## 🤖 How Issue Assignment Works
 
 Contributors comment on an issue with phrases like:
+
 - `assign me`
 - `I want to work on this`
 - `Can I take this`
 - `gssoc`
 
 The **first commenter** gets assigned automatically. After assignment:
+
 - The conversation is **locked** (further discussion happens in the PR)
 - You have **48 hours** to submit a PR
 - Max **3 open issues** per contributor at a time
@@ -27,16 +29,19 @@ The **first commenter** gets assigned automatically. After assignment:
 ## 🏷️ PR Labels
 
 ### Difficulty (required)
+
 - `level:beginner` — Green
 - `level:intermediate` — Blue
 - `level:advanced` — Orange
 - `level:critical` — Gray
 
 ### Quality (optional)
+
 - `quality:clean` — Green
 - `quality:exceptional` — Purple
 
 ### Type (optional, auto-detected from PR title/branch)
+
 - `type:bug` — Red
 - `type:feature` — Green
 - `type:docs` — Blue
@@ -47,6 +52,7 @@ The **first commenter** gets assigned automatically. After assignment:
 - `type:refactor` — Teal
 
 ### Status
+
 - `gssoc:approved` — Auto-applied to all PRs (+50 base points)
 - `status:blocked` — CI is failing
 - `needs-rebase` — Merge conflicts
@@ -54,6 +60,7 @@ The **first commenter** gets assigned automatically. After assignment:
 - `inactive` — PR closed due to inactivity
 
 ### Mentor
+
 - `mentor:username` — Added by mentors to PRs they reviewed
 
 ## 📊 Scoring

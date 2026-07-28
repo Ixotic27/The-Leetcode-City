@@ -14,12 +14,18 @@ export async function GET(request: Request) {
   const devId = searchParams.get("developer_id");
 
   if (!devId) {
-    return NextResponse.json({ error: "Missing developer_id" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing developer_id" },
+      { status: 400 },
+    );
   }
 
   const developerId = parseDeveloperId(devId);
   if (developerId === null) {
-    return NextResponse.json({ error: "Invalid developer_id" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid developer_id" },
+      { status: 400 },
+    );
   }
 
   const admin = getSupabaseAdmin();
@@ -32,7 +38,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json(
     { loadout: data?.config ?? null },
-    { headers: { "Cache-Control": "no-store" } }
+    { headers: { "Cache-Control": "no-store" } },
   );
 }
 
@@ -40,7 +46,8 @@ export async function GET(request: Request) {
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -60,7 +67,10 @@ export async function POST(request: Request) {
   const githubLogin = dev?.github_login ?? "";
 
   if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
-    return NextResponse.json({ error: "Must own a claimed building" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Must own a claimed building" },
+      { status: 403 },
+    );
   }
 
   const body = await request.json();
@@ -72,7 +82,9 @@ export async function POST(request: Request) {
     dev_mode?: boolean;
   };
 
-  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase());
+  const isDeveloper = ["ishant_27", "ixotic", "ixotic27"].includes(
+    githubLogin.toLowerCase(),
+  );
   const isDev = isDeveloper && dev_mode === true;
 
   // Fetch owned items (direct purchases + received gifts)
@@ -80,7 +92,12 @@ export async function POST(request: Request) {
   const ownedSet = new Set(ownedItems);
 
   // Validate each equipped item is owned and belongs to the correct zone
-  const config: Record<string, string | null> = { crown: null, roof: null, aura: null, faces: null };
+  const config: Record<string, string | null> = {
+    crown: null,
+    roof: null,
+    aura: null,
+    faces: null,
+  };
 
   for (const [zone, itemId] of [
     ["crown", crown],
@@ -95,13 +112,13 @@ export async function POST(request: Request) {
     if (!ZONE_ITEMS[zone]?.includes(itemId)) {
       return NextResponse.json(
         { error: `${itemId} is not valid for zone ${zone}` },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!isDev && !ownedSet.has(itemId)) {
       return NextResponse.json(
         { error: `You don't own ${itemId}` },
-        { status: 403 }
+        { status: 403 },
       );
     }
     config[zone] = itemId;
@@ -114,24 +131,31 @@ export async function POST(request: Request) {
     .eq("developer_id", dev.id)
     .eq("item_id", "loadout")
     .maybeSingle();
-  const prev = (currentLoadout?.config ?? { crown: null, roof: null, aura: null, faces: null }) as Record<string, string | null>;
+  const prev = (currentLoadout?.config ?? {
+    crown: null,
+    roof: null,
+    aura: null,
+    faces: null,
+  }) as Record<string, string | null>;
 
   // Upsert loadout
-  const { error: upsertError } = await admin.from("developer_customizations").upsert(
-    {
-      developer_id: dev.id,
-      item_id: "loadout",
-      config,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "developer_id,item_id" }
-  );
+  const { error: upsertError } = await admin
+    .from("developer_customizations")
+    .upsert(
+      {
+        developer_id: dev.id,
+        item_id: "loadout",
+        config,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "developer_id,item_id" },
+    );
 
   if (upsertError) {
     console.error("[api/loadout] Failed to save loadout:", upsertError);
     return NextResponse.json(
       { error: "Database error saving loadout" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

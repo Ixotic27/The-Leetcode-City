@@ -24,7 +24,9 @@ describe("getDailyMissions", () => {
     // Not guaranteed to differ on every seed, but statistically almost certain
     // Check across a range of dates
     const sets = Array.from({ length: 10 }, (_, i) =>
-      getDailyMissions(DEV_ID, `2026-05-${String(i + 1).padStart(2, "0")}`).map((m) => m.id).join(",")
+      getDailyMissions(DEV_ID, `2026-05-${String(i + 1).padStart(2, "0")}`)
+        .map((m) => m.id)
+        .join(","),
     );
     const unique = new Set(sets);
     expect(unique.size).toBeGreaterThan(1);
@@ -45,9 +47,16 @@ describe("getDailyMissions", () => {
   it("mobile and desktop sets can differ for the same seed", () => {
     let differ = false;
     for (let i = 1; i <= 100; i++) {
-      const desktop = getDailyMissions(i, DATE, false).map((m) => m.id).join(",");
-      const mobile = getDailyMissions(i, DATE, true).map((m) => m.id).join(",");
-      if (desktop !== mobile) { differ = true; break; }
+      const desktop = getDailyMissions(i, DATE, false)
+        .map((m) => m.id)
+        .join(",");
+      const mobile = getDailyMissions(i, DATE, true)
+        .map((m) => m.id)
+        .join(",");
+      if (desktop !== mobile) {
+        differ = true;
+        break;
+      }
     }
     expect(differ).toBe(true);
   });

@@ -13,11 +13,17 @@ describe("coordinateRewardSideEffects", () => {
   });
 
   it("grants xp, writes the feed event, and checks achievements in one coordinated path", async () => {
-    const checkAchievementsMock = vi.mocked(achievementsModule.checkAchievements);
+    const checkAchievementsMock = vi.mocked(
+      achievementsModule.checkAchievements,
+    );
     checkAchievementsMock.mockResolvedValue(["ach-1"]);
 
-    const rpc = vi.fn().mockResolvedValue({ data: { granted: 10 }, error: null });
-    const activityFeedInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+    const rpc = vi
+      .fn()
+      .mockResolvedValue({ data: { granted: 10 }, error: null });
+    const activityFeedInsert = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: null });
     const admin = {
       rpc,
       from: vi.fn().mockReturnValue({ insert: activityFeedInsert }),

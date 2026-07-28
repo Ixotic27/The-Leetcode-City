@@ -8,8 +8,15 @@ type FakeTable = {
   eq: (column: string, value: string | number) => FakeQueryBuilder;
   in: (column: string, values: Array<string | number>) => FakeQueryBuilder;
   is: (column: string, value: string | null) => FakeQueryBuilder;
-  not: (column: string, operator: string, value: string | null) => FakeQueryBuilder;
-  order: (column: string, options?: { ascending?: boolean }) => FakeQueryBuilder;
+  not: (
+    column: string,
+    operator: string,
+    value: string | null,
+  ) => FakeQueryBuilder;
+  order: (
+    column: string,
+    options?: { ascending?: boolean },
+  ) => FakeQueryBuilder;
   range: (from: number, to: number) => FakeQueryBuilder;
   maybeSingle: () => Promise<QueryResult<Record<string, unknown>>>;
   single: () => Promise<QueryResult<Record<string, unknown>>>;
@@ -45,8 +52,14 @@ class FakeSupabaseClient {
       not: () => builder,
       order: () => builder,
       range: () => builder,
-      maybeSingle: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
-      single: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
+      maybeSingle: async () => ({
+        data: Array.isArray(data) ? (data[0] ?? null) : data,
+        error,
+      }),
+      single: async () => ({
+        data: Array.isArray(data) ? (data[0] ?? null) : data,
+        error,
+      }),
     };
     return builder;
   }
@@ -112,7 +125,6 @@ describe("CityService", () => {
   });
 });
 
-
 describe("CityService query failures", () => {
   const emptyRows = {
     developers: [],
@@ -125,9 +137,11 @@ describe("CityService query failures", () => {
   };
 
   it("returns a non-cacheable failure when a primary query fails", async () => {
-    const service = new CityService(new FakeSupabaseClient(emptyRows, {
-      developers: new Error("permission denied"),
-    }) as never);
+    const service = new CityService(
+      new FakeSupabaseClient(emptyRows, {
+        developers: new Error("permission denied"),
+      }) as never,
+    );
 
     const result = await service.loadCityData({ from: 0, to: 50 });
 
@@ -139,12 +153,17 @@ describe("CityService query failures", () => {
   });
 
   it("returns a non-cacheable failure when an enrichment query fails", async () => {
-    const service = new CityService(new FakeSupabaseClient({
-      ...emptyRows,
-      developers: [{ id: 1, easy_solved: 0 }],
-    }, {
-      developer_customizations: new Error("permission denied"),
-    }) as never);
+    const service = new CityService(
+      new FakeSupabaseClient(
+        {
+          ...emptyRows,
+          developers: [{ id: 1, easy_solved: 0 }],
+        },
+        {
+          developer_customizations: new Error("permission denied"),
+        },
+      ) as never,
+    );
 
     const result = await service.loadCityData({ from: 0, to: 50 });
 

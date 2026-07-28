@@ -1,4 +1,8 @@
-import type { Channel, NotificationCategory, NotificationPayload } from "./notifications";
+import type {
+  Channel,
+  NotificationCategory,
+  NotificationPayload,
+} from "./notifications";
 
 export interface NotificationPrefs {
   email_enabled: boolean;
@@ -45,15 +49,30 @@ export function evaluateNotificationPolicy({
 }): NotificationPolicyDecision {
   if (!payload.forceSend) {
     if (channel === "email" && !prefs.email_enabled) {
-      return { allowed: false, skipReason: "channel_disabled", shouldBatch: false };
+      return {
+        allowed: false,
+        skipReason: "channel_disabled",
+        shouldBatch: false,
+      };
     }
     if (channel === "push" && !prefs.push_enabled) {
-      return { allowed: false, skipReason: "channel_disabled", shouldBatch: false };
+      return {
+        allowed: false,
+        skipReason: "channel_disabled",
+        shouldBatch: false,
+      };
     }
   }
 
-  if (!payload.forceSend && !getCategoryEnabled(prefs, channel, payload.category)) {
-    return { allowed: false, skipReason: "category_disabled", shouldBatch: false };
+  if (
+    !payload.forceSend &&
+    !getCategoryEnabled(prefs, channel, payload.category)
+  ) {
+    return {
+      allowed: false,
+      skipReason: "category_disabled",
+      shouldBatch: false,
+    };
   }
 
   return {
@@ -72,7 +91,10 @@ function getCategoryEnabled(
   return prefs[category] ?? true;
 }
 
-function shouldBatch(payload: NotificationPayload, prefs: NotificationPrefs): boolean {
+function shouldBatch(
+  payload: NotificationPayload,
+  prefs: NotificationPrefs,
+): boolean {
   if (payload.priority === "high") return false;
   if (payload.forceSend) return false;
   if (!payload.batchKey) return false;

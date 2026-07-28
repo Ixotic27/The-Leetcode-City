@@ -35,11 +35,46 @@ interface Recoverable {
 type Status =
   | { kind: "idle" }
   | { kind: "quoting" }
-  | { kind: "ready"; quoteId: string; gitcAmountWei: bigint; usdAmountCents: number; redirect: string; wallet: `0x${string}` }
-  | { kind: "signing"; quoteId: string; gitcAmountWei: bigint; usdAmountCents: number; redirect: string; wallet: `0x${string}` }
-  | { kind: "confirming"; quoteId: string; gitcAmountWei: bigint; usdAmountCents: number; redirect: string; wallet: `0x${string}`; txHash: `0x${string}` }
-  | { kind: "verifying"; quoteId: string; gitcAmountWei: bigint; usdAmountCents: number; redirect: string; wallet: `0x${string}`; txHash: `0x${string}` }
-  | { kind: "done"; gitcAmountWei: bigint; usdAmountCents: number; redirect: string }
+  | {
+      kind: "ready";
+      quoteId: string;
+      gitcAmountWei: bigint;
+      usdAmountCents: number;
+      redirect: string;
+      wallet: `0x${string}`;
+    }
+  | {
+      kind: "signing";
+      quoteId: string;
+      gitcAmountWei: bigint;
+      usdAmountCents: number;
+      redirect: string;
+      wallet: `0x${string}`;
+    }
+  | {
+      kind: "confirming";
+      quoteId: string;
+      gitcAmountWei: bigint;
+      usdAmountCents: number;
+      redirect: string;
+      wallet: `0x${string}`;
+      txHash: `0x${string}`;
+    }
+  | {
+      kind: "verifying";
+      quoteId: string;
+      gitcAmountWei: bigint;
+      usdAmountCents: number;
+      redirect: string;
+      wallet: `0x${string}`;
+      txHash: `0x${string}`;
+    }
+  | {
+      kind: "done";
+      gitcAmountWei: bigint;
+      usdAmountCents: number;
+      redirect: string;
+    }
   | { kind: "error"; message: string; recoverable?: Recoverable };
 
 export interface GitcQuoteResponse {
@@ -67,7 +102,10 @@ export interface GitcPayButtonProps {
    */
   onRequestQuote: (wallet: `0x${string}`) => Promise<GitcQuoteResponse | null>;
   /** Async callback that confirms the on-chain payment with the backend. */
-  onConfirm: (params: { quoteId: string; txHash: `0x${string}` }) => Promise<{ ok: boolean; error?: string }>;
+  onConfirm: (params: {
+    quoteId: string;
+    txHash: `0x${string}`;
+  }) => Promise<{ ok: boolean; error?: string }>;
   onError?: (message: string) => void;
   /**
    * Called once the payment is verified. When provided, it REPLACES the
@@ -87,7 +125,13 @@ export function GitcPayButton(props: GitcPayButtonProps) {
   return <GitcPayButtonInner {...props} />;
 }
 
-function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDone }: GitcPayButtonProps) {
+function GitcPayButtonInner({
+  disabled,
+  onRequestQuote,
+  onConfirm,
+  onError,
+  onDone,
+}: GitcPayButtonProps) {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { open } = useAppKit();
@@ -119,14 +163,18 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
   const { writeContractAsync, reset: resetWrite } = useWriteContract();
 
   const pendingTxHash =
-    status.kind === "confirming" || status.kind === "verifying" ? status.txHash : undefined;
+    status.kind === "confirming" || status.kind === "verifying"
+      ? status.txHash
+      : undefined;
 
-  const { data: receipt, isError: receiptError } = useWaitForTransactionReceipt({
-    hash: pendingTxHash,
-    confirmations: 3,
-    chainId: base.id,
-    query: { enabled: !!pendingTxHash },
-  });
+  const { data: receipt, isError: receiptError } = useWaitForTransactionReceipt(
+    {
+      hash: pendingTxHash,
+      confirmations: 3,
+      chainId: base.id,
+      query: { enabled: !!pendingTxHash },
+    },
+  );
 
   // Reset state if the user switches wallet account mid-flow.
   // Quotes are bound to a specific wallet address server-side, so a switch
@@ -142,7 +190,10 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
     }
     if (status.wallet.toLowerCase() !== address.toLowerCase()) {
       resetWrite();
-      setStatus({ kind: "error", message: "Wallet changed. Please start over." });
+      setStatus({
+        kind: "error",
+        message: "Wallet changed. Please start over.",
+      });
     }
   }, [address, status, resetWrite]);
 
@@ -152,7 +203,12 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
   const verifyingRef = useRef(false);
   // Tracks live mount; we never want to setState after unmount.
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
 
   // Once the receipt arrives, ask the backend to verify and activate.
   // Transient errors (await confirms, network, rate-limit) auto-retry so a
@@ -313,11 +369,12 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
         txHash: hash,
       });
     } catch (err) {
-      const message = err instanceof Error && err.message.includes("User rejected")
-        ? "You rejected the transaction"
-        : err instanceof Error && err.message.toLowerCase().includes("chain")
-          ? "Switch your wallet to Base network and try again"
-          : "Could not submit the transaction";
+      const message =
+        err instanceof Error && err.message.includes("User rejected")
+          ? "You rejected the transaction"
+          : err instanceof Error && err.message.toLowerCase().includes("chain")
+            ? "Switch your wallet to Base network and try again"
+            : "Could not submit the transaction";
       setStatus({ kind: "error", message });
     }
   }
@@ -373,13 +430,18 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
   const subtleButtonClass =
     "w-full py-2.5 text-xs text-muted border-2 border-border hover:border-lime hover:text-lime transition-colors disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer";
 
-  const discountLabel = GITC_DISCOUNT_BPS > 0 ? ` -${(GITC_DISCOUNT_BPS / 100).toFixed(0)}%` : "";
+  const discountLabel =
+    GITC_DISCOUNT_BPS > 0 ? ` -${(GITC_DISCOUNT_BPS / 100).toFixed(0)}%` : "";
 
   if (status.kind === "done") {
     return (
       <div
         className="border-2 px-3 py-2 text-center text-[10px] normal-case"
-        style={{ borderColor: ACCENT, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+        style={{
+          borderColor: ACCENT,
+          color: ACCENT,
+          backgroundColor: `${ACCENT}10`,
+        }}
       >
         ✓ Paid {formatGitcAmount(status.gitcAmountWei)} GITC. Redirecting...
       </div>
@@ -392,7 +454,11 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
       <div className="flex flex-col gap-1.5">
         <div
           className="border-2 px-3 py-2 text-center text-[10px] normal-case"
-          style={{ borderColor: DEAD, color: DEAD, backgroundColor: `${DEAD}10` }}
+          style={{
+            borderColor: DEAD,
+            color: DEAD,
+            backgroundColor: `${DEAD}10`,
+          }}
         >
           {status.message}
         </div>
@@ -422,7 +488,11 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
             </button>
           </>
         ) : (
-          <button type="button" onClick={handleReset} className={subtleButtonClass}>
+          <button
+            type="button"
+            onClick={handleReset}
+            className={subtleButtonClass}
+          >
             Try again
           </button>
         )}
@@ -445,7 +515,8 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
   }
 
   if (status.kind === "ready" || status.kind === "signing") {
-    const shortAddress = status.wallet.slice(0, 6) + "…" + status.wallet.slice(-4);
+    const shortAddress =
+      status.wallet.slice(0, 6) + "…" + status.wallet.slice(-4);
     const usdLabel = formatUsd(status.usdAmountCents);
     const gitcLabel = `${formatGitcAmount(status.gitcAmountWei)} GITC`;
     return (
@@ -462,7 +533,10 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
           </div>
           <div className="mt-0.5 flex items-baseline justify-between text-[9px]">
             <span className="text-dim">Balance</span>
-            <span className={insufficient ? "" : "text-cream"} style={insufficient ? { color: DEAD } : undefined}>
+            <span
+              className={insufficient ? "" : "text-cream"}
+              style={insufficient ? { color: DEAD } : undefined}
+            >
               {formatGitcAmount(balance)} GITC
             </span>
           </div>
@@ -479,7 +553,8 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
             </button>
           </div>
           <p className="mt-2 text-[9px] text-dim">
-            Quote valid 5 min · sent to Git City treasury on Base · wallet linked to your account.
+            Quote valid 5 min · sent to Git City treasury on Base · wallet
+            linked to your account.
           </p>
         </div>
         <button
@@ -504,16 +579,47 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
           >
             {caCopied ? (
               <>
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M3 8.5L6.5 12L13 4.5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="square"
+                  />
                 </svg>
                 <span>CA copied</span>
               </>
             ) : (
               <>
-                <svg width="10" height="10" viewBox="0 0 16 16" fill="none" aria-hidden>
-                  <rect x="2" y="2" width="9" height="9" stroke="currentColor" strokeWidth="1.5" />
-                  <rect x="5" y="5" width="9" height="9" stroke="currentColor" strokeWidth="1.5" />
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  aria-hidden
+                >
+                  <rect
+                    x="2"
+                    y="2"
+                    width="9"
+                    height="9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
+                  <rect
+                    x="5"
+                    y="5"
+                    width="9"
+                    height="9"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
                 </svg>
                 <span>Copy GITC CA · {shortCa}</span>
               </>
@@ -538,9 +644,15 @@ function GitcPayButtonInner({ disabled, onRequestQuote, onConfirm, onError, onDo
     return (
       <div
         className="border-2 px-3 py-2 text-center text-[10px] normal-case"
-        style={{ borderColor: ACCENT, color: ACCENT, backgroundColor: `${ACCENT}10` }}
+        style={{
+          borderColor: ACCENT,
+          color: ACCENT,
+          backgroundColor: `${ACCENT}10`,
+        }}
       >
-        {status.kind === "confirming" ? "Confirming on Base..." : "Verifying..."}
+        {status.kind === "confirming"
+          ? "Confirming on Base..."
+          : "Verifying..."}
       </div>
     );
   }

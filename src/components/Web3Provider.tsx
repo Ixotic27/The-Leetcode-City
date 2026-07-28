@@ -86,7 +86,10 @@ export function Web3Provider({
         : null;
   let initialState: ReturnType<typeof cookieToInitialState> | undefined;
   try {
-    initialState = cookieToInitialState(wagmiConfig as Config, sanitizeWagmiCookie(cookieSource));
+    initialState = cookieToInitialState(
+      wagmiConfig as Config,
+      sanitizeWagmiCookie(cookieSource),
+    );
   } catch {
     initialState = undefined;
   }

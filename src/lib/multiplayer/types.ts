@@ -28,19 +28,37 @@ export interface ChatMessage {
 }
 
 // ─── Connection Status ──────────────────────────────────────
-export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "error";
+export type ConnectionStatus =
+  "connecting" | "connected" | "reconnecting" | "error";
 
 // ─── Client → Server Messages ───────────────────────────────
 export type ClientMsg =
   | { type: "join"; login: string; avatar_url: string }
-  | { type: "move"; cx: number; cy: number; cz: number; focusedBuilding: string | null }
+  | {
+      type: "move";
+      cx: number;
+      cy: number;
+      cz: number;
+      focusedBuilding: string | null;
+    }
   | { type: "chat"; text: string };
 
 // ─── Server → Client Messages ───────────────────────────────
 export type ServerMsg =
-  | { type: "sync"; players: CityPlayer[]; chatLog: { login: string; text: string; ts: number }[] }
+  | {
+      type: "sync";
+      players: CityPlayer[];
+      chatLog: { login: string; text: string; ts: number }[];
+    }
   | { type: "join"; player: CityPlayer }
   | { type: "leave"; id: string }
-  | { type: "move"; id: string; cx: number; cy: number; cz: number; focusedBuilding: string | null }
+  | {
+      type: "move";
+      id: string;
+      cx: number;
+      cy: number;
+      cz: number;
+      focusedBuilding: string | null;
+    }
   | { type: "chat"; id: string; login: string; text: string }
   | { type: "player_count"; count: number };

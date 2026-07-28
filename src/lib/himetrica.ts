@@ -60,16 +60,38 @@ export function trackShopPageView(source?: string, ref?: string) {
   hm()?.track("page_view_shop", { source, ref });
 }
 
-export function trackShopItemViewed(item_id: string, zone: string, price_cents: number) {
+export function trackShopItemViewed(
+  item_id: string,
+  zone: string,
+  price_cents: number,
+) {
   hm()?.track("shop_item_viewed", { item_id, zone, price: price_cents / 100 });
 }
 
-export function trackCheckoutStarted(item_id: string, provider: string, price_cents: number, is_gift: boolean) {
-  hm()?.track("checkout_started", { item_id, provider, price: price_cents / 100, is_gift });
+export function trackCheckoutStarted(
+  item_id: string,
+  provider: string,
+  price_cents: number,
+  is_gift: boolean,
+) {
+  hm()?.track("checkout_started", {
+    item_id,
+    provider,
+    price: price_cents / 100,
+    is_gift,
+  });
 }
 
-export function trackPurchaseCompleted(item_id: string, price_cents: number, provider: string) {
-  hm()?.track("purchase_completed", { item_id, price: price_cents / 100, provider });
+export function trackPurchaseCompleted(
+  item_id: string,
+  price_cents: number,
+  provider: string,
+) {
+  hm()?.track("purchase_completed", {
+    item_id,
+    price: price_cents / 100,
+    provider,
+  });
 }
 
 export function trackGiftSent(item_id: string, receiver: string) {
@@ -78,7 +100,11 @@ export function trackGiftSent(item_id: string, receiver: string) {
 
 // ─── Sky Ads ────────────────────────────────────────────────
 
-export function trackSkyAdImpression(ad_id: string, ad_type: string, advertiser?: string) {
+export function trackSkyAdImpression(
+  ad_id: string,
+  ad_type: string,
+  advertiser?: string,
+) {
   hm()?.track("sky_ad_impression", { ad_id, ad_type, advertiser });
 }
 

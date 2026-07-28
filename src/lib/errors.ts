@@ -13,7 +13,10 @@ export class BusinessLogicError extends Error {
 }
 
 export class InfrastructureError extends Error {
-  constructor(message: string, public readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "InfrastructureError";
   }

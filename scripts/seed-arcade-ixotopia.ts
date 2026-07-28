@@ -6,16 +6,25 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required.");
+  console.error(
+    "❌ Error: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required.",
+  );
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function seed() {
-  console.log("Reading map JSON from public/pokemon_resources/ixotopia-converted.json...");
-  const mapPath = path.join(process.cwd(), "public", "pokemon_resources", "ixotopia-converted.json");
-  
+  console.log(
+    "Reading map JSON from public/pokemon_resources/ixotopia-converted.json...",
+  );
+  const mapPath = path.join(
+    process.cwd(),
+    "public",
+    "pokemon_resources",
+    "ixotopia-converted.json",
+  );
+
   let mapJson;
   try {
     const fileContent = fs.readFileSync(mapPath, "utf-8");
@@ -36,10 +45,17 @@ async function seed() {
     description: "Explore the Pokémon-style Ixotopia Overworld Town!",
     is_featured: true,
     portals: [
-      { x: 20, y: 16, width: 1, type: "door", destination: "lobby", label: "Enter E.Arcade Lobby" }
+      {
+        x: 20,
+        y: 16,
+        width: 1,
+        type: "door",
+        destination: "lobby",
+        label: "Enter E.Arcade Lobby",
+      },
     ],
     map_json: mapJson,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   console.log("Upserting ixotopia room into arcade_rooms table in Supabase...");

@@ -170,7 +170,7 @@ export default function CityChat({
       </button>
     );
   }
- 
+
   // Expanded chat panel
   return (
     <div

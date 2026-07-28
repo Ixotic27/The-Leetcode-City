@@ -6,7 +6,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  */
 export async function POST(req: Request) {
   try {
-    const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+    const { resolveAuthenticatedDeveloper } =
+      await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     if (!auth.ok || !auth.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,7 +16,10 @@ export async function POST(req: Request) {
 
     const { code } = await req.json();
     if (!code || typeof code !== "string") {
-      return NextResponse.json({ error: "Valid code is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Valid code is required" },
+        { status: 400 },
+      );
     }
 
     const sb = getSupabaseAdmin();
@@ -27,7 +31,10 @@ export async function POST(req: Request) {
       .single();
 
     if (!dev) {
-      return NextResponse.json({ error: "You must link a LeetCode account first." }, { status: 403 });
+      return NextResponse.json(
+        { error: "You must link a LeetCode account first." },
+        { status: 403 },
+      );
     }
 
     const { data: specialCode, error: fetchError } = await sb
@@ -37,15 +44,30 @@ export async function POST(req: Request) {
       .single();
 
     if (fetchError || !specialCode) {
-      return NextResponse.json({ error: "Invalid or expired code." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Invalid or expired code." },
+        { status: 404 },
+      );
     }
 
-    if (specialCode.expires_at && new Date(specialCode.expires_at) < new Date()) {
-      return NextResponse.json({ error: "This code has expired." }, { status: 410 });
+    if (
+      specialCode.expires_at &&
+      new Date(specialCode.expires_at) < new Date()
+    ) {
+      return NextResponse.json(
+        { error: "This code has expired." },
+        { status: 410 },
+      );
     }
 
-    if (specialCode.max_uses !== -1 && specialCode.used_count >= specialCode.max_uses) {
-      return NextResponse.json({ error: "This code has reached its maximum usage limit." }, { status: 410 });
+    if (
+      specialCode.max_uses !== -1 &&
+      specialCode.used_count >= specialCode.max_uses
+    ) {
+      return NextResponse.json(
+        { error: "This code has reached its maximum usage limit." },
+        { status: 410 },
+      );
     }
 
     const { data: existingUsage } = await sb
@@ -56,7 +78,10 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (existingUsage) {
-      return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
+      return NextResponse.json(
+        { error: "You have already redeemed this code." },
+        { status: 409 },
+      );
     }
 
     if (specialCode.type === "all_items") {
@@ -66,7 +91,10 @@ export async function POST(req: Request) {
         .eq("is_active", true);
 
       if (!allItems || allItems.length === 0) {
-        return NextResponse.json({ error: "No items found to grant." }, { status: 500 });
+        return NextResponse.json(
+          { error: "No items found to grant." },
+          { status: 500 },
+        );
       }
 
       const { data: ownedRows } = await sb
@@ -76,11 +104,11 @@ export async function POST(req: Request) {
         .is("gifted_to", null)
         .in("status", ["completed", "delivered"]);
 
-      const alreadyOwned = new Set((ownedRows ?? []).map(r => r.item_id));
-      const toGrant = allItems.filter(i => !alreadyOwned.has(i.id));
+      const alreadyOwned = new Set((ownedRows ?? []).map((r) => r.item_id));
+      const toGrant = allItems.filter((i) => !alreadyOwned.has(i.id));
 
       if (toGrant.length > 0) {
-        const itemIds = toGrant.map(i => i.id);
+        const itemIds = toGrant.map((i) => i.id);
 
         const { error: rpcError } = await sb.rpc("redeem_special_all_items", {
           p_code_id: specialCode.id,
@@ -90,11 +118,20 @@ export async function POST(req: Request) {
         });
 
         if (rpcError) {
-          if (rpcError.message?.includes("23505") || rpcError.message?.includes("duplicate")) {
-            return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
+          if (
+            rpcError.message?.includes("23505") ||
+            rpcError.message?.includes("duplicate")
+          ) {
+            return NextResponse.json(
+              { error: "You have already redeemed this code." },
+              { status: 409 },
+            );
           }
           console.error("[redeem-special] RPC error:", rpcError);
-          return NextResponse.json({ error: "Failed to grant items. Please try again." }, { status: 500 });
+          return NextResponse.json(
+            { error: "Failed to grant items. Please try again." },
+            { status: 500 },
+          );
         }
       } else {
         const { error: usageInsertErr } = await sb
@@ -106,10 +143,16 @@ export async function POST(req: Request) {
 
         if (usageInsertErr) {
           if (usageInsertErr.code?.includes("23505")) {
-            return NextResponse.json({ error: "You have already redeemed this code." }, { status: 409 });
+            return NextResponse.json(
+              { error: "You have already redeemed this code." },
+              { status: 409 },
+            );
           }
           console.error("[redeem-special] usage insert error:", usageInsertErr);
-          return NextResponse.json({ error: "Failed to redeem code. Please try again." }, { status: 500 });
+          return NextResponse.json(
+            { error: "Failed to redeem code. Please try again." },
+            { status: 500 },
+          );
         }
 
         const { data: updatedCode, error: updateErr } = await sb
@@ -128,27 +171,30 @@ export async function POST(req: Request) {
 
           return NextResponse.json(
             { error: "Code could not be redeemed. Please try again." },
-            { status: 409 }
+            { status: 409 },
           );
         }
       }
 
-      const grantedIds = toGrant.map(i => i.id);
+      const grantedIds = toGrant.map((i) => i.id);
 
       return NextResponse.json({
         success: true,
         type: "all_items",
         granted_items: grantedIds,
-        message: toGrant.length > 0
-          ? `Unlocked ${toGrant.length} item${toGrant.length !== 1 ? "s" : ""}! Head to your shop to equip them.`
-          : "You already own everything in the shop!",
+        message:
+          toGrant.length > 0
+            ? `Unlocked ${toGrant.length} item${toGrant.length !== 1 ? "s" : ""}! Head to your shop to equip them.`
+            : "You already own everything in the shop!",
       });
     }
 
     return NextResponse.json({ error: "Unknown code type." }, { status: 400 });
-
   } catch (error) {
     console.error("[redeem-special API Error]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

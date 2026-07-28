@@ -1,5 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { CitySerializer, type CityDeveloperLike, type CitySerializableValue } from "@/services/citySerializer";
+import {
+  CitySerializer,
+  type CityDeveloperLike,
+  type CitySerializableValue,
+} from "@/services/citySerializer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CityLoadOptions = {
@@ -31,7 +35,9 @@ function cityLoadError(): CityLoadResponse {
 }
 
 function hasQueryError(...results: Array<{ error: unknown }>): boolean {
-  return results.some((result) => result.error !== null && result.error !== undefined);
+  return results.some(
+    (result) => result.error !== null && result.error !== undefined,
+  );
 }
 
 export class CityService {
@@ -51,13 +57,17 @@ export class CityService {
       sb
         .from("developers")
         .select(
-          "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, acceptance_rate"
+          "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp, easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, acceptance_rate",
         )
         .not("easy_solved", "is", null)
         .order("rank", { ascending: true })
         .range(from, to - 1),
       sb.from("city_stats").select("*").eq("id", 1).single(),
-      sb.from("items").select("metadata").eq("id", "support_renewal").maybeSingle(),
+      sb
+        .from("items")
+        .select("metadata")
+        .eq("id", "support_renewal")
+        .maybeSingle(),
     ]);
 
     if (hasQueryError(devsResult, statsResult, supportProgressResult)) {
@@ -67,7 +77,11 @@ export class CityService {
     const devs = (devsResult.data ?? []) as Array<CityDeveloperLike>;
     const devIds = devs.map((d) => Number(d.id));
 
-    const supportMeta = (supportProgressResult?.data?.metadata as Record<string, CitySerializableValue>) || {};
+    const supportMeta =
+      (supportProgressResult?.data?.metadata as Record<
+        string,
+        CitySerializableValue
+      >) || {};
     const renewalRaisedInr = supportMeta.raised_inr ?? 0;
     const renewalTargetInr = supportMeta.target_inr ?? 2900;
 
@@ -80,7 +94,10 @@ export class CityService {
         body: {
           developers: [],
           stats: {
-            ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+            ...(statsResult.data ?? {
+              total_developers: 0,
+              total_contributions: 0,
+            }),
             renewal_raised_inr: renewalRaisedInr,
             renewal_target_inr: renewalTargetInr,
           },
@@ -88,7 +105,13 @@ export class CityService {
       };
     }
 
-    const [purchasesResult, giftPurchasesResult, customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
+    const [
+      purchasesResult,
+      giftPurchasesResult,
+      customizationsResult,
+      achievementsResult,
+      raidTagsResult,
+    ] = await Promise.all([
       sb
         .from("purchases")
         .select("developer_id, item_id, provider, amount_cents")
@@ -104,7 +127,14 @@ export class CityService {
         .from("developer_customizations")
         .select("developer_id, item_id, config")
         .in("developer_id", devIds)
-        .in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner", "selected_title"]),
+        .in("item_id", [
+          "custom_color",
+          "billboard",
+          "loadout",
+          "building_style",
+          "led_banner",
+          "selected_title",
+        ]),
       sb
         .from("developer_achievements")
         .select("developer_id, achievement_id")
@@ -116,34 +146,54 @@ export class CityService {
         .eq("active", true),
     ]);
 
-    if (hasQueryError(
-      purchasesResult,
-      giftPurchasesResult,
-      customizationsResult,
-      achievementsResult,
-      raidTagsResult,
-    )) {
+    if (
+      hasQueryError(
+        purchasesResult,
+        giftPurchasesResult,
+        customizationsResult,
+        achievementsResult,
+        raidTagsResult,
+      )
+    ) {
       return cityLoadError();
     }
 
     const ownedItemsMap: Record<number, string[]> = {};
     for (const row of purchasesResult.data ?? []) {
-      const developerId = typeof row.developer_id === "number" ? row.developer_id : Number(row.developer_id);
+      const developerId =
+        typeof row.developer_id === "number"
+          ? row.developer_id
+          : Number(row.developer_id);
       const provider = typeof row.provider === "string" ? row.provider : "";
-      const amountCents = typeof row.amount_cents === "number" ? row.amount_cents : Number(row.amount_cents);
-      if (amountCents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)) {
+      const amountCents =
+        typeof row.amount_cents === "number"
+          ? row.amount_cents
+          : Number(row.amount_cents);
+      if (
+        amountCents === 0 &&
+        ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)
+      ) {
         continue;
       }
       if (!ownedItemsMap[developerId]) ownedItemsMap[developerId] = [];
       ownedItemsMap[developerId].push(String(row.item_id));
     }
     for (const row of giftPurchasesResult.data ?? []) {
-      const amountCents = typeof row.amount_cents === "number" ? row.amount_cents : Number(row.amount_cents);
+      const amountCents =
+        typeof row.amount_cents === "number"
+          ? row.amount_cents
+          : Number(row.amount_cents);
       const provider = typeof row.provider === "string" ? row.provider : "";
-      if (amountCents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)) {
+      if (
+        amountCents === 0 &&
+        ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)
+      ) {
         continue;
       }
-      const devId = typeof row.gifted_to === "number" ? row.gifted_to : Number(row.gifted_to);
+      const devId =
+        typeof row.gifted_to === "number"
+          ? row.gifted_to
+          : Number(row.gifted_to);
       if (!ownedItemsMap[devId]) ownedItemsMap[devId] = [];
       ownedItemsMap[devId].push(String(row.item_id));
     }
@@ -151,11 +201,27 @@ export class CityService {
     const customColorMap: Record<number, string> = {};
     const billboardImagesMap: Record<number, string[]> = {};
     const ledBannerTextMap: Record<number, string> = {};
-    const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
+    const loadoutMap: Record<
+      number,
+      {
+        crown: string | null;
+        roof: string | null;
+        aura: string | null;
+        faces: string | null;
+      }
+    > = {};
     const selectedTitleMap: Record<number, string> = {};
     for (const row of customizationsResult.data ?? []) {
-      const developerId = typeof row.developer_id === "number" ? row.developer_id : Number(row.developer_id);
-      const config = typeof row.config === "object" && row.config !== null && !Array.isArray(row.config) ? row.config : {};
+      const developerId =
+        typeof row.developer_id === "number"
+          ? row.developer_id
+          : Number(row.developer_id);
+      const config =
+        typeof row.config === "object" &&
+        row.config !== null &&
+        !Array.isArray(row.config)
+          ? row.config
+          : {};
       if (row.item_id === "custom_color" && typeof config.color === "string") {
         customColorMap[developerId] = config.color;
       }
@@ -184,25 +250,46 @@ export class CityService {
 
     const styleMap: Record<number, string> = {};
     for (const row of customizationsResult.data ?? []) {
-      const developerId = typeof row.developer_id === "number" ? row.developer_id : Number(row.developer_id);
-      const config = typeof row.config === "object" && row.config !== null && !Array.isArray(row.config) ? row.config : {};
-      if (row.item_id === "building_style" && typeof config.style === "string") {
+      const developerId =
+        typeof row.developer_id === "number"
+          ? row.developer_id
+          : Number(row.developer_id);
+      const config =
+        typeof row.config === "object" &&
+        row.config !== null &&
+        !Array.isArray(row.config)
+          ? row.config
+          : {};
+      if (
+        row.item_id === "building_style" &&
+        typeof config.style === "string"
+      ) {
         styleMap[developerId] = config.style;
       }
     }
 
     const achievementsMap: Record<number, string[]> = {};
     for (const row of achievementsResult.data ?? []) {
-      const developerId = typeof row.developer_id === "number" ? row.developer_id : Number(row.developer_id);
+      const developerId =
+        typeof row.developer_id === "number"
+          ? row.developer_id
+          : Number(row.developer_id);
       if (!achievementsMap[developerId]) achievementsMap[developerId] = [];
       achievementsMap[developerId].push(String(row.achievement_id));
     }
 
-    const raidTagMap: Record<number, { attacker_login: string; tag_style: string; expires_at: string }> = {};
+    const raidTagMap: Record<
+      number,
+      { attacker_login: string; tag_style: string; expires_at: string }
+    > = {};
     for (const row of raidTagsResult.data ?? []) {
-      const buildingId = typeof row.building_id === "number" ? row.building_id : Number(row.building_id);
+      const buildingId =
+        typeof row.building_id === "number"
+          ? row.building_id
+          : Number(row.building_id);
       raidTagMap[buildingId] = {
-        attacker_login: typeof row.attacker_login === "string" ? row.attacker_login : "",
+        attacker_login:
+          typeof row.attacker_login === "string" ? row.attacker_login : "",
         tag_style: typeof row.tag_style === "string" ? row.tag_style : "",
         expires_at: typeof row.expires_at === "string" ? row.expires_at : "",
       };
@@ -230,7 +317,7 @@ export class CityService {
         xp_total: dev.xp_total ?? 0,
         xp_level: dev.xp_level ?? 1,
         selected_title: selectedTitleMap[Number(dev.id)] ?? null,
-      })
+      }),
     );
 
     return {
@@ -241,7 +328,10 @@ export class CityService {
       body: {
         developers,
         stats: {
-          ...(statsResult.data ?? { total_developers: 0, total_contributions: 0 }),
+          ...(statsResult.data ?? {
+            total_developers: 0,
+            total_contributions: 0,
+          }),
           renewal_raised_inr: renewalRaisedInr,
           renewal_target_inr: renewalTargetInr,
         },

@@ -43,9 +43,9 @@ const nextConfig: NextConfig = {
       ...(config.resolve.alias as Record<string, string | false>),
       "pino-pretty": false,
       "@react-native-async-storage/async-storage": false,
-      "accounts": false,
+      accounts: false,
       "@metamask/connect-evm": false,
-      "porto": false,
+      porto: false,
       "porto/internal": false,
       "@walletconnect/ethereum-provider": false,
     };

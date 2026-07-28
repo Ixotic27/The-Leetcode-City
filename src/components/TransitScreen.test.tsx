@@ -10,7 +10,7 @@ describe("TransitScreen Component Tests", () => {
         active: false,
         fromDistrict: "downtown",
         toDistrict: "frontend",
-      })
+      }),
     );
     expect(markup).toBe("");
   });
@@ -21,7 +21,7 @@ describe("TransitScreen Component Tests", () => {
         active: true,
         fromDistrict: "downtown",
         toDistrict: "frontend",
-      })
+      }),
     );
     expect(markup).toContain("BMTC RED BUS");
     expect(markup).toContain("TICKET:");
@@ -35,7 +35,7 @@ describe("TransitScreen Component Tests", () => {
         active: true,
         fromDistrict: "downtown",
         toDistrict: "fullstack",
-      })
+      }),
     );
     expect(markup).toContain("Elevated Metro Line");
     expect(markup).toContain("Doors Closing");
@@ -47,7 +47,7 @@ describe("TransitScreen Component Tests", () => {
         active: true,
         fromDistrict: "downtown",
         toDistrict: "backend",
-      })
+      }),
     );
     expect(markup).toContain("Tuk-Tuk Auto Rickshaw");
   });
@@ -58,7 +58,7 @@ describe("TransitScreen Component Tests", () => {
         active: true,
         fromDistrict: "frontend",
         toDistrict: "downtown",
-      })
+      }),
     );
     expect(markup).toContain("Rajdhani Express");
     expect(markup).toContain("PLATFORM 3");

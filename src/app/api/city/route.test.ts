@@ -16,8 +16,12 @@ describe("GET /api/city", () => {
   });
 
   it("rejects empty and inverted pagination windows", async () => {
-    const emptyResponse = await GET(new Request("http://localhost/api/city?from=5&to=5"));
-    const invertedResponse = await GET(new Request("http://localhost/api/city?from=6&to=5"));
+    const emptyResponse = await GET(
+      new Request("http://localhost/api/city?from=5&to=5"),
+    );
+    const invertedResponse = await GET(
+      new Request("http://localhost/api/city?from=6&to=5"),
+    );
 
     expect(emptyResponse.status).toBe(400);
     expect(invertedResponse.status).toBe(400);
@@ -31,10 +35,14 @@ describe("GET /api/city", () => {
       body: { error: "Failed to load city data" },
     });
 
-    const response = await GET(new Request("http://localhost/api/city?from=0&to=50"));
+    const response = await GET(
+      new Request("http://localhost/api/city?from=0&to=50"),
+    );
 
     expect(response.status).toBe(500);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
-    await expect(response.json()).resolves.toEqual({ error: "Failed to load city data" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to load city data",
+    });
   });
 });

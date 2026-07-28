@@ -125,12 +125,14 @@ describe("rateLimit – Redis backend (production path)", () => {
 
     // 3 more requests: the 6th total should be blocked at Redis
     const results = await Promise.all(
-      [4, 5, 6].map(() => rateLimit("attacker:/api/verify-leetcode", 5, 60_000)),
+      [4, 5, 6].map(() =>
+        rateLimit("attacker:/api/verify-leetcode", 5, 60_000),
+      ),
     );
 
     const [r4, r5, r6] = results;
-    expect(r4.ok).toBe(true);  // 4th overall — allowed
-    expect(r5.ok).toBe(true);  // 5th overall — allowed (hits limit exactly)
+    expect(r4.ok).toBe(true); // 4th overall — allowed
+    expect(r5.ok).toBe(true); // 5th overall — allowed (hits limit exactly)
     expect(r6.ok).toBe(false); // 6th overall — BLOCKED by Redis
   });
 
@@ -223,7 +225,10 @@ describe("getClientIp IP extraction (via middleware logic — unit)", () => {
   function getClientIp(headers: Record<string, string | undefined>): string {
     const forwarded = headers["x-forwarded-for"];
     if (forwarded) {
-      const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+      const ips = forwarded
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (ips.length > 0) return ips[ips.length - 1];
     }
     return headers["x-real-ip"] ?? "unknown";

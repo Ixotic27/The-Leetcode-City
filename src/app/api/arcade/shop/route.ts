@@ -3,15 +3,114 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 const FALLBACK_ITEMS = [
-  { id: "buzzcut", category: "hair", name: "Buzzcut", file: "hair/buzzcut_grey.png", rarity: "free", price_px: 0, default_color: "#1a1a1a", no_tint: false, tags: [], slot: "hair" },
-  { id: "curly", category: "hair", name: "Curly Hair", file: "hair/curly_grey.png", rarity: "free", price_px: 0, default_color: "#8B4513", no_tint: false, tags: [], slot: "hair" },
-  { id: "ponytail", category: "hair", name: "Ponytail", file: "hair/ponytail_grey.png", rarity: "free", price_px: 0, default_color: "#FFD700", no_tint: false, tags: [], slot: "hair" },
-  { id: "gentleman", category: "hair", name: "Gentleman", file: "hair/gentleman_grey.png", rarity: "free", price_px: 0, default_color: "#1a1a1a", no_tint: false, tags: [], slot: "hair" },
-  { id: "emo", category: "hair", name: "Emo", file: "hair/emo_grey.png", rarity: "free", price_px: 0, default_color: "#4169E1", no_tint: false, tags: [], slot: "hair" },
-  { id: "bob", category: "hair", name: "Bob", file: "hair/bob_grey.png", rarity: "free", price_px: 0, default_color: "#B22222", no_tint: false, tags: [], slot: "hair" },
-  { id: "basic", category: "clothes", name: "Basic Shirt", file: "clothes/basic_grey.png", rarity: "free", price_px: 0, default_color: "#4a9eff", no_tint: false, tags: [], slot: "clothes_top" },
-  { id: "pants", category: "clothes", name: "Pants", file: "clothes/pants_grey.png", rarity: "free", price_px: 0, default_color: "#2c3e50", no_tint: false, tags: [], slot: "clothes_bottom" },
-  { id: "shoes", category: "shoes", name: "Shoes", file: "clothes/shoes_grey.png", rarity: "free", price_px: 0, default_color: "#4a3728", no_tint: false, tags: [], slot: "shoes" },
+  {
+    id: "buzzcut",
+    category: "hair",
+    name: "Buzzcut",
+    file: "hair/buzzcut_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#1a1a1a",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "curly",
+    category: "hair",
+    name: "Curly Hair",
+    file: "hair/curly_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#8B4513",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "ponytail",
+    category: "hair",
+    name: "Ponytail",
+    file: "hair/ponytail_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#FFD700",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "gentleman",
+    category: "hair",
+    name: "Gentleman",
+    file: "hair/gentleman_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#1a1a1a",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "emo",
+    category: "hair",
+    name: "Emo",
+    file: "hair/emo_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#4169E1",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "bob",
+    category: "hair",
+    name: "Bob",
+    file: "hair/bob_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#B22222",
+    no_tint: false,
+    tags: [],
+    slot: "hair",
+  },
+  {
+    id: "basic",
+    category: "clothes",
+    name: "Basic Shirt",
+    file: "clothes/basic_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#4a9eff",
+    no_tint: false,
+    tags: [],
+    slot: "clothes_top",
+  },
+  {
+    id: "pants",
+    category: "clothes",
+    name: "Pants",
+    file: "clothes/pants_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#2c3e50",
+    no_tint: false,
+    tags: [],
+    slot: "clothes_bottom",
+  },
+  {
+    id: "shoes",
+    category: "shoes",
+    name: "Shoes",
+    file: "clothes/shoes_grey.png",
+    rarity: "free",
+    price_px: 0,
+    default_color: "#4a3728",
+    no_tint: false,
+    tags: [],
+    slot: "shoes",
+  },
 ];
 
 // GET /api/arcade/shop — catalog + player inventory + balance
@@ -19,7 +118,10 @@ export async function GET() {
   const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const admin = getSupabaseAdmin();
@@ -28,12 +130,15 @@ export async function GET() {
 
   if (!dev) {
     // If the developer building has not been claimed yet, return fallback items as unowned catalog
-    return NextResponse.json({
-      items: FALLBACK_ITEMS.map(item => ({ ...item, owned: false })),
-      balance: 0,
-    }, {
-      headers: { "Cache-Control": "private, max-age=10" },
-    });
+    return NextResponse.json(
+      {
+        items: FALLBACK_ITEMS.map((item) => ({ ...item, owned: false })),
+        balance: 0,
+      },
+      {
+        headers: { "Cache-Control": "private, max-age=10" },
+      },
+    );
   }
 
   let items = [];
@@ -43,7 +148,9 @@ export async function GET() {
     const [catalogRes, inventoryRes, walletRes] = await Promise.all([
       admin
         .from("arcade_shop_items")
-        .select("id, category, name, file, rarity, price_px, default_color, no_tint, tags, slot")
+        .select(
+          "id, category, name, file, rarity, price_px, default_color, no_tint, tags, slot",
+        )
         .eq("active", true)
         .order("category")
         .order("price_px"),
@@ -69,19 +176,25 @@ export async function GET() {
     }));
     balance = walletRes.data?.balance ?? 0;
   } catch (err: unknown) {
-    console.error("[shop] Failed to load shop data:", err instanceof Error ? err.message : err);
+    console.error(
+      "[shop] Failed to load shop data:",
+      err instanceof Error ? err.message : err,
+    );
     return NextResponse.json(
       { error: "Failed to load shop data" },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({
-    items,
-    balance,
-  }, {
-    headers: { "Cache-Control": "private, max-age=10" },
-  });
+  return NextResponse.json(
+    {
+      items,
+      balance,
+    },
+    {
+      headers: { "Cache-Control": "private, max-age=10" },
+    },
+  );
 }
 
 // POST /api/arcade/shop — buy an item (atomic: debit PX + grant item)
@@ -139,7 +252,10 @@ export async function POST(request: Request) {
         wallet_not_found: { status: 404, msg: "Wallet not found" },
       };
       const mapped = errMap[result.error] ?? { status: 400, msg: result.error };
-      return NextResponse.json({ error: mapped.msg }, { status: mapped.status });
+      return NextResponse.json(
+        { error: mapped.msg },
+        { status: mapped.status },
+      );
     }
 
     return NextResponse.json({
@@ -149,9 +265,6 @@ export async function POST(request: Request) {
     });
   } catch (e) {
     console.error("[shop] Purchase failed:", e);
-    return NextResponse.json(
-      { error: "Purchase failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Purchase failed" }, { status: 500 });
   }
 }

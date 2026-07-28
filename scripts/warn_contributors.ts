@@ -1,15 +1,19 @@
-import fs from 'fs';
+import fs from "fs";
 
 async function main() {
-  const env = fs.readFileSync('.env.local', 'utf-8');
-  const token = env.split('\n').find(line => line.startsWith('GITHUB_TOKEN='))!.split('=')[1].trim();
+  const env = fs.readFileSync(".env.local", "utf-8");
+  const token = env
+    .split("\n")
+    .find((line) => line.startsWith("GITHUB_TOKEN="))!
+    .split("=")[1]
+    .trim();
   const headers = {
-    'Authorization': 'Bearer ' + token,
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json',
+    Authorization: "Bearer " + token,
+    Accept: "application/vnd.github.v3+json",
+    "Content-Type": "application/json",
   };
-  const repo = 'Ixotic27/The-Leetcode-City';
-  
+  const repo = "Ixotic27/The-Leetcode-City";
+
   // PRs that are related to 3D UI / Animations where buildings might have been missing
   const targetPRs = [84, 65];
 
@@ -17,10 +21,14 @@ async function main() {
 
   for (const prNum of targetPRs) {
     console.log(`Commenting on PR #${prNum}...`);
-    const res = await fetch(`https://api.github.com/repos/${repo}/issues/${prNum}/comments`, {
-      method: 'POST', headers,
-      body: JSON.stringify({ body: message }),
-    });
+    const res = await fetch(
+      `https://api.github.com/repos/${repo}/issues/${prNum}/comments`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ body: message }),
+      },
+    );
     if (res.ok) {
       console.log(`✅ Success for PR #${prNum}`);
     } else {

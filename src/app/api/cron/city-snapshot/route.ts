@@ -5,7 +5,7 @@ import { buildDeveloperProjection } from "@/services/cityProjection";
 const STORAGE_BUCKET = "city-data";
 const STORAGE_PATH = "snapshot.json";
 const PAGE_SIZE = 1000; // Supabase PostgREST caps at 1000 rows per request
- 
+
 interface DeveloperRow {
   id: number;
   github_login: string;
@@ -43,7 +43,10 @@ interface DeveloperRow {
   current_week_kudos_received?: number;
 }
 
-interface SupabaseQuery extends PromiseLike<{ data: unknown[] | null; error: { message: string } | null }> {
+interface SupabaseQuery extends PromiseLike<{
+  data: unknown[] | null;
+  error: { message: string } | null;
+}> {
   eq(column: string, value: unknown): SupabaseQuery;
   is(column: string, value: unknown): SupabaseQuery;
   not(column: string, operator: string, value: unknown): SupabaseQuery;
@@ -55,15 +58,18 @@ interface SupabaseQuery extends PromiseLike<{ data: unknown[] | null; error: { m
 async function fetchAll<T>(
   sb: ReturnType<typeof getSupabaseAdmin>,
   table: string,
-  select: string, 
+  select: string,
   apply?: (q: SupabaseQuery) => SupabaseQuery,
   orderBy?: string,
 ): Promise<T[]> {
   const all: T[] = [];
   let from = 0;
 
-  while (true) { 
-    let q = sb.from(table).select(select).range(from, from + PAGE_SIZE - 1) as unknown as SupabaseQuery;
+  while (true) {
+    let q = sb
+      .from(table)
+      .select(select)
+      .range(from, from + PAGE_SIZE - 1) as unknown as SupabaseQuery;
     if (orderBy) q = q.order(orderBy, { ascending: true });
     if (apply) q = apply(q);
     const { data, error } = await q;
@@ -83,7 +89,10 @@ async function fetchAll<T>(
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -93,60 +102,92 @@ export async function GET(request: NextRequest) {
   const sb = getSupabaseAdmin();
 
   // Ensure public bucket exists (idempotent)
-  await sb.storage.createBucket(STORAGE_BUCKET, { public: true }).catch(() => {});
+  await sb.storage
+    .createBucket(STORAGE_BUCKET, { public: true })
+    .catch(() => {});
 
   // Fetch everything in parallel
-  const [devs, purchases, giftPurchases, customizations, achievements, raidTags, statsResult] =
-    await Promise.all([ 
-      fetchAll<DeveloperRow>(
-        sb,
-        "developers",
-        "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp",
-        undefined,
-        "rank",
-      ),
-      fetchAll<{ developer_id: number; item_id: string; provider: string; amount_cents: number }>(
-        sb,
-        "purchases",
-        "developer_id, item_id, provider, amount_cents",
-        (q) => q.is("gifted_to", null).eq("status", "completed"),
-      ),
-      fetchAll<{ gifted_to: number; item_id: string; provider: string; amount_cents: number }>(
-        sb,
-        "purchases",
-        "gifted_to, item_id, provider, amount_cents",
-        (q) => q.not("gifted_to", "is", null).eq("status", "completed"),
-      ),
-      fetchAll<{ developer_id: number; item_id: string; config: Record<string, unknown> }>(
-        sb,
-        "developer_customizations",
-        "developer_id, item_id, config",
-        (q) => q.in("item_id", ["custom_color", "billboard", "loadout", "building_style", "led_banner", "selected_title"]),
-      ),
-      fetchAll<{ developer_id: number; achievement_id: string }>(
-        sb,
-        "developer_achievements",
-        "developer_id, achievement_id",
-      ),
-      fetchAll<{ building_id: number; attacker_login: string; tag_style: string; expires_at: string }>(
-        sb,
-        "raid_tags",
-        "building_id, attacker_login, tag_style, expires_at",
-        (q) => q.eq("active", true),
-      ),
-      sb.from("city_stats").select("*").eq("id", 1).single(),
-    ]);
+  const [
+    devs,
+    purchases,
+    giftPurchases,
+    customizations,
+    achievements,
+    raidTags,
+    statsResult,
+  ] = await Promise.all([
+    fetchAll<DeveloperRow>(
+      sb,
+      "developers",
+      "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp",
+      undefined,
+      "rank",
+    ),
+    fetchAll<{
+      developer_id: number;
+      item_id: string;
+      provider: string;
+      amount_cents: number;
+    }>(sb, "purchases", "developer_id, item_id, provider, amount_cents", (q) =>
+      q.is("gifted_to", null).eq("status", "completed"),
+    ),
+    fetchAll<{
+      gifted_to: number;
+      item_id: string;
+      provider: string;
+      amount_cents: number;
+    }>(sb, "purchases", "gifted_to, item_id, provider, amount_cents", (q) =>
+      q.not("gifted_to", "is", null).eq("status", "completed"),
+    ),
+    fetchAll<{
+      developer_id: number;
+      item_id: string;
+      config: Record<string, unknown>;
+    }>(sb, "developer_customizations", "developer_id, item_id, config", (q) =>
+      q.in("item_id", [
+        "custom_color",
+        "billboard",
+        "loadout",
+        "building_style",
+        "led_banner",
+        "selected_title",
+      ]),
+    ),
+    fetchAll<{ developer_id: number; achievement_id: string }>(
+      sb,
+      "developer_achievements",
+      "developer_id, achievement_id",
+    ),
+    fetchAll<{
+      building_id: number;
+      attacker_login: string;
+      tag_style: string;
+      expires_at: string;
+    }>(
+      sb,
+      "raid_tags",
+      "building_id, attacker_login, tag_style, expires_at",
+      (q) => q.eq("active", true),
+    ),
+    sb.from("city_stats").select("*").eq("id", 1).single(),
+  ]);
 
   // Build owned items map
   const ownedItemsMap: Record<number, string[]> = {};
   for (const row of purchases) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+    if (
+      row.amount_cents === 0 &&
+      ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)
+    ) {
       continue;
     }
     (ownedItemsMap[row.developer_id] ??= []).push(row.item_id);
   }
   for (const row of giftPurchases) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+    if (
+      row.amount_cents === 0 &&
+      ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)
+    ) {
       continue;
     }
     (ownedItemsMap[row.gifted_to] ??= []).push(row.item_id);
@@ -156,7 +197,15 @@ export async function GET(request: NextRequest) {
   const customColorMap: Record<number, string> = {};
   const billboardImagesMap: Record<number, string[]> = {};
   const ledBannerTextMap: Record<number, string> = {};
-  const loadoutMap: Record<number, { crown: string | null; roof: string | null; aura: string | null; faces: string | null }> = {};
+  const loadoutMap: Record<
+    number,
+    {
+      crown: string | null;
+      roof: string | null;
+      aura: string | null;
+      faces: string | null;
+    }
+  > = {};
   const styleMap: Record<number, string> = {};
   const selectedTitleMap: Record<number, string> = {};
   for (const row of customizations) {
@@ -197,7 +246,10 @@ export async function GET(request: NextRequest) {
   }
 
   // Build raid tags map
-  const raidTagMap: Record<number, { attacker_login: string; tag_style: string; expires_at: string }> = {};
+  const raidTagMap: Record<
+    number,
+    { attacker_login: string; tag_style: string; expires_at: string }
+  > = {};
   for (const row of raidTags) {
     raidTagMap[row.building_id] = {
       attacker_login: row.attacker_login,
@@ -207,28 +259,30 @@ export async function GET(request: NextRequest) {
   }
 
   // Merge
-  const developers = devs.map((dev) => buildDeveloperProjection({
-    ...dev,
-    kudos_count: dev.kudos_count ?? 0,
-    visit_count: dev.visit_count ?? 0,
-    owned_items: ownedItemsMap[dev.id] ?? [],
-    custom_color: customColorMap[dev.id] ?? null,
-    billboard_images: billboardImagesMap[dev.id] ?? [],
-    led_banner_text: ledBannerTextMap[dev.id] ?? null,
-    achievements: achievementsMap[dev.id] ?? [],
-    loadout: loadoutMap[dev.id] ?? null,
-    building_style: styleMap[dev.id] ?? "tower",
-    app_streak: dev.app_streak ?? 0,
-    raid_xp: dev.raid_xp ?? 0,
-    current_week_contributions: dev.current_week_contributions ?? 0,
-    current_week_kudos_given: dev.current_week_kudos_given ?? 0,
-    current_week_kudos_received: dev.current_week_kudos_received ?? 0,
-    active_raid_tag: raidTagMap[dev.id] ?? null,
-    rabbit_completed: dev.rabbit_completed ?? false,
-    xp_total: dev.xp_total ?? 0,
-    xp_level: dev.xp_level ?? 1,
-    selected_title: selectedTitleMap[dev.id] ?? null,
-  }));
+  const developers = devs.map((dev) =>
+    buildDeveloperProjection({
+      ...dev,
+      kudos_count: dev.kudos_count ?? 0,
+      visit_count: dev.visit_count ?? 0,
+      owned_items: ownedItemsMap[dev.id] ?? [],
+      custom_color: customColorMap[dev.id] ?? null,
+      billboard_images: billboardImagesMap[dev.id] ?? [],
+      led_banner_text: ledBannerTextMap[dev.id] ?? null,
+      achievements: achievementsMap[dev.id] ?? [],
+      loadout: loadoutMap[dev.id] ?? null,
+      building_style: styleMap[dev.id] ?? "tower",
+      app_streak: dev.app_streak ?? 0,
+      raid_xp: dev.raid_xp ?? 0,
+      current_week_contributions: dev.current_week_contributions ?? 0,
+      current_week_kudos_given: dev.current_week_kudos_given ?? 0,
+      current_week_kudos_received: dev.current_week_kudos_received ?? 0,
+      active_raid_tag: raidTagMap[dev.id] ?? null,
+      rabbit_completed: dev.rabbit_completed ?? false,
+      xp_total: dev.xp_total ?? 0,
+      xp_level: dev.xp_level ?? 1,
+      selected_title: selectedTitleMap[dev.id] ?? null,
+    }),
+  );
 
   const snapshot = JSON.stringify({
     developers,

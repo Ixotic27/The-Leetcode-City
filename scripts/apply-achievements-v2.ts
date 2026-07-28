@@ -9,7 +9,9 @@ dotenv.config({ path: resolve(__dirname, "../.env.local") });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const sb = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+const sb = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false },
+});
 
 async function main() {
   console.log("Starting achievements v2 migration...");
@@ -21,7 +23,10 @@ async function main() {
     .delete()
     .in("achievement_id", ["rising_star", "popular", "famous"]);
   if (delDevError) {
-    console.error("Error deleting developer_achievements:", delDevError.message);
+    console.error(
+      "Error deleting developer_achievements:",
+      delDevError.message,
+    );
   }
 
   const { error: delAchError } = await sb
@@ -161,7 +166,10 @@ async function main() {
     .upsert(contributors, { onConflict: "id" });
 
   if (upsertErr) {
-    console.error("Error upserting contributor achievements:", upsertErr.message);
+    console.error(
+      "Error upserting contributor achievements:",
+      upsertErr.message,
+    );
   } else {
     console.log("  Successfully upserted contributor achievements!");
   }

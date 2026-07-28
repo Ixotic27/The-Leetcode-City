@@ -21,7 +21,9 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/sky-ads/analytics?period=${filters.period}`);
+      const res = await fetch(
+        `/api/sky-ads/analytics?period=${filters.period}`,
+      );
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? `HTTP ${res.status}`);
@@ -90,9 +92,12 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
         case "priority":
           return dir * (a.priority - b.priority);
         case "created_at":
-          return dir * ((a.created_at ?? "").localeCompare(b.created_at ?? ""));
+          return dir * (a.created_at ?? "").localeCompare(b.created_at ?? "");
         case "status":
-          return dir * (getStatusOrder(getAdStatus(a)) - getStatusOrder(getAdStatus(b)));
+          return (
+            dir *
+            (getStatusOrder(getAdStatus(a)) - getStatusOrder(getAdStatus(b)))
+          );
         default:
           return 0;
       }
@@ -267,7 +272,10 @@ export function useAdsData({ filters, onToast }: UseAdsDataOptions) {
           onToast(data.error ?? "Batch operation failed", "error");
           return false;
         }
-        onToast(`${ids.length} ads ${action === "delete" ? "deleted" : action === "pause" ? "paused" : "resumed"}`, "success");
+        onToast(
+          `${ids.length} ads ${action === "delete" ? "deleted" : action === "pause" ? "paused" : "resumed"}`,
+          "success",
+        );
         fetchStats();
         return true;
       } catch (err) {

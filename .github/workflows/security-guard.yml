@@ -25,16 +25,16 @@ jobs:
               pull_number: context.issue.number,
               per_page: 100
             });
-            
+
             // Characters that completely break Windows filesystems
             const invalidWindowsChars = /[<>:"|?*]/;
             // Only block truly dangerous binaries. Shell scripts (.sh, .ps1) are
             // legitimate for CI/build and should NOT be blocked.
             const restrictedExtensions = [/\.exe$/i, /\.dll$/i, /\.bat$/i, /\.cmd$/i];
-            
+
             let hasViolation = false;
             let violations = [];
-            
+
             for (const file of files) {
               // Get just the filename (ignore folder paths)
               const filename = file.filename.split('/').pop(); 
@@ -49,7 +49,7 @@ jobs:
                 violations.push(`- ⚠️ \`${file.filename}\`: Executable or script files are strictly prohibited for security reasons.`);
               }
             }
-            
+
             if (hasViolation) {
               const body = `🚨 **SECURITY GUARD ALERT** 🚨\n\nHi @${context.payload.pull_request.user.login}, your Pull Request contains files that violate repository security policies:\n\n${violations.join('\n')}\n\n**Action Required:** Please rename or remove these files immediately. This PR is blocked until these issues are resolved.`;
               

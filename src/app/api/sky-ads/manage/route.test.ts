@@ -107,7 +107,9 @@ describe("/api/sky-ads/manage route", () => {
   });
 
   it("returns 403 when non-admin attempts create", async () => {
-    mockGetUser.mockResolvedValue({ data: { user: { user_metadata: { user_name: "other" } } } });
+    mockGetUser.mockResolvedValue({
+      data: { user: { user_metadata: { user_name: "other" } } },
+    });
     const request = new Request("http://localhost/api/sky-ads/manage", {
       method: "POST",
       body: JSON.stringify({ id: "ad-1", brand: "B", text: "T" }),
@@ -126,7 +128,9 @@ describe("/api/sky-ads/manage route", () => {
 
     const response = await POST(request);
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Missing required fields: id, brand, text" });
+    expect(await response.json()).toEqual({
+      error: "Missing required fields: id, brand, text",
+    });
   });
 
   it("creates an ad successfully", async () => {
@@ -148,7 +152,9 @@ describe("/api/sky-ads/manage route", () => {
 
     const response = await PUT(request);
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "No valid fields to update" });
+    expect(await response.json()).toEqual({
+      error: "No valid fields to update",
+    });
   });
 
   it("updates an ad successfully", async () => {
@@ -163,14 +169,18 @@ describe("/api/sky-ads/manage route", () => {
   });
 
   it("returns 400 when delete request is missing id", async () => {
-    const request = new Request("http://localhost/api/sky-ads/manage", { method: "DELETE" });
+    const request = new Request("http://localhost/api/sky-ads/manage", {
+      method: "DELETE",
+    });
     const response = await DELETE(request);
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "Missing ad id" });
   });
 
   it("deletes an ad successfully", async () => {
-    const request = new Request("http://localhost/api/sky-ads/manage?id=ad-1", { method: "DELETE" });
+    const request = new Request("http://localhost/api/sky-ads/manage?id=ad-1", {
+      method: "DELETE",
+    });
     const response = await DELETE(request);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
@@ -193,7 +203,9 @@ describe("/api/sky-ads/manage route", () => {
     });
     const response = await PATCH(request);
     expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ error: "Invalid action. Use: pause, resume, delete" });
+    expect(await response.json()).toEqual({
+      error: "Invalid action. Use: pause, resume, delete",
+    });
   });
 
   it("pauses ads successfully", async () => {

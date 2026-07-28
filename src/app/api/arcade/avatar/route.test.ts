@@ -43,8 +43,13 @@ function createAdmin({ data = [], error = null, throws }: OwnershipResult) {
           if (throws) {
             return Promise.reject(throws);
           }
-          const hasOwned = (data ?? []).some((row) => row.item_id === "paid_dragon");
-          return Promise.resolve({ data: hasOwned ? { item_id: "paid_dragon" } : null, error });
+          const hasOwned = (data ?? []).some(
+            (row) => row.item_id === "paid_dragon",
+          );
+          return Promise.resolve({
+            data: hasOwned ? { item_id: "paid_dragon" } : null,
+            error,
+          });
         }),
       };
       return query;
@@ -73,12 +78,16 @@ describe("POST /api/arcade/avatar", () => {
   });
 
   it("saves a loadout when every equipped item is owned", async () => {
-    const { upsert, savedLoadout } = createAdmin({ data: [{ item_id: "paid_dragon" }] });
+    const { upsert, savedLoadout } = createAdmin({
+      data: [{ item_id: "paid_dragon" }],
+    });
 
-    const response = await POST(new Request("http://localhost/api/arcade/avatar", {
-      method: "POST",
-      body: JSON.stringify({ pet_id: "paid_dragon" }),
-    }));
+    const response = await POST(
+      new Request("http://localhost/api/arcade/avatar", {
+        method: "POST",
+        body: JSON.stringify({ pet_id: "paid_dragon" }),
+      }),
+    );
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ loadout: savedLoadout });
@@ -88,10 +97,12 @@ describe("POST /api/arcade/avatar", () => {
   it("rejects unowned items without persisting the loadout", async () => {
     const { upsert } = createAdmin({ data: [] });
 
-    const response = await POST(new Request("http://localhost/api/arcade/avatar", {
-      method: "POST",
-      body: JSON.stringify({ pet_id: "paid_dragon" }),
-    }));
+    const response = await POST(
+      new Request("http://localhost/api/arcade/avatar", {
+        method: "POST",
+        body: JSON.stringify({ pet_id: "paid_dragon" }),
+      }),
+    );
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({
@@ -102,28 +113,38 @@ describe("POST /api/arcade/avatar", () => {
   });
 
   it("fails closed when the ownership query returns an error", async () => {
-    const { upsert } = createAdmin({ error: new Error("database unavailable") });
+    const { upsert } = createAdmin({
+      error: new Error("database unavailable"),
+    });
 
-    const response = await POST(new Request("http://localhost/api/arcade/avatar", {
-      method: "POST",
-      body: JSON.stringify({ pet_id: "paid_dragon" }),
-    }));
+    const response = await POST(
+      new Request("http://localhost/api/arcade/avatar", {
+        method: "POST",
+        body: JSON.stringify({ pet_id: "paid_dragon" }),
+      }),
+    );
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Failed to verify item ownership" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to verify item ownership",
+    });
     expect(upsert).not.toHaveBeenCalled();
   });
 
   it("fails closed when the ownership query throws", async () => {
     const { upsert } = createAdmin({ throws: new Error("connection reset") });
 
-    const response = await POST(new Request("http://localhost/api/arcade/avatar", {
-      method: "POST",
-      body: JSON.stringify({ pet_id: "paid_dragon" }),
-    }));
+    const response = await POST(
+      new Request("http://localhost/api/arcade/avatar", {
+        method: "POST",
+        body: JSON.stringify({ pet_id: "paid_dragon" }),
+      }),
+    );
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Failed to verify item ownership" });
+    await expect(response.json()).resolves.toEqual({
+      error: "Failed to verify item ownership",
+    });
     expect(upsert).not.toHaveBeenCalled();
   });
 });

@@ -18,7 +18,8 @@ import { createAtomicCheckoutPurchase, autoEquipIfSolo } from "@/lib/items";
  */
 export async function POST(request: Request) {
   // Auth required
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -29,7 +30,10 @@ export async function POST(request: Request) {
   // Rate limit: 1 checkout per 10 seconds per user
   const { ok } = await rateLimit(`checkout:${user.id}`, 1, 10_000);
   if (!ok) {
-    return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
+    return NextResponse.json(
+      { error: "Too fast. Wait a few seconds." },
+      { status: 429 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
   if (!dev || !dev.claimed) {
     return NextResponse.json(
       { error: "You must claim your building first" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -54,7 +58,7 @@ export async function POST(request: Request) {
   if (dev.claimed_by !== user.id) {
     return NextResponse.json(
       { error: "This building is not yours" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -68,12 +72,21 @@ export async function POST(request: Request) {
   };
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/checkout/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/checkout/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
   const { item_id, provider, gifted_to_login, dev_mode, phone } = body;
 
-  if (!item_id || !provider || !["stripe", "abacatepay", "nowpayments", "cashfree"].includes(provider)) {
-    return NextResponse.json({ error: "Invalid item_id or provider" }, { status: 400 });
+  if (
+    !item_id ||
+    !provider ||
+    !["stripe", "abacatepay", "nowpayments", "cashfree"].includes(provider)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid item_id or provider" },
+      { status: 400 },
+    );
   }
 
   // Brazilian Stripe CNPJ can't charge USD to Brazilian cards.
@@ -88,7 +101,10 @@ export async function POST(request: Request) {
   let giftedToDevId: number | null = null;
   if (gifted_to_login) {
     if (gifted_to_login.toLowerCase() === githubLogin) {
-      return NextResponse.json({ error: "Cannot gift to yourself" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot gift to yourself" },
+        { status: 400 },
+      );
     }
 
     const { data: receiver } = await sb
@@ -98,7 +114,10 @@ export async function POST(request: Request) {
       .single();
 
     if (!receiver) {
-      return NextResponse.json({ error: "User not found in LeetCode City" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User not found in LeetCode City" },
+        { status: 400 },
+      );
     }
 
     // Check receiver doesn't already own this item (bought or gifted)
@@ -111,7 +130,13 @@ export async function POST(request: Request) {
       .eq("status", "completed");
 
     const realReceiverBought = (receiverOwnsBought ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+      (p) =>
+        !(
+          p.amount_cents === 0 &&
+          ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+            p.provider,
+          )
+        ),
     );
 
     const { data: receiverOwnsGifted } = await sb
@@ -122,11 +147,20 @@ export async function POST(request: Request) {
       .eq("status", "completed");
 
     const realReceiverGifted = (receiverOwnsGifted ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+      (p) =>
+        !(
+          p.amount_cents === 0 &&
+          ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+            p.provider,
+          )
+        ),
     );
 
     if (realReceiverBought || realReceiverGifted) {
-      return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Receiver already owns this item" },
+        { status: 409 },
+      );
     }
 
     giftedToDevId = receiver.id;
@@ -141,12 +175,21 @@ export async function POST(request: Request) {
     .single();
 
   if (!item) {
-    return NextResponse.json({ error: "Item not found or inactive" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Item not found or inactive" },
+      { status: 404 },
+    );
   }
 
   // A11: Check scarcity constraints (temporal + quantity)
-  if (item.available_until && new Date(item.available_until).getTime() <= Date.now()) {
-    return NextResponse.json({ error: "This item is no longer available" }, { status: 410 });
+  if (
+    item.available_until &&
+    new Date(item.available_until).getTime() <= Date.now()
+  ) {
+    return NextResponse.json(
+      { error: "This item is no longer available" },
+      { status: 410 },
+    );
   }
   if (item.max_quantity != null) {
     const { count: soldCount } = await sb
@@ -155,7 +198,10 @@ export async function POST(request: Request) {
       .eq("item_id", item_id)
       .eq("status", "completed");
     if ((soldCount ?? 0) >= item.max_quantity) {
-      return NextResponse.json({ error: "This item is sold out" }, { status: 410 });
+      return NextResponse.json(
+        { error: "This item is sold out" },
+        { status: 410 },
+      );
     }
   }
 
@@ -172,7 +218,7 @@ export async function POST(request: Request) {
     if ((freezeDev?.streak_freezes_available ?? 0) >= 2) {
       return NextResponse.json(
         { error: "Maximum 2 streak freezes stored" },
-        { status: 409 }
+        { status: 409 },
       );
     }
   }
@@ -190,7 +236,9 @@ export async function POST(request: Request) {
     // Fetch building dimensions to calculate max slots
     const { data: devFull } = await sb
       .from("developers")
-      .select("github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos, building_style")
+      .select(
+        "github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos, building_style",
+      )
       .eq("id", dev.id)
       .single();
 
@@ -212,12 +260,15 @@ export async function POST(request: Request) {
 
       const minBillArea = 10 * 8;
       const totalFaceArea = 2 * (w + d) * h;
-      const maxSlots = Math.max(1, Math.floor(totalFaceArea / (minBillArea * 6)));
+      const maxSlots = Math.max(
+        1,
+        Math.floor(totalFaceArea / (minBillArea * 6)),
+      );
 
       if ((billboardCount ?? 0) >= maxSlots) {
         return NextResponse.json(
           { error: `Max billboard slots reached (${maxSlots})` },
-          { status: 409 }
+          { status: 409 },
         );
       }
     }
@@ -227,12 +278,20 @@ export async function POST(request: Request) {
     const { data: existingPurchases } = await sb
       .from("purchases")
       .select("id, amount_cents, provider")
-      .or(`and(developer_id.eq.${dev.id},gifted_to.is.null),gifted_to.eq.${dev.id}`)
+      .or(
+        `and(developer_id.eq.${dev.id},gifted_to.is.null),gifted_to.eq.${dev.id}`,
+      )
       .eq("item_id", item_id)
       .eq("status", "completed");
 
     const realPurchase = (existingPurchases ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
+      (p) =>
+        !(
+          p.amount_cents === 0 &&
+          ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+            p.provider,
+          )
+        ),
     );
 
     if (realPurchase) {
@@ -241,11 +300,15 @@ export async function POST(request: Request) {
   }
 
   // DEV BYPASS: Allow Ishant_27 / ixotic / ixotic27 to get items for free for testing
-  const isDev = ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase()) && body.dev_mode === true;
+  const isDev =
+    ["ishant_27", "ixotic", "ixotic27"].includes(githubLogin.toLowerCase()) &&
+    body.dev_mode === true;
   const isFree = item.price_usd_cents === 0;
 
   if (isDev || isFree) {
-    console.log(`Bypassing payment for ${githubLogin} (Dev: ${isDev}, Free: ${isFree})`);
+    console.log(
+      `Bypassing payment for ${githubLogin} (Dev: ${isDev}, Free: ${isFree})`,
+    );
     const recipientId = giftedToDevId ?? dev.id;
 
     try {
@@ -269,15 +332,21 @@ export async function POST(request: Request) {
         purchase_id: purchaseId,
       });
     } catch (error) {
-      console.error("[app/api/checkout/route.ts] Failed to create dev/free purchase:", error);
-      return NextResponse.json({ error: "Failed to create dev/free purchase" }, { status: 500 });
+      console.error(
+        "[app/api/checkout/route.ts] Failed to create dev/free purchase:",
+        error,
+      );
+      return NextResponse.json(
+        { error: "Failed to create dev/free purchase" },
+        { status: 500 },
+      );
     }
   }
 
-
   try {
     if (provider === "stripe") {
-      const amountCents = stripeCurrency === "brl" ? item.price_brl_cents : item.price_usd_cents;
+      const amountCents =
+        stripeCurrency === "brl" ? item.price_brl_cents : item.price_usd_cents;
       const { data: purchase, error: purchaseError } = await sb
         .from("purchases")
         .insert({
@@ -294,12 +363,27 @@ export async function POST(request: Request) {
 
       if (purchaseError) {
         if (purchaseError.code === "23505") {
-          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+          return NextResponse.json(
+            { error: "A pending purchase already exists for this item" },
+            { status: 409 },
+          );
         }
-        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to create purchase" },
+          { status: 500 },
+        );
       }
 
-      const { url } = await createCheckoutSession(item_id, dev.id, githubLogin, stripeCurrency, user.email, giftedToDevId, gifted_to_login, purchase.id);
+      const { url } = await createCheckoutSession(
+        item_id,
+        dev.id,
+        githubLogin,
+        stripeCurrency,
+        user.email,
+        giftedToDevId,
+        gifted_to_login,
+        purchase.id,
+      );
       return NextResponse.json({ url, purchase_id: purchase.id });
     } else if (provider === "nowpayments") {
       // Crypto via NOWPayments
@@ -319,25 +403,39 @@ export async function POST(request: Request) {
 
       if (purchaseError) {
         if (purchaseError.code === "23505") {
-          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+          return NextResponse.json(
+            { error: "A pending purchase already exists for this item" },
+            { status: 409 },
+          );
         }
-        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to create purchase" },
+          { status: 500 },
+        );
       }
 
-      const { invoiceUrl } = await createCryptoInvoice(item_id, dev.id, githubLogin, purchase.id);
+      const { invoiceUrl } = await createCryptoInvoice(
+        item_id,
+        dev.id,
+        githubLogin,
+        purchase.id,
+      );
 
       await sb
         .from("purchases")
         .update({ provider_tx_id: purchase.id })
         .eq("id", purchase.id);
 
-      return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });      
+      return NextResponse.json({ url: invoiceUrl, purchase_id: purchase.id });
     } else if (provider === "cashfree") {
       // Cashfree (INR via UPI / Cards / Wallets)
       if (!phone || !/^[6-9]\d{9}$/.test(phone.trim())) {
         return NextResponse.json(
-          { error: "A valid 10-digit phone number is required for Cashfree payment" },
-          { status: 400 }
+          {
+            error:
+              "A valid 10-digit phone number is required for Cashfree payment",
+          },
+          { status: 400 },
         );
       }
 
@@ -359,13 +457,25 @@ export async function POST(request: Request) {
 
       if (purchaseError) {
         if (purchaseError.code === "23505") {
-          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+          return NextResponse.json(
+            { error: "A pending purchase already exists for this item" },
+            { status: 409 },
+          );
         }
-        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to create purchase" },
+          { status: 500 },
+        );
       }
 
       const { paymentSessionId, orderId } = await createCashfreeCheckout(
-        item_id, dev.id, githubLogin, user.email ?? undefined, phone.trim(), giftedToDevId, gifted_to_login
+        item_id,
+        dev.id,
+        githubLogin,
+        user.email ?? undefined,
+        phone.trim(),
+        giftedToDevId,
+        gifted_to_login,
       );
 
       // Save Cashfree order_id as provider_tx_id so webhook can find this purchase
@@ -374,7 +484,11 @@ export async function POST(request: Request) {
         .update({ provider_tx_id: orderId })
         .eq("id", purchase.id);
 
-      return NextResponse.json({ paymentSessionId, cashfreeOrderId: orderId, purchase_id: purchase.id });
+      return NextResponse.json({
+        paymentSessionId,
+        cashfreeOrderId: orderId,
+        purchase_id: purchase.id,
+      });
     } else {
       // AbacatePay
       const { data: purchase, error: purchaseError } = await sb
@@ -393,12 +507,22 @@ export async function POST(request: Request) {
 
       if (purchaseError) {
         if (purchaseError.code === "23505") {
-          return NextResponse.json({ error: "A pending purchase already exists for this item" }, { status: 409 });
+          return NextResponse.json(
+            { error: "A pending purchase already exists for this item" },
+            { status: 409 },
+          );
         }
-        return NextResponse.json({ error: "Failed to create purchase" }, { status: 500 });
+        return NextResponse.json(
+          { error: "Failed to create purchase" },
+          { status: 500 },
+        );
       }
 
-      const { brCode, brCodeBase64, pixId } = await createPixQrCode(item_id, dev.id, githubLogin);
+      const { brCode, brCodeBase64, pixId } = await createPixQrCode(
+        item_id,
+        dev.id,
+        githubLogin,
+      );
 
       // Save PIX ID as provider_tx_id
       await sb
@@ -406,13 +530,22 @@ export async function POST(request: Request) {
         .update({ provider_tx_id: pixId })
         .eq("id", purchase.id);
 
-      return NextResponse.json({ brCode, brCodeBase64, purchase_id: purchase.id });
+      return NextResponse.json({
+        brCode,
+        brCodeBase64,
+        purchase_id: purchase.id,
+      });
     }
   } catch (err: any) {
     console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to create checkout session" },
-      { status: 500 }
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to create checkout session",
+      },
+      { status: 500 },
     );
   }
 }

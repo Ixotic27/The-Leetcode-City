@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { autoEquipIfSolo } from "@/lib/items";
-import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
+import {
+  sendPurchaseNotification,
+  sendGiftSentNotification,
+} from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 
 const lastSpend = new Map<string, number>();
@@ -10,7 +13,8 @@ const lastSpend = new Map<string, number>();
 const MULTI_BUY_ITEMS = new Set(["streak_freeze", "billboard"]);
 
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -22,7 +26,10 @@ export async function POST(request: Request) {
   const now = Date.now();
   const last = lastSpend.get(user.id);
   if (last && now - last < 3_000) {
-    return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
+    return NextResponse.json(
+      { error: "Too fast. Wait a few seconds." },
+      { status: 429 },
+    );
   }
   lastSpend.set(user.id, now);
 
@@ -33,7 +40,10 @@ export async function POST(request: Request) {
   ).toLowerCase();
 
   if (!githubLogin) {
-    return NextResponse.json({ error: "No GitHub login found" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No GitHub login found" },
+      { status: 400 },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -45,7 +55,10 @@ export async function POST(request: Request) {
     .single();
 
   if (!dev || !dev.claimed || dev.claimed_by !== user.id) {
-    return NextResponse.json({ error: "You must claim your building first" }, { status: 403 });
+    return NextResponse.json(
+      { error: "You must claim your building first" },
+      { status: 403 },
+    );
   }
 
   if (dev.suspended) {
@@ -73,12 +86,21 @@ export async function POST(request: Request) {
     .single();
 
   if (!item || item.price_pixels == null) {
-    return NextResponse.json({ error: "Item not found or not available for PX" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Item not found or not available for PX" },
+      { status: 404 },
+    );
   }
 
   // Scarcity checks
-  if (item.available_until && new Date(item.available_until).getTime() <= Date.now()) {
-    return NextResponse.json({ error: "This item is no longer available" }, { status: 410 });
+  if (
+    item.available_until &&
+    new Date(item.available_until).getTime() <= Date.now()
+  ) {
+    return NextResponse.json(
+      { error: "This item is no longer available" },
+      { status: 410 },
+    );
   }
   if (item.max_quantity != null) {
     const { count: soldCount } = await sb
@@ -87,7 +109,10 @@ export async function POST(request: Request) {
       .eq("item_id", item_id)
       .eq("status", "completed");
     if ((soldCount ?? 0) >= item.max_quantity) {
-      return NextResponse.json({ error: "This item is sold out" }, { status: 410 });
+      return NextResponse.json(
+        { error: "This item is sold out" },
+        { status: 410 },
+      );
     }
   }
 
@@ -112,7 +137,9 @@ export async function POST(request: Request) {
 
     const { data: devFull } = await sb
       .from("developers")
-      .select("github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos")
+      .select(
+        "github_login, contributions, public_repos, total_stars, rank, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, longest_streak, active_days_last_year, language_diversity, top_repos",
+      )
       .eq("id", dev.id)
       .single();
 
@@ -133,7 +160,10 @@ export async function POST(request: Request) {
 
       const minBillArea = 10 * 8;
       const totalFaceArea = 2 * (w + d) * h;
-      const maxSlots = Math.max(1, Math.floor(totalFaceArea / (minBillArea * 6)));
+      const maxSlots = Math.max(
+        1,
+        Math.floor(totalFaceArea / (minBillArea * 6)),
+      );
 
       if ((billboardCount ?? 0) >= maxSlots) {
         return NextResponse.json(
@@ -148,7 +178,10 @@ export async function POST(request: Request) {
   let recipientId: number | null = null;
   if (gifted_to_login) {
     if (gifted_to_login.toLowerCase() === githubLogin) {
-      return NextResponse.json({ error: "Cannot gift to yourself" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Cannot gift to yourself" },
+        { status: 400 },
+      );
     }
     const { data: receiver } = await sb
       .from("developers")
@@ -156,7 +189,10 @@ export async function POST(request: Request) {
       .eq("github_login", gifted_to_login.toLowerCase())
       .single();
     if (!receiver) {
-      return NextResponse.json({ error: "User not found in Git City" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User not found in Git City" },
+        { status: 400 },
+      );
     }
 
     // Check receiver doesn't already own this item
@@ -178,7 +214,10 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (receiverOwnsBought || receiverOwnsGifted) {
-        return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
+        return NextResponse.json(
+          { error: "Receiver already owns this item" },
+          { status: 409 },
+        );
       }
     }
 
@@ -203,7 +242,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const result = data as { success?: boolean; error?: string; new_balance?: number; price?: number };
+  const result = data as {
+    success?: boolean;
+    error?: string;
+    new_balance?: number;
+    price?: number;
+  };
   if (result.error) {
     const statusMap: Record<string, number> = {
       item_not_found: 404,
@@ -252,8 +296,20 @@ export async function POST(request: Request) {
       },
     });
 
-    sendGiftSentNotification(dev.id, githubLogin, receiver?.github_login ?? "unknown", idempotencyKey, item_id);
-    sendGiftReceivedNotification(recipientId, githubLogin, receiver?.github_login ?? "unknown", idempotencyKey, item_id);
+    sendGiftSentNotification(
+      dev.id,
+      githubLogin,
+      receiver?.github_login ?? "unknown",
+      idempotencyKey,
+      item_id,
+    );
+    sendGiftReceivedNotification(
+      recipientId,
+      githubLogin,
+      receiver?.github_login ?? "unknown",
+      idempotencyKey,
+      item_id,
+    );
   } else {
     await sb.from("activity_feed").insert({
       event_type: "item_purchased",

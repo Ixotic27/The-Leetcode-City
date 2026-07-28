@@ -1,22 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Hoist mock functions so they are available inside vi.mock calls
-const { mockSharp, mockRotate, mockWithMetadata, mockToBuffer } = vi.hoisted(() => {
-  const rotate = vi.fn().mockReturnThis();
-  const withMetadata = vi.fn().mockReturnThis();
-  const toBuffer = vi.fn().mockResolvedValue(Buffer.from("processed-image-bytes"));
-  const sharpInstance = vi.fn(() => ({
-    rotate,
-    withMetadata,
-    toBuffer,
-  }));
-  return {
-    mockSharp: sharpInstance,
-    mockRotate: rotate,
-    mockWithMetadata: withMetadata,
-    mockToBuffer: toBuffer,
-  };
-});
+const { mockSharp, mockRotate, mockWithMetadata, mockToBuffer } = vi.hoisted(
+  () => {
+    const rotate = vi.fn().mockReturnThis();
+    const withMetadata = vi.fn().mockReturnThis();
+    const toBuffer = vi
+      .fn()
+      .mockResolvedValue(Buffer.from("processed-image-bytes"));
+    const sharpInstance = vi.fn(() => ({
+      rotate,
+      withMetadata,
+      toBuffer,
+    }));
+    return {
+      mockSharp: sharpInstance,
+      mockRotate: rotate,
+      mockWithMetadata: withMetadata,
+      mockToBuffer: toBuffer,
+    };
+  },
+);
 
 vi.mock("sharp", () => ({
   default: mockSharp,
@@ -63,12 +67,16 @@ describe("POST /api/customizations/upload", () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-123" } } });
     mockListBuckets.mockResolvedValue({ data: [{ name: "billboards" }] });
     mockUpload.mockResolvedValue({ data: {}, error: null });
-    mockGetPublicUrl.mockReturnValue({ data: { publicUrl: "https://cdn.example.com/test.jpg" } });
+    mockGetPublicUrl.mockReturnValue({
+      data: { publicUrl: "https://cdn.example.com/test.jpg" },
+    });
   });
 
   it("returns 401 when not authenticated", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    const req = new Request("http://localhost/api/customizations/upload", { method: "POST" });
+    const req = new Request("http://localhost/api/customizations/upload", {
+      method: "POST",
+    });
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
@@ -86,14 +94,21 @@ describe("POST /api/customizations/upload", () => {
       return {} as any;
     });
 
-    const req = new Request("http://localhost/api/customizations/upload", { method: "POST" });
+    const req = new Request("http://localhost/api/customizations/upload", {
+      method: "POST",
+    });
     const res = await POST(req);
     expect(res.status).toBe(403);
   });
 
   it("successfully processes image with sharp and uploads to storage", async () => {
     // Mock developer lookup
-    const mockDev = { id: "dev-456", github_login: "testdev", claimed: true, claimed_by: "user-123" };
+    const mockDev = {
+      id: "dev-456",
+      github_login: "testdev",
+      claimed: true,
+      claimed_by: "user-123",
+    };
     // Mock purchase lookup for 1 billboard
     const mockPurchaseCount = { count: 1 };
     // Mock existing config
@@ -116,7 +131,8 @@ describe("POST /api/customizations/upload", () => {
         };
         // resolve to mockPurchaseCount on await or then
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        chain.then = (onfulfilled: any) => Promise.resolve(onfulfilled(mockPurchaseCount));
+        chain.then = (onfulfilled: any) =>
+          Promise.resolve(onfulfilled(mockPurchaseCount));
         return chain;
       }
       if (table === "developer_customizations") {
@@ -164,7 +180,7 @@ describe("POST /api/customizations/upload", () => {
     expect(mockUpload).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Buffer),
-      expect.objectContaining({ contentType: "image/jpeg" })
+      expect.objectContaining({ contentType: "image/jpeg" }),
     );
   });
 });

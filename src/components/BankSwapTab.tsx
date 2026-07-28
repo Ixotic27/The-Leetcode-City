@@ -84,7 +84,8 @@ type SwapStatus =
   | { kind: "error"; message: string };
 
 function fmtPrice(p: number): string {
-  if (p >= 1) return `$${p.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  if (p >= 1)
+    return `$${p.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   if (p >= 0.01) return `$${p.toFixed(4)}`;
   const decimals = Math.min(12, Math.max(2, -Math.floor(Math.log10(p)) + 1));
   return `$${p.toFixed(decimals)}`;
@@ -93,19 +94,25 @@ function fmtPrice(p: number): string {
 /** Abbreviate a token amount (1.17M / 12.4K / 940) — micro-cap GITC runs huge. */
 function fmtGitc(tokens: number): string {
   if (!Number.isFinite(tokens) || tokens <= 0) return "0";
-  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
-  if (tokens >= 1_000) return `${(tokens / 1_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`;
+  if (tokens >= 1_000_000)
+    return `${(tokens / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 })}M`;
+  if (tokens >= 1_000)
+    return `${(tokens / 1_000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`;
   return tokens.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function fmtUsd(v: number): string {
-  return v >= 1 ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `$${v.toFixed(2)}`;
+  return v >= 1
+    ? `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+    : `$${v.toFixed(2)}`;
 }
 
 /** Short token balance for the "you pay" line. */
 function fmtBalance(wei: bigint, decimals: number): string {
   const n = Number(formatUnits(wei, decimals));
-  return n.toLocaleString(undefined, { maximumFractionDigits: decimals === 6 ? 2 : 5 });
+  return n.toLocaleString(undefined, {
+    maximumFractionDigits: decimals === 6 ? 2 : 5,
+  });
 }
 
 /** Live ETH/USD from Coinbase's keyless, CORS-enabled spot endpoint. */
@@ -121,16 +128,21 @@ function useEthUsd(enabled: boolean): number | null {
         if (!cancelled && Number.isFinite(p) && p > 0) setPrice(p);
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [enabled, price]);
   return price;
 }
 
 function friendlyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
-  if (/user rejected|denied|user cancel|rejected the request/i.test(msg)) return "You cancelled the transaction.";
-  if (/insufficient funds|exceeds balance|insufficient/i.test(msg)) return "Not enough balance for this swap (plus gas).";
-  if (/chain|network|switch/i.test(msg)) return "Switch your wallet to Base and try again.";
+  if (/user rejected|denied|user cancel|rejected the request/i.test(msg))
+    return "You cancelled the transaction.";
+  if (/insufficient funds|exceeds balance|insufficient/i.test(msg))
+    return "Not enough balance for this swap (plus gas).";
+  if (/chain|network|switch/i.test(msg))
+    return "Switch your wallet to Base and try again.";
   return "The swap failed. Try again, or raise slippage for low liquidity.";
 }
 
@@ -158,7 +170,9 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
 
   const [sellId, setSellId] = useState<"USDC" | "ETH">("USDC");
   const [amount, setAmount] = useState("10");
-  const [slippageBps, setSlippageBps] = useState<number>(GITC_SWAP_DEFAULT_SLIPPAGE_BPS);
+  const [slippageBps, setSlippageBps] = useState<number>(
+    GITC_SWAP_DEFAULT_SLIPPAGE_BPS,
+  );
   const [showSlippage, setShowSlippage] = useState(false);
   const [status, setStatus] = useState<SwapStatus>({ kind: "idle" });
   const [price, setPrice] = useState<{
@@ -166,7 +180,12 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
     nativeAvailable: boolean;
     noLiquidity: boolean;
     loading: boolean;
-  }>({ buyAmount: null, nativeAvailable: true, noLiquidity: false, loading: false });
+  }>({
+    buyAmount: null,
+    nativeAvailable: true,
+    noLiquidity: false,
+    loading: false,
+  });
 
   const input = SWAP_INPUTS.find((t) => t.id === sellId)!;
   const isEth = sellId === "ETH";
@@ -195,8 +214,11 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
     chainId: base.id,
     query: { enabled: !!address && !isEth, refetchInterval: 20_000 },
   });
-  const balanceWei: bigint | null = isEth ? ethBal?.value ?? null : (usdcBal as bigint | undefined) ?? null;
-  const insufficient = sellWei !== null && balanceWei !== null && sellWei > balanceWei;
+  const balanceWei: bigint | null = isEth
+    ? (ethBal?.value ?? null)
+    : ((usdcBal as bigint | undefined) ?? null);
+  const insufficient =
+    sellWei !== null && balanceWei !== null && sellWei > balanceWei;
 
   // GITC balance — the player's proof the swap landed. Refetched after a swap.
   const { data: gitcBalRaw, refetch: refetchGitc } = useReadContract({
@@ -223,7 +245,11 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
 
   function setMax() {
     if (balanceWei === null) return;
-    const maxWei = isEth ? (balanceWei > ETH_GAS_BUFFER_WEI ? balanceWei - ETH_GAS_BUFFER_WEI : BigInt(0)) : balanceWei;
+    const maxWei = isEth
+      ? balanceWei > ETH_GAS_BUFFER_WEI
+        ? balanceWei - ETH_GAS_BUFFER_WEI
+        : BigInt(0)
+      : balanceWei;
     setAmount(formatUnits(maxWei, input.decimals));
   }
 
@@ -237,7 +263,12 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
   // Debounced indicative price. `{disabled}` → no 0x key → use the Uniswap fallback.
   useEffect(() => {
     if (!sellWeiStr) {
-      setPrice((p) => ({ ...p, buyAmount: null, noLiquidity: false, loading: false }));
+      setPrice((p) => ({
+        ...p,
+        buyAmount: null,
+        noLiquidity: false,
+        loading: false,
+      }));
       return;
     }
     let cancelled = false;
@@ -254,19 +285,41 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
         const data = (await res.json()) as ZeroxQuote;
         if (cancelled) return;
         if (data.disabled) {
-          setPrice({ buyAmount: null, nativeAvailable: false, noLiquidity: false, loading: false });
+          setPrice({
+            buyAmount: null,
+            nativeAvailable: false,
+            noLiquidity: false,
+            loading: false,
+          });
           return;
         }
-        if (data.error || data.liquidityAvailable === false || !data.buyAmount) {
-          setPrice({ buyAmount: null, nativeAvailable: true, noLiquidity: true, loading: false });
+        if (
+          data.error ||
+          data.liquidityAvailable === false ||
+          !data.buyAmount
+        ) {
+          setPrice({
+            buyAmount: null,
+            nativeAvailable: true,
+            noLiquidity: true,
+            loading: false,
+          });
           return;
         }
-        setPrice({ buyAmount: BigInt(data.buyAmount), nativeAvailable: true, noLiquidity: false, loading: false });
+        setPrice({
+          buyAmount: BigInt(data.buyAmount),
+          nativeAvailable: true,
+          noLiquidity: false,
+          loading: false,
+        });
       } catch {
         if (!cancelled) setPrice((p) => ({ ...p, loading: false }));
       }
     }, 400);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [sellWeiStr, input.zeroxToken, slippageBps, address]);
 
   const unitUsd = isEth ? ethUsd : 1; // null until ETH price loads
@@ -280,10 +333,20 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
         ? sellUsd / market.priceUsd
         : null;
   const rateGitc =
-    gitcOut !== null && amt > 0 ? gitcOut / amt : market.priceUsd && unitUsd ? unitUsd / market.priceUsd : null;
+    gitcOut !== null && amt > 0
+      ? gitcOut / amt
+      : market.priceUsd && unitUsd
+        ? unitUsd / market.priceUsd
+        : null;
 
-  const uniUrl = buildUniswapSwapUrl({ inputCurrency: input.uniToken, amount: amt });
-  const busy = status.kind === "quoting" || status.kind === "approving" || status.kind === "swapping";
+  const uniUrl = buildUniswapSwapUrl({
+    inputCurrency: input.uniToken,
+    amount: amt,
+  });
+  const busy =
+    status.kind === "quoting" ||
+    status.kind === "approving" ||
+    status.kind === "swapping";
 
   async function fetchQuote(): Promise<ZeroxQuote> {
     const qs = new URLSearchParams({
@@ -294,12 +357,16 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
     });
     const res = await fetch(`/api/gitc/swap/quote?${qs.toString()}`);
     const q = (await res.json()) as ZeroxQuote;
-    if (!res.ok && !q.disabled) throw new Error(q.error || "Could not get a quote");
+    if (!res.ok && !q.disabled)
+      throw new Error(q.error || "Could not get a quote");
     return q;
   }
 
   async function handleExchange() {
-    if (!isConnected || !address) { open(); return; }
+    if (!isConnected || !address) {
+      open();
+      return;
+    }
     if (!sellWei || !publicClient || insufficient) return;
     setStatus({ kind: "quoting" });
     try {
@@ -315,13 +382,21 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
         return;
       }
       if (q.liquidityAvailable === false || !q.transaction) {
-        setStatus({ kind: "error", message: "No liquidity for this trade. Try a smaller amount or raise slippage." });
+        setStatus({
+          kind: "error",
+          message:
+            "No liquidity for this trade. Try a smaller amount or raise slippage.",
+        });
         return;
       }
 
       // ERC20 inputs need a one-time allowance to the 0x AllowanceHolder.
       const allowance = q.issues?.allowance;
-      if (!isEth && allowance?.spender && BigInt(allowance.actual ?? "0") < sellWei) {
+      if (
+        !isEth &&
+        allowance?.spender &&
+        BigInt(allowance.actual ?? "0") < sellWei
+      ) {
         setStatus({ kind: "approving" });
         const approveHash = await writeContractAsync({
           address: input.zeroxToken as `0x${string}`,
@@ -335,7 +410,10 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
         setStatus({ kind: "quoting" });
         q = await fetchQuote();
         if (q.liquidityAvailable === false || !q.transaction) {
-          setStatus({ kind: "error", message: "Price moved — try again or raise slippage." });
+          setStatus({
+            kind: "error",
+            message: "Price moved — try again or raise slippage.",
+          });
           return;
         }
       }
@@ -350,7 +428,10 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
       });
       // Hash in hand — show "confirming" with a live BaseScan link.
       setStatus({ kind: "confirming", txHash, received });
-      await publicClient.waitForTransactionReceipt({ hash: txHash, confirmations: 2 });
+      await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        confirmations: 2,
+      });
       setStatus({ kind: "done", txHash, received });
       onConfirmed();
       refetchGitc();
@@ -359,24 +440,25 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
     }
   }
 
-  const ctaLabel =
-    !isConnected
-      ? "Connect wallet"
-      : insufficient
-        ? `Insufficient ${input.label}`
-        : status.kind === "quoting"
-          ? "Getting price…"
-          : status.kind === "approving"
-            ? `Approve ${input.label}…`
-            : status.kind === "swapping"
-              ? "Swapping…"
-              : "Exchange";
+  const ctaLabel = !isConnected
+    ? "Connect wallet"
+    : insufficient
+      ? `Insufficient ${input.label}`
+      : status.kind === "quoting"
+        ? "Getting price…"
+        : status.kind === "approving"
+          ? `Approve ${input.label}…`
+          : status.kind === "swapping"
+            ? "Swapping…"
+            : "Exchange";
 
   return (
     <div>
       {/* Header + slippage */}
       <div className="mb-2 flex items-center justify-between">
-        <p className="font-pixel text-[10px] text-muted">Buy GITC with USDC or ETH on Base.</p>
+        <p className="font-pixel text-[10px] text-muted">
+          Buy GITC with USDC or ETH on Base.
+        </p>
         <button
           type="button"
           onClick={() => setShowSlippage((v) => !v)}
@@ -407,7 +489,9 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
               </button>
             );
           })}
-          <span className="ml-auto font-pixel text-[8px] text-dim">price protection</span>
+          <span className="ml-auto font-pixel text-[8px] text-dim">
+            price protection
+          </span>
         </div>
       )}
 
@@ -420,7 +504,12 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
           title="Manage or switch wallet"
         >
           <span className="flex items-center gap-1.5 text-[9px] text-dim">
-            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: chainId === base.id ? "#39d353" : DEAD }} />
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{
+                backgroundColor: chainId === base.id ? "#39d353" : DEAD,
+              }}
+            />
             {chainId === base.id ? "Connected" : "Wrong network"}
           </span>
           <span className="font-pixel text-[9px] text-muted">
@@ -429,18 +518,26 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
         </button>
       )}
 
-      <div className="border-2 bg-bg-raised p-3" style={{ borderColor: `${GOLD}66` }}>
+      <div
+        className="border-2 bg-bg-raised p-3"
+        style={{ borderColor: `${GOLD}66` }}
+      >
         {/* You pay */}
         <div className="border-2 border-border bg-bg p-3">
           <p className="mb-1.5 font-pixel text-[9px] text-muted">YOU PAY</p>
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => setSellId((id) => (id === "USDC" ? "ETH" : "USDC"))}
+              onClick={() =>
+                setSellId((id) => (id === "USDC" ? "ETH" : "USDC"))
+              }
               className="btn-press flex items-center gap-1.5 border-2 border-border px-2 py-1.5 font-pixel text-[10px] text-cream cursor-pointer"
               title="Switch token to sell"
             >
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: input.dot }} />
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: input.dot }}
+              />
               {input.label}
               <span className="text-dim">▾</span>
             </button>
@@ -458,9 +555,16 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
             <span className="flex items-center gap-1.5 text-dim">
               {balanceWei !== null ? (
                 <>
-                  <span style={insufficient ? { color: DEAD } : undefined}>Balance {fmtBalance(balanceWei, input.decimals)}</span>
+                  <span style={insufficient ? { color: DEAD } : undefined}>
+                    Balance {fmtBalance(balanceWei, input.decimals)}
+                  </span>
                   {balanceWei > BigInt(0) && (
-                    <button type="button" onClick={setMax} className="font-pixel text-[8px] underline hover:text-cream cursor-pointer" style={{ color: GOLD }}>
+                    <button
+                      type="button"
+                      onClick={setMax}
+                      className="font-pixel text-[8px] underline hover:text-cream cursor-pointer"
+                      style={{ color: GOLD }}
+                    >
                       MAX
                     </button>
                   )}
@@ -471,28 +575,46 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
                 ""
               )}
             </span>
-            <span className="text-dim">{sellUsd !== null ? `≈ ${fmtUsd(sellUsd)}` : ""}</span>
+            <span className="text-dim">
+              {sellUsd !== null ? `≈ ${fmtUsd(sellUsd)}` : ""}
+            </span>
           </div>
         </div>
 
         {/* Direction (buy-only in v1) */}
         <div className="my-1 flex justify-center">
-          <span className="flex h-6 w-6 items-center justify-center border-2 border-border bg-bg font-pixel text-[10px]" style={{ color: GOLD }}>↓</span>
+          <span
+            className="flex h-6 w-6 items-center justify-center border-2 border-border bg-bg font-pixel text-[10px]"
+            style={{ color: GOLD }}
+          >
+            ↓
+          </span>
         </div>
 
         {/* You get */}
         <div className="border-2 border-border bg-bg p-3">
           <p className="mb-1.5 font-pixel text-[9px] text-muted">YOU GET</p>
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 font-pixel text-[10px]" style={{ color: GOLD }}>
+            <span
+              className="flex items-center gap-1.5 font-pixel text-[10px]"
+              style={{ color: GOLD }}
+            >
               <CurrencyIcon currency="gitc" size={13} /> GITC
             </span>
             <span className="font-pixel text-lg text-cream">
-              {price.loading ? "…" : gitcOut !== null ? `~${fmtGitc(gitcOut)}` : "—"}
+              {price.loading
+                ? "…"
+                : gitcOut !== null
+                  ? `~${fmtGitc(gitcOut)}`
+                  : "—"}
             </span>
           </div>
           <div className="mt-1 flex items-center justify-between text-[9px] text-dim">
-            <span>{gitcBalance !== null ? `Balance ${fmtGitc(Number(formatUnits(gitcBalance, 18)))} GITC` : ""}</span>
+            <span>
+              {gitcBalance !== null
+                ? `Balance ${fmtGitc(Number(formatUnits(gitcBalance, 18)))} GITC`
+                : ""}
+            </span>
             <span>{sellUsd !== null ? `≈ ${fmtUsd(sellUsd)}` : ""}</span>
           </div>
         </div>
@@ -519,57 +641,115 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
               target="_blank"
               rel="noopener noreferrer"
               className="btn-press mt-2 flex w-full items-center justify-center gap-1.5 border-2 py-2.5 font-pixel text-[10px] cursor-pointer"
-              style={{ borderColor: GOLD, color: "#1a1208", backgroundColor: GOLD, boxShadow: `2px 2px 0 0 ${GOLD_DEEP}` }}
+              style={{
+                borderColor: GOLD,
+                color: "#1a1208",
+                backgroundColor: GOLD,
+                boxShadow: `2px 2px 0 0 ${GOLD_DEEP}`,
+              }}
             >
               Swap on Uniswap <span aria-hidden>↗</span>
             </a>
-            <p className="mt-1.5 text-center text-[9px] text-dim">Opens Uniswap on Base · the in-city swap turns on once configured.</p>
+            <p className="mt-1.5 text-center text-[9px] text-dim">
+              Opens Uniswap on Base · the in-city swap turns on once configured.
+            </p>
           </>
         ) : status.kind === "confirming" ? (
-          <div className="mt-2 flex flex-col items-center gap-1.5 border-2 px-3 py-2.5" style={{ borderColor: GOLD, backgroundColor: `${GOLD}10` }}>
-            <span className="font-pixel text-[10px]" style={{ color: GOLD }}>Confirming on Base…</span>
-            <span className="text-[9px] text-dim normal-case">This usually takes a few seconds.</span>
-            <a href={`https://basescan.org/tx/${status.txHash}`} target="_blank" rel="noopener noreferrer" className="text-[9px] underline normal-case hover:text-cream" style={{ color: GOLD }}>
+          <div
+            className="mt-2 flex flex-col items-center gap-1.5 border-2 px-3 py-2.5"
+            style={{ borderColor: GOLD, backgroundColor: `${GOLD}10` }}
+          >
+            <span className="font-pixel text-[10px]" style={{ color: GOLD }}>
+              Confirming on Base…
+            </span>
+            <span className="text-[9px] text-dim normal-case">
+              This usually takes a few seconds.
+            </span>
+            <a
+              href={`https://basescan.org/tx/${status.txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[9px] underline normal-case hover:text-cream"
+              style={{ color: GOLD }}
+            >
               View transaction on BaseScan ↗
             </a>
           </div>
         ) : status.kind === "done" ? (
-          <div className="mt-2 flex flex-col gap-2 border-2 px-3 py-3" style={{ borderColor: GOLD, backgroundColor: `${GOLD}14` }}>
-            <p className="text-center font-pixel text-[10px]" style={{ color: GOLD }}>
-              ✓ Received ~{fmtGitc(Number(formatUnits(status.received, 18)))} GITC
+          <div
+            className="mt-2 flex flex-col gap-2 border-2 px-3 py-3"
+            style={{ borderColor: GOLD, backgroundColor: `${GOLD}14` }}
+          >
+            <p
+              className="text-center font-pixel text-[10px]"
+              style={{ color: GOLD }}
+            >
+              ✓ Received ~{fmtGitc(Number(formatUnits(status.received, 18)))}{" "}
+              GITC
             </p>
             {gitcBalance !== null && (
               <p className="text-center text-[9px] text-dim normal-case">
-                Wallet balance: {fmtGitc(Number(formatUnits(gitcBalance, 18)))} GITC
+                Wallet balance: {fmtGitc(Number(formatUnits(gitcBalance, 18)))}{" "}
+                GITC
               </p>
             )}
             {onConvertToPixels && (
-              <button type="button" onClick={onConvertToPixels}
+              <button
+                type="button"
+                onClick={onConvertToPixels}
                 className="btn-press w-full py-2.5 font-pixel text-[10px] cursor-pointer"
-                style={{ borderColor: GOLD, color: "#1a1208", backgroundColor: GOLD, boxShadow: `2px 2px 0 0 ${GOLD_DEEP}` }}>
+                style={{
+                  borderColor: GOLD,
+                  color: "#1a1208",
+                  backgroundColor: GOLD,
+                  boxShadow: `2px 2px 0 0 ${GOLD_DEEP}`,
+                }}
+              >
                 Convert to Pixels →
               </button>
             )}
             <div className="flex gap-2">
-              <a href={`https://basescan.org/tx/${status.txHash}`} target="_blank" rel="noopener noreferrer"
-                className="btn-press flex-1 border-2 border-border py-2 text-center text-[9px] text-muted normal-case hover:text-cream cursor-pointer">
+              <a
+                href={`https://basescan.org/tx/${status.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-press flex-1 border-2 border-border py-2 text-center text-[9px] text-muted normal-case hover:text-cream cursor-pointer"
+              >
                 BaseScan ↗
               </a>
-              <button type="button" onClick={addGitcToWallet}
-                className="btn-press flex-1 border-2 border-border py-2 text-center text-[9px] text-muted normal-case hover:text-cream cursor-pointer">
+              <button
+                type="button"
+                onClick={addGitcToWallet}
+                className="btn-press flex-1 border-2 border-border py-2 text-center text-[9px] text-muted normal-case hover:text-cream cursor-pointer"
+              >
                 Add to wallet
               </button>
             </div>
-            <button type="button" onClick={() => setStatus({ kind: "idle" })} className="text-center text-[9px] text-muted underline normal-case cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setStatus({ kind: "idle" })}
+              className="text-center text-[9px] text-muted underline normal-case cursor-pointer"
+            >
               New swap
             </button>
           </div>
         ) : status.kind === "error" ? (
           <div className="mt-2 flex flex-col gap-1.5">
-            <div className="border-2 px-3 py-2 text-center text-[10px] normal-case" style={{ borderColor: DEAD, color: DEAD, backgroundColor: `${DEAD}10` }}>
+            <div
+              className="border-2 px-3 py-2 text-center text-[10px] normal-case"
+              style={{
+                borderColor: DEAD,
+                color: DEAD,
+                backgroundColor: `${DEAD}10`,
+              }}
+            >
               {status.message}
             </div>
-            <button type="button" onClick={() => setStatus({ kind: "idle" })} className="text-[9px] text-muted underline normal-case cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setStatus({ kind: "idle" })}
+              className="text-[9px] text-muted underline normal-case cursor-pointer"
+            >
               Try again
             </button>
           </div>
@@ -577,16 +757,32 @@ function ExchangeInner({ market, onConfirmed, onConvertToPixels }: Props) {
           <button
             type="button"
             onClick={handleExchange}
-            disabled={busy || (isConnected && (!sellWei || gitcOut === null || insufficient || price.noLiquidity))}
+            disabled={
+              busy ||
+              (isConnected &&
+                (!sellWei ||
+                  gitcOut === null ||
+                  insufficient ||
+                  price.noLiquidity))
+            }
             className="btn-press mt-2 flex w-full items-center justify-center gap-1.5 border-2 py-2.5 font-pixel text-[10px] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
-            style={{ borderColor: GOLD, color: "#1a1208", backgroundColor: GOLD, boxShadow: `2px 2px 0 0 ${GOLD_DEEP}` }}
+            style={{
+              borderColor: GOLD,
+              color: "#1a1208",
+              backgroundColor: GOLD,
+              boxShadow: `2px 2px 0 0 ${GOLD_DEEP}`,
+            }}
           >
             {ctaLabel}
           </button>
         )}
         {busy && (
           <p className="mt-1.5 text-center text-[9px] text-dim">
-            {status.kind === "approving" ? "Approve in your wallet, then we’ll swap automatically." : status.kind === "swapping" ? "Confirm in your wallet…" : "Fetching the best price…"}
+            {status.kind === "approving"
+              ? "Approve in your wallet, then we’ll swap automatically."
+              : status.kind === "swapping"
+                ? "Confirm in your wallet…"
+                : "Fetching the best price…"}
           </p>
         )}
         <p className="mt-1.5 text-center text-[9px] text-dim">

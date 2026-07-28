@@ -7,14 +7,19 @@ import * as THREE from "three";
 type Festival = "diwali" | "holi" | "tricolor" | "eid" | "christmas" | null;
 
 // Get the active festival based on date or url override
-export function getActiveFestival(date: Date, override?: string | null): Festival {
+export function getActiveFestival(
+  date: Date,
+  override?: string | null,
+): Festival {
   if (override) {
     const norm = override.toLowerCase();
     if (norm === "diwali") return "diwali";
     if (norm === "holi") return "holi";
-    if (norm === "tricolor" || norm === "republic" || norm === "independence") return "tricolor";
+    if (norm === "tricolor" || norm === "republic" || norm === "independence")
+      return "tricolor";
     if (norm === "eid") return "eid";
-    if (norm === "christmas" || norm === "newyear" || norm === "xmas") return "christmas";
+    if (norm === "christmas" || norm === "newyear" || norm === "xmas")
+      return "christmas";
   }
 
   const y = date.getFullYear();
@@ -89,9 +94,13 @@ export default memo(function FestivalCelebration({
     <>
       {festival === "diwali" && <DiwaliCelebration cityRadius={cityRadius} />}
       {festival === "holi" && <HoliCelebration cityRadius={cityRadius} />}
-      {festival === "tricolor" && <TricolorCelebration cityRadius={cityRadius} />}
+      {festival === "tricolor" && (
+        <TricolorCelebration cityRadius={cityRadius} />
+      )}
       {festival === "eid" && <EidCelebration cityRadius={cityRadius} />}
-      {festival === "christmas" && <ChristmasCelebration cityRadius={cityRadius} />}
+      {festival === "christmas" && (
+        <ChristmasCelebration cityRadius={cityRadius} />
+      )}
     </>
   );
 });
@@ -191,7 +200,9 @@ function DiwaliCelebration({ cityRadius }: { cityRadius: number }) {
           }
         } else {
           shell.timer += dt;
-          const particlesPerShell = Math.floor(DIWALI_SPARK_COUNT / shells.current.length);
+          const particlesPerShell = Math.floor(
+            DIWALI_SPARK_COUNT / shells.current.length,
+          );
           const startIdx = index * particlesPerShell;
 
           if (shell.progress === 0) {
@@ -220,8 +231,10 @@ function DiwaliCelebration({ cityRadius }: { cityRadius: number }) {
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(Math.random() * 2 - 1);
                 const speed = 15 + Math.random() * 25;
-                sparklers.velocities[idx] = Math.sin(phi) * Math.cos(theta) * speed;
-                sparklers.velocities[idx + 1] = Math.sin(phi) * Math.sin(theta) * speed;
+                sparklers.velocities[idx] =
+                  Math.sin(phi) * Math.cos(theta) * speed;
+                sparklers.velocities[idx + 1] =
+                  Math.sin(phi) * Math.sin(theta) * speed;
                 sparklers.velocities[idx + 2] = Math.cos(phi) * speed;
 
                 posArr[idx] = shell.x;
@@ -244,7 +257,7 @@ function DiwaliCelebration({ cityRadius }: { cityRadius: number }) {
 
               // Fade colors to orange/red
               colArr[idx] = 1.0 * decay;
-              colArr[idx + 1] = (0.7 * decay) + (Math.random() * 0.1);
+              colArr[idx + 1] = 0.7 * decay + Math.random() * 0.1;
               colArr[idx + 2] = 0.1 * decay;
             }
 
@@ -265,7 +278,10 @@ function DiwaliCelebration({ cityRadius }: { cityRadius: number }) {
       {/* Golden lanterns floating up */}
       <points ref={lanternsRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[lanternData.positions, 3]} />
+          <bufferAttribute
+            attach="attributes-position"
+            args={[lanternData.positions, 3]}
+          />
         </bufferGeometry>
         <pointsMaterial
           size={2.5}
@@ -280,8 +296,14 @@ function DiwaliCelebration({ cityRadius }: { cityRadius: number }) {
       {/* Sparklers fireworks */}
       <points ref={sparklersRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[sparklers.positions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[sparklers.colors, 3]} />
+          <bufferAttribute
+            attach="attributes-position"
+            args={[sparklers.positions, 3]}
+          />
+          <bufferAttribute
+            attach="attributes-color"
+            args={[sparklers.colors, 3]}
+          />
         </bufferGeometry>
         <pointsMaterial
           size={1.8}
@@ -374,7 +396,8 @@ function HoliCelebration({ cityRadius }: { cityRadius: number }) {
       // Every 2.5 seconds, the cannon blasts a colorful gulal spray
       if (gun.shootTimer > 2.5) {
         gun.shootTimer = 0;
-        const color = HOLI_COLORS[Math.floor(Math.random() * HOLI_COLORS.length)];
+        const color =
+          HOLI_COLORS[Math.floor(Math.random() * HOLI_COLORS.length)];
 
         for (let p = 0; p < PARTICLES_PER_GUN; p++) {
           const pIdx = base + p;
@@ -506,7 +529,9 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
             // Compute angle to draw spokes
             const theta = Math.atan2(dy * 1.67, dx);
             const step = Math.PI / 12; // 24 spokes
-            const isSpoke = Math.abs((theta + Math.PI * 2) % step) < 0.08 || Math.abs(step - ((theta + Math.PI * 2) % step)) < 0.08;
+            const isSpoke =
+              Math.abs((theta + Math.PI * 2) % step) < 0.08 ||
+              Math.abs(step - ((theta + Math.PI * 2) % step)) < 0.08;
 
             if (dist < 1.6 || dist > 7.0 || isSpoke) {
               color = new THREE.Color("#000080"); // Navy Blue Chakra
@@ -523,7 +548,12 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
   }, []);
 
   // 2. Fountains: color spark fountain jets below on the ground
-  const { fountainPositions, fountainColors, fountainVelocities, fountainPhases } = useMemo(() => {
+  const {
+    fountainPositions,
+    fountainColors,
+    fountainVelocities,
+    fountainPhases,
+  } = useMemo(() => {
     const pos = new Float32Array(TRICOLOR_PARTICLE_COUNT * 3);
     const col = new Float32Array(TRICOLOR_PARTICLE_COUNT * 3);
     const vel = new Float32Array(TRICOLOR_PARTICLE_COUNT * 3);
@@ -550,7 +580,12 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
       phs[i] = Math.random() * 2.0;
     }
 
-    return { fountainPositions: pos, fountainColors: col, fountainVelocities: vel, fountainPhases: phs };
+    return {
+      fountainPositions: pos,
+      fountainColors: col,
+      fountainVelocities: vel,
+      fountainPhases: phs,
+    };
   }, [cityRadius]);
 
   useFrame((state, delta) => {
@@ -579,8 +614,10 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
           const waveFreq = 0.06;
 
           const zOffset = Math.sin(time * speed - baseX * waveFreq) * amp;
-          const zSecondary = Math.cos(time * speed * 2.0 - baseX * waveFreq * 1.5) * amp * 0.25;
-          const yOffset = Math.cos(time * speed * 0.9 - baseX * waveFreq * 0.8) * amp * 0.15;
+          const zSecondary =
+            Math.cos(time * speed * 2.0 - baseX * waveFreq * 1.5) * amp * 0.25;
+          const yOffset =
+            Math.cos(time * speed * 0.9 - baseX * waveFreq * 0.8) * amp * 0.15;
 
           posArr[idx] = baseX;
           posArr[idx + 1] = baseY + yOffset;
@@ -608,7 +645,8 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
 
           if (posArr[idx + 1] <= 0 && fountainVelocities[idx + 1] < 0) {
             const section = i % 3;
-            const angle = (section / 3) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+            const angle =
+              (section / 3) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
             const r = cityRadius * 0.15;
 
             posArr[idx] = Math.cos(angle) * r;
@@ -630,8 +668,14 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
       {/* Waving Indian Flag */}
       <points ref={flagRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[flagGrid.positions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[flagGrid.colors, 3]} />
+          <bufferAttribute
+            attach="attributes-position"
+            args={[flagGrid.positions, 3]}
+          />
+          <bufferAttribute
+            attach="attributes-color"
+            args={[flagGrid.colors, 3]}
+          />
         </bufferGeometry>
         <pointsMaterial
           size={3.0}
@@ -646,8 +690,14 @@ function TricolorCelebration({ cityRadius }: { cityRadius: number }) {
       {/* Tri-color ground sparks fountains */}
       <points ref={fountainsRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[fountainPositions, 3]} />
-          <bufferAttribute attach="attributes-color" args={[fountainColors, 3]} />
+          <bufferAttribute
+            attach="attributes-position"
+            args={[fountainPositions, 3]}
+          />
+          <bufferAttribute
+            attach="attributes-color"
+            args={[fountainColors, 3]}
+          />
         </bufferGeometry>
         <pointsMaterial
           size={2.2}
@@ -686,7 +736,9 @@ function EidCelebration({ cityRadius }: { cityRadius: number }) {
 
       // Alternating green (#10b981) and gold (#fbbf24) colors
       const isGreen = i % 2 === 0;
-      const color = isGreen ? new THREE.Color("#10b981") : new THREE.Color("#fbbf24");
+      const color = isGreen
+        ? new THREE.Color("#10b981")
+        : new THREE.Color("#fbbf24");
       col[i * 3] = color.r;
       col[i * 3 + 1] = color.g;
       col[i * 3 + 2] = color.b;
@@ -709,7 +761,10 @@ function EidCelebration({ cityRadius }: { cityRadius: number }) {
       // Gentle drift upward
       posArr[i * 3 + 1] += starData.speeds[i] * dt;
       // Float horizontally like stars drifting
-      posArr[i * 3] += Math.sin(state.clock.elapsedTime * 0.3 + starData.phaseOffset[i]) * 1.5 * dt;
+      posArr[i * 3] +=
+        Math.sin(state.clock.elapsedTime * 0.3 + starData.phaseOffset[i]) *
+        1.5 *
+        dt;
 
       if (posArr[i * 3 + 1] > 100) {
         posArr[i * 3 + 1] = 5; // Reset down low
@@ -721,8 +776,14 @@ function EidCelebration({ cityRadius }: { cityRadius: number }) {
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[starData.positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[starData.colors, 3]} />
+        <bufferAttribute
+          attach="attributes-position"
+          args={[starData.positions, 3]}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          args={[starData.colors, 3]}
+        />
       </bufferGeometry>
       <pointsMaterial
         size={2.0}
@@ -774,7 +835,8 @@ function ChristmasCelebration({ cityRadius }: { cityRadius: number }) {
       // Fall down
       posArr[i * 3 + 1] -= snowData.velocities[i] * dt;
       // Sway in the wind
-      posArr[i * 3] += Math.sin(state.clock.elapsedTime * 0.8 + snowData.sways[i]) * 2.5 * dt;
+      posArr[i * 3] +=
+        Math.sin(state.clock.elapsedTime * 0.8 + snowData.sways[i]) * 2.5 * dt;
 
       // Reset to cloud height if hit ground
       if (posArr[i * 3 + 1] < 0) {
@@ -791,7 +853,10 @@ function ChristmasCelebration({ cityRadius }: { cityRadius: number }) {
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[snowData.positions, 3]} />
+        <bufferAttribute
+          attach="attributes-position"
+          args={[snowData.positions, 3]}
+        />
       </bufferGeometry>
       <pointsMaterial
         size={1.6}

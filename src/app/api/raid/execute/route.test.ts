@@ -173,7 +173,15 @@ describe("POST /api/raid/execute", () => {
         const consumablesQuery = {
           eq: () => consumablesQuery,
           gt: () => ({
-            then: (resolve: (value: { data: Array<{ item_id: string; weekly_uses: number; last_reset_week: string }> }) => void) => {
+            then: (
+              resolve: (value: {
+                data: Array<{
+                  item_id: string;
+                  weekly_uses: number;
+                  last_reset_week: string;
+                }>;
+              }) => void,
+            ) => {
               resolve({ data: [] });
               return Promise.resolve();
             },
@@ -230,7 +238,11 @@ describe("POST /api/raid/execute", () => {
         };
       }
 
-      if (fn === "increment_raid_xp" || fn === "grant_xp_atomic" || fn === "increment_relic_progress") {
+      if (
+        fn === "increment_raid_xp" ||
+        fn === "grant_xp_atomic" ||
+        fn === "increment_relic_progress"
+      ) {
         return { data: null, error: null };
       }
 
@@ -253,7 +265,10 @@ describe("POST /api/raid/execute", () => {
       body: requestBody,
     });
 
-    const [responseA, responseB] = await Promise.all([POST(requestA), POST(requestB)]);
+    const [responseA, responseB] = await Promise.all([
+      POST(requestA),
+      POST(requestB),
+    ]);
 
     const statuses = [responseA.status, responseB.status].sort();
     expect(statuses).toEqual([200, 429]);
@@ -281,7 +296,7 @@ describe("POST /api/raid/execute", () => {
           target_login: "defender",
           offensive_item_id: "emp_device",
         }),
-      })
+      }),
     );
 
     expect(response.status).toBe(429);

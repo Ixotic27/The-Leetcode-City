@@ -66,7 +66,7 @@ export function calculateAttackScore(inputs: AttackInputs): {
   const streak = inputs.appStreak * 1;
   const kudos = inputs.weeklyKudosGiven * 2;
   const boost = inputs.boostBonus ?? 0;
-  
+
   // Calculate vehicle bonus/damage points
   let vehicle_bonus = 0;
   switch (inputs.vehicle) {
@@ -92,9 +92,9 @@ export function calculateAttackScore(inputs: AttackInputs): {
       vehicle_bonus = 0;
       break;
   }
-  
+
   let total = commits + streak + kudos + boost + vehicle_bonus;
-  
+
   // EMP Shield reduces final attack score by 20%
   if (inputs.empShieldActive) {
     total = Math.floor(total * 0.8);
@@ -119,7 +119,7 @@ export function calculateDefenseScore(inputs: DefenseInputs): {
   const commits = inputs.weeklyContributions * 3;
   const streak = inputs.appStreak * 1;
   const kudos = inputs.weeklyKudosReceived * 1;
-  
+
   let total = commits + streak + kudos;
 
   // Sabotage Virus reduces base defense score by 30%
@@ -225,7 +225,9 @@ export interface RaidExecuteResponse {
   tag_style: string;
 }
 
-export function getRaidConsumableToastMessage(raidData: RaidExecuteResponse): string | null {
+export function getRaidConsumableToastMessage(
+  raidData: RaidExecuteResponse,
+): string | null {
   const itemId = raidData.attack_breakdown.boost_item;
   if (!itemId) return null;
 

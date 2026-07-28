@@ -1,63 +1,70 @@
-import fs from 'fs';
-import https from 'https';
+import fs from "fs";
+import https from "https";
 
 const repo = "Ixotic27/The-Leetcode-City";
-const token = fs.readFileSync(".env.local", "utf-8")
-    .split("\n")
-    .find(line => line.startsWith("GITHUB_TOKEN="))
-    ?.split("=")[1]?.trim();
+const token = fs
+  .readFileSync(".env.local", "utf-8")
+  .split("\n")
+  .find((line) => line.startsWith("GITHUB_TOKEN="))
+  ?.split("=")[1]
+  ?.trim();
 
 if (!token) {
-    console.error("No GITHUB_TOKEN found in .env.local");
-    process.exit(1);
+  console.error("No GITHUB_TOKEN found in .env.local");
+  process.exit(1);
 }
 
 const headers = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": `token ${token}`,
-    "Content-Type": "application/json",
-    "User-Agent": "Node-Script"
+  Accept: "application/vnd.github.v3+json",
+  Authorization: `token ${token}`,
+  "Content-Type": "application/json",
+  "User-Agent": "Node-Script",
 };
 
 function restRequest(method, path, body = null) {
-    return new Promise((resolve, reject) => {
-        const data = body ? JSON.stringify(body) : null;
-        const options = {
-            hostname: 'api.github.com',
-            path,
-            method,
-            headers: {
-                ...headers,
-                ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
-            }
-        };
+  return new Promise((resolve, reject) => {
+    const data = body ? JSON.stringify(body) : null;
+    const options = {
+      hostname: "api.github.com",
+      path,
+      method,
+      headers: {
+        ...headers,
+        ...(data ? { "Content-Length": Buffer.byteLength(data) } : {}),
+      },
+    };
 
-        const req = https.request(options, (res) => {
-            let resBody = '';
-            res.on('data', chunk => resBody += chunk);
-            res.on('end', () => {
-                if (res.statusCode >= 200 && res.statusCode < 300) {
-                    resolve(resBody ? JSON.parse(resBody) : {});
-                } else {
-                    reject(new Error(`Request to ${path} failed with status ${res.statusCode}: ${resBody}`));
-                }
-            });
-        });
-
-        req.on('error', reject);
-        if (data) {
-            req.write(data);
+    const req = https.request(options, (res) => {
+      let resBody = "";
+      res.on("data", (chunk) => (resBody += chunk));
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(resBody ? JSON.parse(resBody) : {});
+        } else {
+          reject(
+            new Error(
+              `Request to ${path} failed with status ${res.statusCode}: ${resBody}`,
+            ),
+          );
         }
-        req.end();
+      });
     });
+
+    req.on("error", reject);
+    if (data) {
+      req.write(data);
+    }
+    req.end();
+  });
 }
 
 async function run() {
-    console.log("Creating map theme issue on GitHub...");
+  console.log("Creating map theme issue on GitHub...");
 
-    const title = "[Feature Proposal] Redesign E.Arcade Map Theme to Arcade Grey Style & Expand Assets (Avoid Pokémon Copyright)";
-    
-    const body = `### Overview
+  const title =
+    "[Feature Proposal] Redesign E.Arcade Map Theme to Arcade Grey Style & Expand Assets (Avoid Pokémon Copyright)";
+
+  const body = `### Overview
 We need to redesign the map theme of E.Arcade. Currently, parts of the map use Pokémon-style aesthetics or assets. To prevent any copyright strikes or legal issues from **The Pokémon Company / Nintendo**, we must completely decouple our graphics from their intellectual property. 
 
 Instead, we should adopt a unified **retro arcade/pixel-art theme** (using the sleek, stylized grey color palette already present in the arcade room UI and Ixotopia town layout). The layout of the map can remain Pokémon-type (a top-down grid exploration system) but all graphical assets must be completely original or open-source retro-arcade assets.
@@ -78,18 +85,20 @@ Instead, we should adopt a unified **retro arcade/pixel-art theme** (using the s
 - Avatar customizer sprites must be expanded to match this new theme.
 - Feel free to drop comments below with link references to matching assets, draft designs, or styling proposals!`;
 
-    try {
-        const issue = await restRequest('POST', `/repos/${repo}/issues`, {
-            title,
-            body,
-            labels: ["enhancement", "assets", "UI/UX"]
-        });
-        console.log(`Successfully created issue #${issue.number}: "${issue.title}"`);
-        console.log(`URL: ${issue.html_url}`);
-    } catch (err) {
-        console.error("Failed to create issue:", err);
-        process.exit(1);
-    }
+  try {
+    const issue = await restRequest("POST", `/repos/${repo}/issues`, {
+      title,
+      body,
+      labels: ["enhancement", "assets", "UI/UX"],
+    });
+    console.log(
+      `Successfully created issue #${issue.number}: "${issue.title}"`,
+    );
+    console.log(`URL: ${issue.html_url}`);
+  } catch (err) {
+    console.error("Failed to create issue:", err);
+    process.exit(1);
+  }
 }
 
 run().catch(console.error);

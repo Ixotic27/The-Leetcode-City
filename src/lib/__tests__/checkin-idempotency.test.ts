@@ -13,9 +13,11 @@ describe("checkin XP grant idempotency", () => {
     };
   }
 
-  function shouldGrantXp(response: ReturnType<typeof makeXpLogResponse>): boolean {
+  function shouldGrantXp(
+    response: ReturnType<typeof makeXpLogResponse>,
+  ): boolean {
     const { error } = response;
-    if (!error) return true;                      // insert succeeded — grant XP
+    if (!error) return true; // insert succeeded — grant XP
     if (error.code?.includes("23505")) return false; // duplicate — skip silently
     throw new Error(`Unexpected DB error: ${error.message}`); // surface real errors
   }
@@ -29,7 +31,9 @@ describe("checkin XP grant idempotency", () => {
   });
 
   it("throws on unexpected DB errors", () => {
-    expect(() => shouldGrantXp(makeXpLogResponse("42P01"))).toThrow("Unexpected DB error");
+    expect(() => shouldGrantXp(makeXpLogResponse("42P01"))).toThrow(
+      "Unexpected DB error",
+    );
   });
 });
 

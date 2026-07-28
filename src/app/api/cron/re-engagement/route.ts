@@ -3,7 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendNotificationAsync } from "@/lib/notifications";
 import { buildButton } from "@/lib/email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 interface ReEngagementTier {
   daysInactive: number;
@@ -18,7 +19,8 @@ const TIERS: ReEngagementTier[] = [
     daysInactive: 7,
     tier: "7d",
     subject: () => "Your building misses you!",
-    body: (login) => `Hey @${login}, your building in LeetCode City is waiting. Come check in!`,
+    body: (login) =>
+      `Hey @${login}, your building in LeetCode City is waiting. Come check in!`,
     html: (login, extraInfo) => `
       <p style="color: #f0f0f0; font-size: 16px;">Your building misses you, @${login}!</p>
       <p style="color: #f0f0f0;">It's been a week since your last visit. Your building is still standing, but it could use some attention.</p>
@@ -63,7 +65,10 @@ const TIERS: ReEngagementTier[] = [
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -76,8 +81,12 @@ export async function GET(request: NextRequest) {
   const results = { sent: 0, skipped: 0, errors: 0 };
 
   for (const tier of TIERS) {
-    const inactiveAfter = new Date(now.getTime() - tier.daysInactive * 86_400_000).toISOString();
-    const inactiveBefore = new Date(now.getTime() - (tier.daysInactive - 1) * 86_400_000).toISOString();
+    const inactiveAfter = new Date(
+      now.getTime() - tier.daysInactive * 86_400_000,
+    ).toISOString();
+    const inactiveBefore = new Date(
+      now.getTime() - (tier.daysInactive - 1) * 86_400_000,
+    ).toISOString();
 
     let offset = 0;
     const batchSize = 50;
@@ -115,7 +124,10 @@ export async function GET(request: NextRequest) {
 
       const kudosCounts = new Map<number, number>();
       for (const k of recentKudos ?? []) {
-        kudosCounts.set(k.receiver_id, (kudosCounts.get(k.receiver_id) ?? 0) + 1);
+        kudosCounts.set(
+          k.receiver_id,
+          (kudosCounts.get(k.receiver_id) ?? 0) + 1,
+        );
       }
 
       for (const dev of devs) {
@@ -126,9 +138,10 @@ export async function GET(request: NextRequest) {
         }
 
         const kudos = kudosCounts.get(dev.id) ?? 0;
-        const extraInfo = kudos > 0
-          ? `<p style="color: #ffa116; font-size: 14px;">You received ${kudos} kudos while you were away!</p>`
-          : "";
+        const extraInfo =
+          kudos > 0
+            ? `<p style="color: #ffa116; font-size: 14px;">You received ${kudos} kudos while you were away!</p>`
+            : "";
 
         sendNotificationAsync({
           type: "re_engagement",

@@ -9,7 +9,10 @@ export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,7 +28,9 @@ export async function GET(request: NextRequest) {
 
     const { data: expiringAds } = await sb
       .from("sky_ads")
-      .select("id, brand, purchaser_email, tracking_token, ends_at, expiry_notified")
+      .select(
+        "id, brand, purchaser_email, tracking_token, ends_at, expiry_notified",
+      )
       .eq("active", true)
       .not("ends_at", "is", null)
       .not("purchaser_email", "is", null)
@@ -37,7 +42,10 @@ export async function GET(request: NextRequest) {
       for (const ad of expiringAds) {
         try {
           const endsAt = new Date(ad.ends_at);
-          const daysLeft = Math.max(1, Math.ceil((endsAt.getTime() - now.getTime()) / 86_400_000));
+          const daysLeft = Math.max(
+            1,
+            Math.ceil((endsAt.getTime() - now.getTime()) / 86_400_000),
+          );
           const trackingUrl = `https://theleetcodecity.tech/advertise/track/${ad.tracking_token}`;
 
           await sendAdExpiringEmail(
@@ -104,9 +112,9 @@ export async function GET(request: NextRequest) {
 
           await sb
             .from("sky_ads")
-            .update({ 
+            .update({
               active: false,
-              expiry_notified: "expired" 
+              expiry_notified: "expired",
             })
             .eq("id", ad.id);
 

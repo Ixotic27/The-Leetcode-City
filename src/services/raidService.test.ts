@@ -32,7 +32,9 @@ vi.mock("@/lib/achievements", () => ({
 }));
 
 vi.mock("@/lib/rewardCoordinator", () => ({
-  coordinateRewardSideEffects: vi.fn().mockResolvedValue({ newAchievements: [] }),
+  coordinateRewardSideEffects: vi
+    .fn()
+    .mockResolvedValue({ newAchievements: [] }),
 }));
 
 vi.mock("@/lib/notification-helpers", () => ({
@@ -98,9 +100,14 @@ describe("RaidService", () => {
       rpc: vi.fn(),
     };
 
-    const service = new RaidService(admin as never, { id: "user-1" } as never, {
-      target_login: "missing",
-    } as never, "2026-07-01");
+    const service = new RaidService(
+      admin as never,
+      { id: "user-1" } as never,
+      {
+        target_login: "missing",
+      } as never,
+      "2026-07-01",
+    );
 
     await expect(service.execute()).rejects.toMatchObject({
       message: "Target not found",

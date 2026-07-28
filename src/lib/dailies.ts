@@ -12,18 +12,80 @@ export interface Mission {
 }
 
 const MISSION_POOL: Mission[] = [
-  { id: "checkin",            title: "Daily presence",     description: "Check in today",               threshold: 1 },
-  { id: "give_kudos",         title: "Spread the love",    description: "Give kudos to a dev",          threshold: 1 },
-  { id: "give_kudos_3",       title: "Kudos spree",        description: "Give kudos to 3 devs",         threshold: 3 },
-  { id: "visit_building",     title: "Building inspector",description: "Visit a dev's building",        threshold: 1 },
-  { id: "visit_3_buildings",  title: "City explorer",      description: "Visit 3 buildings",            threshold: 3 },
-  { id: "fly_score_50",       title: "Casual pilot",       description: "Score 50+ in Fly mode",        threshold: 1, desktopOnly: true },
-  { id: "fly_score_150",      title: "Sky collector",      description: "Score 150+ in Fly mode",       threshold: 1, desktopOnly: true },
-  { id: "win_battle",         title: "Victorious",         description: "Win a battle",                 threshold: 1 },
-  { id: "attempt_battle",     title: "Ready to fight",     description: "Attempt a battle",             threshold: 1 },
-  { id: "visit_shop",         title: "Window shopper",     description: "Visit the shop",               threshold: 1 },
-  { id: "check_leaderboard",  title: "Stats checker",      description: "Check the leaderboard",        threshold: 1 },
-  { id: "explore_district",   title: "District hopper",    description: "Explore a different district",  threshold: 1 },
+  {
+    id: "checkin",
+    title: "Daily presence",
+    description: "Check in today",
+    threshold: 1,
+  },
+  {
+    id: "give_kudos",
+    title: "Spread the love",
+    description: "Give kudos to a dev",
+    threshold: 1,
+  },
+  {
+    id: "give_kudos_3",
+    title: "Kudos spree",
+    description: "Give kudos to 3 devs",
+    threshold: 3,
+  },
+  {
+    id: "visit_building",
+    title: "Building inspector",
+    description: "Visit a dev's building",
+    threshold: 1,
+  },
+  {
+    id: "visit_3_buildings",
+    title: "City explorer",
+    description: "Visit 3 buildings",
+    threshold: 3,
+  },
+  {
+    id: "fly_score_50",
+    title: "Casual pilot",
+    description: "Score 50+ in Fly mode",
+    threshold: 1,
+    desktopOnly: true,
+  },
+  {
+    id: "fly_score_150",
+    title: "Sky collector",
+    description: "Score 150+ in Fly mode",
+    threshold: 1,
+    desktopOnly: true,
+  },
+  {
+    id: "win_battle",
+    title: "Victorious",
+    description: "Win a battle",
+    threshold: 1,
+  },
+  {
+    id: "attempt_battle",
+    title: "Ready to fight",
+    description: "Attempt a battle",
+    threshold: 1,
+  },
+  {
+    id: "visit_shop",
+    title: "Window shopper",
+    description: "Visit the shop",
+    threshold: 1,
+  },
+  {
+    id: "check_leaderboard",
+    title: "Stats checker",
+    description: "Check the leaderboard",
+    threshold: 1,
+  },
+  {
+    id: "explore_district",
+    title: "District hopper",
+    description: "Explore a different district",
+    threshold: 1,
+  },
 ];
 
 export const MISSIONS_BY_ID = new Map(MISSION_POOL.map((m) => [m.id, m]));
@@ -106,11 +168,15 @@ export async function trackDailyMission(
     // set so mobile users aren't silently denied progress; desktopOnly
     // missions stay gated by the score checks below.
     const mission =
-      getDailyMissions(developerId, today, false).find((m) => m.id === missionId) ??
-      getDailyMissions(developerId, today, true).find((m) => m.id === missionId);
+      getDailyMissions(developerId, today, false).find(
+        (m) => m.id === missionId,
+      ) ??
+      getDailyMissions(developerId, today, true).find(
+        (m) => m.id === missionId,
+      );
     if (!mission) return;
 
-    if (missionId === "fly_score_50"  && (extra?.score ?? 0) < 50)  return;
+    if (missionId === "fly_score_50" && (extra?.score ?? 0) < 50) return;
     if (missionId === "fly_score_150" && (extra?.score ?? 0) < 150) return;
 
     const sb = getSupabaseAdmin();

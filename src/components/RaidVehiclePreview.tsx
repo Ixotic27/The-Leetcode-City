@@ -17,7 +17,11 @@ function SpinningVehicle({ type }: { type: string }) {
   );
 }
 
-export default function RaidVehiclePreview({ vehicleType }: { vehicleType: string }) {
+export default function RaidVehiclePreview({
+  vehicleType,
+}: {
+  vehicleType: string;
+}) {
   return (
     <Canvas camera={{ position: [0, 3, 12], fov: 35 }}>
       <ambientLight intensity={0.6} />

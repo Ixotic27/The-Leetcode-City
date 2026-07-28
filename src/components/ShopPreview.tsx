@@ -55,7 +55,7 @@ function createPreviewWindowTexture(
   rows: number,
   cols: number,
   seed: number,
-  faceColor?: string | null
+  faceColor?: string | null,
 ): THREE.CanvasTexture {
   const WS = 6;
   const GAP = 2;
@@ -84,7 +84,8 @@ function createPreviewWindowTexture(
       const x = PAD + c * (WS + GAP);
       const y = PAD + r * (WS + GAP);
       if (rand() < litPct) {
-        ctx.fillStyle = THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)];
+        ctx.fillStyle =
+          THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)];
       } else {
         ctx.fillStyle = THEME.windowOff;
       }
@@ -251,7 +252,8 @@ function ShopPreviewScene({
           const x = PAD + c * (WS + GAP);
           const y = PAD + r * (WS + GAP);
           if (rand() < litPct) {
-            ctx.fillStyle = THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)];
+            ctx.fillStyle =
+              THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)];
           } else {
             ctx.fillStyle = THEME.windowOff;
           }
@@ -325,18 +327,33 @@ function ShopPreviewScene({
     <>
       {/* City-matching lighting (Midnight theme, multiplied like CityCanvas) */}
       <ambientLight intensity={0.35 * 3} color={THEME.ambientColor} />
-      <directionalLight position={[300, 120, -200]} intensity={0.45 * 3.5} color={THEME.sunColor} />
-      <directionalLight position={[-200, 60, 200]} intensity={0.15 * 3} color={THEME.fillColor} />
+      <directionalLight
+        position={[300, 120, -200]}
+        intensity={0.45 * 3.5}
+        color={THEME.sunColor}
+      />
+      <directionalLight
+        position={[-200, 60, 200]}
+        intensity={0.15 * 3}
+        color={THEME.fillColor}
+      />
       <hemisphereLight args={["#5080a0", "#202830", 0.5 * 3.5]} />
 
       {/* Fog scaled up aggressively so it doesn't swallow the building on zoom out */}
-      <fog attach="fog" args={[THEME.fogColor, Math.max(H, W) * 2, Math.max(H, W) * 8]} />
+      <fog
+        attach="fog"
+        args={[THEME.fogColor, Math.max(H, W) * 2, Math.max(H, W) * 8]}
+      />
 
       <OrbitControls
         enablePan={false}
         enableRotate={true}
-        minDistance={isBungalow ? Math.max(40, W * 1.2) : Math.max(15, H * 0.15)}
-        maxDistance={isBungalow ? Math.max(300, W * 4) : Math.max(300, Math.max(H, W) * 4)}
+        minDistance={
+          isBungalow ? Math.max(40, W * 1.2) : Math.max(15, H * 0.15)
+        }
+        maxDistance={
+          isBungalow ? Math.max(300, W * 4) : Math.max(300, Math.max(H, W) * 4)
+        }
         minPolarAngle={isBungalow ? Math.PI / 3.5 : 0.05}
         maxPolarAngle={isBungalow ? Math.PI / 2.5 : Math.PI * 0.85}
         target={[0, isBungalow ? H * 0.8 : H * 0.05, 0]}
@@ -394,28 +411,46 @@ function ShopPreviewScene({
           {/* Zone items: highlight replaces equipped item in the same zone */}
           {(["crown", "roof", "aura"] as const).map((zone) => {
             const equipped = loadout[zone];
-            const highlightInZone = highlightItemId && ZONE_ITEMS[zone]?.includes(highlightItemId);
+            const highlightInZone =
+              highlightItemId && ZONE_ITEMS[zone]?.includes(highlightItemId);
             const showId = highlightInZone ? highlightItemId : equipped;
-            return showId ? <EffectForItem key={zone} itemId={showId} dims={{ width: W, height: H, depth: D }} /> : null;
+            return showId ? (
+              <EffectForItem
+                key={zone}
+                itemId={showId}
+                dims={{ width: W, height: H, depth: D }}
+              />
+            ) : null;
           })}
 
-          {/* Faces: respect loadout and highlight */
-          (() => {
-            const equipped = loadout.faces;
-            const highlightInZone = highlightItemId && ZONE_ITEMS.faces?.includes(highlightItemId);
-            const showId = highlightInZone ? highlightItemId : equipped;
+          {
+            /* Faces: respect loadout and highlight */
+            (() => {
+              const equipped = loadout.faces;
+              const highlightInZone =
+                highlightItemId && ZONE_ITEMS.faces?.includes(highlightItemId);
+              const showId = highlightInZone ? highlightItemId : equipped;
 
-            return (
-              <>
-                {showId === "led_banner" && (
-                  <EffectForItem itemId="led_banner" dims={{ width: W, height: H, depth: D }} ledBannerText={ledBannerText} />
-                )}
-                {showId === "billboard" && (
-                  <EffectForItem itemId="billboard" dims={{ width: W, height: H, depth: D }} billboardImages={billboardImages} />
-                )}
-              </>
-            );
-          })()}
+              return (
+                <>
+                  {showId === "led_banner" && (
+                    <EffectForItem
+                      itemId="led_banner"
+                      dims={{ width: W, height: H, depth: D }}
+                      ledBannerText={ledBannerText}
+                    />
+                  )}
+                  {showId === "billboard" && (
+                    <EffectForItem
+                      itemId="billboard"
+                      dims={{ width: W, height: H, depth: D }}
+                      billboardImages={billboardImages}
+                    />
+                  )}
+                </>
+              );
+            })()
+          }
         </group>
       </group>
     </>
@@ -434,7 +469,12 @@ export default function ShopPreview({
   highlightItemId,
   buildingStyle,
 }: {
-  loadout: { crown: string | null; roof: string | null; aura: string | null; faces: string | null };
+  loadout: {
+    crown: string | null;
+    roof: string | null;
+    aura: string | null;
+    faces: string | null;
+  };
   ownedFacesItems: string[];
   customColor: string | null;
   billboardImages: string[];
@@ -447,9 +487,12 @@ export default function ShopPreview({
 
   // Clamp building dims for preview (cap height, ensure min width/depth)
   const raw = buildingDims ?? DEFAULT_DIMS;
-  const rawWidth = raw.width && !isNaN(raw.width) ? raw.width : DEFAULT_DIMS.width;
-  const rawHeight = raw.height && !isNaN(raw.height) ? raw.height : DEFAULT_DIMS.height;
-  const rawDepth = raw.depth && !isNaN(raw.depth) ? raw.depth : DEFAULT_DIMS.depth;
+  const rawWidth =
+    raw.width && !isNaN(raw.width) ? raw.width : DEFAULT_DIMS.width;
+  const rawHeight =
+    raw.height && !isNaN(raw.height) ? raw.height : DEFAULT_DIMS.height;
+  const rawDepth =
+    raw.depth && !isNaN(raw.depth) ? raw.depth : DEFAULT_DIMS.depth;
 
   const isBungalow = buildingStyle === "bungalow";
   const dims: BuildingDims = {
@@ -462,7 +505,10 @@ export default function ShopPreview({
     : Math.max(80, Math.max(dims.height * 2.5, dims.width * 1.5));
 
   return (
-    <div className="relative border-[3px] border-border" style={{ backgroundColor: THEME.fogColor }}>
+    <div
+      className="relative border-[3px] border-border"
+      style={{ backgroundColor: THEME.fogColor }}
+    >
       <div className="h-[280px] sm:h-[360px] lg:h-[520px]">
         <Canvas
           key={canvasKey}
@@ -470,15 +516,19 @@ export default function ShopPreview({
             const canvas = gl.domElement;
             const handleContextLost = (e: Event) => {
               e.preventDefault();
-              console.warn("ShopPreview WebGL context lost. Recreating canvas context.");
+              console.warn(
+                "ShopPreview WebGL context lost. Recreating canvas context.",
+              );
               setCanvasKey((prev) => prev + 1);
             };
             canvas.addEventListener("webglcontextlost", handleContextLost);
           }}
           camera={{
-            position: isBungalow ? [0, camDist * 0.4, camDist * 1.2] : [camDist * 0.5, camDist * 0.3, camDist * 0.7],
+            position: isBungalow
+              ? [0, camDist * 0.4, camDist * 1.2]
+              : [camDist * 0.5, camDist * 0.3, camDist * 0.7],
             fov: 45,
-            far: Math.max(1000, camDist * 10) // Push clipping plane far back
+            far: Math.max(1000, camDist * 10), // Push clipping plane far back
           }}
           gl={{ antialias: false }}
         >

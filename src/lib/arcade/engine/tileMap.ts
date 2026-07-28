@@ -6,12 +6,12 @@
 export interface FurnitureObject {
   id: string;
   sprite: string;
-  x: number;      // pixel position (top-left of sprite)
+  x: number; // pixel position (top-left of sprite)
   y: number;
-  width: number;  // footprint pixel size
+  width: number; // footprint pixel size
   height: number;
   collides: boolean;
-  sortY?: number;  // Z-sort key (bottom of footprint). If missing, uses y + height.
+  sortY?: number; // Z-sort key (bottom of footprint). If missing, uses y + height.
   sittable?: boolean; // Gather-style: player walks through and auto-sits when idle
   sitDir?: "up" | "down" | "left" | "right"; // Direction player faces when sitting (for items without directional sprite names)
 }
@@ -39,8 +39,8 @@ export interface RoomPortal {
   height?: number;
   label?: string;
   destination?: string; // target room slug
-  targetX?: number;     // target warp X coordinate
-  targetY?: number;     // target warp Y coordinate
+  targetX?: number; // target warp X coordinate
+  targetY?: number; // target warp Y coordinate
 }
 
 /** Find an interactive object at or near the player */
@@ -72,9 +72,11 @@ export function findNearbySeat(
   playerY: number,
 ): MapObject | null {
   // "seat", "pc", and "arcade_machine" are all sittable
-  return findNearbyObject(playerX, playerY, "seat")
-    ?? findNearbyObject(playerX, playerY, "pc")
-    ?? findNearbyObject(playerX, playerY, "arcade_machine");
+  return (
+    findNearbyObject(playerX, playerY, "seat") ??
+    findNearbyObject(playerX, playerY, "pc") ??
+    findNearbyObject(playerX, playerY, "arcade_machine")
+  );
 }
 
 /** Per-tile-ID properties — defined once on the tileset, inherited by all instances */
@@ -131,7 +133,11 @@ export function getMap(): GameMap | null {
  * Check if a tile is structurally walkable (ignoring furniture).
  * Uses tileProperties if available, otherwise falls back to collision layer.
  */
-export function isStructurallyWalkable(map: GameMap, x: number, y: number): boolean {
+export function isStructurallyWalkable(
+  map: GameMap,
+  x: number,
+  y: number,
+): boolean {
   if (x < 0 || x >= map.width || y < 0 || y >= map.height) return false;
   if (map.tileProperties && Object.keys(map.tileProperties).length > 0) {
     const gid = map.layers.ground[y * map.width + x];
@@ -146,7 +152,11 @@ export function isStructurallyWalkable(map: GameMap, x: number, y: number): bool
  * Get the structural type of a tile ("wall", "floor", "door").
  * Returns "floor" if tileProperties is not defined.
  */
-export function getTileType(map: GameMap, x: number, y: number): "wall" | "floor" | "door" {
+export function getTileType(
+  map: GameMap,
+  x: number,
+  y: number,
+): "wall" | "floor" | "door" {
   if (x < 0 || x >= map.width || y < 0 || y >= map.height) return "wall";
   if (map.tileProperties && Object.keys(map.tileProperties).length > 0) {
     const gid = map.layers.ground[y * map.width + x];
@@ -165,7 +175,8 @@ export function rebuildCollision(map: GameMap): void {
   const { width, height, tileSize } = map;
   const coll = new Array(width * height).fill(0);
 
-  const hasTileProps = map.tileProperties && Object.keys(map.tileProperties).length > 0;
+  const hasTileProps =
+    map.tileProperties && Object.keys(map.tileProperties).length > 0;
 
   // 1. Static collision from tile properties (or copy original collision if empty)
   if (hasTileProps && map.tileProperties) {
@@ -184,7 +195,13 @@ export function rebuildCollision(map: GameMap): void {
   for (const f of map.furniture) {
     if (!f.collides) continue;
     // Sittable furniture is walk-through (Gather-style)
-    if (f.sittable || f.sprite.includes("sofa_") || f.sprite.includes("chair_") || f.sprite.includes("puff_")) continue;
+    if (
+      f.sittable ||
+      f.sprite.includes("sofa_") ||
+      f.sprite.includes("chair_") ||
+      f.sprite.includes("puff_")
+    )
+      continue;
     const ftx = Math.floor(f.x / tileSize);
     const fty = Math.floor(f.y / tileSize);
     const ftw = Math.floor(f.width / tileSize);
@@ -202,7 +219,8 @@ export function rebuildCollision(map: GameMap): void {
 
 export function isWalkable(x: number, y: number): boolean {
   if (!currentMap) return false;
-  if (x < 0 || x >= currentMap.width || y < 0 || y >= currentMap.height) return false;
+  if (x < 0 || x >= currentMap.width || y < 0 || y >= currentMap.height)
+    return false;
   return currentMap.layers.collision[y * currentMap.width + x] === 0;
 }
 

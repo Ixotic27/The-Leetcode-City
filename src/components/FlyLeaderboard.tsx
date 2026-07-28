@@ -281,10 +281,7 @@ export default function FlyLeaderboard() {
         </Link>
       )}
 
-      <div
-        className="mt-6 border-[3px] border-border"
-        aria-busy={loading}
-      >
+      <div className="mt-6 border-[3px] border-border" aria-busy={loading}>
         <div className="flex items-center gap-4 border-b-[3px] border-border bg-bg-card px-5 py-3 text-xs text-muted">
           <span className="w-10 text-center">#</span>
           <span className="flex-1">Pilot</span>
@@ -340,8 +337,10 @@ export default function FlyLeaderboard() {
 
         {error && !loading && (
           <div className="px-5 py-10 text-center">
-            <p className="text-xs text-red-400 normal-case mb-3">Failed to load pilot scores</p>
-            <button 
+            <p className="text-xs text-red-400 normal-case mb-3">
+              Failed to load pilot scores
+            </p>
+            <button
               onClick={() => fetchScores(viewingSeed)}
               className="btn-press border-[2px] border-border px-3 py-1 text-[10px] text-cream hover:border-border-light transition-colors"
             >
@@ -350,7 +349,8 @@ export default function FlyLeaderboard() {
           </div>
         )}
 
-        {!loading && !error &&
+        {!loading &&
+          !error &&
           leaderboard.map((entry, i) => {
             const pos = i + 1;
             const isYou =

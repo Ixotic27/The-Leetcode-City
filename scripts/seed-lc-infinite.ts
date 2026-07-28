@@ -18,7 +18,9 @@ import { parseMaxStreak } from "../src/lib/leetcode";
 import fs from "fs";
 import path from "path";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ykqxkfazxsyantffjouf.supabase.co";
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://ykqxkfazxsyantffjouf.supabase.co";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 // ── CLI Args ──
@@ -28,24 +30,37 @@ let MAX_PAGES = Infinity;
 if (pagesArg !== -1) {
   const raw = args[pagesArg + 1];
   const parsed = Number(raw);
-  if (!raw || !Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
-    console.error("Error: --pages must be a positive integer (e.g., --pages 5)");
+  if (
+    !raw ||
+    !Number.isFinite(parsed) ||
+    parsed <= 0 ||
+    !Number.isInteger(parsed)
+  ) {
+    console.error(
+      "Error: --pages must be a positive integer (e.g., --pages 5)",
+    );
     process.exit(1);
   }
   MAX_PAGES = parsed;
 }
 
 if (!SUPABASE_URL) {
-  console.error("Error: NEXT_PUBLIC_SUPABASE_URL is missing. Set it or ensure the fallback is set.");
+  console.error(
+    "Error: NEXT_PUBLIC_SUPABASE_URL is missing. Set it or ensure the fallback is set.",
+  );
   process.exit(1);
 }
 
 if (!SUPABASE_KEY) {
-  console.error("Error: SUPABASE_SERVICE_ROLE_KEY is missing. Please configure it in your environment or GitHub Secrets.");
+  console.error(
+    "Error: SUPABASE_SERVICE_ROLE_KEY is missing. Please configure it in your environment or GitHub Secrets.",
+  );
   process.exit(1);
 }
 
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false },
+});
 
 const LC_HEADERS = {
   "Content-Type": "application/json",
@@ -59,7 +74,7 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// State persistence (local file) 
+// State persistence (local file)
 
 function getLastPage(): number {
   try {
@@ -82,7 +97,7 @@ function saveState(page: number) {
   }
 }
 
-// LeetCode fetchers 
+// LeetCode fetchers
 
 async function fetchRankingPage(page: number): Promise<string[]> {
   const query = `
@@ -110,7 +125,9 @@ async function fetchRankingPage(page: number): Promise<string[]> {
     });
 
     if (res.status === 429) {
-      console.warn(`⚠️  Rate limited fetching ranking page ${page} (HTTP 429).`);
+      console.warn(
+        `⚠️  Rate limited fetching ranking page ${page} (HTTP 429).`,
+      );
       return [];
     }
     if (!res.ok) {
@@ -141,7 +158,10 @@ async function fetchLCUserStats(username: string) {
           totalSubmissionNum { difficulty count }
         }
         userCalendar { streak totalActiveDays }${[currentYear, prevYear]
-          .map((y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`)
+          .map(
+            (y) =>
+              `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`,
+          )
           .join("")}
       }
       userContestRanking(username: $username) {
@@ -163,7 +183,9 @@ async function fetchLCUserStats(username: string) {
       if (res.status === 429) {
         attempt++;
         const delay = 5000 * Math.pow(2, attempt); // 10s, 20s, 40s
-        console.warn(`⚠️  Rate limited fetching stats for ${username} (HTTP 429). Attempt ${attempt}/${maxRetries}. Retrying in ${delay / 1000}s...`);
+        console.warn(
+          `⚠️  Rate limited fetching stats for ${username} (HTTP 429). Attempt ${attempt}/${maxRetries}. Retrying in ${delay / 1000}s...`,
+        );
         await sleep(delay);
         continue;
       }
@@ -184,7 +206,10 @@ async function fetchLCUserStats(username: string) {
     } catch (err) {
       attempt++;
       if (attempt >= maxRetries) {
-        console.error(`Error fetching stats for ${username} after ${maxRetries} attempts:`, err);
+        console.error(
+          `Error fetching stats for ${username} after ${maxRetries} attempts:`,
+          err,
+        );
         return null;
       }
       const delay = 2000 * attempt;
@@ -194,7 +219,7 @@ async function fetchLCUserStats(username: string) {
   return null;
 }
 
-// Upsert 
+// Upsert
 
 async function upsertUser(username: string, data: any): Promise<boolean> {
   const user = data?.matchedUser;
@@ -202,8 +227,10 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
 
   const acNums = user.submitStats?.acSubmissionNum ?? [];
   const totNums = user.submitStats?.totalSubmissionNum ?? [];
-  const getAC = (d: string) => acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
-  const getTot = (d: string) => totNums.find((x: any) => x.difficulty === d)?.count ?? 1;
+  const getAC = (d: string) =>
+    acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
+  const getTot = (d: string) =>
+    totNums.find((x: any) => x.difficulty === d)?.count ?? 1;
 
   const totalSolved = getAC("All");
   const totalSub = getTot("All");
@@ -211,17 +238,24 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
   const medSolved = getAC("Medium");
   const hardSolved = getAC("Hard");
   const activeDays = user.userCalendar?.totalActiveDays ?? 0;
-  const streak = parseMaxStreak(user, new Date().getFullYear()) || user.userCalendar?.streak || 0;
+  const streak =
+    parseMaxStreak(user, new Date().getFullYear()) ||
+    user.userCalendar?.streak ||
+    0;
   const lcRank = user.profile?.ranking ?? 999999;
   const reputation = user.profile?.reputation ?? 0;
   const contestRating = Math.round(data?.userContestRanking?.rating ?? 0);
-  const acceptanceRate = totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0;
-  const realName = user.profile?.realName?.trim() ? user.profile.realName : user.username;
+  const acceptanceRate =
+    totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0;
+  const realName = user.profile?.realName?.trim()
+    ? user.profile.realName
+    : user.username;
   const litPercentage = Math.min(1.0, Math.max(0.1, activeDays / 365));
 
   // Generate stable fake github ID for compatibility with the existing schema.
   let hash = 0;
-  for (const ch of username) hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
+  for (const ch of username)
+    hash = (Math.imul(31, hash) + ch.charCodeAt(0)) | 0;
   const virtualGithubId = Math.abs(hash);
 
   const { error } = await sb.from("developers").upsert(
@@ -233,7 +267,10 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
       contributions: Math.max(1, totalSolved),
       contributions_total: Math.round(litPercentage * 1000), // Visual light intensity
       total_stars: reputation,
-      public_repos: Math.max(0, parseInt(String(lcRank), 10) > 0 ? 500000 - lcRank : 0),
+      public_repos: Math.max(
+        0,
+        parseInt(String(lcRank), 10) > 0 ? 500000 - lcRank : 0,
+      ),
       rank: lcRank,
       lc_global_rank: lcRank,
       fetch_priority: 2,
@@ -248,7 +285,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
       lc_streak: streak,
       active_days_last_year: activeDays,
     },
-    { onConflict: "github_login" }
+    { onConflict: "github_login" },
   );
 
   if (error) {
@@ -257,13 +294,17 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
   return !error;
 }
 
-// Main Execution 
+// Main Execution
 
 async function main() {
   const startPage = getLastPage();
-  console.log(`\n🏙️  LC City Infinite Mass Seeder — Resuming from page ${startPage}...\n`);
+  console.log(
+    `\n🏙️  LC City Infinite Mass Seeder — Resuming from page ${startPage}...\n`,
+  );
   if (MAX_PAGES !== Infinity) {
-    console.log(`📦 Batch mode: will process ${MAX_PAGES} page(s) then stop.\n`);
+    console.log(
+      `📦 Batch mode: will process ${MAX_PAGES} page(s) then stop.\n`,
+    );
   }
 
   let ok = 0,
@@ -288,13 +329,17 @@ async function main() {
     if (usernames.length === 0) {
       retryCount++;
       if (retryCount >= MAX_RETRIES_PER_PAGE) {
-        console.warn(`⏭️  Page ${page} returned empty ${MAX_RETRIES_PER_PAGE} times — skipping.`);
+        console.warn(
+          `⏭️  Page ${page} returned empty ${MAX_RETRIES_PER_PAGE} times — skipping.`,
+        );
         retryCount = 0;
         page++;
         saveState(page);
         continue;
       }
-      console.log(`⚠️  No users found on page (attempt ${retryCount}/${MAX_RETRIES_PER_PAGE}). Rate limited? Backing off...`);
+      console.log(
+        `⚠️  No users found on page (attempt ${retryCount}/${MAX_RETRIES_PER_PAGE}). Rate limited? Backing off...`,
+      );
       await sleep(10000 * retryCount); // exponential-ish: 10s, 20s
       continue;
     }
@@ -314,8 +359,13 @@ async function main() {
 
       const inserted = await upsertUser(username, stats);
       if (inserted) {
-        const solved = stats.matchedUser?.submitStats?.acSubmissionNum?.find((x: any) => x.difficulty === "All")?.count ?? 0;
-        console.log(`✅ ${solved} solved, rank #${stats.matchedUser?.profile?.ranking ?? "N/A"}`);
+        const solved =
+          stats.matchedUser?.submitStats?.acSubmissionNum?.find(
+            (x: any) => x.difficulty === "All",
+          )?.count ?? 0;
+        console.log(
+          `✅ ${solved} solved, rank #${stats.matchedUser?.profile?.ranking ?? "N/A"}`,
+        );
         ok++;
       } else {
         console.log("❌ DB error");
@@ -336,7 +386,9 @@ async function main() {
   process.off("SIGTERM", persistOnExit);
   process.off("SIGINT", persistOnExit);
 
-  console.log(`\n🏁 Batch complete — ${ok} ok | ${skip} skipped | ${fail} failed | stopped at page ${page}`);
+  console.log(
+    `\n🏁 Batch complete — ${ok} ok | ${skip} skipped | ${fail} failed | stopped at page ${page}`,
+  );
 }
 
 main().catch((err) => {

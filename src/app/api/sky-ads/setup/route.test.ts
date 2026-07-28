@@ -86,7 +86,9 @@ describe("/api/sky-ads/setup route", () => {
 
     const res = await POST(request);
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Content contains prohibited language" });
+    expect(await res.json()).toEqual({
+      error: "Content contains prohibited language",
+    });
   });
 
   it("returns 400 when link is invalid", async () => {
@@ -100,7 +102,9 @@ describe("/api/sky-ads/setup route", () => {
 
     const res = await POST(request);
     expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: "Link must start with https:// or mailto:" });
+    expect(await res.json()).toEqual({
+      error: "Link must start with https:// or mailto:",
+    });
   });
 
   it("updates ad text successfully", async () => {

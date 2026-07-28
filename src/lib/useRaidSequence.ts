@@ -3,7 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { CityBuilding } from "@/lib/github";
 import type { RaidPreviewResponse, RaidExecuteResponse } from "@/lib/raid";
-import { preloadRaidAudio, playRaidSound, stopRaidSound, fadeOutRaidSound, stopAllRaidSounds } from "@/lib/raidAudio";
+import {
+  preloadRaidAudio,
+  playRaidSound,
+  stopRaidSound,
+  fadeOutRaidSound,
+  stopAllRaidSounds,
+} from "@/lib/raidAudio";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -29,8 +35,16 @@ export interface RaidState {
 }
 
 export interface RaidActions {
-  startPreview: (targetLogin: string, buildings: CityBuilding[], myLogin: string) => void;
-  executeRaid: (boostPurchaseId?: number, vehicleId?: string, offensiveItemId?: string) => void;
+  startPreview: (
+    targetLogin: string,
+    buildings: CityBuilding[],
+    myLogin: string,
+  ) => void;
+  executeRaid: (
+    boostPurchaseId?: number,
+    vehicleId?: string,
+    offensiveItemId?: string,
+  ) => void;
   skipToShare: () => void;
   exitRaid: () => void;
   onPhaseComplete: (phase: RaidPhase) => void;
@@ -78,7 +92,12 @@ export function useRaidSequence(): [RaidState, RaidActions] {
 
   // Visibility change handling
   useEffect(() => {
-    if (state.phase === "idle" || state.phase === "preview" || state.phase === "share") return;
+    if (
+      state.phase === "idle" ||
+      state.phase === "preview" ||
+      state.phase === "share"
+    )
+      return;
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -91,7 +110,8 @@ export function useRaidSequence(): [RaidState, RaidActions] {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [state.phase]);
 
   const setPhase = useCallback((phase: RaidPhase) => {
@@ -143,10 +163,11 @@ export function useRaidSequence(): [RaidState, RaidActions] {
         if (phase === "intro") setPhaseRef.current("flight");
         else if (phase === "flight") setPhaseRef.current("attack");
         else if (phase === "attack") {
-          const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
+          const nextPhase = raidDataRef.current?.success
+            ? "outro_win"
+            : "outro_lose";
           setPhaseRef.current(nextPhase);
-        }
-        else if (phase === "outro_win") setPhaseRef.current("share");
+        } else if (phase === "outro_win") setPhaseRef.current("share");
         else if (phase === "outro_lose") setPhaseRef.current("share");
       }, duration);
     }
@@ -165,8 +186,10 @@ export function useRaidSequence(): [RaidState, RaidActions] {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       // Find buildings for position data
-      const attackerBuilding = buildings.find((b) => b.login === myLogin) ?? null;
-      const defenderBuilding = buildings.find((b) => b.login === targetLogin) ?? null;
+      const attackerBuilding =
+        buildings.find((b) => b.login === myLogin) ?? null;
+      const defenderBuilding =
+        buildings.find((b) => b.login === targetLogin) ?? null;
 
       try {
         const res = await fetch("/api/raid/preview", {
@@ -209,7 +232,11 @@ export function useRaidSequence(): [RaidState, RaidActions] {
   );
 
   const executeRaid = useCallback(
-    async (boostPurchaseId?: number, vehicleId?: string, offensiveItemId?: string) => {
+    async (
+      boostPurchaseId?: number,
+      vehicleId?: string,
+      offensiveItemId?: string,
+    ) => {
       setState((prev) => ({ ...prev, loading: true }));
 
       try {
@@ -256,8 +283,6 @@ export function useRaidSequence(): [RaidState, RaidActions] {
 
         // Set phase using setPhase so all audio preloading and fallback timers are set up!
         setPhase("intro");
-
-        
       } catch (err) {
         console.warn("[lib/useRaidSequence.ts] error:", err);
         setState((prev) => ({
@@ -283,7 +308,9 @@ export function useRaidSequence(): [RaidState, RaidActions] {
           setPhase("attack");
           break;
         case "attack": {
-          const nextPhase = raidDataRef.current?.success ? "outro_win" : "outro_lose";
+          const nextPhase = raidDataRef.current?.success
+            ? "outro_win"
+            : "outro_lose";
           setPhase(nextPhase);
           break;
         }

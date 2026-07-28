@@ -16,9 +16,12 @@ async function main() {
   }
 
   console.log(`[run-cron] Starting job: ${cronName}`);
-  
+
   // Resolve absolute path to the route handler and convert to file:// URL for Windows compatibility
-  const routePath = path.resolve(process.cwd(), `src/app/api/cron/${cronName}/route.ts`);
+  const routePath = path.resolve(
+    process.cwd(),
+    `src/app/api/cron/${cronName}/route.ts`,
+  );
   const routeUrl = pathToFileURL(routePath).href;
   console.log(`[run-cron] Loading route handler from: ${routeUrl}`);
 
@@ -30,13 +33,13 @@ async function main() {
 
     const req = new NextRequest(`http://localhost/api/cron/${cronName}`, {
       headers: {
-        Authorization: `Bearer ${secret}`
-      }
+        Authorization: `Bearer ${secret}`,
+      },
     });
 
     const res = await route.GET(req);
     console.log(`[run-cron] Response Status: ${res.status}`);
-    
+
     let body;
     try {
       body = await res.json();
@@ -47,14 +50,14 @@ async function main() {
         body = "(no body)";
       }
     }
-    
+
     console.log("[run-cron] Response Body:", body);
-    
+
     if (res.status >= 400) {
       console.error(`[run-cron] Job failed with status ${res.status}`);
       process.exit(1);
     }
-    
+
     console.log(`[run-cron] Job completed successfully: ${cronName}`);
   } catch (error) {
     console.error(`[run-cron] Failed to run cron job ${cronName}:`, error);

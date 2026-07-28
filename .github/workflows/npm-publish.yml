@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'cli/**'
-      - '.github/workflows/npm-publish.yml'
+      - "cli/**"
+      - ".github/workflows/npm-publish.yml"
   workflow_dispatch: # Allows manual triggering
 
 jobs:
@@ -19,20 +19,20 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@ixotic27'
-          
+          node-version: "24"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@ixotic27"
+
       - name: Publish to GitHub Packages
         run: |
           cd cli
           # GitHub Packages requires the package name to be scoped to the repo owner
           # NPM strictly enforces lowercase package names
           npm pkg set name="@ixotic27/leetcode-city"
-          
+
           # Publish the package
           npm publish
         env:

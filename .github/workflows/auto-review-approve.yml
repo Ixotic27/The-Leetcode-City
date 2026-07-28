@@ -126,10 +126,10 @@ jobs:
           script: |
             const headSha = '${{ steps.get-pr.outputs.head_sha }}';
             console.log(`Checking status for SHA ${headSha}...`);
-            
+
             const maxRetries = 30; // 7.5 minutes total
             const delayMs = 15000;
-            
+
             for (let i = 0; i < maxRetries; i++) {
               // 1. Check Vercel Status
               const { data: commitStatus } = await github.rest.repos.getCombinedStatusForRef({
@@ -196,7 +196,7 @@ jobs:
               console.log(`Sleeping for 15 seconds... (Attempt ${i + 1}/${maxRetries})`);
               await new Promise(r => setTimeout(r, delayMs));
             }
-            
+
             core.setFailed('Timed out waiting for checks to complete.');
 
       - name: Assign Ixotic27 as Reviewer

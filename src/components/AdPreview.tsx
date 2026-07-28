@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useMemo, useEffect, useState, useCallback, Suspense } from "react";
+import {
+  useRef,
+  useMemo,
+  useEffect,
+  useState,
+  useCallback,
+  Suspense,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -30,8 +37,14 @@ const B_W = 20;
 const B_H = 50;
 const B_D = 16;
 
-function createWindowTexture(rows: number, cols: number, seed: number): THREE.CanvasTexture {
-  const WS = 6, GAP = 2, PAD = 3;
+function createWindowTexture(
+  rows: number,
+  cols: number,
+  seed: number,
+): THREE.CanvasTexture {
+  const WS = 6,
+    GAP = 2,
+    PAD = 3;
   const w = PAD * 2 + cols * WS + Math.max(0, cols - 1) * GAP;
   const h = PAD * 2 + rows * WS + Math.max(0, rows - 1) * GAP;
   const canvas = document.createElement("canvas");
@@ -41,14 +54,18 @@ function createWindowTexture(rows: number, cols: number, seed: number): THREE.Ca
   ctx.fillStyle = THEME.face;
   ctx.fillRect(0, 0, w, h);
   let s = seed;
-  const rand = () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+  const rand = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const x = PAD + c * (WS + GAP);
       const y = PAD + r * (WS + GAP);
-      ctx.fillStyle = rand() < 0.65
-        ? THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)]
-        : THEME.windowOff;
+      ctx.fillStyle =
+        rand() < 0.65
+          ? THEME.windowLit[Math.floor(rand() * THEME.windowLit.length)]
+          : THEME.windowOff;
       ctx.fillRect(x, y, WS, WS);
     }
   }
@@ -69,14 +86,28 @@ function PreviewBuilding() {
     const side = createWindowTexture(floors, sideCols, 13673);
     const roofColor = new THREE.Color(THEME.roof);
     const roof = new THREE.MeshStandardMaterial({
-      color: roofColor, emissive: roofColor, emissiveIntensity: 1.5, roughness: 0.6,
+      color: roofColor,
+      emissive: roofColor,
+      emissiveIntensity: 1.5,
+      roughness: 0.6,
     });
     const makeFace = (tex: THREE.CanvasTexture) =>
       new THREE.MeshStandardMaterial({
-        map: tex, emissive: WHITE.clone(), emissiveMap: tex,
-        emissiveIntensity: 2.0, roughness: 0.85, metalness: 0,
+        map: tex,
+        emissive: WHITE.clone(),
+        emissiveMap: tex,
+        emissiveIntensity: 2.0,
+        roughness: 0.85,
+        metalness: 0,
       });
-    return [makeFace(side), makeFace(side), roof, roof, makeFace(front), makeFace(front)];
+    return [
+      makeFace(side),
+      makeFace(side),
+      roof,
+      roof,
+      makeFace(front),
+      makeFace(front),
+    ];
   }, [floors, cols, sideCols]);
 
   return (
@@ -98,29 +129,48 @@ function PlanePreviewScene({ text, color, bgColor }: AdProps) {
     [text, color, bgColor],
   );
   const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color: "#000000", emissiveMap: tex, emissive: "#ffffff",
-      emissiveIntensity: 1.2, toneMapped: false,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#000000",
+        emissiveMap: tex,
+        emissive: "#ffffff",
+        emissiveIntensity: 1.2,
+        toneMapped: false,
+      }),
     [tex],
   );
 
-  const BANNER_L = 45, BANNER_H = 10, ROPE_GAP = 18, DROP = 5;
+  const BANNER_L = 45,
+    BANNER_H = 10,
+    ROPE_GAP = 18,
+    DROP = 5;
 
   const ropeLine = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.BufferAttribute(
-      new Float32Array([0, -2, 5, 0, -DROP, ROPE_GAP]), 3,
-    ));
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.5 });
+    geo.setAttribute(
+      "position",
+      new THREE.BufferAttribute(
+        new Float32Array([0, -2, 5, 0, -DROP, ROPE_GAP]),
+        3,
+      ),
+    );
+    const mat = new THREE.LineBasicMaterial({
+      color: "#ffffff",
+      transparent: true,
+      opacity: 0.5,
+    });
     return new THREE.Line(geo, mat);
   }, []);
 
-  useEffect(() => () => {
-    tex.dispose(); ledMat.dispose();
-    ropeLine.geometry.dispose();
-    (ropeLine.material as THREE.Material).dispose();
-  }, [tex, ledMat, ropeLine]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      ledMat.dispose();
+      ropeLine.geometry.dispose();
+      (ropeLine.material as THREE.Material).dispose();
+    },
+    [tex, ledMat, ropeLine],
+  );
 
   useFrame(({ clock }) => {
     if (needsScroll) tex.offset.x = (clock.elapsedTime * SCROLL_SPEED) % 1;
@@ -136,14 +186,27 @@ function PlanePreviewScene({ text, color, bgColor }: AdProps) {
       {/* Tow rope */}
       <primitive object={ropeLine} />
       {/* Banner side 1 */}
-      <mesh material={ledMat} position={[0.15, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh
+        material={ledMat}
+        position={[0.15, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]}
+        rotation={[0, Math.PI / 2, 0]}
+      >
         <planeGeometry args={[BANNER_L, BANNER_H]} />
       </mesh>
       {/* Banner side 2 */}
-      <mesh material={ledMat} position={[-0.15, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]} rotation={[0, -Math.PI / 2, 0]}>
+      <mesh
+        material={ledMat}
+        position={[-0.15, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]}
+        rotation={[0, -Math.PI / 2, 0]}
+      >
         <planeGeometry args={[BANNER_L, BANNER_H]} />
       </mesh>
-      <pointLight position={[0, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]} color={color} intensity={2} distance={30} />
+      <pointLight
+        position={[0, -DROP - BANNER_H / 2, ROPE_GAP + BANNER_L / 2]}
+        color={color}
+        intensity={2}
+        distance={30}
+      />
     </group>
   );
 }
@@ -158,13 +221,23 @@ function BlimpPreviewScene({ text, color, bgColor }: AdProps) {
     [text, color, bgColor],
   );
   const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color: "#000000", emissiveMap: tex, emissive: "#ffffff",
-      emissiveIntensity: 1.2, toneMapped: false,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#000000",
+        emissiveMap: tex,
+        emissive: "#ffffff",
+        emissiveIntensity: 1.2,
+        toneMapped: false,
+      }),
     [tex],
   );
-  useEffect(() => () => { tex.dispose(); ledMat.dispose(); }, [tex, ledMat]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      ledMat.dispose();
+    },
+    [tex, ledMat],
+  );
 
   useFrame(({ clock }) => {
     if (needsScroll) tex.offset.x = (clock.elapsedTime * SCROLL_SPEED) % 1;
@@ -175,22 +248,42 @@ function BlimpPreviewScene({ text, color, bgColor }: AdProps) {
       {/* Body */}
       <mesh scale={[0.7, 0.5, 1.6]}>
         <sphereGeometry args={[15, 16, 12]} />
-        <meshStandardMaterial color="#c0c8d0" emissive="#606870" emissiveIntensity={0.3} metalness={0.2} roughness={0.5} />
+        <meshStandardMaterial
+          color="#c0c8d0"
+          emissive="#606870"
+          emissiveIntensity={0.3}
+          metalness={0.2}
+          roughness={0.5}
+        />
       </mesh>
       {/* Belly stripe */}
       <mesh scale={[0.72, 0.14, 1.62]} position={[0, -1, 0]}>
         <sphereGeometry args={[15, 16, 8]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.2} toneMapped={false} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={1.2}
+          toneMapped={false}
+        />
       </mesh>
       {/* Upper trim */}
       <mesh scale={[0.71, 0.07, 1.61]} position={[0, 3.5, 0]}>
         <sphereGeometry args={[15, 16, 6]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} toneMapped={false} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.6}
+          toneMapped={false}
+        />
       </mesh>
       {/* Gondola */}
       <mesh position={[0, -9, 0]}>
         <boxGeometry args={[6, 3, 10]} />
-        <meshStandardMaterial color="#8890a0" emissive="#404860" emissiveIntensity={0.3} />
+        <meshStandardMaterial
+          color="#8890a0"
+          emissive="#404860"
+          emissiveIntensity={0.3}
+        />
       </mesh>
       {/* Struts */}
       {[
@@ -199,35 +292,79 @@ function BlimpPreviewScene({ text, color, bgColor }: AdProps) {
         [2, -6.5, -3, -0.15, 0.2],
         [-2, -6.5, -3, -0.15, -0.2],
       ].map(([x, y, z, rx, rz], i) => (
-        <mesh key={i} position={[x as number, y as number, z as number]} rotation={[rx as number, 0, rz as number]}>
+        <mesh
+          key={i}
+          position={[x as number, y as number, z as number]}
+          rotation={[rx as number, 0, rz as number]}
+        >
           <boxGeometry args={[0.3, 4, 0.3]} />
-          <meshStandardMaterial color="#9098a8" emissive="#404860" emissiveIntensity={0.2} />
+          <meshStandardMaterial
+            color="#9098a8"
+            emissive="#404860"
+            emissiveIntensity={0.2}
+          />
         </mesh>
       ))}
       {/* Tail fin vertical */}
       <mesh position={[0, 2, -22]} rotation={[0.1, 0, 0]}>
         <boxGeometry args={[0.4, 7, 5]} />
-        <meshStandardMaterial color="#9098a8" emissive={color} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive={color}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       <mesh position={[0, 5.5, -21]} rotation={[0.1, 0, 0]}>
         <boxGeometry args={[0.5, 1, 3]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.5} toneMapped={false} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.5}
+          toneMapped={false}
+        />
       </mesh>
       {/* Tail fin horizontal */}
       <mesh position={[0, -1, -22]} rotation={[0.1, 0, 0]}>
         <boxGeometry args={[6, 0.4, 5]} />
-        <meshStandardMaterial color="#9098a8" emissive={color} emissiveIntensity={0.2} />
+        <meshStandardMaterial
+          color="#9098a8"
+          emissive={color}
+          emissiveIntensity={0.2}
+        />
       </mesh>
       {/* LED screens */}
-      <mesh material={ledMat} position={[10.8, -2, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <mesh
+        material={ledMat}
+        position={[10.8, -2, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+      >
         <planeGeometry args={[26, 9]} />
       </mesh>
-      <mesh material={ledMat} position={[-10.8, -2, 0]} rotation={[0, -Math.PI / 2, 0]}>
+      <mesh
+        material={ledMat}
+        position={[-10.8, -2, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+      >
         <planeGeometry args={[26, 9]} />
       </mesh>
-      <pointLight position={[13, -2, 0]} color={color} intensity={1.5} distance={25} />
-      <pointLight position={[-13, -2, 0]} color={color} intensity={1.5} distance={25} />
-      <pointLight position={[0, -11, 0]} intensity={8} distance={50} color="#f0d870" />
+      <pointLight
+        position={[13, -2, 0]}
+        color={color}
+        intensity={1.5}
+        distance={25}
+      />
+      <pointLight
+        position={[-13, -2, 0]}
+        color={color}
+        intensity={1.5}
+        distance={25}
+      />
+      <pointLight
+        position={[0, -11, 0]}
+        intensity={8}
+        distance={50}
+        color="#f0d870"
+      />
     </group>
   );
 }
@@ -242,16 +379,29 @@ function BillboardPreviewScene({ text, color, bgColor }: AdProps) {
     [text, color, bgColor],
   );
   const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color: "#000000", emissiveMap: tex, emissive: "#ffffff",
-      emissiveIntensity: 1.2, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#000000",
+        emissiveMap: tex,
+        emissive: "#ffffff",
+        emissiveIntensity: 1.2,
+        toneMapped: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+      }),
     [tex],
   );
-  useEffect(() => () => { tex.dispose(); ledMat.dispose(); }, [tex, ledMat]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      ledMat.dispose();
+    },
+    [tex, ledMat],
+  );
 
   useFrame(({ clock }) => {
-    if (groupRef.current) groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
+    if (groupRef.current)
+      groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
     if (needsScroll) tex.offset.x = (clock.elapsedTime * SCROLL_SPEED) % 1;
   });
 
@@ -274,15 +424,26 @@ function BillboardPreviewScene({ text, color, bgColor }: AdProps) {
           <planeGeometry args={[panelW, panelH]} />
         </mesh>
         {/* Struts */}
-        <mesh position={[-panelW * 0.3, y - panelH / 2 - 1.5, zOff - 0.3]} rotation={[0.3, 0, 0]}>
+        <mesh
+          position={[-panelW * 0.3, y - panelH / 2 - 1.5, zOff - 0.3]}
+          rotation={[0.3, 0, 0]}
+        >
           <boxGeometry args={[0.3, 3, 0.3]} />
           <meshStandardMaterial color="#333" metalness={0.5} roughness={0.4} />
         </mesh>
-        <mesh position={[panelW * 0.3, y - panelH / 2 - 1.5, zOff - 0.3]} rotation={[0.3, 0, 0]}>
+        <mesh
+          position={[panelW * 0.3, y - panelH / 2 - 1.5, zOff - 0.3]}
+          rotation={[0.3, 0, 0]}
+        >
           <boxGeometry args={[0.3, 3, 0.3]} />
           <meshStandardMaterial color="#333" metalness={0.5} roughness={0.4} />
         </mesh>
-        <pointLight position={[0, y, zOff + 2]} color={color} intensity={1.5} distance={20} />
+        <pointLight
+          position={[0, y, zOff + 2]}
+          color={color}
+          intensity={1.5}
+          distance={20}
+        />
       </group>
     </group>
   );
@@ -299,17 +460,29 @@ function RooftopSignPreviewScene({ text, color, bgColor }: AdProps) {
     [text, color, bgColor],
   );
   const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color: "#000000", emissiveMap: tex, emissive: "#ffffff",
-      emissiveIntensity: 1.2, toneMapped: false,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#000000",
+        emissiveMap: tex,
+        emissive: "#ffffff",
+        emissiveIntensity: 1.2,
+        toneMapped: false,
+      }),
     [tex],
   );
-  useEffect(() => () => { tex.dispose(); ledMat.dispose(); }, [tex, ledMat]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      ledMat.dispose();
+    },
+    [tex, ledMat],
+  );
 
   useFrame(({ clock }, delta) => {
-    if (groupRef.current) groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
-    if (spinRef.current) spinRef.current.rotation.y += 0.4 * Math.min(delta, 0.05);
+    if (groupRef.current)
+      groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
+    if (spinRef.current)
+      spinRef.current.rotation.y += 0.4 * Math.min(delta, 0.05);
     if (needsScroll) tex.offset.x = (clock.elapsedTime * SCROLL_SPEED) % 1;
   });
 
@@ -332,20 +505,42 @@ function RooftopSignPreviewScene({ text, color, bgColor }: AdProps) {
         <group ref={spinRef} position={[0, signY, 0]}>
           <mesh position={[0, signH / 2 + 0.2, 0]}>
             <boxGeometry args={[signW + 1, 0.4, 0.6]} />
-            <meshStandardMaterial color="#555" metalness={0.6} roughness={0.3} />
+            <meshStandardMaterial
+              color="#555"
+              metalness={0.6}
+              roughness={0.3}
+            />
           </mesh>
           <mesh position={[0, -signH / 2 - 0.2, 0]}>
             <boxGeometry args={[signW + 1, 0.4, 0.6]} />
-            <meshStandardMaterial color="#555" metalness={0.6} roughness={0.3} />
+            <meshStandardMaterial
+              color="#555"
+              metalness={0.6}
+              roughness={0.3}
+            />
           </mesh>
           <mesh material={ledMat} position={[0, 0, 0.15]}>
             <planeGeometry args={[signW, signH]} />
           </mesh>
-          <mesh material={ledMat} position={[0, 0, -0.15]} rotation={[0, Math.PI, 0]}>
+          <mesh
+            material={ledMat}
+            position={[0, 0, -0.15]}
+            rotation={[0, Math.PI, 0]}
+          >
             <planeGeometry args={[signW, signH]} />
           </mesh>
-          <pointLight position={[0, 0, 3]} color={color} intensity={1.5} distance={15} />
-          <pointLight position={[0, 0, -3]} color={color} intensity={1.5} distance={15} />
+          <pointLight
+            position={[0, 0, 3]}
+            color={color}
+            intensity={1.5}
+            distance={15}
+          />
+          <pointLight
+            position={[0, 0, -3]}
+            color={color}
+            intensity={1.5}
+            distance={15}
+          />
         </group>
       </group>
     </group>
@@ -362,22 +557,38 @@ function LedWrapPreviewScene({ text, color, bgColor }: AdProps) {
     [text, color, bgColor],
   );
   const ledMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color: "#000000", emissiveMap: tex, emissive: "#ffffff",
-      emissiveIntensity: 1.2, toneMapped: false,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: "#000000",
+        emissiveMap: tex,
+        emissive: "#ffffff",
+        emissiveIntensity: 1.2,
+        toneMapped: false,
+      }),
     [tex],
   );
   const accentMat = useMemo(
-    () => new THREE.MeshStandardMaterial({
-      color, emissive: color, emissiveIntensity: 2, toneMapped: false,
-    }),
+    () =>
+      new THREE.MeshStandardMaterial({
+        color,
+        emissive: color,
+        emissiveIntensity: 2,
+        toneMapped: false,
+      }),
     [color],
   );
-  useEffect(() => () => { tex.dispose(); ledMat.dispose(); accentMat.dispose(); }, [tex, ledMat, accentMat]);
+  useEffect(
+    () => () => {
+      tex.dispose();
+      ledMat.dispose();
+      accentMat.dispose();
+    },
+    [tex, ledMat, accentMat],
+  );
 
   useFrame(({ clock }) => {
-    if (groupRef.current) groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
+    if (groupRef.current)
+      groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.3;
     const t = clock.elapsedTime;
     if (needsScroll) tex.offset.x = (t * SCROLL_SPEED * 0.8) % 1;
     ledMat.emissiveIntensity = 1.3 + Math.sin(t * 3) * 0.5;
@@ -390,10 +601,26 @@ function LedWrapPreviewScene({ text, color, bgColor }: AdProps) {
   const gap = 0.15;
 
   const faces = [
-    { pos: [0, y, B_D / 2 + gap] as const, rot: [0, 0, 0] as const, w: B_W + gap * 2 },
-    { pos: [0, y, -B_D / 2 - gap] as const, rot: [0, Math.PI, 0] as const, w: B_W + gap * 2 },
-    { pos: [B_W / 2 + gap, y, 0] as const, rot: [0, Math.PI / 2, 0] as const, w: B_D + gap * 2 },
-    { pos: [-B_W / 2 - gap, y, 0] as const, rot: [0, -Math.PI / 2, 0] as const, w: B_D + gap * 2 },
+    {
+      pos: [0, y, B_D / 2 + gap] as const,
+      rot: [0, 0, 0] as const,
+      w: B_W + gap * 2,
+    },
+    {
+      pos: [0, y, -B_D / 2 - gap] as const,
+      rot: [0, Math.PI, 0] as const,
+      w: B_W + gap * 2,
+    },
+    {
+      pos: [B_W / 2 + gap, y, 0] as const,
+      rot: [0, Math.PI / 2, 0] as const,
+      w: B_D + gap * 2,
+    },
+    {
+      pos: [-B_W / 2 - gap, y, 0] as const,
+      rot: [0, -Math.PI / 2, 0] as const,
+      w: B_D + gap * 2,
+    },
   ];
 
   return (
@@ -402,21 +629,61 @@ function LedWrapPreviewScene({ text, color, bgColor }: AdProps) {
       <group position={[0, -B_H / 2, 0]}>
         {faces.map((f, i) => (
           <group key={i}>
-            <mesh material={ledMat} position={[f.pos[0], f.pos[1], f.pos[2]]} rotation={[f.rot[0], f.rot[1], f.rot[2]]}>
+            <mesh
+              material={ledMat}
+              position={[f.pos[0], f.pos[1], f.pos[2]]}
+              rotation={[f.rot[0], f.rot[1], f.rot[2]]}
+            >
               <planeGeometry args={[f.w, wrapH]} />
             </mesh>
-            <mesh material={accentMat} position={[f.pos[0], f.pos[1] + wrapH / 2 + accentH / 2, f.pos[2]]} rotation={[f.rot[0], f.rot[1], f.rot[2]]}>
+            <mesh
+              material={accentMat}
+              position={[
+                f.pos[0],
+                f.pos[1] + wrapH / 2 + accentH / 2,
+                f.pos[2],
+              ]}
+              rotation={[f.rot[0], f.rot[1], f.rot[2]]}
+            >
               <planeGeometry args={[f.w, accentH]} />
             </mesh>
-            <mesh material={accentMat} position={[f.pos[0], f.pos[1] - wrapH / 2 - accentH / 2, f.pos[2]]} rotation={[f.rot[0], f.rot[1], f.rot[2]]}>
+            <mesh
+              material={accentMat}
+              position={[
+                f.pos[0],
+                f.pos[1] - wrapH / 2 - accentH / 2,
+                f.pos[2],
+              ]}
+              rotation={[f.rot[0], f.rot[1], f.rot[2]]}
+            >
               <planeGeometry args={[f.w, accentH]} />
             </mesh>
           </group>
         ))}
-        <pointLight position={[0, y, B_D / 2 + 2]} color={color} intensity={1.5} distance={15} />
-        <pointLight position={[0, y, -B_D / 2 - 2]} color={color} intensity={1.5} distance={15} />
-        <pointLight position={[B_W / 2 + 2, y, 0]} color={color} intensity={1.5} distance={15} />
-        <pointLight position={[-B_W / 2 - 2, y, 0]} color={color} intensity={1.5} distance={15} />
+        <pointLight
+          position={[0, y, B_D / 2 + 2]}
+          color={color}
+          intensity={1.5}
+          distance={15}
+        />
+        <pointLight
+          position={[0, y, -B_D / 2 - 2]}
+          color={color}
+          intensity={1.5}
+          distance={15}
+        />
+        <pointLight
+          position={[B_W / 2 + 2, y, 0]}
+          color={color}
+          intensity={1.5}
+          distance={15}
+        />
+        <pointLight
+          position={[-B_W / 2 - 2, y, 0]}
+          color={color}
+          intensity={1.5}
+          distance={15}
+        />
       </group>
     </group>
   );
@@ -432,15 +699,38 @@ interface AdProps {
 
 // Camera positions per vehicle
 // Camera: side view for sky ads (banner readable), zoomed into sign for rooftop
-const CAM_PRESETS: Record<string, { pos: THREE.Vector3; target: THREE.Vector3 }> = {
-  plane:        { pos: new THREE.Vector3(55, 2, 25),   target: new THREE.Vector3(0, -7, 30) },
-  blimp:        { pos: new THREE.Vector3(45, 3, 10),   target: new THREE.Vector3(0, -2, 0) },
-  billboard:    { pos: new THREE.Vector3(15, 20, 55),   target: new THREE.Vector3(0, 18, 0) },
-  rooftop_sign: { pos: new THREE.Vector3(30, 38, 70),   target: new THREE.Vector3(0, 35, 0) },
-  led_wrap:     { pos: new THREE.Vector3(20, 20, 50),   target: new THREE.Vector3(0, 15, 0) },
+const CAM_PRESETS: Record<
+  string,
+  { pos: THREE.Vector3; target: THREE.Vector3 }
+> = {
+  plane: {
+    pos: new THREE.Vector3(55, 2, 25),
+    target: new THREE.Vector3(0, -7, 30),
+  },
+  blimp: {
+    pos: new THREE.Vector3(45, 3, 10),
+    target: new THREE.Vector3(0, -2, 0),
+  },
+  billboard: {
+    pos: new THREE.Vector3(15, 20, 55),
+    target: new THREE.Vector3(0, 18, 0),
+  },
+  rooftop_sign: {
+    pos: new THREE.Vector3(30, 38, 70),
+    target: new THREE.Vector3(0, 35, 0),
+  },
+  led_wrap: {
+    pos: new THREE.Vector3(20, 20, 50),
+    target: new THREE.Vector3(0, 15, 0),
+  },
 };
 
-function AdPreviewScene({ vehicle, text, color, bgColor }: AdProps & { vehicle: string }) {
+function AdPreviewScene({
+  vehicle,
+  text,
+  color,
+  bgColor,
+}: AdProps & { vehicle: string }) {
   const isSky = vehicle === "plane" || vehicle === "blimp";
   const camDist = isSky ? 60 : Math.max(60, B_H * 1.5);
   const preset = CAM_PRESETS[vehicle] ?? CAM_PRESETS.plane;
@@ -467,7 +757,11 @@ function AdPreviewScene({ vehicle, text, color, bgColor }: AdProps & { vehicle: 
     lerpProgress.current = Math.min(1, lerpProgress.current + 0.025);
     const t = 1 - Math.pow(1 - lerpProgress.current, 3); // ease-out cubic
     camera.position.lerpVectors(fromPos.current, preset.pos, t);
-    controlsRef.current.target.lerpVectors(fromTarget.current, preset.target, t);
+    controlsRef.current.target.lerpVectors(
+      fromTarget.current,
+      preset.target,
+      t,
+    );
     controlsRef.current.update();
   });
 
@@ -477,8 +771,16 @@ function AdPreviewScene({ vehicle, text, color, bgColor }: AdProps & { vehicle: 
     <>
       {/* Lighting matching CityCanvas Midnight theme */}
       <ambientLight intensity={0.55 * 3} color={THEME.ambientColor} />
-      <directionalLight position={[300, 120, -200]} intensity={0.75 * 3.5} color={THEME.sunColor} />
-      <directionalLight position={[-200, 60, 200]} intensity={0.3 * 3} color={THEME.fillColor} />
+      <directionalLight
+        position={[300, 120, -200]}
+        intensity={0.75 * 3.5}
+        color={THEME.sunColor}
+      />
+      <directionalLight
+        position={[-200, 60, 200]}
+        intensity={0.3 * 3}
+        color={THEME.fillColor}
+      />
       <hemisphereLight
         color={THEME.hemiSky}
         groundColor={THEME.hemiGround}
@@ -500,7 +802,11 @@ function AdPreviewScene({ vehicle, text, color, bgColor }: AdProps & { vehicle: 
       {!isSky && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -B_H / 2, 0]}>
           <planeGeometry args={[120, 120]} />
-          <meshStandardMaterial color={THEME.groundColor} emissive={THEME.groundColor} emissiveIntensity={0.15} />
+          <meshStandardMaterial
+            color={THEME.groundColor}
+            emissive={THEME.groundColor}
+            emissiveIntensity={0.15}
+          />
         </mesh>
       )}
 
@@ -529,7 +835,11 @@ export default function AdPreview({
   tall?: boolean;
 }) {
   const initPreset = CAM_PRESETS[vehicle] ?? CAM_PRESETS.plane;
-  const initPos: [number, number, number] = [initPreset.pos.x, initPreset.pos.y, initPreset.pos.z];
+  const initPos: [number, number, number] = [
+    initPreset.pos.x,
+    initPreset.pos.y,
+    initPreset.pos.z,
+  ];
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
 
@@ -555,11 +865,22 @@ export default function AdPreview({
   }, [contextLost]);
 
   return (
-    <div className="relative border-[3px] border-border" style={{ backgroundColor: THEME.fogColor }}>
-      <div className={tall ? "h-[360px] sm:h-[440px] lg:h-[500px]" : "h-[280px] sm:h-[360px] lg:h-[420px]"}>
+    <div
+      className="relative border-[3px] border-border"
+      style={{ backgroundColor: THEME.fogColor }}
+    >
+      <div
+        className={
+          tall
+            ? "h-[360px] sm:h-[440px] lg:h-[500px]"
+            : "h-[280px] sm:h-[360px] lg:h-[420px]"
+        }
+      >
         {contextLost ? (
           <div className="flex h-full items-center justify-center">
-            <span className="font-pixel text-[10px] text-muted">Reloading preview...</span>
+            <span className="font-pixel text-[10px] text-muted">
+              Reloading preview...
+            </span>
           </div>
         ) : (
           <Canvas
@@ -576,7 +897,12 @@ export default function AdPreview({
           >
             <color attach="background" args={[THEME.fogColor]} />
             <Suspense fallback={null}>
-              <AdPreviewScene vehicle={vehicle} text={text} color={color} bgColor={bgColor} />
+              <AdPreviewScene
+                vehicle={vehicle}
+                text={text}
+                color={color}
+                bgColor={bgColor}
+              />
             </Suspense>
           </Canvas>
         )}

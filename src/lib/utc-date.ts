@@ -15,11 +15,7 @@ export function getUtcDateStrings(): { today: string; yesterday: string } {
   //     which is false during DST transitions on non-UTC servers.
   //   - Date.UTC handles month/year/leap-year rollover automatically.
   const yesterdayDate = new Date(
-    Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() - 1
-    )
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1),
   );
   const yesterday = yesterdayDate.toISOString().split("T")[0];
 

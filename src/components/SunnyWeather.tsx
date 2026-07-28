@@ -76,7 +76,7 @@ const ShimmerShader = {
 
       gl_FragColor = vec4(finalColor, alpha);
     }
-  `
+  `,
 };
 
 // --- 3. SUB-COMPONENTS ---
@@ -87,12 +87,15 @@ const ShimmerShader = {
  */
 const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uStrength: { value: HEAT_SHIMMER_STRENGTH * intensity },
-    uWarmthColor: { value: new THREE.Color("#ffa834") }
-  }), [intensity]);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uStrength: { value: HEAT_SHIMMER_STRENGTH * intensity },
+      uWarmthColor: { value: new THREE.Color("#ffa834") },
+    }),
+    [intensity],
+  );
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -134,7 +137,7 @@ const SunLensFlare = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
 
   useFrame(() => {
     if (!flareRef.current) return;
-    
+
     // Project the sun coordinates into clip-space coordinates
     const projPos = sunPos.clone().project(camera);
     const isBehindCamera = projPos.z > 1;
@@ -145,13 +148,17 @@ const SunLensFlare = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
     }
 
     flareRef.current.visible = true;
-    
+
     // Position individual flare rings across the screen vector
     const children = flareRef.current.children;
     for (let i = 0; i < children.length; i++) {
       const child = children[i] as THREE.Mesh;
       const offsetFactor = (i - children.length / 2) * 0.25;
-      child.position.set(projPos.x * offsetFactor * 200, projPos.y * offsetFactor * 200, 0);
+      child.position.set(
+        projPos.x * offsetFactor * 200,
+        projPos.y * offsetFactor * 200,
+        0,
+      );
     }
   });
 
@@ -160,16 +167,34 @@ const SunLensFlare = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
       {/* Primary Optic Element */}
       <mesh>
         <ringGeometry args={[0, 12, 32]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.25} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#ffffff"
+          transparent
+          opacity={0.25}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
       {/* Secondary Diffused Halos */}
       <mesh scale={2.5}>
         <ringGeometry args={[8, 10, 32]} />
-        <meshBasicMaterial color="#ffcc88" transparent opacity={0.08} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#ffcc88"
+          transparent
+          opacity={0.08}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
       <mesh scale={4.0}>
         <ringGeometry args={[14, 15, 32]} />
-        <meshBasicMaterial color="#aaccff" transparent opacity={0.04} blending={THREE.AdditiveBlending} depthTest={false} />
+        <meshBasicMaterial
+          color="#aaccff"
+          transparent
+          opacity={0.04}
+          blending={THREE.AdditiveBlending}
+          depthTest={false}
+        />
       </mesh>
     </group>
   );
@@ -181,12 +206,15 @@ export const SunnyWeather = ({
   intensity = 1.0,
   sunPosition = [600, 400, -300],
   isTransitioning = false,
-  onTransitionComplete
+  onTransitionComplete,
 }: WeatherProps) => {
   const directionalLightRef = useRef<THREE.DirectionalLight>(null);
   const ambientLightRef = useRef<THREE.AmbientLight>(null);
 
-  const parsedSunPos = useMemo(() => new THREE.Vector3(...sunPosition), [sunPosition]);
+  const parsedSunPos = useMemo(
+    () => new THREE.Vector3(...sunPosition),
+    [sunPosition],
+  );
 
   useEffect(() => {
     if (isTransitioning && onTransitionComplete) {
@@ -216,7 +244,7 @@ export const SunnyWeather = ({
  * mobile GPUs are not overwhelmed by fill-rate limits during transparency passes.
  * * Integration Triggers:
  * - Can be dynamically loaded inside any standard React-Three-Fiber context canvas.
- * - Avoids modification of existing CityScene.tsx meshes to guarantee zero 
+ * - Avoids modification of existing CityScene.tsx meshes to guarantee zero
  * code regression risks within GSSoC workflow pipelines.
  * * Version Progression Matrix:
  * - v1.0.0: Architecture setup and baseline daylight configurations.

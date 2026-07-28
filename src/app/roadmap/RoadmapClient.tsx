@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useOptimistic, useState, useTransition, useEffect, useRef } from "react";
+import {
+  useCallback,
+  useOptimistic,
+  useState,
+  useTransition,
+  useEffect,
+  useRef,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
@@ -46,7 +53,7 @@ function totalItems() {
 function doneItems() {
   return ROADMAP_PHASES.reduce(
     (sum, p) => sum + p.items.filter((i) => i.status === "done").length,
-    0
+    0,
   );
 }
 
@@ -92,9 +99,10 @@ export default function RoadmapClient({
           <h1 className="text-3xl text-cream md:text-4xl">
             Road<span style={{ color: ACCENT }}>map</span>
           </h1>
-            <p className="mt-3 text-xs text-muted normal-case">
-              What we&apos;ve built, what we&apos;re building, and what&apos;s coming next
-            </p>
+          <p className="mt-3 text-xs text-muted normal-case">
+            What we&apos;ve built, what we&apos;re building, and what&apos;s
+            coming next
+          </p>
         </div>
 
         {/* Progress bar */}
@@ -202,9 +210,9 @@ function PhaseBlock({
           borderColor: cfg.border,
           ...(isBuilding
             ? {
-              animation: "pulse-node 2s ease-in-out infinite",
-              boxShadow: `0 0 12px ${ACCENT}44`,
-            }
+                animation: "pulse-node 2s ease-in-out infinite",
+                boxShadow: `0 0 12px ${ACCENT}44`,
+              }
             : {}),
         }}
       />
@@ -266,7 +274,7 @@ function ItemRow({
     (state) => ({
       votes: state.hasVoted ? state.votes - 1 : state.votes + 1,
       hasVoted: !state.hasVoted,
-    })
+    }),
   );
 
   function handleVote() {
@@ -275,7 +283,11 @@ function ItemRow({
       return;
     }
     startTransition(async () => {
-      await performVoteWithRollback({ setOptimistic, toggleVoteFn: toggleVote, itemId: item.id });
+      await performVoteWithRollback({
+        setOptimistic,
+        toggleVoteFn: toggleVote,
+        itemId: item.id,
+      });
       // After successful server update and server-side revalidation,
       // refresh client to fetch canonical server props.
       router.refresh();
@@ -295,12 +307,18 @@ function ItemRow({
       <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border-[2px] border-border text-[8px]">
         {isDone ? (
           <>
-            <span style={{ color: "#4ade80" }} aria-hidden="true">&#10003;</span>
+            <span style={{ color: "#4ade80" }} aria-hidden="true">
+              &#10003;
+            </span>
             <span className="sr-only">Completed</span>
           </>
         ) : item.status === "building" ? (
           <>
-            <span className="blink-dot block h-1.5 w-1.5" style={{ backgroundColor: ACCENT }} aria-hidden="true" />
+            <span
+              className="blink-dot block h-1.5 w-1.5"
+              style={{ backgroundColor: ACCENT }}
+              aria-hidden="true"
+            />
             <span className="sr-only">Building</span>
           </>
         ) : null}
@@ -349,7 +367,13 @@ function ItemRow({
 }
 
 /* ─── Sign In Prompt ─── */
-export function SignInPrompt({ onClose, onSignIn }: { onClose: () => void; onSignIn: () => void }) {
+export function SignInPrompt({
+  onClose,
+  onSignIn,
+}: {
+  onClose: () => void;
+  onSignIn: () => void;
+}) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const firstButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -391,7 +415,9 @@ export function SignInPrompt({ onClose, onSignIn }: { onClose: () => void; onSig
         aria-labelledby="signin-dialog-title"
         className="w-full max-w-xs border-[3px] border-border bg-bg-raised p-6 text-center"
       >
-        <p id="signin-dialog-title" className="text-sm text-cream">Sign in to vote</p>
+        <p id="signin-dialog-title" className="text-sm text-cream">
+          Sign in to vote
+        </p>
         <p className="mt-2 text-[10px] text-muted normal-case">
           Your vote helps us decide what to build next
         </p>

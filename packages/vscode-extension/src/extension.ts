@@ -1,7 +1,20 @@
 import * as vscode from "vscode";
-import { initKeystore, getKey, getCachedKey, setKey, deleteKey } from "./auth/keystore";
+import {
+  initKeystore,
+  getKey,
+  getCachedKey,
+  setKey,
+  deleteKey,
+} from "./auth/keystore";
 import { initQueue, stopQueue } from "./api/queue";
-import { initTracker, setPaused, isPaused, sendImmediateHeartbeat, sendOfflineSignal, buildOfflineHeartbeat } from "./activity/tracker";
+import {
+  initTracker,
+  setPaused,
+  isPaused,
+  sendImmediateHeartbeat,
+  sendOfflineSignal,
+  buildOfflineHeartbeat,
+} from "./activity/tracker";
 import { sendDirect } from "./api/client";
 import { initStatusBar, updateDisplay } from "./statusbar/item";
 import { getConfig } from "./config";
@@ -44,17 +57,20 @@ export function activate(context: vscode.ExtensionContext) {
       arenaProvider,
       {
         webviewOptions: {
-          retainContextWhenHidden: true
-        }
-      }
-    )
+          retainContextWhenHidden: true,
+        },
+      },
+    ),
   );
 
   // Command to open challenge
   context.subscriptions.push(
-    vscode.commands.registerCommand("leetcodecity.openChallenge", (challengeId: string, origin?: string) => {
-      arenaProvider.loadChallengeById(challengeId, origin);
-    })
+    vscode.commands.registerCommand(
+      "leetcodecity.openChallenge",
+      (challengeId: string, origin?: string) => {
+        arenaProvider.loadChallengeById(challengeId, origin);
+      },
+    ),
   );
 
   // Deep Link URI Handler (vscode://leetcode-city.leetcode-city-pulse/arena?challenge=xxx)
@@ -63,26 +79,35 @@ export function activate(context: vscode.ExtensionContext) {
       if (uri.path === "/arena" || uri.path === "arena") {
         const queryParams = new URLSearchParams(uri.query);
         const challengeId = queryParams.get("challenge");
-        const origin = queryParams.get("origin") || queryParams.get("apiUrl") || undefined;
-        
+        const origin =
+          queryParams.get("origin") || queryParams.get("apiUrl") || undefined;
+
         if (origin) {
           const cfg = vscode.workspace.getConfiguration("leetcodecity");
           if (cfg.get("apiUrl") !== origin) {
-            cfg.update("apiUrl", origin, vscode.ConfigurationTarget.Global).then(() => {
-              vscode.window.showInformationMessage(`LeetCode City API URL updated to: ${origin}`);
-            });
+            cfg
+              .update("apiUrl", origin, vscode.ConfigurationTarget.Global)
+              .then(() => {
+                vscode.window.showInformationMessage(
+                  `LeetCode City API URL updated to: ${origin}`,
+                );
+              });
           }
         }
 
         if (challengeId) {
-          vscode.commands.executeCommand("leetcodecity.openChallenge", challengeId, origin);
+          vscode.commands.executeCommand(
+            "leetcodecity.openChallenge",
+            challengeId,
+            origin,
+          );
         }
       }
     }
   }
 
   context.subscriptions.push(
-    vscode.window.registerUriHandler(new ArenaUriHandler())
+    vscode.window.registerUriHandler(new ArenaUriHandler()),
   );
 
   // Register commands

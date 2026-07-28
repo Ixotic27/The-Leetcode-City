@@ -4,7 +4,9 @@ import { InventoryEconomyService } from "./inventoryEconomyService";
 describe("InventoryEconomyService", () => {
   it("records a reward grant as a completed purchase row", async () => {
     const service = new InventoryEconomyService();
-    const upsert = vi.fn().mockResolvedValue({ data: [{ id: "purchase-1" }], error: null });
+    const upsert = vi
+      .fn()
+      .mockResolvedValue({ data: [{ id: "purchase-1" }], error: null });
     const sb = {
       from: vi.fn(() => ({
         upsert,
@@ -29,7 +31,7 @@ describe("InventoryEconomyService", () => {
         currency: "usd",
         status: "completed",
       },
-      { onConflict: "provider_tx_id", ignoreDuplicates: true }
+      { onConflict: "provider_tx_id", ignoreDuplicates: true },
     );
   });
 
@@ -39,7 +41,9 @@ describe("InventoryEconomyService", () => {
     const from = vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { category: "consumable" }, error: null }),
+      single: vi
+        .fn()
+        .mockResolvedValue({ data: { category: "consumable" }, error: null }),
     });
 
     const sb = {

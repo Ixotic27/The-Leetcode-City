@@ -7,7 +7,8 @@ import { RaidService } from "@/services/raidService";
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -16,7 +17,13 @@ export async function POST(request: Request) {
   const user = auth.user;
 
   const body = await request.json();
-  const { target_login, boost_purchase_id, consumable_item_id: _legacy_consumable, offensive_item_id, vehicle_id } = body as {
+  const {
+    target_login,
+    boost_purchase_id,
+    consumable_item_id: _legacy_consumable,
+    offensive_item_id,
+    vehicle_id,
+  } = body as {
     target_login: string;
     boost_purchase_id?: number;
     consumable_item_id?: string;
@@ -26,7 +33,10 @@ export async function POST(request: Request) {
   const consumable_item_id = offensive_item_id ?? _legacy_consumable;
 
   if (!target_login || typeof target_login !== "string") {
-    return NextResponse.json({ error: "Missing target_login" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing target_login" },
+      { status: 400 },
+    );
   }
 
   const raidWeekStart = getIsoWeekStartDateString();
@@ -51,8 +61,14 @@ export async function POST(request: Request) {
   } catch (error) {
     const raidError = error as Error & { status?: number };
     if (typeof raidError.status === "number") {
-      return NextResponse.json({ error: raidError.message }, { status: raidError.status });
+      return NextResponse.json(
+        { error: raidError.message },
+        { status: raidError.status },
+      );
     }
-    return NextResponse.json({ error: raidError.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: raidError.message || "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }

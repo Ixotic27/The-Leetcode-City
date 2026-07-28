@@ -8,26 +8,58 @@ export type CityProjectionValue =
   | { [key: string]: CityProjectionValue };
 
 export type CityDeveloperLike = Record<string, CityProjectionValue> & {
-  loadout?: { crown?: string | null; roof?: string | null; aura?: string | null; faces?: string | null };
-  active_raid_tag?: { attacker_login?: string; tag_style?: string; expires_at?: string };
+  loadout?: {
+    crown?: string | null;
+    roof?: string | null;
+    aura?: string | null;
+    faces?: string | null;
+  };
+  active_raid_tag?: {
+    attacker_login?: string;
+    tag_style?: string;
+    expires_at?: string;
+  };
 };
 
-function isObject(value: CityProjectionValue): value is Record<string, CityProjectionValue> {
+function isObject(
+  value: CityProjectionValue,
+): value is Record<string, CityProjectionValue> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isLoadout(value: CityProjectionValue): value is { crown?: string | null; roof?: string | null; aura?: string | null; faces?: string | null } {
+function isLoadout(
+  value: CityProjectionValue,
+): value is {
+  crown?: string | null;
+  roof?: string | null;
+  aura?: string | null;
+  faces?: string | null;
+} {
   return isObject(value);
 }
 
-function isRaidTag(value: CityProjectionValue): value is { attacker_login?: string; tag_style?: string; expires_at?: string } {
+function isRaidTag(
+  value: CityProjectionValue,
+): value is {
+  attacker_login?: string;
+  tag_style?: string;
+  expires_at?: string;
+} {
   return isObject(value);
 }
 
-export function buildDeveloperProjection(dev: CityDeveloperLike): Record<string, CityProjectionValue> {
+export function buildDeveloperProjection(
+  dev: CityDeveloperLike,
+): Record<string, CityProjectionValue> {
   const result: Record<string, CityProjectionValue> = {};
 
-  const alwaysKeep = ["id", "github_login", "contributions", "total_stars", "public_repos"];
+  const alwaysKeep = [
+    "id",
+    "github_login",
+    "contributions",
+    "total_stars",
+    "public_repos",
+  ];
   for (const key of alwaysKeep) {
     if (dev[key] !== undefined) {
       result[key] = dev[key];
@@ -49,7 +81,8 @@ export function buildDeveloperProjection(dev: CityDeveloperLike): Record<string,
 
     if (typeof val === "object" && val !== null) {
       if (key === "loadout") {
-        const isDefault = isLoadout(val) && !val.crown && !val.roof && !val.aura && !val.faces;
+        const isDefault =
+          isLoadout(val) && !val.crown && !val.roof && !val.aura && !val.faces;
         if (isDefault) continue;
       }
       if (key === "active_raid_tag") {

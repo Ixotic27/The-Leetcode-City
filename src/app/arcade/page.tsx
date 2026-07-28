@@ -6,7 +6,16 @@ import type { RoomInfo } from "@/lib/arcade/types";
 
 const ACCENT = "#ffa116";
 const SHADOW = "#b87000";
-const CATEGORIES = ["social", "work", "games", "events", "chill", "dev", "art", "music"] as const;
+const CATEGORIES = [
+  "social",
+  "work",
+  "games",
+  "events",
+  "chill",
+  "dev",
+  "art",
+  "music",
+] as const;
 
 interface RoomRow {
   id: string;
@@ -35,26 +44,31 @@ export default function ArcadeBrowserPage() {
   const [totalOnline, setTotalOnline] = useState(0);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const fetchRooms = useCallback(async (searchQuery: string, cat: string | null, pg: number) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(pg), limit: "20" });
-      if (searchQuery) params.set("q", searchQuery);
-      if (cat) params.set("category", cat);
+  const fetchRooms = useCallback(
+    async (searchQuery: string, cat: string | null, pg: number) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ page: String(pg), limit: "20" });
+        if (searchQuery) params.set("q", searchQuery);
+        if (cat) params.set("category", cat);
 
-      const apiRes = await fetch(`/api/arcade/rooms?${params}`);
-      const data = await apiRes.json();
+        const apiRes = await fetch(`/api/arcade/rooms?${params}`);
+        const data = await apiRes.json();
 
-      setRooms(data.rooms ?? []);
-      setTotal(data.total ?? 0);
-      setFavorites(new Set(data.favorites ?? []));
-      setRecentVisitIds((data.recentVisits ?? []).map((v: { room_id: string }) => v.room_id));
-    } catch {
-      setRooms([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        setRooms(data.rooms ?? []);
+        setTotal(data.total ?? 0);
+        setFavorites(new Set(data.favorites ?? []));
+        setRecentVisitIds(
+          (data.recentVisits ?? []).map((v: { room_id: string }) => v.room_id),
+        );
+      } catch {
+        setRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   // Fetch live player counts from Supabase
   useEffect(() => {
@@ -138,18 +152,27 @@ export default function ArcadeBrowserPage() {
 
   // Split rooms into sections
   const recentRooms = rooms.filter((r) => recentVisitIds.includes(r.id));
-  const featuredRooms = rooms.filter((r) => r.is_featured && !recentVisitIds.includes(r.id));
-  const otherRooms = rooms.filter((r) => !r.is_featured && !recentVisitIds.includes(r.id));
+  const featuredRooms = rooms.filter(
+    (r) => r.is_featured && !recentVisitIds.includes(r.id),
+  );
+  const otherRooms = rooms.filter(
+    (r) => !r.is_featured && !recentVisitIds.includes(r.id),
+  );
 
   const filterEmpty = (list: RoomRow[]) =>
-    showEmpty ? list : list.filter((r) => (liveCounts.get(r.slug) ?? 0) > 0 || r.room_type === "official_floor");
+    showEmpty
+      ? list
+      : list.filter(
+          (r) =>
+            (liveCounts.get(r.slug) ?? 0) > 0 ||
+            r.room_type === "official_floor",
+        );
 
   const totalPages = Math.ceil(total / 20);
 
   return (
     <main className="min-h-screen bg-bg font-pixel uppercase text-warm">
       <div className="mx-auto max-w-lg px-3 py-6 sm:px-4 sm:py-10">
-
         {/* Back */}
         <button
           onClick={() => router.push("/")}
@@ -165,16 +188,25 @@ export default function ArcadeBrowserPage() {
               className="flex h-12 w-12 shrink-0 items-center justify-center border-2"
               style={{ borderColor: ACCENT, backgroundColor: ACCENT + "11" }}
             >
-              <span className="text-lg" style={{ color: ACCENT }}>E.</span>
+              <span className="text-lg" style={{ color: ACCENT }}>
+                E.
+              </span>
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold" style={{ color: ACCENT }}>E.Arcade</h1>
-              <p className="text-[9px] text-muted normal-case">Choose a room to enter</p>
+              <h1 className="text-sm font-bold" style={{ color: ACCENT }}>
+                E.Arcade
+              </h1>
+              <p className="text-[9px] text-muted normal-case">
+                Choose a room to enter
+              </p>
             </div>
             <div className="shrink-0 text-right">
               <div className="flex items-center gap-1.5">
                 {totalOnline > 0 && (
-                  <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: ACCENT }} />
+                  <div
+                    className="h-1.5 w-1.5 rounded-full animate-pulse"
+                    style={{ backgroundColor: ACCENT }}
+                  />
                 )}
                 <span className="text-[10px] text-muted">
                   {totalOnline} online
@@ -219,8 +251,10 @@ export default function ArcadeBrowserPage() {
                 style={{
                   borderColor: category === cat ? ACCENT : "#2a2a30",
                   color: category === cat ? ACCENT : "#8c8c9c",
-                  backgroundColor: category === cat ? ACCENT + "11" : "transparent",
-                  boxShadow: category === cat ? `2px 2px 0 0 ${SHADOW}` : "none",
+                  backgroundColor:
+                    category === cat ? ACCENT + "11" : "transparent",
+                  boxShadow:
+                    category === cat ? `2px 2px 0 0 ${SHADOW}` : "none",
                 }}
               >
                 {cat}
@@ -238,7 +272,11 @@ export default function ArcadeBrowserPage() {
                 backgroundColor: showEmpty ? ACCENT + "22" : "transparent",
               }}
             >
-              {showEmpty && <span className="text-[8px]" style={{ color: ACCENT }}>+</span>}
+              {showEmpty && (
+                <span className="text-[8px]" style={{ color: ACCENT }}>
+                  +
+                </span>
+              )}
             </button>
             <span className="text-[8px] text-muted">Show empty rooms</span>
           </div>
@@ -249,7 +287,13 @@ export default function ArcadeBrowserPage() {
           {loading ? (
             <div className="border-[3px] border-border bg-bg-raised p-8 text-center">
               <span className="text-[10px] text-muted">
-                Loading<span className="blink-dot">.</span><span className="blink-dot" style={{ animationDelay: "0.3s" }}>.</span><span className="blink-dot" style={{ animationDelay: "0.6s" }}>.</span>
+                Loading<span className="blink-dot">.</span>
+                <span className="blink-dot" style={{ animationDelay: "0.3s" }}>
+                  .
+                </span>
+                <span className="blink-dot" style={{ animationDelay: "0.6s" }}>
+                  .
+                </span>
               </span>
             </div>
           ) : (
@@ -294,7 +338,9 @@ export default function ArcadeBrowserPage() {
               {rooms.length === 0 && (
                 <div className="border-[3px] border-border bg-bg-raised p-8 text-center">
                   <p className="text-[10px] text-muted normal-case">
-                    {search ? `No rooms found for "${search}"` : "No rooms available"}
+                    {search
+                      ? `No rooms found for "${search}"`
+                      : "No rooms available"}
                   </p>
                 </div>
               )}
@@ -324,7 +370,6 @@ export default function ArcadeBrowserPage() {
             </button>
           </div>
         )}
-
       </div>
     </main>
   );
@@ -399,11 +444,17 @@ function RoomCard({
         {/* Content */}
         <div className="flex-1 min-w-0 px-3 py-2.5">
           <div className="flex items-center gap-2">
-            <p className="text-[11px] font-bold text-cream truncate">{room.name}</p>
+            <p className="text-[11px] font-bold text-cream truncate">
+              {room.name}
+            </p>
             {room.is_featured && (
               <span
                 className="shrink-0 text-[7px] px-1.5 py-0.5 tracking-widest border"
-                style={{ color: ACCENT, borderColor: ACCENT + "44", backgroundColor: ACCENT + "11" }}
+                style={{
+                  color: ACCENT,
+                  borderColor: ACCENT + "44",
+                  backgroundColor: ACCENT + "11",
+                }}
               >
                 Featured
               </span>
@@ -416,10 +467,14 @@ function RoomCard({
           </div>
           <div className="flex items-center gap-2 mt-1">
             {room.category && (
-              <span className="text-[7px] text-dim tracking-wider">{room.category}</span>
+              <span className="text-[7px] text-dim tracking-wider">
+                {room.category}
+              </span>
             )}
             {room.description && (
-              <span className="text-[8px] text-muted truncate normal-case">{room.description}</span>
+              <span className="text-[8px] text-muted truncate normal-case">
+                {room.description}
+              </span>
             )}
           </div>
         </div>
@@ -430,12 +485,22 @@ function RoomCard({
           <div className="text-right">
             <div className="flex items-center gap-1.5">
               {hasPlayers && (
-                <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: ACCENT }} />
+                <div
+                  className="h-1.5 w-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: ACCENT }}
+                />
               )}
               <span
                 className="text-[10px]"
                 style={{
-                  color: capacityPct > 0.8 ? "#f85151" : capacityPct > 0.5 ? "#f0c060" : hasPlayers ? ACCENT : "#5c5c6c",
+                  color:
+                    capacityPct > 0.8
+                      ? "#f85151"
+                      : capacityPct > 0.5
+                        ? "#f0c060"
+                        : hasPlayers
+                          ? ACCENT
+                          : "#5c5c6c",
                 }}
               >
                 {playerCount}/{room.max_players}
@@ -447,7 +512,12 @@ function RoomCard({
                 className="h-full transition-all duration-300"
                 style={{
                   width: `${Math.min(capacityPct * 100, 100)}%`,
-                  backgroundColor: capacityPct > 0.8 ? "#f85151" : capacityPct > 0.5 ? "#f0c060" : ACCENT,
+                  backgroundColor:
+                    capacityPct > 0.8
+                      ? "#f85151"
+                      : capacityPct > 0.5
+                        ? "#f0c060"
+                        : ACCENT,
                 }}
               />
             </div>
@@ -455,7 +525,10 @@ function RoomCard({
 
           {/* Favorite */}
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
             className="h-6 w-6 flex items-center justify-center border border-border text-[10px] transition-all hover:border-border-light"
             style={{
               color: isFavorite ? "#fbbf24" : "#5c5c6c",

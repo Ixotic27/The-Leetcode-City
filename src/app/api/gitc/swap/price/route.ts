@@ -19,8 +19,12 @@ export async function GET(req: NextRequest) {
   });
 
   if (!result.ok) {
-    if (result.error === "disabled") return NextResponse.json({ disabled: true });
-    return NextResponse.json({ error: result.error }, { status: result.status });
+    if (result.error === "disabled")
+      return NextResponse.json({ disabled: true });
+    return NextResponse.json(
+      { error: result.error },
+      { status: result.status },
+    );
   }
   // Quotes change constantly; allow a very short reuse window only.
   return NextResponse.json(result.data, {

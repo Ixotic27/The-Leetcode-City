@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { AdsFilters, Period, StatusFilter, VehicleFilter, SourceFilter } from "../_lib/types";
+import type {
+  AdsFilters,
+  Period,
+  StatusFilter,
+  VehicleFilter,
+  SourceFilter,
+} from "../_lib/types";
 import { VEHICLE_LABELS } from "../_lib/constants";
 
 interface AdFiltersProps {
@@ -104,7 +110,9 @@ export function AdFilters({
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={filters.vehicle}
-          onChange={(e) => setFilter("vehicle", e.target.value as VehicleFilter)}
+          onChange={(e) =>
+            setFilter("vehicle", e.target.value as VehicleFilter)
+          }
           className="cursor-pointer border border-border bg-bg px-3 py-1.5 text-[11px] text-cream outline-none focus:border-lime"
         >
           <option value="all">All vehicles</option>

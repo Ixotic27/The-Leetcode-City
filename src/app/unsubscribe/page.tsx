@@ -53,17 +53,20 @@ export default async function UnsubscribePage({
         <div
           style={{
             height: 2,
-            background: "linear-gradient(90deg, transparent, #ffa116, transparent)",
+            background:
+              "linear-gradient(90deg, transparent, #ffa116, transparent)",
             margin: "20px 0",
           }}
         />
 
         {error ? (
           <>
-            <p style={{ fontSize: 18, color: "#ff6b6b" }}>Invalid or expired link</p>
+            <p style={{ fontSize: 18, color: "#ff6b6b" }}>
+              Invalid or expired link
+            </p>
             <p style={{ color: "#666", fontSize: 14 }}>
-              This unsubscribe link may have expired or is invalid.
-              You can manage your notifications from your LeetCode City settings.
+              This unsubscribe link may have expired or is invalid. You can
+              manage your notifications from your LeetCode City settings.
             </p>
           </>
         ) : success ? (
@@ -76,7 +79,8 @@ export default async function UnsubscribePage({
               .
             </p>
             <p style={{ color: "#666", fontSize: 14 }}>
-              You can re-enable notifications anytime from your LeetCode City settings.
+              You can re-enable notifications anytime from your LeetCode City
+              settings.
             </p>
           </>
         ) : (
@@ -88,14 +92,19 @@ export default async function UnsubscribePage({
         <div
           style={{
             height: 2,
-            background: "linear-gradient(90deg, transparent, #1c1c20, transparent)",
+            background:
+              "linear-gradient(90deg, transparent, #1c1c20, transparent)",
             margin: "20px 0",
           }}
         />
 
         <a
           href="https://theleetcodecity.tech"
-          style={{ color: "#ffa116", fontSize: 14, textDecoration: "underline" }}
+          style={{
+            color: "#ffa116",
+            fontSize: 14,
+            textDecoration: "underline",
+          }}
         >
           Back to LeetCode City
         </a>

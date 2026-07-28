@@ -4,11 +4,25 @@ import { describe, it, expect } from "vitest";
 // Tests the database-layer uniqueness and upsert ignore-duplicate invariants.
 
 class MockPurchaseTable {
-  private rows: Array<{ developer_id: number; item_id: string; provider: string; status: string }> = [];
+  private rows: Array<{
+    developer_id: number;
+    item_id: string;
+    provider: string;
+    status: string;
+  }> = [];
 
-  upsertIgnoreDuplicate(row: { developer_id: number; item_id: string; provider: string; status: string }): { inserted: boolean } {
+  upsertIgnoreDuplicate(row: {
+    developer_id: number;
+    item_id: string;
+    provider: string;
+    status: string;
+  }): { inserted: boolean } {
     const exists = this.rows.some(
-      (r) => r.developer_id === row.developer_id && r.item_id === row.item_id && r.provider === row.provider && r.status === row.status,
+      (r) =>
+        r.developer_id === row.developer_id &&
+        r.item_id === row.item_id &&
+        r.provider === row.provider &&
+        r.status === row.status,
     );
     if (exists) return { inserted: false };
     this.rows.push(row);
@@ -17,7 +31,10 @@ class MockPurchaseTable {
 
   countAll(developer_id: number, item_id: string, provider: string): number {
     return this.rows.filter(
-      (r) => r.developer_id === developer_id && r.item_id === item_id && r.provider === provider,
+      (r) =>
+        r.developer_id === developer_id &&
+        r.item_id === item_id &&
+        r.provider === provider,
     ).length;
   }
 }
@@ -25,24 +42,44 @@ class MockPurchaseTable {
 describe("free claim item atomic upsert guard", () => {
   it("first claim request succeeds", () => {
     const table = new MockPurchaseTable();
-    const r = table.upsertIgnoreDuplicate({ developer_id: 1, item_id: "flag", provider: "free", status: "completed" });
+    const r = table.upsertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    });
     expect(r.inserted).toBe(true);
     expect(table.countAll(1, "flag", "free")).toBe(1);
   });
 
   it("duplicate claim request is silently ignored", () => {
     const table = new MockPurchaseTable();
-    table.upsertIgnoreDuplicate({ developer_id: 1, item_id: "flag", provider: "free", status: "completed" });
-    
+    table.upsertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    });
+
     // Simulate duplicate concurrent or retry request
-    const r = table.upsertIgnoreDuplicate({ developer_id: 1, item_id: "flag", provider: "free", status: "completed" });
+    const r = table.upsertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    });
     expect(r.inserted).toBe(false);
     expect(table.countAll(1, "flag", "free")).toBe(1); // still only 1 row
   });
 
   it("multiple concurrent requests - only one succeeds", () => {
     const table = new MockPurchaseTable();
-    const claim = { developer_id: 42, item_id: "flag", provider: "free", status: "completed" };
+    const claim = {
+      developer_id: 42,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    };
 
     const rA = table.upsertIgnoreDuplicate({ ...claim });
     const rB = table.upsertIgnoreDuplicate({ ...claim });
@@ -53,9 +90,19 @@ describe("free claim item atomic upsert guard", () => {
 
   it("different developer ids receive their own free claims", () => {
     const table = new MockPurchaseTable();
-    const rA = table.upsertIgnoreDuplicate({ developer_id: 1, item_id: "flag", provider: "free", status: "completed" });
-    const rB = table.upsertIgnoreDuplicate({ developer_id: 2, item_id: "flag", provider: "free", status: "completed" });
-    
+    const rA = table.upsertIgnoreDuplicate({
+      developer_id: 1,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    });
+    const rB = table.upsertIgnoreDuplicate({
+      developer_id: 2,
+      item_id: "flag",
+      provider: "free",
+      status: "completed",
+    });
+
     expect(rA.inserted).toBe(true);
     expect(rB.inserted).toBe(true);
     expect(table.countAll(1, "flag", "free")).toBe(1);

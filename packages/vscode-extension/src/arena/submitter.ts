@@ -31,12 +31,16 @@ export interface SubmitResponse {
   }>;
 }
 
-export async function submitSolution(payload: SubmitPayload): Promise<SubmitResponse> {
+export async function submitSolution(
+  payload: SubmitPayload,
+): Promise<SubmitResponse> {
   const { apiUrl } = getConfig();
   const apiKey = await getKey();
-  
+
   if (!apiKey) {
-    throw new Error("Pulse key not found. Please connect your extension to LeetCode City first.");
+    throw new Error(
+      "Pulse key not found. Please connect your extension to LeetCode City first.",
+    );
   }
 
   // Calculate SHA256 of the code
@@ -47,16 +51,16 @@ export async function submitSolution(payload: SubmitPayload): Promise<SubmitResp
 
   const fullPayload = {
     ...payload,
-    code_hash: codeHash
+    code_hash: codeHash,
   };
 
   const res = await (globalThis as any).fetch(`${apiUrl}/api/arena/submit`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
+      Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify(fullPayload)
+    body: JSON.stringify(fullPayload),
   });
 
   if (!res.ok) {
@@ -64,5 +68,5 @@ export async function submitSolution(payload: SubmitPayload): Promise<SubmitResp
     throw new Error(errorJson.error || `HTTP error ${res.status}`);
   }
 
-  return await res.json() as SubmitResponse;
+  return (await res.json()) as SubmitResponse;
 }

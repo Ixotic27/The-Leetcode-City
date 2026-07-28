@@ -8,7 +8,8 @@ describe("lc-refresh 7-day window timestamp computation", () => {
 
   function computeWindow(nowMs: number) {
     const now = new Date(nowMs);
-    const sevenDaysAgoTs = Math.floor(now.getTime() / 1000) - SEVEN_DAYS_SECONDS;
+    const sevenDaysAgoTs =
+      Math.floor(now.getTime() / 1000) - SEVEN_DAYS_SECONDS;
     const sevenDaysAgoDate = new Date(sevenDaysAgoTs * 1000);
     const currentYear = now.getUTCFullYear();
     const sevenDaysAgoYear = sevenDaysAgoDate.getUTCFullYear();

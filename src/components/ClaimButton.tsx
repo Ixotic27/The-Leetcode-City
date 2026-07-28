@@ -18,15 +18,17 @@ export default function ClaimButton({ githubLogin, claimed }: Props) {
 
   useEffect(() => {
     const supabase = createBrowserSupabase();
-    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
-      if (!user) return;
-      const login = (
-        user.user_metadata.user_name ??
-        user.user_metadata.preferred_username ??
-        ""
-      ).toLowerCase();
-      setIsOwner(login === githubLogin.toLowerCase());
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data: { user } }: { data: { user: User | null } }) => {
+        if (!user) return;
+        const login = (
+          user.user_metadata.user_name ??
+          user.user_metadata.preferred_username ??
+          ""
+        ).toLowerCase();
+        setIsOwner(login === githubLogin.toLowerCase());
+      });
   }, [githubLogin]);
 
   if (isClaimed) {

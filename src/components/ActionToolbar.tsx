@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ActionToolbarProps {
   cycleTheme: () => void;
@@ -40,20 +40,30 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
         className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light"
         aria-label={`Cycle theme: currently ${theme.name}`}
       >
-        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span style={{ color: theme.accent }} aria-hidden="true">
+          &#9654;
+        </span>
         <span className="text-cream">{theme.name}</span>
-        <span className="text-dim">{themeIndex + 1}/{themesLength}</span>
+        <span className="text-dim">
+          {themeIndex + 1}/{themesLength}
+        </span>
       </button>
- 
+
       {/* Day/Night Cycle Button */}
       <button
         onClick={() => {
           setDayNightCycleActive((prev) => {
             const next = !prev;
             try {
-              localStorage.setItem("leetcodecity_daynight_cycle", next ? "1" : "0");
+              localStorage.setItem(
+                "leetcodecity_daynight_cycle",
+                next ? "1" : "0",
+              );
             } catch (err) {
-              console.warn("[ActionToolbar] Failed to persist cycle preference:", err);
+              console.warn(
+                "[ActionToolbar] Failed to persist cycle preference:",
+                err,
+              );
             }
             return next;
           });
@@ -63,9 +73,15 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
             ? "border-amber-500/80 bg-amber-500/10 text-amber-400 hover:border-amber-400"
             : "border-border bg-bg/70 text-cream hover:border-border-light"
         }`}
-        aria-label={dayNightCycleActive ? "Turn off day/night cycle" : "Turn on day/night cycle"}
+        aria-label={
+          dayNightCycleActive
+            ? "Turn off day/night cycle"
+            : "Turn on day/night cycle"
+        }
       >
-        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span style={{ color: theme.accent }} aria-hidden="true">
+          &#9654;
+        </span>
         <span>{dayNightCycleActive ? "CYCLE ON" : "CYCLE OFF"}</span>
       </button>
 
@@ -75,9 +91,15 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
           setNeonGridActive((prev) => {
             const next = !prev;
             try {
-              localStorage.setItem("leetcodecity_neongrid_enabled", next ? "1" : "0");
+              localStorage.setItem(
+                "leetcodecity_neongrid_enabled",
+                next ? "1" : "0",
+              );
             } catch (err) {
-              console.warn("[ActionToolbar] Failed to persist grid preference:", err);
+              console.warn(
+                "[ActionToolbar] Failed to persist grid preference:",
+                err,
+              );
             }
             return next;
           });
@@ -89,17 +111,21 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
         }`}
         aria-label={neonGridActive ? "Turn off Neon grid" : "Turn on Neon grid"}
       >
-        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span style={{ color: theme.accent }} aria-hidden="true">
+          &#9654;
+        </span>
         <span>GRID: {neonGridActive ? "ON" : "OFF"}</span>
       </button>
- 
+
       {/* Weather Selector Button */}
       <button
         onClick={cycleWeather}
         className="btn-press flex items-center gap-1.5 border-[3px] border-border bg-bg/70 px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors hover:border-border-light text-cream"
         aria-label={`Cycle weather: currently ${weatherMode}`}
       >
-        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span style={{ color: theme.accent }} aria-hidden="true">
+          &#9654;
+        </span>
         <span>WEATHER: {weatherMode.toUpperCase()}</span>
       </button>
 
@@ -113,7 +139,9 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
         title="Replay intro"
         aria-label="Replay intro"
       >
-        <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+        <span style={{ color: theme.accent }} aria-hidden="true">
+          &#9654;
+        </span>
         <span className="text-cream">Intro</span>
       </button>
     </div>

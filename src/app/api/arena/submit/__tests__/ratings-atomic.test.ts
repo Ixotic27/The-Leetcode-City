@@ -58,7 +58,9 @@ function setupMocks({
     const chain = { ...chainDefault };
 
     if (table === "arena_problems") {
-      chain.maybeSingle = vi.fn().mockResolvedValue({ data: { id: "any-problem" }, error: null });
+      chain.maybeSingle = vi
+        .fn()
+        .mockResolvedValue({ data: { id: "any-problem" }, error: null });
     }
 
     return chain;
@@ -93,11 +95,13 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "two-sum",
         status: "accepted",
         language: "typescript",
-      })
+      }),
     );
 
     const rpcCalls = mockRpc.mock.calls.map(([name]) => name);
-    expect(rpcCalls).toContain("claim_first_solve_and_update_arena_ratings_atomic");
+    expect(rpcCalls).toContain(
+      "claim_first_solve_and_update_arena_ratings_atomic",
+    );
   });
 
   it("never calls arena_ratings.upsert directly from the route", async () => {
@@ -108,12 +112,12 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "two-sum",
         status: "accepted",
         language: "typescript",
-      })
+      }),
     );
 
     // If the old code path ran it would call sb.from("arena_ratings").upsert(...)
     const upsertCalls = mockFrom.mock.calls.filter(
-      (args: any[]) => args[0] === "arena_ratings"
+      (args: any[]) => args[0] === "arena_ratings",
     );
     expect(upsertCalls).toHaveLength(0);
   });
@@ -126,15 +130,15 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "valid-parentheses",
         status: "accepted",
         language: "python",
-      })
+      }),
     );
 
     expect(mockRpc).toHaveBeenCalledWith(
       "claim_first_solve_and_update_arena_ratings_atomic",
       expect.objectContaining({
-        p_user_id:     42,
+        p_user_id: 42,
         p_is_accepted: true,
-      })
+      }),
     );
   });
 
@@ -146,14 +150,14 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "valid-parentheses",
         status: "accepted",
         language: "python",
-      })
+      }),
     );
 
     expect(mockRpc).toHaveBeenCalledWith(
       "claim_first_solve_and_update_arena_ratings_atomic",
       expect.objectContaining({
         p_is_accepted: true,
-      })
+      }),
     );
   });
 
@@ -165,15 +169,15 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "merge-intervals",
         status: "wrong_answer",
         language: "java",
-      })
+      }),
     );
 
     expect(mockRpc).toHaveBeenCalledWith(
       "update_arena_ratings_atomic",
       expect.objectContaining({
-        p_is_accepted:    false,
+        p_is_accepted: false,
         p_is_first_solve: false,
-      })
+      }),
     );
   });
 
@@ -185,7 +189,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "two-sum",
         status: "accepted",
         language: "typescript",
-      })
+      }),
     );
 
     expect(res.status).toBe(500);
@@ -201,7 +205,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         problem_id: "two-sum",
         status: "accepted",
         language: "typescript",
-      })
+      }),
     );
 
     expect(res.status).toBe(500);
@@ -211,7 +215,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
   it("returns 400 for an invalid status value", async () => {
     const res = await POST(
-      makeRequest({ problem_id: "two-sum", status: "hacked" })
+      makeRequest({ problem_id: "two-sum", status: "hacked" }),
     );
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -220,15 +224,22 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
   it("rejects status values not in the allowlist before reaching any reward path", async () => {
     const res = await POST(
-      makeRequest({ problem_id: "any-problem", status: "accepted_cheat" })
+      makeRequest({ problem_id: "any-problem", status: "accepted_cheat" }),
     );
     expect(res.status).toBe(400);
-    expect(mockRpc).not.toHaveBeenCalledWith("claim_first_solve", expect.anything());
+    expect(mockRpc).not.toHaveBeenCalledWith(
+      "claim_first_solve",
+      expect.anything(),
+    );
   });
 
   it("returns 400 for an invalid language value", async () => {
     const res = await POST(
-      makeRequest({ problem_id: "two-sum", status: "accepted", language: "cobol" })
+      makeRequest({
+        problem_id: "two-sum",
+        status: "accepted",
+        language: "cobol",
+      }),
     );
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -238,7 +249,12 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
   it("returns 400 when code exceeds 65536 bytes", async () => {
     const bigCode = "a".repeat(65537);
     const res = await POST(
-      makeRequest({ problem_id: "two-sum", status: "accepted", language: "python", code: bigCode })
+      makeRequest({
+        problem_id: "two-sum",
+        status: "accepted",
+        language: "python",
+        code: bigCode,
+      }),
     );
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -247,7 +263,12 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
 
   it("returns 400 when code is a non-string value (prevents Buffer.byteLength throw)", async () => {
     const res = await POST(
-      makeRequest({ problem_id: "two-sum", status: "accepted", language: "python", code: {} })
+      makeRequest({
+        problem_id: "two-sum",
+        status: "accepted",
+        language: "python",
+        code: {},
+      }),
     );
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -261,7 +282,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         status: "accepted",
         language: "python",
         code_hash: "not-a-hex-string!!",
-      })
+      }),
     );
     expect(res.status).toBe(400);
     const json = await res.json();
@@ -278,7 +299,7 @@ describe("POST /api/arena/submit — atomic ratings update", () => {
         language: "python",
         code: "def twoSum(nums, target): pass",
         code_hash: "abc123def456",
-      })
+      }),
     );
 
     expect(res.status).toBe(200);

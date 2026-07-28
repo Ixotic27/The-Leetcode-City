@@ -4,12 +4,14 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("❌ Missing Supabase environment variables! Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.");
+  console.error(
+    "❌ Missing Supabase environment variables! Ensure NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.",
+  );
   process.exit(1);
 }
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: false }
+  auth: { persistSession: false },
 });
 
 const TARGET_PER_DIFFICULTY = 80;
@@ -42,7 +44,7 @@ async function main() {
 
   // 1. Get current counts in the database
   console.log("Querying current problem counts in database...");
-  
+
   const { count: easyCount, error: errEasy } = await sb
     .from("arena_problems")
     .select("*", { count: "exact", head: true })
@@ -59,14 +61,17 @@ async function main() {
     .eq("difficulty", "hard");
 
   if (errEasy || errMedium || errHard) {
-    console.error("❌ Failed to query current counts:", errEasy || errMedium || errHard);
+    console.error(
+      "❌ Failed to query current counts:",
+      errEasy || errMedium || errHard,
+    );
     process.exit(1);
   }
 
   let seededCounts = {
     easy: easyCount || 0,
     medium: mediumCount || 0,
-    hard: hardCount || 0
+    hard: hardCount || 0,
   };
 
   console.log(`Current stats in DB:`);
@@ -79,7 +84,9 @@ async function main() {
     seededCounts.medium >= TARGET_PER_DIFFICULTY &&
     seededCounts.hard >= TARGET_PER_DIFFICULTY
   ) {
-    console.log("✅ Already have at least 80 problems of each difficulty. Synced successfully!");
+    console.log(
+      "✅ Already have at least 80 problems of each difficulty. Synced successfully!",
+    );
     return;
   }
 
@@ -89,7 +96,9 @@ async function main() {
   let page = 1;
   let totalInserted = 0;
 
-  console.log("\nStarting ingestion loop from Hugging Face open-r1/codeforces dataset...");
+  console.log(
+    "\nStarting ingestion loop from Hugging Face open-r1/codeforces dataset...",
+  );
 
   while (true) {
     if (
@@ -97,12 +106,16 @@ async function main() {
       seededCounts.medium >= TARGET_PER_DIFFICULTY &&
       seededCounts.hard >= TARGET_PER_DIFFICULTY
     ) {
-      console.log("\n🎯 Reached target count of 80 problems for all difficulties!");
+      console.log(
+        "\n🎯 Reached target count of 80 problems for all difficulties!",
+      );
       break;
     }
 
-    console.log(`\nFetching Page ${page} (offset: ${offset}, limit: ${limit})...`);
-    
+    console.log(
+      `\nFetching Page ${page} (offset: ${offset}, limit: ${limit})...`,
+    );
+
     const url = `https://datasets-server.huggingface.co/rows?dataset=open-r1/codeforces&config=default&split=train&offset=${offset}&limit=${limit}`;
     let rows: any[] = [];
     try {
@@ -113,8 +126,10 @@ async function main() {
       const json = await res.json();
       rows = json.rows || [];
     } catch (err: any) {
-      console.error(`❌ Fetch page ${page} failed: ${err.message}. Retrying in 3 seconds...`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      console.error(
+        `❌ Fetch page ${page} failed: ${err.message}. Retrying in 3 seconds...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       continue;
     }
 
@@ -193,50 +208,57 @@ async function main() {
       markdownDesc = markdownDesc.trim();
 
       // Clean sample/hidden test cases formatting: remove trailing whitespace and ensure standard structure
-      const formattedSamples = examples.map(ex => ({
+      const formattedSamples = examples.map((ex) => ({
         input: cleanText(ex.input),
-        output: cleanText(ex.output)
+        output: cleanText(ex.output),
       }));
 
-      const formattedHidden = officialTests.map(ot => ({
+      const formattedHidden = officialTests.map((ot) => ({
         input: cleanText(ot.input),
-        output: cleanText(ot.output)
+        output: cleanText(ot.output),
       }));
 
       // Insert into DB
-      const { error: insertErr } = await sb
-        .from("arena_problems")
-        .insert({
-          source: "codeforces",
-          source_id: sourceId,
-          title: `${row.index}. ${row.title}`,
-          description: markdownDesc,
-          difficulty,
-          difficulty_rating: rating,
-          tags: row.tags || [],
-          time_limit_ms: row.time_limit ? Math.round(row.time_limit * 1000) : 2000,
-          memory_limit_mb: row.memory_limit || 256,
-          sample_tests: formattedSamples,
-          hidden_tests: formattedHidden,
-          hints: []
-        });
+      const { error: insertErr } = await sb.from("arena_problems").insert({
+        source: "codeforces",
+        source_id: sourceId,
+        title: `${row.index}. ${row.title}`,
+        description: markdownDesc,
+        difficulty,
+        difficulty_rating: rating,
+        tags: row.tags || [],
+        time_limit_ms: row.time_limit
+          ? Math.round(row.time_limit * 1000)
+          : 2000,
+        memory_limit_mb: row.memory_limit || 256,
+        sample_tests: formattedSamples,
+        hidden_tests: formattedHidden,
+        hints: [],
+      });
 
       if (insertErr) {
-        console.error(`❌ Error inserting problem ${sourceId}:`, insertErr.message);
+        console.error(
+          `❌ Error inserting problem ${sourceId}:`,
+          insertErr.message,
+        );
       } else {
         seededCounts[difficulty]++;
         totalInserted++;
-        console.log(`   + Added [${difficulty.toUpperCase()}] CF ${sourceId}: "${row.title}" (Rating: ${rating})`);
+        console.log(
+          `   + Added [${difficulty.toUpperCase()}] CF ${sourceId}: "${row.title}" (Rating: ${rating})`,
+        );
       }
     }
 
-    console.log(`Progress: Easy: ${seededCounts.easy}/${TARGET_PER_DIFFICULTY}, Medium: ${seededCounts.medium}/${TARGET_PER_DIFFICULTY}, Hard: ${seededCounts.hard}/${TARGET_PER_DIFFICULTY}`);
+    console.log(
+      `Progress: Easy: ${seededCounts.easy}/${TARGET_PER_DIFFICULTY}, Medium: ${seededCounts.medium}/${TARGET_PER_DIFFICULTY}, Hard: ${seededCounts.hard}/${TARGET_PER_DIFFICULTY}`,
+    );
 
     offset += limit;
     page++;
 
     // Small delay to prevent hitting API limits
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   console.log("\n-----------------------------------------");
@@ -249,7 +271,7 @@ async function main() {
   console.log("-----------------------------------------");
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error("❌ Script crashed:", err);
   process.exit(1);
 });

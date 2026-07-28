@@ -56,7 +56,13 @@ const TAG_THEMES: Record<string, TagTheme> = {
 
 // ─── Component ───────────────────────────────────────────────
 
-export default function RaidTag3D({ width, height, depth, attackerLogin, tagStyle }: Props) {
+export default function RaidTag3D({
+  width,
+  height,
+  depth,
+  attackerLogin,
+  tagStyle,
+}: Props) {
   const theme = TAG_THEMES[tagStyle] ?? TAG_THEMES.default;
 
   const tagText = `@${attackerLogin.toUpperCase()} WAS HERE`;
@@ -79,7 +85,10 @@ export default function RaidTag3D({ width, height, depth, attackerLogin, tagStyl
   );
 
   useEffect(() => {
-    return () => { tex.dispose(); ledMat.dispose(); };
+    return () => {
+      tex.dispose();
+      ledMat.dispose();
+    };
   }, [tex, ledMat]);
 
   // Scroll if text is long
@@ -130,7 +139,11 @@ export default function RaidTag3D({ width, height, depth, attackerLogin, tagStyl
             roughness={0.4}
           />
         </mesh>
-        <mesh position={[0, 0, -0.02]} material={ledMat} rotation={[0, Math.PI, 0]}>
+        <mesh
+          position={[0, 0, -0.02]}
+          material={ledMat}
+          rotation={[0, Math.PI, 0]}
+        >
           <planeGeometry args={[panelW, panelH]} />
         </mesh>
       </group>

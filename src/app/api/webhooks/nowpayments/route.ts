@@ -12,12 +12,19 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
-  let body: Record<string, unknown> & { payment_status: string; order_id?: string; payment_id?: string | number; customer_email?: string };
-  
+  let body: Record<string, unknown> & {
+    payment_status: string;
+    order_id?: string;
+    payment_id?: string | number;
+    customer_email?: string;
+  };
+
   try {
     body = JSON.parse(rawBody);
-  } catch (err) { console.warn("[app/api/webhooks/nowpayments/route.ts] error:", err); return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/webhooks/nowpayments/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
   // Verify HMAC-SHA512 signature
   const signature = request.headers.get("x-nowpayments-sig");
   if (!signature || !verifyIpnSignature(body, signature)) {
@@ -47,7 +54,9 @@ export async function POST(request: Request) {
           .eq("idempotency_key", idempotencyKey)
           .maybeSingle();
         if (existingIdem) {
-          console.log(`[NOWPayments webhook] Duplicate event for ${orderId}, skipping`);
+          console.log(
+            `[NOWPayments webhook] Duplicate event for ${orderId}, skipping`,
+          );
           break;
         }
 
@@ -64,7 +73,9 @@ export async function POST(request: Request) {
             if (planId && isValidPlanId(planId)) {
               const plan = SKY_AD_PLANS[planId];
               const now = new Date();
-              const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+              const endsAt = new Date(
+                now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
+              );
 
               await sb
                 .from("sky_ads")
@@ -101,7 +112,9 @@ export async function POST(request: Request) {
         if (!purchase) {
           // Could be a concurrent request already claimed it (status is now "processing")
           // or genuinely not found. Either way, do not fulfill.
-          console.log(`[NOWPayments webhook] No pending purchase for order ${orderId} — skipping`);
+          console.log(
+            `[NOWPayments webhook] No pending purchase for order ${orderId} — skipping`,
+          );
           break;
         }
 
@@ -117,7 +130,10 @@ export async function POST(request: Request) {
             provider_tx_id: paymentId ?? orderId,
           },
           supabaseClient: sb,
-          claimPendingPurchase: async ({ supabaseClient: claimSb, purchaseId: pendingPurchaseId }) => {
+          claimPendingPurchase: async ({
+            supabaseClient: claimSb,
+            purchaseId: pendingPurchaseId,
+          }) => {
             const { data: claimed } = await claimSb
               .from("purchases")
               .update({ status: "processing" })
@@ -127,7 +143,12 @@ export async function POST(request: Request) {
               .maybeSingle();
 
             if (!claimed) {
-              return { ok: false, purchase_id: pendingPurchaseId, already_claimed: true, reason: "already_claimed" };
+              return {
+                ok: false,
+                purchase_id: pendingPurchaseId,
+                already_claimed: true,
+                reason: "already_claimed",
+              };
             }
 
             return { ok: true, purchase_id: pendingPurchaseId };
@@ -135,7 +156,9 @@ export async function POST(request: Request) {
         });
 
         if (result.kind !== "completed") {
-          console.log(`[NOWPayments webhook] Purchase ${purchase.id} finished with result ${result.kind}`);
+          console.log(
+            `[NOWPayments webhook] Purchase ${purchase.id} finished with result ${result.kind}`,
+          );
         }
         break;
       }
@@ -158,10 +181,20 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     if (err instanceof InfrastructureError) {
-      console.error("[NOWPayments webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      console.error(
+        "[NOWPayments webhook] Infrastructure error, returning 500 for retry:",
+        err.message,
+        err.cause,
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
     }
-    console.error("[NOWPayments webhook] Business logic or unexpected error:", err);
+    console.error(
+      "[NOWPayments webhook] Business logic or unexpected error:",
+      err,
+    );
   }
 
   return NextResponse.json({ received: true });

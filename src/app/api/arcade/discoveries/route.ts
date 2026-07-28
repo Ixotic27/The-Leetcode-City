@@ -6,7 +6,10 @@ export async function GET() {
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -23,16 +26,22 @@ export async function GET() {
     console.warn("Could not query arcade_discoveries:", e);
   }
 
-  return NextResponse.json({ commands }, {
-    headers: { "Cache-Control": "private, max-age=10" },
-  });
+  return NextResponse.json(
+    { commands },
+    {
+      headers: { "Cache-Control": "private, max-age=10" },
+    },
+  );
 }
 
 export async function POST(request: Request) {
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   let body: { command: unknown };
@@ -42,7 +51,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const command = String(body.command ?? "").trim().toLowerCase();
+  const command = String(body.command ?? "")
+    .trim()
+    .toLowerCase();
   if (!command || command.length > 50) {
     return NextResponse.json({ error: "Invalid command" }, { status: 400 });
   }

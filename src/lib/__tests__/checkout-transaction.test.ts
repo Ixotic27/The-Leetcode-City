@@ -49,7 +49,7 @@ describe("createAtomicCheckoutPurchase", () => {
         amountCents: 0,
         currency: "usd",
         supabaseClient: { rpc } as never,
-      })
+      }),
     ).rejects.toMatchObject({ name: "InfrastructureError" });
   });
 
@@ -69,7 +69,7 @@ describe("createAtomicCheckoutPurchase", () => {
         amountCents: 0,
         currency: "usd",
         supabaseClient: { rpc } as never,
-      })
+      }),
     ).rejects.toBeInstanceOf(InfrastructureError);
   });
 });

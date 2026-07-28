@@ -38,14 +38,12 @@ const devB = {
   kudos_count: 30,
 } as CityBuilding;
 
-
 describe("buildComparisonRows", () => {
   it("calculates comparison rows correctly", () => {
-    const { cmpRows, totalAWins, totalBWins } =
-      buildComparisonRows([
-        devA as CityBuilding,
-        devB as CityBuilding,
-      ]);
+    const { cmpRows, totalAWins, totalBWins } = buildComparisonRows([
+      devA as CityBuilding,
+      devB as CityBuilding,
+    ]);
 
     expect(cmpRows).toHaveLength(5);
 
@@ -55,14 +53,10 @@ describe("buildComparisonRows", () => {
 
 describe("getComparisonSummary", () => {
   it("returns winner summary", () => {
-    expect(
-      getComparisonSummary([devA, devB], 4, 1)
-    ).toBe("@alice wins 4-1");
+    expect(getComparisonSummary([devA, devB], 4, 1)).toBe("@alice wins 4-1");
   });
 
   it("returns tie summary", () => {
-    expect(
-      getComparisonSummary([devA, devB], 2, 2)
-    ).toBe("Tie 2-2");
+    expect(getComparisonSummary([devA, devB], 2, 2)).toBe("Tie 2-2");
   });
 });

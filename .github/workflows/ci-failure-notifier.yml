@@ -2,7 +2,7 @@ name: CI Failure Notifier
 
 on:
   workflow_run:
-    workflows: ['CI Pipeline']
+    workflows: ["CI Pipeline"]
     types: [completed]
   workflow_dispatch: # Manually scan ALL open PRs from the Actions tab
 

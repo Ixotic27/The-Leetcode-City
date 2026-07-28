@@ -14,8 +14,8 @@ const KEY_MAP: Record<string, Direction> = {
 };
 
 const MOVE_INTERVAL_SEC = 0.2; // Matches LERP_DURATION in page.tsx — each lerp
-                                // completes exactly when the next move fires, giving
-                                // constant tile-velocity with no speed pulse.
+// completes exactly when the next move fires, giving
+// constant tile-velocity with no speed pulse.
 
 // ─── State ────────────────────────────────────────────────────
 const heldKeys = new Set<Direction>();

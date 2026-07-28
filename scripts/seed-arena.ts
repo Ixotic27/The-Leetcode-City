@@ -1,10 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
-import { syncCodeforcesProblems, rotateDailyChallenges } from "../src/lib/arena";
+import {
+  syncCodeforcesProblems,
+  rotateDailyChallenges,
+} from "../src/lib/arena";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: false },
+});
 
 async function main() {
   console.log("-----------------------------------------");
@@ -31,14 +36,18 @@ async function main() {
       console.error("❌ Daily challenges rotation failed.");
     }
   } catch (err: any) {
-    console.error("❌ Daily challenges rotation encountered an error:", err.message);
+    console.error(
+      "❌ Daily challenges rotation encountered an error:",
+      err.message,
+    );
   }
 
   // 3. Inspect seeded challenges
   console.log("\n3. Inspecting today's challenges in database:");
   const { data: challenges, error } = await sb
     .from("arena_challenges")
-    .select(`
+    .select(
+      `
       id,
       difficulty,
       challenge_date,
@@ -50,7 +59,8 @@ async function main() {
         difficulty_rating,
         tags
       )
-    `)
+    `,
+    )
     .eq("challenge_date", todayStr);
 
   if (error) {
@@ -60,7 +70,9 @@ async function main() {
   } else {
     for (const ch of challenges) {
       const prob = ch.problem as any;
-      console.log(`   - [${ch.difficulty.toUpperCase()}] ${prob?.title} (CF Rating: ${prob?.difficulty_rating})`);
+      console.log(
+        `   - [${ch.difficulty.toUpperCase()}] ${prob?.title} (CF Rating: ${prob?.difficulty_rating})`,
+      );
       console.log(`     Rewards: ${ch.reward_points} pts, ${ch.reward_xp} XP`);
     }
   }

@@ -22,8 +22,10 @@ function loadLocalStorage(): Partial<AdsFilters> | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
-  } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] error:", err); return null;
-   }
+  } catch (err) {
+    console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] error:", err);
+    return null;
+  }
 }
 
 function parseParams(params: URLSearchParams): Partial<AdsFilters> {
@@ -31,9 +33,18 @@ function parseParams(params: URLSearchParams): Partial<AdsFilters> {
   const p = params.get("period");
   if (p === "7d" || p === "30d" || p === "all") result.period = p;
   const s = params.get("status");
-  if (s === "all" || s === "active" || s === "paused" || s === "expired") result.status = s;
+  if (s === "all" || s === "active" || s === "paused" || s === "expired")
+    result.status = s;
   const v = params.get("vehicle");
-  if (v === "all" || v === "plane" || v === "blimp" || v === "billboard" || v === "rooftop_sign" || v === "led_wrap") result.vehicle = v;
+  if (
+    v === "all" ||
+    v === "plane" ||
+    v === "blimp" ||
+    v === "billboard" ||
+    v === "rooftop_sign" ||
+    v === "led_wrap"
+  )
+    result.vehicle = v;
   const src = params.get("source");
   if (src === "all" || src === "paid" || src === "manual") result.source = src;
   const q = params.get("q");
@@ -45,12 +56,14 @@ function parseParams(params: URLSearchParams): Partial<AdsFilters> {
   const page = params.get("page");
   if (page) {
     const parsedPage = Number(page);
-    if (Number.isInteger(parsedPage) && parsedPage > 0) result.page = parsedPage;
+    if (Number.isInteger(parsedPage) && parsedPage > 0)
+      result.page = parsedPage;
   }
   const pageSize = params.get("pageSize");
   if (pageSize) {
     const parsedPageSize = Number(pageSize);
-    if (Number.isInteger(parsedPageSize) && parsedPageSize > 0) result.pageSize = parsedPageSize;
+    if (Number.isInteger(parsedPageSize) && parsedPageSize > 0)
+      result.pageSize = parsedPageSize;
   }
   return result;
 }
@@ -59,13 +72,15 @@ function filtersToParams(filters: AdsFilters): string {
   const params = new URLSearchParams();
   if (filters.period !== DEFAULTS.period) params.set("period", filters.period);
   if (filters.status !== DEFAULTS.status) params.set("status", filters.status);
-  if (filters.vehicle !== DEFAULTS.vehicle) params.set("vehicle", filters.vehicle);
+  if (filters.vehicle !== DEFAULTS.vehicle)
+    params.set("vehicle", filters.vehicle);
   if (filters.source !== DEFAULTS.source) params.set("source", filters.source);
   if (filters.q) params.set("q", filters.q);
   if (filters.sort !== DEFAULTS.sort) params.set("sort", filters.sort);
   if (filters.dir !== DEFAULTS.dir) params.set("dir", filters.dir);
   if (filters.page !== DEFAULTS.page) params.set("page", String(filters.page));
-  if (filters.pageSize !== DEFAULTS.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters.pageSize !== DEFAULTS.pageSize)
+    params.set("pageSize", String(filters.pageSize));
   const str = params.toString();
   return str ? `?${str}` : "";
 }
@@ -117,14 +132,20 @@ export function useAdsUrlState() {
 
   const setFilter = useCallback(
     <K extends keyof AdsFilters>(key: K, value: AdsFilters[K]) => {
-      const next = key === "page"
-        ? { ...filters, page: value as number }
-        : { ...filters, [key]: value, page: 1 };
+      const next =
+        key === "page"
+          ? { ...filters, page: value as number }
+          : { ...filters, [key]: value, page: 1 };
 
       // Persist to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:", err); }
+      } catch (err) {
+        console.warn(
+          "[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:",
+          err,
+        );
+      }
       // Debounce search query, immediate for everything else
       if (key === "q") {
         clearTimeout(debounceRef.current);
@@ -146,7 +167,12 @@ export function useAdsUrlState() {
         const next = { ...filters, sort: key, dir: "desc" as SortDir, page: 1 };
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch (err) { console.warn("[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:", err); }
+        } catch (err) {
+          console.warn(
+            "[app/admin/ads/_lib/use-ads-url-state.ts] non-critical error:",
+            err,
+          );
+        }
         router.replace(`/admin/ads${filtersToParams(next)}`);
       }
     },

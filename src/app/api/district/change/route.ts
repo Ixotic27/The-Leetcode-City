@@ -3,15 +3,24 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 
 const VALID_DISTRICTS = [
-  "frontend", "backend", "fullstack", "mobile", "data_ai",
-  "devops", "security", "gamedev", "vibe_coder", "creator",
+  "frontend",
+  "backend",
+  "fullstack",
+  "mobile",
+  "data_ai",
+  "devops",
+  "security",
+  "gamedev",
+  "vibe_coder",
+  "creator",
 ];
 
 /**
  * @param {import('next/server').NextRequest} request
  */
 export async function POST(request: Request) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -27,8 +36,10 @@ export async function POST(request: Request) {
   let body: Record<string, unknown>;
   try {
     body = await request.json();
-  } catch (err) { console.warn("[app/api/district/change/route.ts] error:", err); return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-   }
+  } catch (err) {
+    console.warn("[app/api/district/change/route.ts] error:", err);
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
   const district_id = body.district_id as string;
 
   if (!district_id || !VALID_DISTRICTS.includes(district_id)) {
@@ -38,7 +49,9 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin();
   const { data: dev, error: devError } = await admin
     .from("developers")
-    .select("id, claimed, district, district_chosen, district_changes_count, district_changed_at")
+    .select(
+      "id, claimed, district, district_chosen, district_changes_count, district_changed_at",
+    )
     .eq("claimed_by", user.id)
     .single();
 

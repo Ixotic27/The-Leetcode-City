@@ -28,34 +28,36 @@ export class InventoryEconomyService {
     this.admin = admin ?? getSupabaseAdmin();
   }
 
-  async grantRewardItem(payload: GrantRewardPayload): Promise<{ granted: boolean }> {
+  async grantRewardItem(
+    payload: GrantRewardPayload,
+  ): Promise<{ granted: boolean }> {
     const sb = payload.supabaseClient ?? this.admin;
-    const { error } = await sb
-      .from("purchases")
-      .upsert(
-        {
-          developer_id: payload.developerId,
-          item_id: payload.itemId,
-          provider: "free",
-          provider_tx_id: payload.providerTxId,
-          amount_cents: 0,
-          currency: "usd",
-          status: "completed",
-        },
-        { onConflict: "provider_tx_id", ignoreDuplicates: true }
-      );
+    const { error } = await sb.from("purchases").upsert(
+      {
+        developer_id: payload.developerId,
+        item_id: payload.itemId,
+        provider: "free",
+        provider_tx_id: payload.providerTxId,
+        amount_cents: 0,
+        currency: "usd",
+        status: "completed",
+      },
+      { onConflict: "provider_tx_id", ignoreDuplicates: true },
+    );
 
     if (error) {
       throw new InfrastructureError(
         `[InventoryEconomyService] grantRewardItem failed for item "${payload.itemId}": ${error.message}`,
-        error
+        error,
       );
     }
 
     return { granted: true };
   }
 
-  async fulfillPurchasedItem(payload: FulfillItemPayload): Promise<{ status: "completed" | "delivered" }> {
+  async fulfillPurchasedItem(
+    payload: FulfillItemPayload,
+  ): Promise<{ status: "completed" | "delivered" }> {
     const sb = payload.supabaseClient ?? this.admin;
 
     const { data: item, error: itemError } = await sb
@@ -67,7 +69,7 @@ export class InventoryEconomyService {
     if (itemError) {
       throw new InfrastructureError(
         `[InventoryEconomyService] Failed to fetch item "${payload.itemId}": ${itemError.message}`,
-        itemError
+        itemError,
       );
     }
 
@@ -77,11 +79,13 @@ export class InventoryEconomyService {
     }
 
     if (payload.itemId === "streak_freeze") {
-      const { error: freezeError } = await sb.rpc("grant_streak_freeze", { p_developer_id: payload.developerId });
+      const { error: freezeError } = await sb.rpc("grant_streak_freeze", {
+        p_developer_id: payload.developerId,
+      });
       if (freezeError) {
         throw new InfrastructureError(
           `[InventoryEconomyService] grant_streak_freeze RPC failed: ${freezeError.message}`,
-          freezeError
+          freezeError,
         );
       }
 
@@ -92,7 +96,7 @@ export class InventoryEconomyService {
       if (logError) {
         throw new InfrastructureError(
           `[InventoryEconomyService] streak_freeze_log insert failed: ${logError.message}`,
-          logError
+          logError,
         );
       }
     } else {
@@ -114,7 +118,7 @@ export class InventoryEconomyService {
         if (consumableError) {
           throw new InfrastructureError(
             `[InventoryEconomyService] grant_consumable RPC failed for "${payload.itemId}": ${consumableError.message}`,
-            consumableError
+            consumableError,
           );
         }
       }
@@ -164,21 +168,30 @@ export class InventoryEconomyService {
       .eq("item_id", "loadout")
       .maybeSingle();
 
-    const config = (existing?.config ?? { crown: null, roof: null, aura: null }) as Record<string, string | null>;
+    const config = (existing?.config ?? {
+      crown: null,
+      roof: null,
+      aura: null,
+    }) as Record<string, string | null>;
     config[zone] = payload.itemId;
 
-    const { error: upsertError } = await sb.from("developer_customizations").upsert(
-      {
-        developer_id: payload.developerId,
-        item_id: "loadout",
-        config,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "developer_id,item_id" }
-    );
+    const { error: upsertError } = await sb
+      .from("developer_customizations")
+      .upsert(
+        {
+          developer_id: payload.developerId,
+          item_id: "loadout",
+          config,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "developer_id,item_id" },
+      );
 
     if (upsertError) {
-      console.error("[InventoryEconomyService] autoEquipIfSolo: Failed to upsert loadout:", upsertError);
+      console.error(
+        "[InventoryEconomyService] autoEquipIfSolo: Failed to upsert loadout:",
+        upsertError,
+      );
     }
   }
 }

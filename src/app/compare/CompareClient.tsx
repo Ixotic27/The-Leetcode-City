@@ -4,7 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { FaShareAlt, FaLink, FaTrophy, FaFire, FaCalendarAlt, FaStar, FaGlobe, FaChevronRight } from "react-icons/fa";
+import {
+  FaShareAlt,
+  FaLink,
+  FaTrophy,
+  FaFire,
+  FaCalendarAlt,
+  FaStar,
+  FaGlobe,
+  FaChevronRight,
+} from "react-icons/fa";
 
 interface Developer {
   github_login: string;
@@ -110,7 +119,9 @@ export function CompareClient({
     const cleanA = inputA.trim();
     const cleanB = inputB.trim();
     if (!cleanA || !cleanB) return;
-    router.push(`/compare?a=${encodeURIComponent(cleanA)}&b=${encodeURIComponent(cleanB)}`);
+    router.push(
+      `/compare?a=${encodeURIComponent(cleanA)}&b=${encodeURIComponent(cleanB)}`,
+    );
   };
 
   const handleCopyLink = () => {
@@ -121,7 +132,11 @@ export function CompareClient({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const getWinner = (keyA: keyof Developer, keyB: keyof Developer, invert = false) => {
+  const getWinner = (
+    keyA: keyof Developer,
+    keyB: keyof Developer,
+    invert = false,
+  ) => {
     if (!devA || !devB) return null;
     const valA = (devA[keyA] as number) ?? 0;
     const valB = (devB[keyB] as number) ?? 0;
@@ -135,7 +150,10 @@ export function CompareClient({
   // Helper to draw a 2D styled building
   const render2DBuilding = (dev: Developer) => {
     const isBungalow = dev.building_style === "bungalow";
-    const wallColor = dev.custom_color || DISTRICT_COLORS[dev.district || "fullstack"] || "#ffa116";
+    const wallColor =
+      dev.custom_color ||
+      DISTRICT_COLORS[dev.district || "fullstack"] ||
+      "#ffa116";
 
     // Approximate floor counts and window logic
     const totalSolved = dev.contributions || 0;
@@ -143,11 +161,13 @@ export function CompareClient({
     const medium = dev.medium_solved || 0;
     const hard = dev.hard_solved || 0;
 
-    const floorsCount = isBungalow ? 2 : Math.max(3, Math.min(10, Math.floor(totalSolved / 150) + 3));
+    const floorsCount = isBungalow
+      ? 2
+      : Math.max(3, Math.min(10, Math.floor(totalSolved / 150) + 3));
     const windowsPerRow = isBungalow ? 5 : 3;
 
     // Distribute window colors based on easy/medium/hard distribution
-    const totalDifficulties = (easy + medium + hard) || 1;
+    const totalDifficulties = easy + medium + hard || 1;
     const easyRatio = easy / totalDifficulties;
     const medRatio = medium / totalDifficulties;
 
@@ -166,7 +186,9 @@ export function CompareClient({
 
       const windows = Array.from({ length: windowsPerRow }).map((_, wIdx) => {
         // Pseudo-random light states based on username and window coordinate
-        const seed = dev.github_login.charCodeAt((f + wIdx) % dev.github_login.length) || 0;
+        const seed =
+          dev.github_login.charCodeAt((f + wIdx) % dev.github_login.length) ||
+          0;
         const isLit = (seed * (f + 1) * (wIdx + 3)) % 10 < 7; // ~70% windows are lit
         return { isLit, color: windowColor };
       });
@@ -183,7 +205,10 @@ export function CompareClient({
           {!isBungalow ? (
             <div className="w-1 h-6 bg-gray-500 border-t-2 border-[#ffa116]" />
           ) : (
-            <div className="w-0 h-0 border-l-[32px] border-r-[32px] border-b-[12px] border-l-transparent border-r-transparent" style={{ borderBottomColor: wallColor }} />
+            <div
+              className="w-0 h-0 border-l-[32px] border-r-[32px] border-b-[12px] border-l-transparent border-r-transparent"
+              style={{ borderBottomColor: wallColor }}
+            />
           )}
         </div>
 
@@ -198,7 +223,10 @@ export function CompareClient({
           }}
         >
           {floors.map((floor, fIdx) => (
-            <div key={fIdx} className="flex justify-around items-center w-full h-3">
+            <div
+              key={fIdx}
+              className="flex justify-around items-center w-full h-3"
+            >
               {floor.windows.map((win, wIdx) => (
                 <div
                   key={wIdx}
@@ -219,13 +247,20 @@ export function CompareClient({
     );
   };
 
-  const statRow = (label: string, keyA: keyof Developer, keyB: keyof Developer, invert = false) => {
+  const statRow = (
+    label: string,
+    keyA: keyof Developer,
+    keyB: keyof Developer,
+    invert = false,
+  ) => {
     const valA = devA ? devA[keyA] : null;
     const valB = devB ? devB[keyB] : null;
     const winner = getWinner(keyA, keyB, invert);
 
-    const displayA = valA !== undefined && valA !== null ? valA.toLocaleString() : "—";
-    const displayB = valB !== undefined && valB !== null ? valB.toLocaleString() : "—";
+    const displayA =
+      valA !== undefined && valA !== null ? valA.toLocaleString() : "—";
+    const displayB =
+      valB !== undefined && valB !== null ? valB.toLocaleString() : "—";
 
     return (
       <tr className="border-b border-gray-800 hover:bg-white/5 transition-colors">
@@ -255,7 +290,10 @@ export function CompareClient({
       <div className="max-w-4xl mx-auto">
         {/* Navigation */}
         <div className="mb-6 flex justify-between items-center">
-          <Link href="/" className="text-xs text-muted hover:text-cream transition-colors">
+          <Link
+            href="/"
+            className="text-xs text-muted hover:text-cream transition-colors"
+          >
             &larr; BACK TO CITY
           </Link>
         </div>
@@ -271,7 +309,10 @@ export function CompareClient({
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleCompare} className="border-[3px] border-border bg-bg-raised p-4 mb-8">
+        <form
+          onSubmit={handleCompare}
+          className="border-[3px] border-border bg-bg-raised p-4 mb-8"
+        >
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <input
               type="text"
@@ -350,9 +391,13 @@ export function CompareClient({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-gray-800 text-[10px] text-muted tracking-wider">
-                      <th className="py-2 text-right w-1/3">@{devA.github_login}</th>
+                      <th className="py-2 text-right w-1/3">
+                        @{devA.github_login}
+                      </th>
                       <th className="py-2 text-center w-1/3">VS</th>
-                      <th className="py-2 text-left w-1/3">@{devB.github_login}</th>
+                      <th className="py-2 text-left w-1/3">
+                        @{devB.github_login}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -360,8 +405,16 @@ export function CompareClient({
                     {statRow("Easy Solved", "easy_solved", "easy_solved")}
                     {statRow("Medium Solved", "medium_solved", "medium_solved")}
                     {statRow("Hard Solved", "hard_solved", "hard_solved")}
-                    {statRow("Contest Rating", "contest_rating", "contest_rating")}
-                    {statRow("Active Days", "active_days_last_year", "active_days_last_year")}
+                    {statRow(
+                      "Contest Rating",
+                      "contest_rating",
+                      "contest_rating",
+                    )}
+                    {statRow(
+                      "Active Days",
+                      "active_days_last_year",
+                      "active_days_last_year",
+                    )}
                     {statRow("Current Streak", "lc_streak", "lc_streak")}
                     {statRow("Global Rank", "rank", "rank", true)}
                     {statRow("Reputation", "total_stars", "total_stars")}
@@ -418,9 +471,12 @@ export function CompareClient({
               </button>
               <a
                 href={`https://x.com/intent/tweet?text=${encodeURIComponent(
-                  `Comparing my building with @${devB.github_login} in LeetCode City! Solved: ${devA.contributions} vs ${devB.contributions}. Check it out!`
+                  `Comparing my building with @${devB.github_login} in LeetCode City! Solved: ${devA.contributions} vs ${devB.contributions}. Check it out!`,
                 )}&url=${encodeURIComponent(
-                  typeof window !== "undefined" ? window.location.origin + `/compare?a=${devA.github_login}&b=${devB.github_login}` : ""
+                  typeof window !== "undefined"
+                    ? window.location.origin +
+                        `/compare?a=${devA.github_login}&b=${devB.github_login}`
+                    : "",
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -436,7 +492,8 @@ export function CompareClient({
         {/* Empty / Initial State */}
         {!devA && !devB && !loading && (
           <div className="border-[3px] border-border bg-bg-raised/40 p-8 text-center text-xs text-muted leading-relaxed">
-            🔍 Enter two LeetCode usernames above to generate side-by-side 2D buildings and stats comparisons.
+            🔍 Enter two LeetCode usernames above to generate side-by-side 2D
+            buildings and stats comparisons.
           </div>
         )}
       </div>

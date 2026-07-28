@@ -1,6 +1,15 @@
 import type { PlayerState, ChatBubble } from "../types";
 import type { GameMap, FurnitureObject } from "./tileMap";
-import { drawCharacter, isSpriteLoaded, isCozyLoaded, COZY_SPRITE_SIZE, isPetLoaded, drawPet, updatePetAnimation, PET_SIZE } from "./sprites";
+import {
+  drawCharacter,
+  isSpriteLoaded,
+  isCozyLoaded,
+  COZY_SPRITE_SIZE,
+  isPetLoaded,
+  drawPet,
+  updatePetAnimation,
+  PET_SIZE,
+} from "./sprites";
 import { cozyUrl, COZY_BASE } from "../assetBase";
 import type { Direction } from "../types";
 
@@ -18,7 +27,10 @@ export function loadTileset(src: string, columns: number): Promise<void> {
   tilesetCols = columns;
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => { tilesetImg = img; resolve(); };
+    img.onload = () => {
+      tilesetImg = img;
+      resolve();
+    };
     img.onerror = reject;
     img.src = src;
   });
@@ -27,21 +39,33 @@ export function loadTileset(src: string, columns: number): Promise<void> {
 // ─── Furniture sprites ────────────────────────────────────────
 const furnitureImages = new Map<string, HTMLImageElement>();
 
-export function loadFurnitureSprites(basePath: string, spriteKeys: string[]): Promise<void> {
+export function loadFurnitureSprites(
+  basePath: string,
+  spriteKeys: string[],
+): Promise<void> {
   const unique = [...new Set(spriteKeys)];
   const promises = unique.map((key) => {
     if (furnitureImages.has(key)) return Promise.resolve(); // already loaded
     const path = getSpriteFile(basePath, key);
     return new Promise<void>((resolve) => {
       const img = new Image();
-      img.onload = () => { furnitureImages.set(key, img); resolve(); };
+      img.onload = () => {
+        furnitureImages.set(key, img);
+        resolve();
+      };
       img.onerror = () => {
         // If png failed, try gif (for animated arcade machines)
         if (path.endsWith(".png") && path.includes(`${COZY_BASE}/furniture/`)) {
           const gifPath = path.replace(/\.png$/, ".gif");
           const gifImg = new Image();
-          gifImg.onload = () => { furnitureImages.set(key, gifImg); resolve(); };
-          gifImg.onerror = () => { console.warn(`[arcade] Failed to load furniture sprite: ${path}`); resolve(); };
+          gifImg.onload = () => {
+            furnitureImages.set(key, gifImg);
+            resolve();
+          };
+          gifImg.onerror = () => {
+            console.warn(`[arcade] Failed to load furniture sprite: ${path}`);
+            resolve();
+          };
           gifImg.src = gifPath;
         } else {
           console.warn(`[arcade] Failed to load furniture sprite: ${path}`);
@@ -97,7 +121,12 @@ let cameraY = 0;
 let viewportW = 0;
 let viewportH = 0;
 
-export function updateCamera(targetX: number, targetY: number, dt: number, map: GameMap): void {
+export function updateCamera(
+  targetX: number,
+  targetY: number,
+  dt: number,
+  map: GameMap,
+): void {
   const mapW = map.width * map.tileSize;
   const mapH = map.height * map.tileSize;
 
@@ -120,7 +149,11 @@ export function updateCamera(targetX: number, targetY: number, dt: number, map: 
   cameraY += (idealY - cameraY) * Math.min(1, speed * dt);
 }
 
-export function snapCamera(targetX: number, targetY: number, map: GameMap): void {
+export function snapCamera(
+  targetX: number,
+  targetY: number,
+  map: GameMap,
+): void {
   const mapW = map.width * map.tileSize;
   const mapH = map.height * map.tileSize;
 
@@ -136,7 +169,12 @@ export function snapCamera(targetX: number, targetY: number, map: GameMap): void
   }
 }
 
-export function getCameraState(): { x: number; y: number; viewportW: number; viewportH: number } {
+export function getCameraState(): {
+  x: number;
+  y: number;
+  viewportW: number;
+  viewportH: number;
+} {
   return { x: cameraX, y: cameraY, viewportW, viewportH };
 }
 
@@ -207,16 +245,22 @@ export function resetPetState(): void {
 }
 
 export function buildLayerCaches(map: GameMap): void {
-  const ts = map.tileSize;         // tile size on canvas (32px)
+  const ts = map.tileSize; // tile size on canvas (32px)
   const sts = map.tilesetTileSize ?? ts; // tile size in tileset image (16px for Cozy, 32px for Lumon)
   const canvas = document.createElement("canvas");
   canvas.width = map.width * ts;
   canvas.height = map.height * ts;
   const ctx = canvas.getContext("2d");
-  if (!ctx) { groundCache = canvas; return; }
+  if (!ctx) {
+    groundCache = canvas;
+    return;
+  }
   ctx.imageSmoothingEnabled = false;
 
-  if (!tilesetImg) { groundCache = canvas; return; }
+  if (!tilesetImg) {
+    groundCache = canvas;
+    return;
+  }
 
   // Tiled-converted maps use 1-indexed GIDs (where firstgid = 1 is the 0th tile in tileset),
   // whereas the hand-crafted lobby map expects GIDs to be used directly (0-indexed offset).
@@ -289,7 +333,11 @@ export function buildLayerCaches(map: GameMap): void {
 }
 
 // ─── Canvas sizing ────────────────────────────────────────────
-export function resizeCanvas(canvas: HTMLCanvasElement, map: GameMap, isMobile: boolean): number {
+export function resizeCanvas(
+  canvas: HTMLCanvasElement,
+  map: GameMap,
+  isMobile: boolean,
+): number {
   const mapW = map.width * map.tileSize;
   const mapH = map.height * map.tileSize;
 
@@ -351,7 +399,8 @@ export function render(
   const renderables: Renderable[] = [];
 
   for (const f of map.furniture) {
-    const sortY = (f as FurnitureObject & { sortY?: number }).sortY ?? (f.y + f.height);
+    const sortY =
+      (f as FurnitureObject & { sortY?: number }).sortY ?? f.y + f.height;
     renderables.push({
       sortY,
       draw: () => {
@@ -369,10 +418,11 @@ export function render(
   // Only the SEAT tiles (bottom row for front/back, right col for left, left col for right)
   const sittableTiles = new Map<string, FurnitureObject>();
   for (const f of map.furniture) {
-    const sittable = f.sittable
-      || f.sprite.includes("sofa_")
-      || f.sprite.includes("chair_")
-      || f.sprite.includes("puff_");
+    const sittable =
+      f.sittable ||
+      f.sprite.includes("sofa_") ||
+      f.sprite.includes("chair_") ||
+      f.sprite.includes("puff_");
     if (!sittable) continue;
     const ftx = Math.floor(f.x / ts);
     const fty = Math.floor(f.y / ts);
@@ -432,7 +482,14 @@ export function render(
       draw: () => {
         const petScale = 2;
         const petDrawSize = PET_SIZE * petScale;
-        drawPet(ctx, petDir, petWalking, petX - petDrawSize / 2, petY - petDrawSize / 2, petScale);
+        drawPet(
+          ctx,
+          petDir,
+          petWalking,
+          petX - petDrawSize / 2,
+          petY - petDrawSize / 2,
+          petScale,
+        );
       },
     });
   }
@@ -524,7 +581,11 @@ function renderPlayer(
       const spriteW = COZY_SPRITE_SIZE * spriteScale;
       const spriteH = COZY_SPRITE_SIZE * spriteScale;
       drawCharacter(
-        ctx, p.id, p.sprite_id, dir, sitting ? false : p.walking,
+        ctx,
+        p.id,
+        p.sprite_id,
+        dir,
+        sitting ? false : p.walking,
         px + (ts - spriteW) / 2,
         py - spriteH + ts + sitOffset,
         spriteScale,
@@ -534,7 +595,11 @@ function renderPlayer(
       const spriteW = 16 * spriteScale;
       const spriteH = 32 * spriteScale;
       drawCharacter(
-        ctx, p.id, p.sprite_id, dir, sitting ? false : p.walking,
+        ctx,
+        p.id,
+        p.sprite_id,
+        dir,
+        sitting ? false : p.walking,
         px + (ts - spriteW) / 2,
         py - spriteH + ts + sitOffset,
         spriteScale,
@@ -552,7 +617,10 @@ function renderPlayer(
   ctx.fillText(p.github_login, px + ts / 2, py + ts + 10);
 }
 
-function drawFurnitureFallback(ctx: CanvasRenderingContext2D, f: FurnitureObject): void {
+function drawFurnitureFallback(
+  ctx: CanvasRenderingContext2D,
+  f: FurnitureObject,
+): void {
   // Simple colored rectangle as fallback
   if (f.sprite.includes("ARCADE")) {
     ctx.fillStyle = "#4040a0";
@@ -589,7 +657,8 @@ function renderBubbles(
 
     for (let i = 0; i < playerBubbles.length; i++) {
       const bubble = playerBubbles[i];
-      const stackOffset = (playerBubbles.length - 1 - i) * (BUBBLE_H + BUBBLE_GAP);
+      const stackOffset =
+        (playerBubbles.length - 1 - i) * (BUBBLE_H + BUBBLE_GAP);
       const by = baseY - stackOffset;
 
       const alpha = bubble.timer < 1 ? bubble.timer : 1;
@@ -615,7 +684,11 @@ function renderBubbles(
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
 ): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);

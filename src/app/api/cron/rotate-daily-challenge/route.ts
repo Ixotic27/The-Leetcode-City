@@ -5,7 +5,10 @@ export async function GET(request: NextRequest) {
   // Verify Vercel Cron secret
   const authHeader = request.headers.get("authorization");
   if (!process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -13,7 +16,9 @@ export async function GET(request: NextRequest) {
 
   try {
     const todayStr = new Date().toISOString().split("T")[0];
-    console.log(`[cron/rotate-daily-challenge] Rotating for date: ${todayStr}...`);
+    console.log(
+      `[cron/rotate-daily-challenge] Rotating for date: ${todayStr}...`,
+    );
     const success = await rotateDailyChallenges(todayStr);
 
     if (!success) {
@@ -22,7 +27,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ ok: true, rotated: true, date: todayStr });
   } catch (err: any) {
-    console.error("[cron/rotate-daily-challenge] Error running rotation:", err.message);
+    console.error(
+      "[cron/rotate-daily-challenge] Error running rotation:",
+      err.message,
+    );
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

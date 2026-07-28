@@ -19,7 +19,7 @@ jobs:
         with:
           script: |
             const headBranch = context.payload.pull_request.head.ref;
-            
+
             if (headBranch === 'main' || headBranch === 'master') {
               const body = `🚨 **BRANCH HYGIENE ERROR** 🚨\n\nHello @${context.payload.pull_request.user.login}, thank you for your willingness to contribute!\n\nHowever, you have submitted this Pull Request directly from your \`${headBranch}\` branch. \n\nTo keep git histories clean and prevent merge conflicts, our \`CONTRIBUTING.md\` strictly requires all changes to be made on a **separate, dedicated branch** (e.g., \`git checkout -b 12-fix-bug\`).\n\n**Action Required:**\n1. Please close this PR.\n2. Create a new branch on your local fork.\n3. Move your commits to that branch.\n4. Open a new Pull Request from the new branch.\n\n⭐ *(While you are doing that, please consider starring the repository to help increase its visibility and support the developer!)*`;
               

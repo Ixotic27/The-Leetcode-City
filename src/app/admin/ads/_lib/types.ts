@@ -47,7 +47,8 @@ export type SortKey =
 export type SortDir = "asc" | "desc";
 export type Period = "7d" | "30d" | "all";
 export type StatusFilter = "all" | "active" | "paused" | "expired";
-export type VehicleFilter = "all" | "plane" | "blimp" | "billboard" | "rooftop_sign" | "led_wrap";
+export type VehicleFilter =
+  "all" | "plane" | "blimp" | "billboard" | "rooftop_sign" | "led_wrap";
 export type SourceFilter = "all" | "paid" | "manual";
 
 export type AdStatus = "active" | "paused" | "expired";

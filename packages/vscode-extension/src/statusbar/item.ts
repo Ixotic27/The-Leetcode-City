@@ -5,7 +5,10 @@ let statusBarItem: vscode.StatusBarItem;
 let updateTimer: ReturnType<typeof setInterval> | undefined;
 
 export function initStatusBar(context: vscode.ExtensionContext) {
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+  statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100,
+  );
   statusBarItem.command = "leetcodecity.togglePause";
   context.subscriptions.push(statusBarItem);
 
@@ -22,7 +25,9 @@ export function initStatusBar(context: vscode.ExtensionContext) {
   context.subscriptions.push({ dispose: () => clearInterval(updateTimer) });
 }
 
-export function updateDisplay(status: "active" | "idle" | "paused" | "connect") {
+export function updateDisplay(
+  status: "active" | "idle" | "paused" | "connect",
+) {
   switch (status) {
     case "active": {
       const seconds = getActiveSeconds();
@@ -39,7 +44,9 @@ export function updateDisplay(status: "active" | "idle" | "paused" | "connect") 
       break;
     case "paused":
       statusBarItem.text = "$(circle-slash) Pulse: Off";
-      statusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+      statusBarItem.backgroundColor = new vscode.ThemeColor(
+        "statusBarItem.warningBackground",
+      );
       statusBarItem.tooltip = "Click to resume Pulse";
       break;
     case "connect":

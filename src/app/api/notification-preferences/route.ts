@@ -25,7 +25,10 @@ export async function GET() {
   });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const sb = getSupabaseAdmin();
@@ -75,7 +78,10 @@ export async function PATCH(request: Request) {
   });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const body = await request.json();
@@ -100,36 +106,50 @@ export async function PATCH(request: Request) {
   }
 
   // Validate digest_frequency
-  if (update.digest_frequency && !["realtime", "hourly", "daily", "weekly"].includes(update.digest_frequency as string)) {
-    return NextResponse.json({ error: "Invalid digest_frequency" }, { status: 400 });
+  if (
+    update.digest_frequency &&
+    !["realtime", "hourly", "daily", "weekly"].includes(
+      update.digest_frequency as string,
+    )
+  ) {
+    return NextResponse.json(
+      { error: "Invalid digest_frequency" },
+      { status: 400 },
+    );
   }
 
   // Validate quiet hours
   if (update.quiet_hours_start !== undefined) {
     const h = update.quiet_hours_start as number | null;
     if (h !== null && (h < 0 || h > 23)) {
-      return NextResponse.json({ error: "quiet_hours_start must be 0-23" }, { status: 400 });
+      return NextResponse.json(
+        { error: "quiet_hours_start must be 0-23" },
+        { status: 400 },
+      );
     }
   }
   if (update.quiet_hours_end !== undefined) {
     const h = update.quiet_hours_end as number | null;
     if (h !== null && (h < 0 || h > 23)) {
-      return NextResponse.json({ error: "quiet_hours_end must be 0-23" }, { status: 400 });
+      return NextResponse.json(
+        { error: "quiet_hours_end must be 0-23" },
+        { status: 400 },
+      );
     }
   }
 
   if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    return NextResponse.json(
+      { error: "No valid fields to update" },
+      { status: 400 },
+    );
   }
 
   update.updated_at = new Date().toISOString();
 
   const { data: updated, error } = await sb
     .from("notification_preferences")
-    .upsert(
-      { developer_id: dev.id, ...update },
-      { onConflict: "developer_id" },
-    )
+    .upsert({ developer_id: dev.id, ...update }, { onConflict: "developer_id" })
     .select()
     .single();
 

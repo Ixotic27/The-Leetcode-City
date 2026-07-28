@@ -58,11 +58,27 @@ export async function getOwnedItems(developerId: number): Promise<string[]> {
     .eq("status", "completed");
 
   const ownFiltered = (ownData ?? [])
-    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
+    .filter(
+      (row) =>
+        !(
+          row.amount_cents === 0 &&
+          ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+            row.provider,
+          )
+        ),
+    )
     .map((row) => row.item_id);
 
   const giftFiltered = (giftData ?? [])
-    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
+    .filter(
+      (row) =>
+        !(
+          row.amount_cents === 0 &&
+          ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(
+            row.provider,
+          )
+        ),
+    )
     .map((row) => row.item_id);
 
   return [...ownFiltered, ...giftFiltered];
@@ -77,7 +93,7 @@ export const FREE_CLAIM_ITEM = "flag";
  * Returns true if the item was granted, false if already owned.
  */
 export async function grantFreeClaimItem(
-  developerId: number
+  developerId: number,
 ): Promise<boolean> {
   const sb = getSupabaseAdmin();
 
@@ -99,12 +115,15 @@ export async function grantFreeClaimItem(
       {
         onConflict: "provider_tx_id",
         ignoreDuplicates: true,
-      }
+      },
     )
     .select("id");
 
   if (error) {
-    console.error("[items.ts] grantFreeClaimItem: Failed to insert free purchase:", error);
+    console.error(
+      "[items.ts] grantFreeClaimItem: Failed to insert free purchase:",
+      error,
+    );
     return false;
   }
 
@@ -119,14 +138,14 @@ export async function grantFreeClaimItem(
  */
 export async function autoEquipIfSolo(
   developerId: number,
-  itemId: string
+  itemId: string,
 ): Promise<void> {
   const service = new InventoryEconomyService();
   await service.autoEquipIfSolo({ developerId, itemId });
 }
 
 export async function getOwnedItemsForDevelopers(
-  developerIds: number[]
+  developerIds: number[],
 ): Promise<Record<number, string[]>> {
   if (developerIds.length === 0) return {};
 
@@ -149,14 +168,20 @@ export async function getOwnedItemsForDevelopers(
 
   const result: Record<number, string[]> = {};
   for (const row of ownData ?? []) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+    if (
+      row.amount_cents === 0 &&
+      ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)
+    ) {
       continue;
     }
     if (!result[row.developer_id]) result[row.developer_id] = [];
     result[row.developer_id].push(row.item_id);
   }
   for (const row of giftData ?? []) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
+    if (
+      row.amount_cents === 0 &&
+      ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)
+    ) {
       continue;
     }
     const devId = row.gifted_to as number;
@@ -210,13 +235,15 @@ export async function createAtomicCheckoutPurchase({
   if (error) {
     throw new InfrastructureError(
       `[createAtomicCheckoutPurchase] RPC failed: ${error.message}`,
-      error
+      error,
     );
   }
 
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.purchase_id) {
-    throw new InfrastructureError("[createAtomicCheckoutPurchase] Missing purchase_id from RPC response");
+    throw new InfrastructureError(
+      "[createAtomicCheckoutPurchase] Missing purchase_id from RPC response",
+    );
   }
 
   return {
@@ -225,10 +252,14 @@ export async function createAtomicCheckoutPurchase({
 }
 
 export async function fulfillItemPurchase(
-   developerId: number,
-   itemId: string,
-   supabaseAdminClient?: SupabaseClient
- ): Promise<{ status: "completed" | "delivered" }> {
-   const service = new InventoryEconomyService(supabaseAdminClient);
-   return service.fulfillPurchasedItem({ developerId, itemId, supabaseClient: supabaseAdminClient });
- } 
+  developerId: number,
+  itemId: string,
+  supabaseAdminClient?: SupabaseClient,
+): Promise<{ status: "completed" | "delivered" }> {
+  const service = new InventoryEconomyService(supabaseAdminClient);
+  return service.fulfillPurchasedItem({
+    developerId,
+    itemId,
+    supabaseClient: supabaseAdminClient,
+  });
+}

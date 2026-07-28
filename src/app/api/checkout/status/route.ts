@@ -14,10 +14,15 @@ export async function GET(request: Request) {
   }
 
   // Auth + developer resolution
-  const auth = await resolveAuthenticatedDeveloper({ select: "id, github_login" });
+  const auth = await resolveAuthenticatedDeveloper({
+    select: "id, github_login",
+  });
 
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
+    return NextResponse.json(
+      { error: auth.error ?? "Not authenticated" },
+      { status: auth.status },
+    );
   }
 
   const sb = getSupabaseAdmin();

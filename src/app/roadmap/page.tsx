@@ -63,7 +63,9 @@ export default async function RoadmapPage() {
         }
       }
     }
-  } catch (err) { console.warn("[app/roadmap/page.tsx] non-critical error:", err); }
+  } catch (err) {
+    console.warn("[app/roadmap/page.tsx] non-critical error:", err);
+  }
 
   return (
     <RoadmapClient

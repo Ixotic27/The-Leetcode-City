@@ -1,7 +1,8 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
 const MILESTONE_MESSAGES: Record<number, { emoji: string; tagline: string }> = {
   7: { emoji: "&#x1F525;", tagline: "You're on fire!" },

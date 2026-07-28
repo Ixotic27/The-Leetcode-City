@@ -98,7 +98,14 @@ export type ServerMsg =
   | { type: "sync"; players: PlayerState[] }
   | { type: "join"; player: PlayerState }
   | { type: "leave"; id: string }
-  | { type: "move"; id: string; x: number; y: number; dir: Direction; ackSeq?: number }
+  | {
+      type: "move";
+      id: string;
+      x: number;
+      y: number;
+      dir: Direction;
+      ackSeq?: number;
+    }
   | { type: "chat"; id: string; text: string }
   | { type: "chat_history"; entries: ChatLogEntry[] }
   | { type: "sit"; id: string; x: number; y: number; dir: Direction }

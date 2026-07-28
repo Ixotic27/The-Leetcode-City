@@ -4,8 +4,8 @@
 
 LeetCode City is actively developed. Security fixes are applied to the latest version on `main`.
 
-| Version | Supported          |
-| ------- | ------------------ |
+| Version         | Supported          |
+| --------------- | ------------------ |
 | latest (`main`) | :white_check_mark: |
 | older commits   | :x:                |
 

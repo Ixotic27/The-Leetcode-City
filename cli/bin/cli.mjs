@@ -31,7 +31,9 @@ const warn = (msg) => console.log(`${c.yellow}  ⚠${c.reset} ${msg}`);
 const fail = (msg) => console.log(`${c.red}  ✗${c.reset} ${msg}`);
 const info = (msg) => console.log(`${c.cyan}  ℹ${c.reset} ${msg}`);
 const step = (n, total, msg) =>
-  console.log(`\n${c.bold}${c.magenta}[${n}/${total}]${c.reset} ${c.bold}${msg}${c.reset}`);
+  console.log(
+    `\n${c.bold}${c.magenta}[${n}/${total}]${c.reset} ${c.bold}${msg}${c.reset}`,
+  );
 
 const REPO_URL = "https://github.com/Ixotic27/The-Leetcode-City.git";
 const REPO_NAME = "The-Leetcode-City";
@@ -58,9 +60,15 @@ const folderArg = process.argv[3];
 if (!command || command === "--help" || command === "-h") {
   banner();
   console.log(`${c.bold}Usage:${c.reset}`);
-  console.log(`  ${c.cyan}npx leetcode-city init${c.reset}              Clone & set up the project`);
-  console.log(`  ${c.cyan}npx leetcode-city init my-folder${c.reset}    Clone into a specific folder`);
-  console.log(`  ${c.cyan}npx leetcode-city doctor${c.reset}            Validate existing setup`);
+  console.log(
+    `  ${c.cyan}npx leetcode-city init${c.reset}              Clone & set up the project`,
+  );
+  console.log(
+    `  ${c.cyan}npx leetcode-city init my-folder${c.reset}    Clone into a specific folder`,
+  );
+  console.log(
+    `  ${c.cyan}npx leetcode-city doctor${c.reset}            Validate existing setup`,
+  );
   console.log();
   process.exit(0);
 }
@@ -71,7 +79,9 @@ if (command === "init") {
   doctor();
 } else {
   fail(`Unknown command: ${command}`);
-  info(`Run ${c.cyan}npx leetcode-city --help${c.reset} to see available commands.`);
+  info(
+    `Run ${c.cyan}npx leetcode-city --help${c.reset} to see available commands.`,
+  );
   process.exit(1);
 }
 
@@ -204,7 +214,10 @@ function doctor() {
 
   // npm
   try {
-    const npmV = execSync("npm --version", { encoding: "utf-8", stdio: "pipe" }).trim();
+    const npmV = execSync("npm --version", {
+      encoding: "utf-8",
+      stdio: "pipe",
+    }).trim();
     ok(`npm ${npmV}`);
   } catch {
     fail("npm not found");
@@ -248,6 +261,8 @@ function doctor() {
   if (issues === 0) {
     console.log(`${c.green}${c.bold}  All checks passed! ✅${c.reset}\n`);
   } else {
-    console.log(`${c.yellow}${c.bold}  ${issues} issue(s) found — see above.${c.reset}\n`);
+    console.log(
+      `${c.yellow}${c.bold}  ${issues} issue(s) found — see above.${c.reset}\n`,
+    );
   }
 }

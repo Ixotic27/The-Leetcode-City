@@ -67,7 +67,12 @@ export class RaidService {
   private readonly payload: RaidExecutionPayload;
   private readonly raidWeekStart: string;
 
-  constructor(admin: SupabaseClient, user: User, payload: RaidExecutionPayload, raidWeekStart: string) {
+  constructor(
+    admin: SupabaseClient,
+    user: User,
+    payload: RaidExecutionPayload,
+    raidWeekStart: string,
+  ) {
     this.admin = admin;
     this.user = user;
     this.payload = payload;
@@ -91,15 +96,22 @@ export class RaidService {
     }
 
     const { vehicle, tagStyle } = await this.resolveLoadout(attacker);
-    const { boostBonus, boostItemId, boostPurchaseIdToConsume, attackerConsumableItemId } = await this.resolveConsumables(attacker);
-    const { activeDefenses, defenderItemUsed, defenderEffectiveDefense } = await this.resolveDefenses(defender, attackerConsumableItemId);
+    const {
+      boostBonus,
+      boostItemId,
+      boostPurchaseIdToConsume,
+      attackerConsumableItemId,
+    } = await this.resolveConsumables(attacker);
+    const { activeDefenses, defenderItemUsed, defenderEffectiveDefense } =
+      await this.resolveDefenses(defender, attackerConsumableItemId);
 
     const isEmpDevice = attackerConsumableItemId === "emp_device";
     const isSabotageVirus = attackerConsumableItemId === "sabotage_virus";
     const isAirAttack = vehicle !== "vehicle_tank";
     const isGroundAttack = vehicle === "vehicle_tank";
     const isStealthCloak = defenderEffectiveDefense === "stealth_cloak";
-    const isEmpShield = defenderEffectiveDefense === "emp_shield" && !isEmpDevice;
+    const isEmpShield =
+      defenderEffectiveDefense === "emp_shield" && !isEmpDevice;
     const isAntiMissile = defenderEffectiveDefense === "anti_missile_system";
     const isAntiTank = defenderEffectiveDefense === "anti_tank_mines";
 
@@ -113,9 +125,13 @@ export class RaidService {
     });
 
     const defense = calculateDefenseScore({
-      weeklyContributions: isStealthCloak ? 0 : defender.current_week_contributions ?? 0,
-      appStreak: isStealthCloak ? 0 : defender.app_streak ?? 0,
-      weeklyKudosReceived: isStealthCloak ? 0 : defender.current_week_kudos_received ?? 0,
+      weeklyContributions: isStealthCloak
+        ? 0
+        : (defender.current_week_contributions ?? 0),
+      appStreak: isStealthCloak ? 0 : (defender.app_streak ?? 0),
+      weeklyKudosReceived: isStealthCloak
+        ? 0
+        : (defender.current_week_kudos_received ?? 0),
       sabotageVirusActive: isSabotageVirus,
       antiMissileActive: isAntiMissile,
       antiTankActive: isAntiTank,
@@ -126,55 +142,98 @@ export class RaidService {
     const success = attack.total > defense.total;
 
     if (boostItemId) attack.breakdown.boost_item = boostItemId;
-    if (attackerConsumableItemId) attack.breakdown.boost_item = attackerConsumableItemId;
-    if (defenderEffectiveDefense) defense.breakdown.boost_item = defenderEffectiveDefense;
+    if (attackerConsumableItemId)
+      attack.breakdown.boost_item = attackerConsumableItemId;
+    if (defenderEffectiveDefense)
+      defense.breakdown.boost_item = defenderEffectiveDefense;
 
-    const { data: raidResult, error: raidError } = await this.admin.rpc("execute_raid", {
-      p_attacker_id: attacker.id,
-      p_defender_id: defender.id,
-      p_attack_score: attack.total,
-      p_defense_score: defense.total,
-      p_success: success,
-      p_attack_breakdown: attack.breakdown,
-      p_defense_breakdown: defense.breakdown,
-      p_vehicle: vehicle,
-      p_tag_style: tagStyle,
-      p_consumable_item_id: attackerConsumableItemId,
-      p_week_start: this.raidWeekStart,
-    });
+    const { data: raidResult, error: raidError } = await this.admin.rpc(
+      "execute_raid",
+      {
+        p_attacker_id: attacker.id,
+        p_defender_id: defender.id,
+        p_attack_score: attack.total,
+        p_defense_score: defense.total,
+        p_success: success,
+        p_attack_breakdown: attack.breakdown,
+        p_defense_breakdown: defense.breakdown,
+        p_vehicle: vehicle,
+        p_tag_style: tagStyle,
+        p_consumable_item_id: attackerConsumableItemId,
+        p_week_start: this.raidWeekStart,
+      },
+    );
 
     if (raidError) {
       console.error("[raid/execute] execute_raid RPC error:", raidError);
       throw this.createError("Raid temporarily unavailable", 500);
     }
 
-    const result = raidResult?.[0] as { ok?: boolean; error_code?: string; raid_id?: string } | undefined;
+    const result = raidResult?.[0] as
+      { ok?: boolean; error_code?: string; raid_id?: string } | undefined;
     if (!result?.ok) {
       const errorMap: Record<string, { error: string; status: number }> = {
         cooldown: { error: "Too fast, wait before raiding again", status: 429 },
         daily_cap: { error: "Daily raid limit reached", status: 429 },
-        peace_shield: { error: "Target has an active Peace Shield", status: 429 },
-        weekly_pair: { error: "Already raided this target this week", status: 429 },
+        peace_shield: {
+          error: "Target has an active Peace Shield",
+          status: 429,
+        },
+        weekly_pair: {
+          error: "Already raided this target this week",
+          status: 429,
+        },
         consumable: { error: "Raid blocked", status: 429 },
       };
-      const mapped = errorMap[result?.error_code ?? ""] ?? { error: "Raid blocked", status: 429 };
+      const mapped = errorMap[result?.error_code ?? ""] ?? {
+        error: "Raid blocked",
+        status: 429,
+      };
       throw this.createError(mapped.error, mapped.status);
     }
 
     const raidId = result.raid_id ?? "";
 
-    await this.handlePostExecution(attacker, defender, { boostPurchaseIdToConsume, defenderItemUsed, activeDefenses, success, raidId, vehicle, tagStyle, attack, defense, attackerConsumableItemId, defenderEffectiveDefense });
+    await this.handlePostExecution(attacker, defender, {
+      boostPurchaseIdToConsume,
+      defenderItemUsed,
+      activeDefenses,
+      success,
+      raidId,
+      vehicle,
+      tagStyle,
+      attack,
+      defense,
+      attackerConsumableItemId,
+      defenderEffectiveDefense,
+    });
 
     const [updatedAttackerResult, updatedDefenderResult] = await Promise.all([
-      this.admin.from("developers").select("raid_xp").eq("id", attacker.id).maybeSingle(),
-      this.admin.from("developers").select("raid_xp").eq("id", defender.id).maybeSingle(),
+      this.admin
+        .from("developers")
+        .select("raid_xp")
+        .eq("id", attacker.id)
+        .maybeSingle(),
+      this.admin
+        .from("developers")
+        .select("raid_xp")
+        .eq("id", defender.id)
+        .maybeSingle(),
     ]);
 
-    const updatedAttacker = updatedAttackerResult.data as { raid_xp?: number | null } | null;
-    const updatedDefender = updatedDefenderResult.data as { raid_xp?: number | null } | null;
+    const updatedAttacker = updatedAttackerResult.data as {
+      raid_xp?: number | null;
+    } | null;
+    const updatedDefender = updatedDefenderResult.data as {
+      raid_xp?: number | null;
+    } | null;
 
-    const newAttackerXp = updatedAttacker?.raid_xp ?? ((attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0));
-    const newDefenderXp = updatedDefender?.raid_xp ?? ((defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER));
+    const newAttackerXp =
+      updatedAttacker?.raid_xp ??
+      (attacker.raid_xp ?? 0) + (success ? XP_WIN_ATTACKER : 0);
+    const newDefenderXp =
+      updatedDefender?.raid_xp ??
+      (defender.raid_xp ?? 0) + (success ? XP_WIN_DEFENDER : XP_LOSE_DEFENDER);
 
     // Coordinate achievement checks for both attacker and defender (no additional XP grants)
     const [attackerAchievementsResult] = await Promise.all([
@@ -241,13 +300,19 @@ export class RaidService {
           login: attacker.github_login,
           avatar: attacker.avatar_url ?? null,
           position: [0, 0, 0] as [number, number, number],
-          height: Math.max(20, Math.min(300, (attacker.contributions ?? 0) * 0.15)),
+          height: Math.max(
+            20,
+            Math.min(300, (attacker.contributions ?? 0) * 0.15),
+          ),
         },
         defender: {
           login: defender.github_login,
           avatar: defender.avatar_url ?? null,
           position: [0, 0, 0] as [number, number, number],
-          height: Math.max(20, Math.min(300, (defender.contributions ?? 0) * 0.15)),
+          height: Math.max(
+            20,
+            Math.min(300, (defender.contributions ?? 0) * 0.15),
+          ),
         },
         xp_earned: xpEarned,
         new_raid_xp: newAttackerXp,
@@ -264,23 +329,46 @@ export class RaidService {
   }
 
   private async loadDefender(): Promise<RaidDeveloper | null> {
-    const { data: defender } = await this.admin.from("developers").select(this.getRaidColumns()).ilike("github_login", this.payload.target_login).limit(1).maybeSingle();
+    const { data: defender } = await this.admin
+      .from("developers")
+      .select(this.getRaidColumns())
+      .ilike("github_login", this.payload.target_login)
+      .limit(1)
+      .maybeSingle();
     return defender as RaidDeveloper | null;
   }
 
-  private async resolveLoadout(attacker: RaidDeveloper): Promise<{ vehicle: string; tagStyle: string }> {
-    const [{ data: raidLoadoutRow }, { data: ownedVehiclePurchases }] = await Promise.all([
-      this.admin.from("developer_customizations").select("config").eq("developer_id", attacker.id).eq("item_id", "raid_loadout").maybeSingle(),
-      this.admin.from("purchases").select("item_id, items!inner(metadata)").eq("developer_id", attacker.id).eq("status", "completed"),
-    ]);
+  private async resolveLoadout(
+    attacker: RaidDeveloper,
+  ): Promise<{ vehicle: string; tagStyle: string }> {
+    const [{ data: raidLoadoutRow }, { data: ownedVehiclePurchases }] =
+      await Promise.all([
+        this.admin
+          .from("developer_customizations")
+          .select("config")
+          .eq("developer_id", attacker.id)
+          .eq("item_id", "raid_loadout")
+          .maybeSingle(),
+        this.admin
+          .from("purchases")
+          .select("item_id, items!inner(metadata)")
+          .eq("developer_id", attacker.id)
+          .eq("status", "completed"),
+      ]);
 
-    const ownedSet = new Set((ownedVehiclePurchases ?? []).map((p: { item_id: string }) => p.item_id));
-    const savedLoadout = (raidLoadoutRow?.config as { vehicle?: string; tag?: string } | null) ?? {};
+    const ownedSet = new Set(
+      (ownedVehiclePurchases ?? []).map((p: { item_id: string }) => p.item_id),
+    );
+    const savedLoadout =
+      (raidLoadoutRow?.config as { vehicle?: string; tag?: string } | null) ??
+      {};
     const xpLevel = attacker.xp_level ?? 1;
 
     let vehicle = "airplane";
     if (this.payload.vehicle_id) {
-      const isLevelUnlocked = ITEM_UNLOCK_LEVELS[this.payload.vehicle_id] && xpLevel >= ITEM_UNLOCK_LEVELS[this.payload.vehicle_id];
+      const isLevelUnlocked =
+        ITEM_UNLOCK_LEVELS[this.payload.vehicle_id] &&
+        xpLevel >= ITEM_UNLOCK_LEVELS[this.payload.vehicle_id];
       if (
         this.payload.vehicle_id === "airplane" ||
         this.payload.vehicle_id === "raid_helicopter" ||
@@ -293,7 +381,8 @@ export class RaidService {
       }
     } else {
       const saved = savedLoadout.vehicle ?? "airplane";
-      const isSavedLevelUnlocked = ITEM_UNLOCK_LEVELS[saved] && xpLevel >= ITEM_UNLOCK_LEVELS[saved];
+      const isSavedLevelUnlocked =
+        ITEM_UNLOCK_LEVELS[saved] && xpLevel >= ITEM_UNLOCK_LEVELS[saved];
       vehicle =
         saved === "airplane" ||
         saved === "raid_helicopter" ||
@@ -307,22 +396,41 @@ export class RaidService {
 
     let tagStyle = "default";
     const savedTag = savedLoadout.tag ?? "default";
-    const isTagLevelUnlocked = ITEM_UNLOCK_LEVELS[savedTag] && xpLevel >= ITEM_UNLOCK_LEVELS[savedTag];
-    tagStyle = savedTag === "default" || ownedSet.has(savedTag) || isTagLevelUnlocked ? savedTag : "default";
+    const isTagLevelUnlocked =
+      ITEM_UNLOCK_LEVELS[savedTag] && xpLevel >= ITEM_UNLOCK_LEVELS[savedTag];
+    tagStyle =
+      savedTag === "default" || ownedSet.has(savedTag) || isTagLevelUnlocked
+        ? savedTag
+        : "default";
 
     return { vehicle, tagStyle };
   }
 
-  private async resolveConsumables(attacker: RaidDeveloper): Promise<{ boostBonus: number; boostItemId: string | null; boostPurchaseIdToConsume: number | null; attackerConsumableItemId: string | null }> {
-    const consumable_item_id = this.payload.offensive_item_id ?? this.payload.consumable_item_id;
+  private async resolveConsumables(
+    attacker: RaidDeveloper,
+  ): Promise<{
+    boostBonus: number;
+    boostItemId: string | null;
+    boostPurchaseIdToConsume: number | null;
+    attackerConsumableItemId: string | null;
+  }> {
+    const consumable_item_id =
+      this.payload.offensive_item_id ?? this.payload.consumable_item_id;
     let boostBonus = 0;
     let boostItemId: string | null = null;
     let boostPurchaseIdToConsume: number | null = null;
     let attackerConsumableItemId: string | null = null;
 
     if (consumable_item_id) {
-      const { data: consumable } = await this.admin.from("developer_consumables").select("id, quantity, weekly_uses, last_reset_week").eq("developer_id", attacker.id).eq("item_id", consumable_item_id).single();
-      const resetWeekStr = consumable?.last_reset_week ? getUtcDateString(consumable.last_reset_week) : null;
+      const { data: consumable } = await this.admin
+        .from("developer_consumables")
+        .select("id, quantity, weekly_uses, last_reset_week")
+        .eq("developer_id", attacker.id)
+        .eq("item_id", consumable_item_id)
+        .single();
+      const resetWeekStr = consumable?.last_reset_week
+        ? getUtcDateString(consumable.last_reset_week)
+        : null;
 
       if (consumable && consumable.quantity > 0) {
         let currentUses = consumable.weekly_uses;
@@ -330,17 +438,32 @@ export class RaidService {
         if (currentUses < 3) attackerConsumableItemId = consumable_item_id;
       } else {
         const reqLevel = ITEM_UNLOCK_LEVELS[consumable_item_id];
-        const isLevelUnlocked = reqLevel && (attacker.xp_level ?? 1) >= reqLevel;
+        const isLevelUnlocked =
+          reqLevel && (attacker.xp_level ?? 1) >= reqLevel;
         if (isLevelUnlocked || consumable_item_id === "scouting_satellite") {
-          if (!consumable || consumable.weekly_uses < 3 || resetWeekStr !== this.raidWeekStart) {
+          if (
+            !consumable ||
+            consumable.weekly_uses < 3 ||
+            resetWeekStr !== this.raidWeekStart
+          ) {
             attackerConsumableItemId = consumable_item_id;
           }
         }
       }
     } else if (this.payload.boost_purchase_id) {
-      const { data: boostPurchase } = await this.admin.from("purchases").select("id, item_id, status, items!inner(metadata)").eq("id", this.payload.boost_purchase_id).eq("developer_id", attacker.id).eq("status", "completed").single();
+      const { data: boostPurchase } = await this.admin
+        .from("purchases")
+        .select("id, item_id, status, items!inner(metadata)")
+        .eq("id", this.payload.boost_purchase_id)
+        .eq("developer_id", attacker.id)
+        .eq("status", "completed")
+        .single();
       if (boostPurchase) {
-        const meta = (boostPurchase.items as unknown as { metadata: { type: string; bonus: number } })?.metadata;
+        const meta = (
+          boostPurchase.items as unknown as {
+            metadata: { type: string; bonus: number };
+          }
+        )?.metadata;
         if (meta?.type === "raid_boost" && meta.bonus > 0) {
           boostBonus = meta.bonus;
           boostItemId = boostPurchase.item_id;
@@ -349,22 +472,41 @@ export class RaidService {
       }
     }
 
-    return { boostBonus, boostItemId, boostPurchaseIdToConsume, attackerConsumableItemId };
+    return {
+      boostBonus,
+      boostItemId,
+      boostPurchaseIdToConsume,
+      attackerConsumableItemId,
+    };
   }
 
-  private async resolveDefenses(defender: RaidDeveloper, attackerConsumableItemId: string | null): Promise<{ activeDefenses: string[]; defenderItemUsed: boolean; defenderEffectiveDefense: string | null }> {
-    let activeDefenses: string[] = Array.isArray(defender.active_defenses) ? defender.active_defenses : [];
+  private async resolveDefenses(
+    defender: RaidDeveloper,
+    attackerConsumableItemId: string | null,
+  ): Promise<{
+    activeDefenses: string[];
+    defenderItemUsed: boolean;
+    defenderEffectiveDefense: string | null;
+  }> {
+    let activeDefenses: string[] = Array.isArray(defender.active_defenses)
+      ? defender.active_defenses
+      : [];
     let defenderItemUsed = false;
 
     if (activeDefenses.length > 0) {
       defenderItemUsed = true;
     } else {
-      const { data: availableDefenses } = await this.admin.from("developer_consumables").select("item_id, quantity, weekly_uses, last_reset_week").eq("developer_id", defender.id).gt("quantity", 0);
+      const { data: availableDefenses } = await this.admin
+        .from("developer_consumables")
+        .select("item_id, quantity, weekly_uses, last_reset_week")
+        .eq("developer_id", defender.id)
+        .gt("quantity", 0);
 
       if (availableDefenses && availableDefenses.length > 0) {
         for (const def of availableDefenses) {
           let currentUses = def.weekly_uses;
-          if (getUtcDateString(def.last_reset_week) !== this.raidWeekStart) currentUses = 0;
+          if (getUtcDateString(def.last_reset_week) !== this.raidWeekStart)
+            currentUses = 0;
           if (currentUses < 3) {
             activeDefenses = [def.item_id];
             defenderItemUsed = true;
@@ -375,46 +517,93 @@ export class RaidService {
     }
 
     const isEmpDevice = attackerConsumableItemId === "emp_device";
-    let defenderEffectiveDefense = activeDefenses.length > 0 ? activeDefenses[0] : null;
-    if (isEmpDevice && defenderEffectiveDefense) defenderEffectiveDefense = null;
+    let defenderEffectiveDefense =
+      activeDefenses.length > 0 ? activeDefenses[0] : null;
+    if (isEmpDevice && defenderEffectiveDefense)
+      defenderEffectiveDefense = null;
 
     return { activeDefenses, defenderItemUsed, defenderEffectiveDefense };
   }
 
-  private async handlePostExecution(attacker: RaidDeveloper, defender: RaidDeveloper, details: { boostPurchaseIdToConsume: number | null; defenderItemUsed: boolean; activeDefenses: string[]; success: boolean; raidId?: string; vehicle: string; tagStyle: string; attack: { total: number; breakdown: ScoreBreakdown }; defense: { total: number; breakdown: ScoreBreakdown }; attackerConsumableItemId: string | null; defenderEffectiveDefense: string | null }): Promise<void> {
+  private async handlePostExecution(
+    attacker: RaidDeveloper,
+    defender: RaidDeveloper,
+    details: {
+      boostPurchaseIdToConsume: number | null;
+      defenderItemUsed: boolean;
+      activeDefenses: string[];
+      success: boolean;
+      raidId?: string;
+      vehicle: string;
+      tagStyle: string;
+      attack: { total: number; breakdown: ScoreBreakdown };
+      defense: { total: number; breakdown: ScoreBreakdown };
+      attackerConsumableItemId: string | null;
+      defenderEffectiveDefense: string | null;
+    },
+  ): Promise<void> {
     if (details.boostPurchaseIdToConsume) {
-      await this.admin.from("purchases").update({ status: "consumed" }).eq("id", details.boostPurchaseIdToConsume);
+      await this.admin
+        .from("purchases")
+        .update({ status: "consumed" })
+        .eq("id", details.boostPurchaseIdToConsume);
     }
     if (details.defenderItemUsed && details.activeDefenses.length > 0) {
       await this.consumeDeveloperItem(defender.id, details.activeDefenses[0]);
     }
 
     if (details.success) {
-      await this.admin.from("raid_tags").update({ active: false }).eq("building_id", defender.id).eq("active", true);
+      await this.admin
+        .from("raid_tags")
+        .update({ active: false })
+        .eq("building_id", defender.id)
+        .eq("active", true);
       await this.admin.from("raid_tags").insert({
         raid_id: details.raidId,
         building_id: defender.id,
         attacker_id: attacker.id,
         attacker_login: attacker.github_login,
         tag_style: details.tagStyle,
-        expires_at: new Date(Date.now() + RAID_TAG_DURATION_DAYS * 86400000).toISOString(),
+        expires_at: new Date(
+          Date.now() + RAID_TAG_DURATION_DAYS * 86400000,
+        ).toISOString(),
       });
 
       await Promise.all([
-        this.admin.rpc("increment_raid_xp", { p_developer_id: attacker.id, p_amount: XP_WIN_ATTACKER }),
-        this.admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_WIN_DEFENDER }),
+        this.admin.rpc("increment_raid_xp", {
+          p_developer_id: attacker.id,
+          p_amount: XP_WIN_ATTACKER,
+        }),
+        this.admin.rpc("increment_raid_xp", {
+          p_developer_id: defender.id,
+          p_amount: XP_WIN_DEFENDER,
+        }),
       ]);
-      await this.admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
-      await this.admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+      await this.admin.rpc("grant_xp_atomic", {
+        p_developer_id: attacker.id,
+        p_source: "raid_win",
+        p_amount: 50,
+      });
+      await this.admin.rpc("grant_xp_atomic", {
+        p_developer_id: defender.id,
+        p_source: "raid_defend",
+        p_amount: 30,
+      });
 
       try {
-        const { data: newWins, error: relicErr } = await this.admin.rpc("increment_relic_progress", {
-          p_developer_id: attacker.id,
-          p_field: "raid_wins",
-        });
+        const { data: newWins, error: relicErr } = await this.admin.rpc(
+          "increment_relic_progress",
+          {
+            p_developer_id: attacker.id,
+            p_field: "raid_wins",
+          },
+        );
 
         if (relicErr) {
-          console.error("[raid/execute] increment_relic_progress error:", relicErr);
+          console.error(
+            "[raid/execute] increment_relic_progress error:",
+            relicErr,
+          );
         } else if ((newWins ?? 0) >= 1) {
           await this.admin.from("developer_relics").upsert(
             {
@@ -427,12 +616,26 @@ export class RaidService {
           );
         }
       } catch (err) {
-        console.error("[raid/execute] Failed to track raid win for relic:", err);
+        console.error(
+          "[raid/execute] Failed to track raid win for relic:",
+          err,
+        );
       }
     } else {
-      await this.admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_LOSE_DEFENDER });
-      await this.admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
-      await this.admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
+      await this.admin.rpc("increment_raid_xp", {
+        p_developer_id: defender.id,
+        p_amount: XP_LOSE_DEFENDER,
+      });
+      await this.admin.rpc("grant_xp_atomic", {
+        p_developer_id: attacker.id,
+        p_source: "raid_loss",
+        p_amount: 15,
+      });
+      await this.admin.rpc("grant_xp_atomic", {
+        p_developer_id: defender.id,
+        p_source: "raid_defend",
+        p_amount: 30,
+      });
     }
 
     await this.admin.from("activity_feed").insert({
@@ -450,10 +653,21 @@ export class RaidService {
     await touchLastActive(attacker.id);
     await trackDailyMission(attacker.id, "attempt_battle");
     if (details.success) await trackDailyMission(attacker.id, "win_battle");
-    sendRaidAlertNotification(defender.id, defender.github_login, attacker.github_login, details.raidId ?? 0, details.success, details.attack.total, details.defense.total);
+    sendRaidAlertNotification(
+      defender.id,
+      defender.github_login,
+      attacker.github_login,
+      details.raidId ?? 0,
+      details.success,
+      details.attack.total,
+      details.defense.total,
+    );
   }
 
-  private async consumeDeveloperItem(devId: number, itemId: string): Promise<boolean> {
+  private async consumeDeveloperItem(
+    devId: number,
+    itemId: string,
+  ): Promise<boolean> {
     const { data, error } = await this.admin.rpc("consume_consumable", {
       p_developer_id: devId,
       p_item_id: itemId,

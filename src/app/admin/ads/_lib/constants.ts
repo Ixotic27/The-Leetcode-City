@@ -8,7 +8,13 @@ export const VEHICLE_LABELS: Record<string, string> = {
   led_wrap: "LED Wrap",
 };
 
-export const VEHICLES = ["plane", "blimp", "billboard", "rooftop_sign", "led_wrap"] as const;
+export const VEHICLES = [
+  "plane",
+  "blimp",
+  "billboard",
+  "rooftop_sign",
+  "led_wrap",
+] as const;
 
 export const EMPTY_FORM: AdForm = {
   brand: "",

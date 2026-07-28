@@ -1,77 +1,80 @@
-import fs from 'fs';
+import fs from "fs";
 
 const repo = "Ixotic27/The-Leetcode-City";
-const token = fs.readFileSync(".env.local", "utf-8")
-    .split("\n")
-    .find(line => line.startsWith("GITHUB_TOKEN="))
-    ?.split("=")[1]?.trim();
+const token = fs
+  .readFileSync(".env.local", "utf-8")
+  .split("\n")
+  .find((line) => line.startsWith("GITHUB_TOKEN="))
+  ?.split("=")[1]
+  ?.trim();
 
 if (!token) {
-    console.error("No GITHUB_TOKEN found in .env.local");
-    process.exit(1);
+  console.error("No GITHUB_TOKEN found in .env.local");
+  process.exit(1);
 }
 
 const headers = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": `token ${token}`,
-    "Content-Type": "application/json",
-    "User-Agent": "Node-Script"
+  Accept: "application/vnd.github.v3+json",
+  Authorization: `token ${token}`,
+  "Content-Type": "application/json",
+  "User-Agent": "Node-Script",
 };
 
 async function createLabel(name, color, description) {
-    const res = await fetch(`https://api.github.com/repos/${repo}/labels`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ name, color, description })
-    });
-    if (res.status === 201) {
-        console.log(`Created label: ${name}`);
-    } else if (res.status === 422) {
-        console.log(`Label "${name}" already exists.`);
-    }
+  const res = await fetch(`https://api.github.com/repos/${repo}/labels`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name, color, description }),
+  });
+  if (res.status === 201) {
+    console.log(`Created label: ${name}`);
+  } else if (res.status === 422) {
+    console.log(`Label "${name}" already exists.`);
+  }
 }
 
 async function createIssue(title, body, labels) {
-    const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ title, body, labels })
-    });
-    if (res.status === 201) {
-        const issue = await res.json();
-        console.log(`✅ Created issue #${issue.number}: "${title}"`);
-    } else {
-        console.error(`❌ Failed to create issue "${title}":`, await res.text());
-    }
-    // Small delay to avoid rate limiting
-    await new Promise(r => setTimeout(r, 600));
+  const res = await fetch(`https://api.github.com/repos/${repo}/issues`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ title, body, labels }),
+  });
+  if (res.status === 201) {
+    const issue = await res.json();
+    console.log(`✅ Created issue #${issue.number}: "${title}"`);
+  } else {
+    console.error(`❌ Failed to create issue "${title}":`, await res.text());
+  }
+  // Small delay to avoid rate limiting
+  await new Promise((r) => setTimeout(r, 600));
 }
 
 const BRANCH_NOTE = `\n\n---\n**Note for Contributors:** Please create a branch named with this issue number and name to make it easier to identify (e.g., \`git checkout -b <issue-number>-issue-name\`).`;
 
 async function run() {
-    console.log("Creating any missing labels...\n");
-    await createLabel("bug", "d73a4a", "Something isn't working");
-    await createLabel("enhancement", "a2eeef", "New feature or request");
-    await createLabel("beginner", "0e8a16", "Beginner level task");
-    await createLabel("intermediate", "fbca04", "Intermediate level task");
-    await createLabel("advanced", "b60205", "Advanced level task");
-    await createLabel("good first issue", "7057ff", "Good for newcomers");
-    await createLabel("Gssoc 26", "170100", "GSSoC 2026");
-    await createLabel("gssoc:approved", "9313a8", "Approved for GSSoC");
-    await createLabel("UI/UX", "c5def5", "User interface and experience");
-    await createLabel("backend", "006b75", "Backend/API related");
-    await createLabel("performance", "e6e600", "Performance improvement");
+  console.log("Creating any missing labels...\n");
+  await createLabel("bug", "d73a4a", "Something isn't working");
+  await createLabel("enhancement", "a2eeef", "New feature or request");
+  await createLabel("beginner", "0e8a16", "Beginner level task");
+  await createLabel("intermediate", "fbca04", "Intermediate level task");
+  await createLabel("advanced", "b60205", "Advanced level task");
+  await createLabel("good first issue", "7057ff", "Good for newcomers");
+  await createLabel("Gssoc 26", "170100", "GSSoC 2026");
+  await createLabel("gssoc:approved", "9313a8", "Approved for GSSoC");
+  await createLabel("UI/UX", "c5def5", "User interface and experience");
+  await createLabel("backend", "006b75", "Backend/API related");
+  await createLabel("performance", "e6e600", "Performance improvement");
 
-    console.log("\nCreating issues...\n");
+  console.log("\nCreating issues...\n");
 
-    const issues = [
-        // ──────────────────────────────────────────────────────────────
-        // BUG 1: Battle shows "Must claim building first" even after login
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Battle fails with 'Must claim building first' even after logging in",
-            body: `### Description
+  const issues = [
+    // ──────────────────────────────────────────────────────────────
+    // BUG 1: Battle shows "Must claim building first" even after login
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Battle fails with 'Must claim building first' even after logging in",
+      body: `### Description
 When a logged-in user clicks the **⚔️ BATTLE** button on another user's building, the raid preview API returns:
 \`\`\`
 { "error": "Must claim building first" }
@@ -101,15 +104,21 @@ The battle preview should load and show the attack vs defense comparison.
 - \`src/app/api/raid/preview/route.ts\` — Lines 42-52
 - \`src/app/api/raid/execute/route.ts\` — Lines 62-82
 - \`src/app/api/claim/route.ts\` — Claim flow reference${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "intermediate", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "intermediate",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 2: Battle button appears on own building
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Battle button appears on user's own building",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 2: Battle button appears on own building
+    // ──────────────────────────────────────────────────────────────
+    {
+      title: "[Bug] Battle button appears on user's own building",
+      body: `### Description
 When a logged-in user clicks on **their own building**, the profile card shows the "⚔️ BATTLE" button alongside Kudos and Gift buttons. Clicking it results in a "Cannot raid yourself" error from the API.
 
 ### Root Cause
@@ -136,15 +145,23 @@ Ensure \`isOwnBuilding\` waits for \`linkedLeetCodeUsername\` to be populated be
 
 ### Affected Files
 - \`src/app/page.tsx\` — Lines 750-756 (\`isOwnBuilding\` logic), Line 3767 (conditional render)${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved", "UI/UX"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+        "UI/UX",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 3: Building customizations reset on re-login
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Building customizations (color, billboard, loadout) reset on re-login",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 3: Building customizations reset on re-login
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Building customizations (color, billboard, loadout) reset on re-login",
+      body: `### Description
 When a user customizes their building (custom color, billboard images, equipped crown/roof/aura loadout) and then logs out and logs back in, the building appears with default styling — all customizations are visually lost.
 
 ### Root Cause
@@ -175,15 +192,22 @@ All customizations should persist across login sessions and page refreshes.
 - \`src/app/page.tsx\` — Lines 700-742 (silent refresh logic)
 - \`src/app/api/city/route.ts\` — City data payload assembly
 - \`src/app/api/customizations/route.ts\` — Customization fetching${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "intermediate", "Gssoc 26", "gssoc:approved", "backend"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "intermediate",
+        "Gssoc 26",
+        "gssoc:approved",
+        "backend",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 4: Bungalow preview camera angle in shop
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Bungalow building preview shows wrong camera angle in Shop",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 4: Bungalow preview camera angle in shop
+    // ──────────────────────────────────────────────────────────────
+    {
+      title: "[Bug] Bungalow building preview shows wrong camera angle in Shop",
+      body: `### Description
 When a developer account selects the **Bungalow** building style in the Shop page, the 3D preview panel shows the building from a side/back angle instead of a proper front-facing view. The building appears flat and at an odd perspective, making it hard to see the front facade and equipped items.
 
 Additionally, orbit rotation is **disabled** for bungalow preview (\`enableRotate={!isBungalow}\`), so the user cannot manually rotate to see a better angle.
@@ -210,15 +234,23 @@ The bungalow should be shown from a slight 3/4 front-elevated angle (similar to 
 
 ### Affected Files
 - \`src/components/ShopPreview.tsx\` — Lines 271, 276, 385${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved", "UI/UX"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+        "UI/UX",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 5: Claim API error message is misleading
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Claim API returns misleading error message for GitHub-auth users",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 5: Claim API error message is misleading
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Claim API returns misleading error message for GitHub-auth users",
+      body: `### Description
 In \`src/app/api/claim/route.ts\` (line 22-26), the claim endpoint derives the \`githubLogin\` from OAuth metadata:
 \`\`\`ts
 const githubLogin = (
@@ -248,15 +280,22 @@ The error message should accurately describe what's missing, e.g., "Could not de
 
 ### Affected Files
 - \`src/app/api/claim/route.ts\` — Lines 21-26${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 6: Rate limiter memory leak in serverless
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] In-memory rate limiter leaks memory and resets on serverless cold starts",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 6: Rate limiter memory leak in serverless
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] In-memory rate limiter leaks memory and resets on serverless cold starts",
+      body: `### Description
 The rate limiter in \`src/lib/rate-limit.ts\` uses an in-memory \`Map\` to store request counts. This has two problems:
 
 1. **Memory leak in long-running processes:** The cleanup runs only every 60 seconds and only removes expired entries. Under sustained traffic, the Map can grow large.
@@ -277,15 +316,23 @@ Replace with a distributed rate limiter like:
 ### Affected Files
 - \`src/lib/rate-limit.ts\` — Entire file
 - \`src/middleware.ts\` — Uses rate limiter${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "intermediate", "Gssoc 26", "gssoc:approved", "backend", "performance"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "intermediate",
+        "Gssoc 26",
+        "gssoc:approved",
+        "backend",
+        "performance",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 7: Raid execute has duplicate audio trigger
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Raid sequence plays duplicate takeoff audio on execution",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 7: Raid execute has duplicate audio trigger
+    // ──────────────────────────────────────────────────────────────
+    {
+      title: "[Bug] Raid sequence plays duplicate takeoff audio on execution",
+      body: `### Description
 In \`src/lib/useRaidSequence.ts\`, when \`executeRaid\` is called, the audio is triggered **twice**:
 
 1. **Line 233-234:** After setting the phase to "intro":
@@ -319,15 +366,22 @@ Remove the duplicate \`preloadRaidAudio();\`, \`playRaidSound("takeoff");\`, and
 
 ### Affected Files
 - \`src/lib/useRaidSequence.ts\` — Lines 228-237 vs Lines 89-136${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 8: Raid weekly cooldown date calculation mutates `now`
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Date mutation bug in raid consumable weekly-uses calculation",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 8: Raid weekly cooldown date calculation mutates `now`
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Date mutation bug in raid consumable weekly-uses calculation",
+      body: `### Description
 In \`src/app/api/raid/execute/route.ts\`, the weekly-use tracking for consumable items has a subtle bug where \`new Date()\` is mutated by \`setDate()\`, causing incorrect date calculations.
 
 ### Root Cause
@@ -359,15 +413,23 @@ const currentWeekStr = isoWeekStart.toISOString().split('T')[0];
 
 ### Affected Files
 - \`src/app/api/raid/execute/route.ts\` — Lines 190, 256, 390${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved", "backend"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+        "backend",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 9: isV2Dev always returns false (dead code)
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] `isV2Dev()` always returns false — V2 building formulas are dead code",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 9: isV2Dev always returns false (dead code)
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] `isV2Dev()` always returns false — V2 building formulas are dead code",
+      body: `### Description
 In \`src/lib/github.ts\` at line 192, the \`isV2Dev()\` function always returns \`false\`:
 
 \`\`\`ts
@@ -390,15 +452,22 @@ Either:
 
 ### Affected Files
 - \`src/lib/github.ts\` — Lines 191-281 (V2 functions), Line 315 (\`isV2Dev\` call)${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 10: checkin route uses GitHub GraphQL for LeetCode-based project
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Check-in route fetches GitHub GraphQL contributions for a LeetCode-based project",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 10: checkin route uses GitHub GraphQL for LeetCode-based project
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Check-in route fetches GitHub GraphQL contributions for a LeetCode-based project",
+      body: `### Description
 In \`src/app/api/checkin/route.ts\` (lines 80-129), the \`fetchWeeklyContributions()\` function uses the **GitHub GraphQL API** to fetch the user's weekly contribution count:
 
 \`\`\`ts
@@ -436,15 +505,23 @@ Replace the GitHub GraphQL call with a LeetCode API call to fetch recent submiss
 ### Affected Files
 - \`src/app/api/checkin/route.ts\` — Lines 80-129 (\`fetchWeeklyContributions\`)
 - \`src/lib/leetcode.ts\` — Could be extended for this purpose${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "intermediate", "Gssoc 26", "gssoc:approved", "backend"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "intermediate",
+        "Gssoc 26",
+        "gssoc:approved",
+        "backend",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 11: Empty catch blocks swallow errors silently
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Improvement] Replace empty catch blocks with proper error logging",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 11: Empty catch blocks swallow errors silently
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Improvement] Replace empty catch blocks with proper error logging",
+      body: `### Description
 Throughout the codebase, there are dozens of empty \`catch {}\` or \`catch { /* ignore */ }\` blocks that silently swallow errors with no logging. This makes debugging production issues extremely difficult.
 
 ### Examples Found
@@ -475,15 +552,22 @@ For truly ignorable errors, add a comment explaining **why** it's safe to ignore
 
 ### Affected Files
 Project-wide — primary files listed above${BRANCH_NOTE}`,
-            labels: ["enhancement", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "enhancement",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 12: Missing dotenv dependency for scripts
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Script `add-leetcode-items.ts` crashes with 'Cannot find module dotenv'",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 12: Missing dotenv dependency for scripts
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Bug] Script `add-leetcode-items.ts` crashes with 'Cannot find module dotenv'",
+      body: `### Description
 Running the \`scripts/add-leetcode-items.ts\` script fails with:
 \`\`\`
 Error: Cannot find module 'dotenv'
@@ -508,15 +592,22 @@ Error captured in \`error.log\` at the project root.
 ### Affected Files
 - \`scripts/add-leetcode-items.ts\` — Import statement
 - \`package.json\` — Missing dependency${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 13: Supabase admin client created on every API call
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Performance] Supabase admin client is re-created on every API call",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 13: Supabase admin client created on every API call
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Performance] Supabase admin client is re-created on every API call",
+      body: `### Description
 In \`src/lib/supabase.ts\`, the \`getSupabaseAdmin()\` function creates a **new** Supabase client instance on every call:
 
 \`\`\`ts
@@ -554,15 +645,23 @@ export function getSupabaseAdmin(): SupabaseClient {
 
 ### Affected Files
 - \`src/lib/supabase.ts\` — \`getSupabaseAdmin()\` function${BRANCH_NOTE}`,
-            labels: ["enhancement", "good first issue", "beginner", "Gssoc 26", "gssoc:approved", "performance", "backend"]
-        },
+      labels: [
+        "enhancement",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+        "performance",
+        "backend",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 14: Hardcoded bungalow login check
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Bug] Bungalow building style contains hardcoded username check",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 14: Hardcoded bungalow login check
+    // ──────────────────────────────────────────────────────────────
+    {
+      title: "[Bug] Bungalow building style contains hardcoded username check",
+      body: `### Description
 In \`src/lib/github.ts\` at lines 507-511, there is a hardcoded username check for the bungalow building style:
 
 \`\`\`ts
@@ -592,15 +691,21 @@ if (dev.building_style === "bungalow") {
 
 ### Affected Files
 - \`src/lib/github.ts\` — Lines 507-511${BRANCH_NOTE}`,
-            labels: ["bug", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "bug",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 15: Main page.tsx is 5000+ lines monolith
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Refactor] Main page.tsx is a 5000+ line monolithic component",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 15: Main page.tsx is 5000+ lines monolith
+    // ──────────────────────────────────────────────────────────────
+    {
+      title: "[Refactor] Main page.tsx is a 5000+ line monolithic component",
+      body: `### Description
 The main application file \`src/app/page.tsx\` is **5,079 lines** (232KB) containing a single massive \`HomeContent\` component. This file includes:
 - 100+ state variables
 - All UI rendering (HUD, search, profile cards, modals, leaderboards, fly mode, raid system, etc.)
@@ -628,15 +733,22 @@ Use React Context or a state management library for shared state.
 
 ### Affected Files
 - \`src/app/page.tsx\` — Entire file (5,079 lines)${BRANCH_NOTE}`,
-            labels: ["enhancement", "good first issue", "advanced", "Gssoc 26", "gssoc:approved"]
-        },
+      labels: [
+        "enhancement",
+        "good first issue",
+        "advanced",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
 
-        // ──────────────────────────────────────────────────────────────
-        // BUG 16: eslint-disable comments for any types
-        // ──────────────────────────────────────────────────────────────
-        {
-            title: "[Improvement] Replace `eslint-disable` comments and `any` types with proper typing",
-            body: `### Description
+    // ──────────────────────────────────────────────────────────────
+    // BUG 16: eslint-disable comments for any types
+    // ──────────────────────────────────────────────────────────────
+    {
+      title:
+        "[Improvement] Replace `eslint-disable` comments and `any` types with proper typing",
+      body: `### Description
 Multiple API routes and components use \`// eslint-disable-next-line @typescript-eslint/no-explicit-any\` followed by \`Record<string, any>\` type assertions. This undermines TypeScript's type safety.
 
 ### Examples
@@ -667,15 +779,21 @@ Then use: \`const attacker = attackerRes.data as DeveloperRow | null;\`
 
 ### Affected Files
 Project-wide — primary files listed above${BRANCH_NOTE}`,
-            labels: ["enhancement", "good first issue", "beginner", "Gssoc 26", "gssoc:approved"]
-        },
-    ];
+      labels: [
+        "enhancement",
+        "good first issue",
+        "beginner",
+        "Gssoc 26",
+        "gssoc:approved",
+      ],
+    },
+  ];
 
-    for (const issue of issues) {
-        await createIssue(issue.title, issue.body, issue.labels);
-    }
+  for (const issue of issues) {
+    await createIssue(issue.title, issue.body, issue.labels);
+  }
 
-    console.log(`\n🎉 Done! Created ${issues.length} new issues.`);
+  console.log(`\n🎉 Done! Created ${issues.length} new issues.`);
 }
 
 run().catch(console.error);

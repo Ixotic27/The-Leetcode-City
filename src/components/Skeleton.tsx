@@ -1,7 +1,9 @@
 import type { CSSProperties, HTMLAttributes } from "react";
 
-interface SkeletonProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+interface SkeletonProps extends Omit<
+  HTMLAttributes<HTMLDivElement>,
+  "children"
+> {
   className?: string;
   variant?: "text" | "circle" | "rectangular";
   width?: CSSProperties["width"];

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockFrom, mockRpc, mockSendAchievementNotification } = vi.hoisted(() => ({
-  mockFrom: vi.fn(),
-  mockRpc: vi.fn(),
-  mockSendAchievementNotification: vi.fn(),
-}));
+const { mockFrom, mockRpc, mockSendAchievementNotification } = vi.hoisted(
+  () => ({
+    mockFrom: vi.fn(),
+    mockRpc: vi.fn(),
+    mockSendAchievementNotification: vi.fn(),
+  }),
+);
 
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: vi.fn(() => ({
@@ -20,9 +22,33 @@ vi.mock("@/lib/notification-senders/achievement", () => ({
 import { checkAchievements } from "../achievements";
 
 const ALL_ACHIEVEMENTS = [
-  { id: "first_push", category: "commits", threshold: 1, tier: "bronze", name: "First Push", reward_type: "unlock_item", reward_item_id: "flag" },
-  { id: "committed", category: "commits", threshold: 100, tier: "bronze", name: "Committed", reward_type: "unlock_item", reward_item_id: "custom_color" },
-  { id: "builder", category: "repos", threshold: 5, tier: "bronze", name: "Builder", reward_type: "unlock_item", reward_item_id: "antenna_array" },
+  {
+    id: "first_push",
+    category: "commits",
+    threshold: 1,
+    tier: "bronze",
+    name: "First Push",
+    reward_type: "unlock_item",
+    reward_item_id: "flag",
+  },
+  {
+    id: "committed",
+    category: "commits",
+    threshold: 100,
+    tier: "bronze",
+    name: "Committed",
+    reward_type: "unlock_item",
+    reward_item_id: "custom_color",
+  },
+  {
+    id: "builder",
+    category: "repos",
+    threshold: 5,
+    tier: "bronze",
+    name: "Builder",
+    reward_type: "unlock_item",
+    reward_item_id: "antenna_array",
+  },
 ];
 
 const BASE_STATS = {
@@ -96,12 +122,12 @@ describe("checkAchievements", () => {
     const unlocked = await checkAchievements(
       1,
       { ...BASE_STATS, contributions: 1 },
-      "priya-12340"
+      "priya-12340",
     );
 
     expect(unlocked).toEqual(["first_push"]);
     const devAchievementInsert = inserted.find(
-      (i) => i.table === "developer_achievements"
+      (i) => i.table === "developer_achievements",
     );
     expect(devAchievementInsert?.rows).toEqual([
       { developer_id: 1, achievement_id: "first_push" },
@@ -114,7 +140,7 @@ describe("checkAchievements", () => {
     const unlocked = await checkAchievements(
       1,
       { ...BASE_STATS, contributions: 1 },
-      "priya-12340"
+      "priya-12340",
     );
 
     expect(unlocked).toEqual([]);
@@ -126,10 +152,12 @@ describe("checkAchievements", () => {
     const unlocked = await checkAchievements(
       1,
       { ...BASE_STATS, contributions: 100, public_repos: 5 },
-      "priya-12340"
+      "priya-12340",
     );
 
-    expect(unlocked.sort()).toEqual(["builder", "committed", "first_push"].sort());
+    expect(unlocked.sort()).toEqual(
+      ["builder", "committed", "first_push"].sort(),
+    );
     const feedInsert = inserted.find((i) => i.table === "activity_feed");
     expect(feedInsert?.rows).toMatchObject({
       event_type: "achievement_unlocked",

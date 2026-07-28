@@ -29,22 +29,22 @@ export default function TermsPage() {
         <div className="mt-8 flex flex-col gap-5">
           <Section n={1} title="The Service">
             <p>
-              LeetCode City is a web application that visualizes LeetCode profiles as 3D
-              buildings in a virtual city. By using LeetCode City, you agree to these
-              terms.
+              LeetCode City is a web application that visualizes LeetCode
+              profiles as 3D buildings in a virtual city. By using LeetCode
+              City, you agree to these terms.
             </p>
           </Section>
 
           <Section n={2} title="Account & Access">
             <p>
-              You sign in via LeetCode OAuth. We access your public LeetCode data
-              (profile, repositories, contribution count) to generate your
+              You sign in via LeetCode OAuth. We access your public LeetCode
+              data (profile, repositories, contribution count) to generate your
               building. We do not access private repositories or modify any data
               on your GitHub account.
             </p>
             <p>
-              You are responsible for the security of your GitHub account. We are
-              not liable for unauthorized access resulting from compromised
+              You are responsible for the security of your GitHub account. We
+              are not liable for unauthorized access resulting from compromised
               GitHub credentials.
             </p>
           </Section>
@@ -53,8 +53,12 @@ export default function TermsPage() {
             <p>You agree not to:</p>
             <ul className="mt-1 flex flex-col gap-1">
               <Li>Abuse, exploit, or attempt to disrupt the service</Li>
-              <Li>Scrape or collect data from LeetCode City without permission</Li>
-              <Li>Use automated systems to create fake accounts or inflate metrics</Li>
+              <Li>
+                Scrape or collect data from LeetCode City without permission
+              </Li>
+              <Li>
+                Use automated systems to create fake accounts or inflate metrics
+              </Li>
               <Li>Impersonate other users or misrepresent your identity</Li>
             </ul>
           </Section>
@@ -62,27 +66,28 @@ export default function TermsPage() {
           <Section n={4} title="Intellectual Property">
             <p>
               LeetCode City, its code, design, and branding are owned by Ixotic.
-              Your LeetCode data remains yours. By using the service, you
-              grant us a limited license to display your public LeetCode data as
-              part of the city visualization.
+              Your LeetCode data remains yours. By using the service, you grant
+              us a limited license to display your public LeetCode data as part
+              of the city visualization.
             </p>
           </Section>
 
           <Section n={5} title="Purchases & Shop">
             <p>
-              LeetCode City offers optional cosmetic items for purchase. All purchases
-              are final and non-refundable unless required by applicable law.
-              Cosmetic items have no real-world value and exist only within LeetCode
-              City.
+              LeetCode City offers optional cosmetic items for purchase. All
+              purchases are final and non-refundable unless required by
+              applicable law. Cosmetic items have no real-world value and exist
+              only within LeetCode City.
             </p>
           </Section>
 
           <Section n={6} title="Disclaimer of Warranties">
             <p>
               LeetCode City is provided &quot;as is&quot; and &quot;as
-              available&quot; without warranties of any kind, express or implied.
-              We do not guarantee uptime, accuracy of data, or uninterrupted
-              access. GitHub API limitations or outages may affect the service.
+              available&quot; without warranties of any kind, express or
+              implied. We do not guarantee uptime, accuracy of data, or
+              uninterrupted access. GitHub API limitations or outages may affect
+              the service.
             </p>
           </Section>
 
@@ -98,8 +103,8 @@ export default function TermsPage() {
             <p>
               A token called $GITC exists on the Base blockchain. This token was
               created by the community, not by LeetCode City or Ixotic. We do
-              not control, manage, or endorse the token. Any interaction with the
-              token is entirely at your own risk. See the{" "}
+              not control, manage, or endorse the token. Any interaction with
+              the token is entirely at your own risk. See the{" "}
               <a
                 href="/token"
                 className="transition-colors hover:text-cream"
@@ -113,8 +118,8 @@ export default function TermsPage() {
 
           <Section n={9} title="Changes to Terms">
             <p>
-              We may update these terms at any time. Continued use of LeetCode City
-              after changes constitutes acceptance of the updated terms.
+              We may update these terms at any time. Continued use of LeetCode
+              City after changes constitutes acceptance of the updated terms.
             </p>
           </Section>
 

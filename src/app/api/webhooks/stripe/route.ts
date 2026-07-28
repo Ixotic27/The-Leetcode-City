@@ -3,7 +3,10 @@ import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { SKY_AD_PLANS, isValidPlanId } from "@/lib/skyAdPlans";
 import { InfrastructureError } from "@/lib/errors";
-import { claimPendingPurchaseAtomically, orchestratePurchaseFulfillment } from "@/lib/purchase-orchestrator";
+import {
+  claimPendingPurchaseAtomically,
+  orchestratePurchaseFulfillment,
+} from "@/lib/purchase-orchestrator";
 import type Stripe from "stripe";
 
 // Disable body parsing — Stripe needs raw body for signature verification
@@ -27,7 +30,7 @@ export async function POST(request: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      process.env.STRIPE_WEBHOOK_SECRET!,
     );
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", err);
@@ -112,7 +115,9 @@ export async function POST(request: Request) {
 
           const plan = SKY_AD_PLANS[planId];
           const now = new Date();
-          const endsAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
+          const endsAt = new Date(
+            now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000,
+          );
 
           await sb
             .from("sky_ads")
@@ -159,7 +164,9 @@ export async function POST(request: Request) {
             .eq("idempotency_key", idempotencyKey)
             .maybeSingle();
           if (existingPurchase) {
-            console.log(`[Stripe webhook] Duplicate event for ${idempotencyKey}, skipping`);
+            console.log(
+              `[Stripe webhook] Duplicate event for ${idempotencyKey}, skipping`,
+            );
             break;
           }
         }
@@ -176,7 +183,12 @@ export async function POST(request: Request) {
           githubLogin,
           giftedTo: giftedTo ? Number(giftedTo) : null,
           supabaseClient: sb,
-          claimPendingPurchase: async ({ transactionId, developerId: claimDeveloperId, itemId: claimItemId, supabaseClient: claimSb }) =>
+          claimPendingPurchase: async ({
+            transactionId,
+            developerId: claimDeveloperId,
+            itemId: claimItemId,
+            supabaseClient: claimSb,
+          }) =>
             claimPendingPurchaseAtomically({
               provider: "stripe",
               transactionId,
@@ -187,7 +199,9 @@ export async function POST(request: Request) {
         });
 
         if (orchestrationResult.kind === "sold_out") {
-          console.error(`[Stripe webhook] Item ${itemId} oversold. Issuing Stripe refund for ${txId}.`);
+          console.error(
+            `[Stripe webhook] Item ${itemId} oversold. Issuing Stripe refund for ${txId}.`,
+          );
           let refundSuccess = false;
           if (paymentIntentId) {
             try {
@@ -202,10 +216,14 @@ export async function POST(request: Request) {
           }
 
           if (orchestrationResult.purchaseId) {
-            await sb.from("purchases").update({
-              status: refundSuccess ? "refunded" : "failed",
-              provider_tx_id: txId,
-            }).eq("id", orchestrationResult.purchaseId).eq("status", "pending");
+            await sb
+              .from("purchases")
+              .update({
+                status: refundSuccess ? "refunded" : "failed",
+                provider_tx_id: txId,
+              })
+              .eq("id", orchestrationResult.purchaseId)
+              .eq("status", "pending");
           }
           break;
         }
@@ -219,26 +237,31 @@ export async function POST(request: Request) {
         }
 
         // Check if this txId already has a completed/delivered/processing purchase
-        const { data: alreadyProcessed, error: alreadyProcessedError } = await sb
-          .from("purchases")
-          .select("id, status")
-          .eq("provider_tx_id", txId)
-          .in("status", ["completed", "delivered", "processing"])
-          .maybeSingle();
+        const { data: alreadyProcessed, error: alreadyProcessedError } =
+          await sb
+            .from("purchases")
+            .select("id, status")
+            .eq("provider_tx_id", txId)
+            .in("status", ["completed", "delivered", "processing"])
+            .maybeSingle();
 
         if (alreadyProcessedError) {
           throw new InfrastructureError(
             `[Stripe webhook] failed to validate processed tx ${txId}: ${alreadyProcessedError.message}`,
-            alreadyProcessedError
+            alreadyProcessedError,
           );
         }
 
         if (alreadyProcessed) {
-          console.log(`[Stripe webhook] Purchase ${alreadyProcessed.id} already fulfilled — skipping duplicate webhook`);
+          console.log(
+            `[Stripe webhook] Purchase ${alreadyProcessed.id} already fulfilled — skipping duplicate webhook`,
+          );
           break;
         }
 
-        console.error(`[Stripe webhook] Pending purchase not found for session ${session.id}. Cannot safely fulfill item ${itemId}. Issuing refund.`);
+        console.error(
+          `[Stripe webhook] Pending purchase not found for session ${session.id}. Cannot safely fulfill item ${itemId}. Issuing refund.`,
+        );
         if (paymentIntentId) {
           try {
             await stripe.refunds.create({
@@ -246,7 +269,10 @@ export async function POST(request: Request) {
               reason: "requested_by_customer",
             });
           } catch (refundError) {
-            console.error("[Stripe webhook] Refund failed for missing purchase:", refundError);
+            console.error(
+              "[Stripe webhook] Refund failed for missing purchase:",
+              refundError,
+            );
           }
         }
         break;
@@ -300,15 +326,25 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof InfrastructureError) {
       // Transient failure — let Stripe retry by returning 500
-      console.error("[Stripe webhook] Infrastructure error, returning 500 for retry:", err.message, err.cause);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      console.error(
+        "[Stripe webhook] Infrastructure error, returning 500 for retry:",
+        err.message,
+        err.cause,
+      );
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
     }
     // BusinessLogicError or unknown — return 200 to prevent futile retries
     console.error("[Stripe webhook] Business logic or unexpected error:", err);
     try {
       await finalizeStripeEvent();
     } catch (finalizationError) {
-      console.error("Stripe idempotency finalization failed after business error:", finalizationError);
+      console.error(
+        "Stripe idempotency finalization failed after business error:",
+        finalizationError,
+      );
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 

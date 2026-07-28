@@ -33,10 +33,7 @@ export function PaymentMethodTabs<T extends string>({
   return (
     <div>
       <p className="mb-2 text-[10px] text-muted normal-case">Pay with</p>
-      <div
-        role="tablist"
-        className="flex border-2 border-border"
-      >
+      <div role="tablist" className="flex border-2 border-border">
         {visibleMethods.map((m, idx) => {
           const active = m.id === selected;
           const isLast = idx === visibleMethods.length - 1;
@@ -55,9 +52,7 @@ export function PaymentMethodTabs<T extends string>({
               }}
             >
               <span className="font-pixel">{m.label}</span>
-              {m.hint && (
-                <span className="ml-1 opacity-70">{m.hint}</span>
-              )}
+              {m.hint && <span className="ml-1 opacity-70">{m.hint}</span>}
             </button>
           );
         })}

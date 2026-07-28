@@ -34,7 +34,9 @@ const warn = (msg) => console.log(`${c.yellow}  ⚠${c.reset} ${msg}`);
 const fail = (msg) => console.log(`${c.red}  ✗${c.reset} ${msg}`);
 const info = (msg) => console.log(`${c.cyan}  ℹ${c.reset} ${msg}`);
 const step = (n, msg) =>
-  console.log(`\n${c.bold}${c.magenta}[${n}]${c.reset} ${c.bold}${msg}${c.reset}`);
+  console.log(
+    `\n${c.bold}${c.magenta}[${n}]${c.reset} ${c.bold}${msg}${c.reset}`,
+  );
 
 // ── Args ────────────────────────────────────────────────────
 const args = process.argv.slice(2);
@@ -80,13 +82,16 @@ if (existsSync(envLocalPath)) {
 
   // Validate required vars
   const envContent = readFileSync(envLocalPath, "utf-8");
-  const hasSupabaseUrl = envContent.includes("NEXT_PUBLIC_SUPABASE_URL=") &&
+  const hasSupabaseUrl =
+    envContent.includes("NEXT_PUBLIC_SUPABASE_URL=") &&
     !envContent.includes("NEXT_PUBLIC_SUPABASE_URL=your-") &&
     !envContent.match(/NEXT_PUBLIC_SUPABASE_URL=\s*$/m);
-  const hasSupabaseAnon = envContent.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY=") &&
+  const hasSupabaseAnon =
+    envContent.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY=") &&
     !envContent.includes("NEXT_PUBLIC_SUPABASE_ANON_KEY=your-") &&
     !envContent.match(/NEXT_PUBLIC_SUPABASE_ANON_KEY=\s*$/m);
-  const hasServiceRole = envContent.includes("SUPABASE_SERVICE_ROLE_KEY=") &&
+  const hasServiceRole =
+    envContent.includes("SUPABASE_SERVICE_ROLE_KEY=") &&
     !envContent.match(/SUPABASE_SERVICE_ROLE_KEY=\s*$/m);
 
   if (hasSupabaseUrl && hasSupabaseAnon) {

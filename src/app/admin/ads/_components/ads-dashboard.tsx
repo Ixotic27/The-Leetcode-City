@@ -230,11 +230,22 @@ export function AdsDashboard() {
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border border-border bg-bg-raised px-3 py-3">
           <p className="text-[11px] text-dim">
-            Showing {paginatedAds.totalItems === 0 ? 0 : (paginatedAds.page - 1) * paginatedAds.pageSize + 1}-{Math.min(paginatedAds.page * paginatedAds.pageSize, paginatedAds.totalItems)} of {paginatedAds.totalItems} ads
+            Showing{" "}
+            {paginatedAds.totalItems === 0
+              ? 0
+              : (paginatedAds.page - 1) * paginatedAds.pageSize + 1}
+            -
+            {Math.min(
+              paginatedAds.page * paginatedAds.pageSize,
+              paginatedAds.totalItems,
+            )}{" "}
+            of {paginatedAds.totalItems} ads
           </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFilter("page", Math.max(1, paginatedAds.page - 1))}
+              onClick={() =>
+                setFilter("page", Math.max(1, paginatedAds.page - 1))
+              }
               disabled={paginatedAds.page === 1}
               className="cursor-pointer border border-border px-3 py-1.5 text-[11px] text-muted transition-colors hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -244,7 +255,12 @@ export function AdsDashboard() {
               PAGE {paginatedAds.page} / {paginatedAds.totalPages}
             </span>
             <button
-              onClick={() => setFilter("page", Math.min(paginatedAds.totalPages, paginatedAds.page + 1))}
+              onClick={() =>
+                setFilter(
+                  "page",
+                  Math.min(paginatedAds.totalPages, paginatedAds.page + 1),
+                )
+              }
               disabled={paginatedAds.page === paginatedAds.totalPages}
               className="cursor-pointer border border-border px-3 py-1.5 text-[11px] text-muted transition-colors hover:text-cream disabled:cursor-not-allowed disabled:opacity-50"
             >

@@ -60,7 +60,10 @@ describe("cityCache", () => {
 
   it("overwrites previous cache on second set", () => {
     setCityCache(mockData);
-    setCityCache({ ...mockData, stats: { total_developers: 99, total_contributions: 500 } });
+    setCityCache({
+      ...mockData,
+      stats: { total_developers: 99, total_contributions: 500 },
+    });
     expect(getCityCache()?.stats.total_developers).toBe(99);
   });
 });

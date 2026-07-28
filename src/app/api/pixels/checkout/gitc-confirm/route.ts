@@ -24,7 +24,8 @@ interface PackageRow {
 }
 
 export async function POST(request: NextRequest) {
-  const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
+  const { resolveAuthenticatedDeveloper } =
+    await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -37,7 +38,11 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
-  const { ok } = await rateLimit(`pixels-gitc-confirm:${user.id}:${ip}`, 5, 10_000);
+  const { ok } = await rateLimit(
+    `pixels-gitc-confirm:${user.id}:${ip}`,
+    5,
+    10_000,
+  );
   if (!ok) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
@@ -61,7 +66,9 @@ export async function POST(request: NextRequest) {
 
   const { data: payment, error: payErr } = await sb
     .from("pixel_gitc_payments")
-    .select("id, pixel_purchase_id, developer_id, package_id, wallet_address, gitc_amount_wei, quote_block_number, status, expires_at, tx_hash")
+    .select(
+      "id, pixel_purchase_id, developer_id, package_id, wallet_address, gitc_amount_wei, quote_block_number, status, expires_at, tx_hash",
+    )
     .eq("quote_id", quoteId)
     .maybeSingle<PaymentRow>();
 
@@ -69,16 +76,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
   }
 
-  if (payment.status === "confirmed" && payment.tx_hash === txHash.toLowerCase()) {
+  if (
+    payment.status === "confirmed" &&
+    payment.tx_hash === txHash.toLowerCase()
+  ) {
     return NextResponse.json({ ok: true, alreadyConfirmed: true });
   }
 
   if (payment.status === "expired" || payment.status === "failed") {
-    return NextResponse.json({ error: `Quote ${payment.status}` }, { status: 410 });
+    return NextResponse.json(
+      { error: `Quote ${payment.status}` },
+      { status: 410 },
+    );
   }
 
-  if (new Date(payment.expires_at).getTime() < Date.now() && payment.status === "pending") {
-    await sb.from("pixel_gitc_payments").update({ status: "expired" }).eq("id", payment.id);
+  if (
+    new Date(payment.expires_at).getTime() < Date.now() &&
+    payment.status === "pending"
+  ) {
+    await sb
+      .from("pixel_gitc_payments")
+      .update({ status: "expired" })
+      .eq("id", payment.id);
     await sb
       .from("pixel_purchases")
       .update({ status: "expired" })
@@ -95,7 +114,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (!verification.ok) {
-    return NextResponse.json({ error: verification.reason ?? "Payment verification failed" }, { status: 400 });
+    return NextResponse.json(
+      { error: verification.reason ?? "Payment verification failed" },
+      { status: 400 },
+    );
   }
 
   const { error: updateErr } = await sb
@@ -103,7 +125,9 @@ export async function POST(request: NextRequest) {
     .update({
       status: "confirmed",
       tx_hash: txHash.toLowerCase(),
-      block_number: verification.blockNumber ? Number(verification.blockNumber) : null,
+      block_number: verification.blockNumber
+        ? Number(verification.blockNumber)
+        : null,
       paid_amount_wei: verification.paidAmountWei?.toString() ?? null,
       confirmed_at: new Date().toISOString(),
     })
@@ -112,7 +136,10 @@ export async function POST(request: NextRequest) {
 
   if (updateErr) {
     console.error("Failed to confirm pixel GITC payment:", updateErr);
-    return NextResponse.json({ error: "Could not confirm payment (tx may already be used)" }, { status: 409 });
+    return NextResponse.json(
+      { error: "Could not confirm payment (tx may already be used)" },
+      { status: 409 },
+    );
   }
 
   // Credit the pixels using the canonical RPC.
@@ -152,7 +179,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Payment received, but crediting is delayed. Your pixels will be added shortly.",
+        error:
+          "Payment received, but crediting is delayed. Your pixels will be added shortly.",
         needsReconciliation: true,
       },
       { status: 500 },
@@ -161,10 +189,14 @@ export async function POST(request: NextRequest) {
 
   // Reflect what THIS confirmation actually credited: a duplicate added nothing
   // (the tx already credited an earlier quote), a fresh credit added totalPx.
-  const result = (creditResult ?? {}) as { error?: string; new_balance?: number };
+  const result = (creditResult ?? {}) as {
+    error?: string;
+    new_balance?: number;
+  };
   const duplicate = result.error === "duplicate_transaction";
   const pixelsCredited = duplicate ? 0 : totalPx;
-  const newBalance = typeof result.new_balance === "number" ? result.new_balance : null;
+  const newBalance =
+    typeof result.new_balance === "number" ? result.new_balance : null;
 
   await sb
     .from("pixel_purchases")
