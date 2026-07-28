@@ -1922,11 +1922,12 @@ const _dLocalPos = new THREE.Vector3();
 const _dPartQuat = new THREE.Quaternion();
 
 function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { items: CityDecoration[]; roadMarkingColor: string; sidewalkColor: string }) {
-  const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'roadMarking', 'bench', 'fountain', 'sidewalk']);
+  const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'roadMarking', 'roadSurface', 'bench', 'fountain', 'sidewalk']);
   const trees = useMemo(() => items.filter(d => d.type === 'tree'), [items]);
   const lamps = useMemo(() => items.filter(d => d.type === 'streetLamp'), [items]);
   const cars = useMemo(() => items.filter(d => d.type === 'car'), [items]);
   const roadMarkings = useMemo(() => items.filter(d => d.type === 'roadMarking'), [items]);
+  const roadSurfaces = useMemo(() => items.filter(d => d.type === 'roadSurface'), [items]);
   const benches = useMemo(() => items.filter(d => d.type === 'bench'), [items]);
   const fountains = useMemo(() => items.filter(d => d.type === 'fountain'), [items]);
   const sidewalks = useMemo(() => items.filter(d => d.type === 'sidewalk'), [items]);
@@ -1949,6 +1950,7 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
   const fountainUpperRef = useRef<THREE.InstancedMesh>(null);
   const fountainWaterRef = useRef<THREE.InstancedMesh>(null);
   const sidewalkRef = useRef<THREE.InstancedMesh>(null);
+  const roadSurfaceRef = useRef<THREE.InstancedMesh>(null);
 
   // Shared geometries
   const geos = useMemo(() => ({
@@ -1971,12 +1973,15 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
     treeCanopy: new THREE.MeshStandardMaterial({ color: "#2d5a1e", emissive: "#2d5a1e", emissiveIntensity: 0.45 }),
     lampPole: new THREE.MeshStandardMaterial({ color: "#4a4a4a", emissive: "#4a4a4a", emissiveIntensity: 0.3 }),
     lampLight: new THREE.MeshStandardMaterial({
-      color: "#f0d870", emissive: "#f0d870", emissiveIntensity: 2.0, toneMapped: false,
+      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 2.0, toneMapped: false,
     }),
     carBody: new THREE.MeshStandardMaterial({ color: "#808080", emissive: "#808080", emissiveIntensity: 0.2 }),
     carCabin: new THREE.MeshStandardMaterial({ color: "#808080", emissive: "#808080", emissiveIntensity: 0.2 }),
     roadMarking: new THREE.MeshStandardMaterial({
-      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 0.8,
+      color: roadMarkingColor, emissive: roadMarkingColor, emissiveIntensity: 0.8, toneMapped: false,
+    }),
+    roadSurface: new THREE.MeshStandardMaterial({
+      color: "#1a1c22", emissive: "#1a1c22", emissiveIntensity: 0.1, roughness: 0.9,
     }),
     benchWood: new THREE.MeshStandardMaterial({ color: "#6b4226", emissive: "#6b4226", emissiveIntensity: 0.3 }),
     benchMetal: new THREE.MeshStandardMaterial({ color: "#3a3a3a", emissive: "#3a3a3a", emissiveIntensity: 0.3 }),
@@ -2239,6 +2244,30 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
     sidewalkRef.current.computeBoundingSphere();
   }, [sidewalks]);
 
+  // Set up road surface instances
+  useEffect(() => {
+    if (!roadSurfaceRef.current || roadSurfaces.length === 0) return;
+
+    for (let i = 0; i < roadSurfaces.length; i++) {
+      const d = roadSurfaces[i];
+      const w = d.size?.[0] ?? 12;
+      const h = d.size?.[1] ?? 12;
+
+      _dEuler.set(-Math.PI / 2, d.rotation, 0);
+      _dQuat.setFromEuler(_dEuler);
+      _dPos.set(d.position[0], d.position[1], d.position[2]);
+      _dScale.set(w, h, 1);
+      _dMatrix.compose(_dPos, _dQuat, _dScale);
+      roadSurfaceRef.current.setMatrixAt(i, _dMatrix);
+    }
+
+    roadSurfaceRef.current.instanceMatrix.needsUpdate = true;
+
+    // Compute bounds for frustum culling
+    roadSurfaceRef.current.computeBoundingBox();
+    roadSurfaceRef.current.computeBoundingSphere();
+  }, [roadSurfaces]);
+
   // Dispose
   useEffect(() => {
     return () => {
@@ -2266,6 +2295,9 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
           <instancedMesh ref={carBodyRef} args={[geos.carBody, mats.carBody, cars.length]} frustumCulled={true} />
           <instancedMesh ref={carCabinRef} args={[geos.carCabin, mats.carCabin, cars.length]} frustumCulled={true} />
         </>
+      )}
+      {roadSurfaces.length > 0 && (
+        <instancedMesh ref={roadSurfaceRef} args={[_dPlane, mats.roadSurface, roadSurfaces.length]} frustumCulled={true} />
       )}
       {roadMarkings.length > 0 && (
         <instancedMesh ref={roadMarkingRef} args={[geos.roadMarking, mats.roadMarking, roadMarkings.length]} frustumCulled={true} />
