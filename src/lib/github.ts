@@ -136,7 +136,7 @@ export interface CityCanal {
 }
 
 export interface CityDecoration {
-  type: 'tree' | 'streetLamp' | 'car' | 'bench' | 'fountain' | 'sidewalk' | 'roadMarking'
+  type: 'tree' | 'streetLamp' | 'car' | 'bench' | 'fountain' | 'sidewalk' | 'roadMarking' | 'roadSurface'
     | 'autoRickshaw' | 'chaiStall' | 'templeGopuram' | 'techParkSign'
     | 'nandiBull' | 'gatewayArch' | 'clockTower'
     | 'vidhanaSoudha' | 'bangalorePalace' | 'tipuFortWall' | 'busStop'
@@ -893,6 +893,15 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
           district: block.district, // Keep for potential styling/reference
         });
       } else {
+        // Add visible asphalt road surface between blocks
+        const roadLen = zMax - zMin;
+        decorations.push({
+          type: 'roadSurface',
+          position: [roadCX, 0.05, (zMin + zMax) / 2],
+          rotation: 0,
+          variant: 0,
+          size: [STREET_W, roadLen],
+        });
         for (let z = zMin; z <= zMax; z += DASH_STEP) {
           decorations.push({ type: 'roadMarking', position: [roadCX, 0.2, z], rotation: 0, variant: 0, size: [2, DASH_LENGTH] });
         }
@@ -918,6 +927,15 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
             rotation: 0, // Keep at 0 to run along X
           });
         } else {
+          // Add visible asphalt road surface between blocks
+          const roadLen = xMax - xMin;
+          decorations.push({
+            type: 'roadSurface',
+            position: [(xMin + xMax) / 2, 0.05, roadCZ],
+            rotation: Math.PI / 2,
+            variant: 0,
+            size: [STREET_W, roadLen],
+          });
           for (let x = xMin; x <= xMax; x += DASH_STEP) {
             decorations.push({ type: 'roadMarking', position: [x, 0.2, roadCZ], rotation: Math.PI / 2, variant: 0, size: [2, DASH_LENGTH] });
           }
