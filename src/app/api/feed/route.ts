@@ -1,31 +1,30 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
+import { validateQuery } from "@/lib/validation";
 
 const MIN_EVENTS = 8;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const querySchema = z.object({
+  limit: z.coerce.number({ message: "Invalid limit parameter: must be a number." })
+    .int()
+    .min(1)
+    .max(50)
+    .optional()
+    .default(20),
+  before: z.string().uuid("Invalid cursor: must be a valid UUID.").optional(),
+  today: z.string().optional(),
+});
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const rawLimit = parseInt(searchParams.get("limit") ?? "20", 10);
-
-  if (!Number.isFinite(rawLimit)) {
-    return NextResponse.json(
-      { error: "Invalid limit parameter: must be a number." },
-      { status: 400 }
-    );
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
   }
 
-  const limit = Math.min(50, Math.max(1, rawLimit));
-  const before = searchParams.get("before");
-
-  if (before && !UUID_RE.test(before)) {
-    return NextResponse.json(
-      { error: "Invalid cursor: must be a valid UUID." },
-      { status: 400 }
-    );
-  }
-
-  const todayOnly = searchParams.get("today") === "1";
+  const { limit, before, today } = queryVal.data;
+  const todayOnly = today === "1";
 
   const sb = getSupabaseAdmin();
 
