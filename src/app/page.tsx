@@ -120,6 +120,7 @@ function HomeContent() {
     mpPlayerCount,
     loadProgress,
     loadError,
+    stats,
     handleLoadRetry,
     trackClientMission,
     lastDistrictRef,
@@ -356,6 +357,7 @@ function HomeContent() {
           progress={loadProgress}
           error={loadError}
           accentColor={theme.accent}
+          stats={stats}
           onRetry={handleLoadRetry}
           onFadeComplete={handleLoadFadeComplete}
         />
