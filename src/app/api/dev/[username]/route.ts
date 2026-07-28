@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
+import { z } from "zod";
+import { validateParams, validateQuery } from "@/lib/validation";
+
+const paramsSchema = z.object({
+  username: z.string().trim().min(1, "Username parameter is required"),
+});
+
+const querySchema = z.object({
+  refresh: z.string().optional(),
+});
 
 export const dynamic = "force-dynamic";
 
@@ -183,9 +193,19 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  const { username } = await params;
+  const resolvedParams = await params;
+  const paramVal = validateParams(resolvedParams, paramsSchema);
+  if (!paramVal.success) {
+    return paramVal.response;
+  }
+  const { username } = paramVal.data;
+
   const { searchParams } = new URL(request.url);
-  const forceRefresh = searchParams.get("refresh") === "true";
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
+  }
+  const forceRefresh = queryVal.data.refresh === "true";
   const sb = getSupabaseAdmin();
 
   let cachedRecord = null;
