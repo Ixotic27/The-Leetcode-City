@@ -51,30 +51,30 @@ export function sendAchievementNotification(
 
   try {
     sendNotificationAsync({
-    type: "achievement_unlocked",
-    category: "social",
-    developerId: devId,
-    dedupKey,
-    title,
-    body,
-    html: `
-      <p style="color: #ffa116; font-size: 16px;">
-        ${isSingle ? "Achievement Unlocked!" : `${notable.length} Achievements Unlocked!`}
-      </p>
-      <ul style="padding-left: 20px; margin: 16px 0; list-style: none;">
-        ${achievementListHtml}
-      </ul>
-      ${buildButton("View Achievements", `${BASE_URL}/?user=${login}`)}
-    `,
-    actionUrl: `${BASE_URL}/?user=${login}`,
-    priority: "low",
-    channels: ["email"],
-    // Batch eligible in case user unlocks multiple across separate calls
-    batchKey: `achievements:${devId}`,
-    batchWindowMinutes: 30,
-    batchEventData: {
-      achievements: notable.map((a) => ({ id: a.id, name: a.name, tier: a.tier })),
-    },
+      type: "achievement_unlocked",
+      category: "social",
+      developerId: devId,
+      dedupKey,
+      title,
+      body,
+      html: `
+        <p style="color: #ffa116; font-size: 16px;">
+          ${isSingle ? "Achievement Unlocked!" : `${notable.length} Achievements Unlocked!`}
+        </p>
+        <ul style="padding-left: 20px; margin: 16px 0; list-style: none;">
+          ${achievementListHtml}
+        </ul>
+        ${buildButton("View Achievements", `${BASE_URL}/?user=${login}`)}
+      `,
+      actionUrl: `${BASE_URL}/?user=${login}`,
+      priority: "low",
+      channels: ["email"],
+      // Batch eligible in case user unlocks multiple across separate calls
+      batchKey: `achievements:${devId}`,
+      batchWindowMinutes: 30,
+      batchEventData: {
+        achievements: notable.map((a) => ({ id: a.id, name: a.name, tier: a.tier })),
+      },
     });
   } catch (err: unknown) {
     console.error("[achievement] notification failed", err);
