@@ -1,11 +1,21 @@
+/**
+ * Purchase orchestration module.
+ * Coordinates the full lifecycle of an item purchase: claim, fulfillment,
+ * auto-equip, activity feed entry, and notification dispatch.
+ */
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { autoEquipIfSolo, fulfillItemPurchase } from "@/lib/items";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { InfrastructureError } from "@/lib/errors";
 
+/** Supported payment providers. */
 export type PurchaseProvider = "stripe" | "cashfree" | "nowpayments" | "abacatepay" | string;
 
+/**
+ * Result of a pending-purchase claim attempt.
+ */
 export interface ClaimPendingPurchaseResult {
   ok: boolean;
   purchase_id?: string;
@@ -14,6 +24,9 @@ export interface ClaimPendingPurchaseResult {
   reason?: string;
 }
 
+/**
+ * Context passed to a `ClaimPendingPurchaseFn` when claiming a pending purchase.
+ */
 export interface PurchaseClaimContext {
   provider: PurchaseProvider;
   transactionId: string;
@@ -23,8 +36,12 @@ export interface PurchaseClaimContext {
   supabaseClient: SupabaseClient;
 }
 
+/** Function type for claiming a pending purchase from a provider-specific webhook. */
 export type ClaimPendingPurchaseFn = (ctx: PurchaseClaimContext) => Promise<ClaimPendingPurchaseResult>;
 
+/**
+ * Options accepted by `orchestratePurchaseFulfillment`.
+ */
 export interface PurchaseOrchestrationOptions {
   provider: PurchaseProvider;
   transactionId: string;
@@ -39,6 +56,9 @@ export interface PurchaseOrchestrationOptions {
   claimPendingPurchase: ClaimPendingPurchaseFn;
 }
 
+/**
+ * Outcome of a full purchase orchestration run.
+ */
 export interface PurchaseOrchestrationResult {
   kind: "completed" | "duplicate" | "sold_out" | "not_found" | "failed";
   purchaseId?: string;
@@ -47,6 +67,19 @@ export interface PurchaseOrchestrationResult {
   reason?: string;
 }
 
+/**
+ * Run the full purchase fulfillment pipeline for a claimed pending purchase.
+ *
+ * Steps:
+ * 1. Call `claimPendingPurchase` to mark the purchase record as processing.
+ * 2. Fulfill the item (grant the cosmetic/item to the owner).
+ * 3. Auto-equip the item if it is the only one in its zone.
+ * 4. Insert an activity feed entry.
+ * 5. Send purchase or gift notifications as appropriate.
+ *
+ * @param options - The full set of orchestration parameters.
+ * @returns A {@link PurchaseOrchestrationResult} describing the outcome.
+ */
 export async function orchestratePurchaseFulfillment({
   provider,
   transactionId,
@@ -166,6 +199,13 @@ export async function orchestratePurchaseFulfillment({
   };
 }
 
+/**
+ * Atomically claim a pending purchase by calling the `claim_pending_purchase_atomic` RPC.
+ * Falls back to a direct UPDATE query if the RPC is unavailable.
+ *
+ * @param ctx - The claim context containing provider, transaction, and developer details.
+ * @returns A {@link ClaimPendingPurchaseResult} indicating whether the claim succeeded.
+ */
 export async function claimPendingPurchaseAtomically({
   provider,
   transactionId,
