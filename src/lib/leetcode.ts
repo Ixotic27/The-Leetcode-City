@@ -40,7 +40,9 @@ export function parseMaxStreak(
 ): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
-    for (let y = 2015; y <= currentYear; y++) {
+    // Only iterate over the last 3 years to avoid processing overhead from early LeetCode years.
+    const startYear = Math.max(currentYear - 2, 2015);
+    for (let y = startYear; y <= currentYear; y++) {
         const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
