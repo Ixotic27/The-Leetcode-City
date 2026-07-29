@@ -21,13 +21,30 @@ const STORAGE_KEY = "gc_radio";
 
 const DEFAULT_STATE: RadioState = { volume: 0.15, trackIndex: 0, shuffle: false };
 
+function validateRadioState(state: unknown): RadioState {
+  const saved = state !== null && typeof state === "object" ? state as Record<string, unknown> : {};
+
+  return {
+    volume: typeof saved.volume === "number" && saved.volume >= 0 && saved.volume <= 1
+      ? saved.volume
+      : DEFAULT_STATE.volume,
+    trackIndex: typeof saved.trackIndex === "number"
+      && Number.isInteger(saved.trackIndex)
+      && saved.trackIndex >= 0
+      && saved.trackIndex < TRACKS.length
+      ? saved.trackIndex
+      : DEFAULT_STATE.trackIndex,
+    shuffle: typeof saved.shuffle === "boolean" ? saved.shuffle : DEFAULT_STATE.shuffle,
+  };
+}
+
 export function loadRadioState(): RadioState {
   if (typeof window === "undefined") return DEFAULT_STATE;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed };
+    return validateRadioState(parsed);
   } catch (err) {
     console.warn("[radio.ts] failed to load saved radio state:", err);
     return DEFAULT_STATE;
