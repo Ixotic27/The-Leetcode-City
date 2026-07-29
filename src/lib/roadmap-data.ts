@@ -1,21 +1,48 @@
+/**
+ * Roadmap data module.
+ * Defines the static roadmap structure displayed on the public roadmap page,
+ * including phases, items, and vote eligibility sets.
+ */
+
+/** Lifecycle status of a roadmap item or phase. */
 export type ItemStatus = "done" | "building" | "planned";
 
+/**
+ * A single item on the roadmap.
+ */
 export interface RoadmapItem {
+  /** Unique identifier for the item. */
   id: string;
+  /** Display name of the roadmap item. */
   name: string;
+  /** Optional human-readable description. */
   description?: string;
+  /** Current lifecycle status. */
   status: ItemStatus;
-  mystery?: boolean; // hides vote button, shows "???" vibe
+  /**
+   * If true, the item is a mystery placeholder.
+   * Hides the vote button and displays "???" instead of the name.
+   */
+  mystery?: boolean;
 }
 
+/**
+ * A roadmap phase containing a group of related items.
+ */
 export interface RoadmapPhase {
+  /** Unique identifier for the phase. */
   id: string;
+  /** Display title for the phase. */
   title: string;
+  /** Quarter or time range label (e.g. "Q1 2026"). */
   quarter: string;
+  /** Aggregate status of the phase. */
   status: ItemStatus;
+  /** Items belonging to this phase. */
   items: RoadmapItem[];
 }
 
+/** All roadmap phases and their items. */
 export const ROADMAP_PHASES: RoadmapPhase[] = [
   {
     id: "foundation",
@@ -218,12 +245,18 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
   },
 ];
 
-// All valid item IDs (for server-side vote validation)
+/**
+ * Set of all valid roadmap item IDs.
+ * Used for server-side validation when accepting votes or other item references.
+ */
 export const VALID_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) => phase.items.map((item) => item.id))
 );
 
-// Items that can be voted on (not done, not mystery)
+/**
+ * Set of roadmap item IDs that are eligible for community votes.
+ * Excludes items that are `done` (already shipped) or `mystery` (hidden).
+ */
 export const VOTABLE_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) =>
     phase.items
