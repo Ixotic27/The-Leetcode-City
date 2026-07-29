@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/cleanup-active-players",
-      "schedule": "* * * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 }
