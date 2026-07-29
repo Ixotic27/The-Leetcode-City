@@ -271,8 +271,19 @@ export default function LoadingScreen({
     onRetry();
   }, [onRetry]);
 
-  const handleTransitionEnd = useCallback(() => {
-    if (fading) onFadeComplete();
+  const handleTransitionEnd = useCallback((e: React.TransitionEvent) => {
+    // Only respond to the root div's opacity transition, not child animations
+    if (fading && e.target === e.currentTarget && e.propertyName === "opacity") {
+      onFadeComplete();
+    }
+  }, [fading, onFadeComplete]);
+
+  // Safety fallback: if CSS transitionEnd doesn't fire (e.g. display:none race),
+  // force completion after a reasonable delay
+  useEffect(() => {
+    if (!fading) return;
+    const timer = setTimeout(() => onFadeComplete(), 600);
+    return () => clearTimeout(timer);
   }, [fading, onFadeComplete]);
 
   // ── Render ────────────────────────────────────────────────────
@@ -282,7 +293,7 @@ export default function LoadingScreen({
       className={`fixed inset-0 z-[100] bg-[#070709] transition-opacity duration-[400ms] ${
         fading ? "opacity-0" : "opacity-100"
       }`}
-      onTransitionEnd={handleTransitionEnd}
+      onTransitionEnd={handleTransitionEnd as unknown as React.TransitionEventHandler<HTMLDivElement>}
     >
       <style>{`
         @keyframes gc-cursor { 50% { opacity: 0; } }
