@@ -50,7 +50,7 @@ import { useWeather } from '@/context/WeatherContext';
 import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import CodeForgeModal from "@/components/CodeForgeModal";
-import { WaterPlane, CanalWater } from "./WaterShader";
+import { WaterPlane } from "./WaterShader";
 
 
 // ─── Theme Definitions ───────────────────────────────────────
@@ -1209,10 +1209,7 @@ function Ground({ color, grid1, grid2, showNeonGrid, accentColor }: { color: str
         size={[80000, 80000]}
         deepColor="#0a2a4a"
         shallowColor="#0c3860"
-        skyColor="#1a3050"
-        specularColor="#90b0d0"
-        nightFactor={0.8}
-        segments={128}
+        segments={16}
         renderOrder={-1}
       />
     </group>
@@ -1433,33 +1430,46 @@ function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterCo
       size={[river.width, river.length]}
       deepColor={waterColor}
       shallowColor={waterEmissive}
-      skyColor="#1a3050"
-      specularColor="#90b0d0"
-      nightFactor={0.7}
-      segments={32}
+      segments={8}
       renderOrder={1}
     />
   );
 }
 
 function CityCanals({ canals, waterColor, waterEmissive }: { canals: CityCanal[]; waterColor: string; waterEmissive: string }) {
+  const matsRef = useRef<THREE.MeshBasicMaterial[]>([]);
+
+  useFrame(({ clock }) => {
+    const opacity = 0.72 + Math.sin(clock.elapsedTime * 0.6) * 0.06;
+    for (const mat of matsRef.current) {
+      mat.opacity = opacity;
+    }
+  });
+
   if (canals.length === 0) return null;
 
   return (
     <>
       {canals.map((canal, i) => (
-        <CanalWater
+        <mesh
           key={`canal-${i}`}
+          rotation={[-Math.PI / 2, 0, canal.rotation]}
           position={canal.position}
-          length={canal.length}
-          width={canal.width}
-          rotation={canal.rotation}
-          deepColor={waterColor}
-          shallowColor={waterEmissive}
-          skyColor="#1a3050"
-          specularColor="#90b0d0"
-          nightFactor={0.7}
-        />
+          renderOrder={1}
+        >
+          <planeGeometry args={[canal.length, canal.width]} />
+          <meshBasicMaterial
+            ref={(el: THREE.MeshBasicMaterial | null) => {
+              if (el) {
+                if (!matsRef.current.includes(el)) matsRef.current.push(el);
+              }
+            }}
+            color={waterEmissive}
+            transparent
+            opacity={0.72}
+            depthWrite={false}
+          />
+        </mesh>
       ))}
     </>
   );
