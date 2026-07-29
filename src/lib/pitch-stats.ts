@@ -1,15 +1,34 @@
+/**
+ * Pitch statistics module.
+ * Provides aggregate platform metrics used on the public landing/pitch page.
+ */
+
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Aggregate statistics for the LeetCode City platform.
+ * All values are raw counts from the database unless otherwise noted.
+ */
 export interface PitchStats {
+  /** Total registered developers (claimed and unclaimed). */
   developers: number;
+  /** Developers who have claimed their building. */
   claimed: number;
+  /** Number of paid sky-ad campaigns. */
   adCampaigns: number;
+  /** Number of unique brands that have purchased ads. */
   uniqueBrands: number;
+  /** Number of shop purchases (placeholder, always 0). */
   shopPurchases: number;
+  /** Total kudos given across all developers. */
   kudos: number;
+  /** Total building visits recorded. */
   buildingVisits: number;
+  /** Total developer achievements earned. */
   achievements: number;
+  /** Number of days since the platform launched. */
   daysOld: number;
+  /** Claim rate as a percentage string, e.g. "42.5%". */
   conversionRate: string;
   formattedDevelopers: string;
   formattedClaimed: string;
@@ -25,6 +44,7 @@ export interface PitchStats {
   formattedShopRevenue: string;
 }
 
+/** Platform launch date used to calculate `daysOld`. */
 const LAUNCH_DATE = new Date("2026-02-19T00:00:00Z");
 
 // Revenue from Stripe dashboard (update manually, can't be calculated from DB
@@ -33,10 +53,21 @@ const KNOWN_REVENUE_BRL = 1586;
 const KNOWN_AD_REVENUE_BRL = 1550;
 const KNOWN_SHOP_REVENUE_BRL = 36;
 
+/**
+ * Format a number with US locale thousands separators.
+ * @param n - The number to format.
+ * @returns A string such as "1,234".
+ */
 function fmt(n: number): string {
   return n.toLocaleString("en-US");
 }
 
+/**
+ * Format a number with US locale and append "+" when rounded to the nearest 100.
+ * Used for large approximate counts (developers, claimed).
+ * @param n - The number to format.
+ * @returns A string such as "1,200+".
+ */
 function fmtRounded(n: number): string {
   if (n >= 1000) {
     const rounded = Math.floor(n / 100) * 100;
@@ -45,6 +76,12 @@ function fmtRounded(n: number): string {
   return fmt(n);
 }
 
+/**
+ * Fetch aggregate platform statistics for the public pitch page.
+ * Queries developers, sky-ads, kudos, building visits, and achievements tables.
+ *
+ * @returns A fully populated {@link PitchStats} object with raw and formatted values.
+ */
 export async function getPitchStats(): Promise<PitchStats> {
   const admin = getSupabaseAdmin();
 
