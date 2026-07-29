@@ -151,11 +151,9 @@ function HomeContent() {
 
   const handleLoadFadeComplete = useCallback(() => {
     setLoadStage("done");
-    const hasDeepLink = searchParams.get("user") || searchParams.get("compare");
-    if (!localStorage.getItem("leetcodecity_intro_seen") && !hasDeepLink) {
-      setIntroMode(true);
-    }
-  }, [searchParams, setLoadStage, setIntroMode]);
+    // Always show the landing page (home HUD) first.
+    // Intro flyover can be triggered manually from the HUD.
+  }, [setLoadStage]);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-bg font-pixel uppercase text-warm">
