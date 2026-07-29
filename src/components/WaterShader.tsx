@@ -169,7 +169,7 @@ export function WaterPlane({
   });
 
   return (
-    <mesh position={position} rotation={rotation} renderOrder={renderOrder}>
+    <mesh position={position} rotation={rotation} renderOrder={renderOrder} frustumCulled={false}>
       <planeGeometry args={[size[0], size[1], segments, segments]} />
       <primitive object={mat} ref={matRef} attach="material" />
     </mesh>
