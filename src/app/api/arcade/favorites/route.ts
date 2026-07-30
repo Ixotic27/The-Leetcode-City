@@ -6,13 +6,13 @@ import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 export async function POST(req: NextRequest) {
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
   if (!auth.ok || !auth.user) {
-    return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status });
+    return NextResponse.json({ error: auth.error ?? "Unauthorized" }, { status: auth.status, headers: { "Cache-Control": "no-store" } });
   }
   const user = auth.user;
 
   const { room_id } = (await req.json()) as { room_id?: string };
   if (!room_id) {
-    return NextResponse.json({ error: "room_id required" }, { status: 400 });
+    return NextResponse.json({ error: "room_id required" }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
   const sb = getSupabaseAdmin();
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         .delete()
         .eq("user_id", user.id)
         .eq("room_id", room_id);
-      return NextResponse.json({ favorited: false });
+      return NextResponse.json({ favorited: false }, { headers: { "Cache-Control": "no-store" } });
     }
 
     // Add favorite
@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
       .insert({ user_id: user.id, room_id });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500, headers: { "Cache-Control": "no-store" } });
     }
 
-    return NextResponse.json({ favorited: true });
+    return NextResponse.json({ favorited: true }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     console.warn("Could not toggle favorite in DB, fallback to fake success:", e);
     // Just toggle locally
-    return NextResponse.json({ favorited: true });
+    return NextResponse.json({ favorited: true }, { headers: { "Cache-Control": "no-store" } });
   }
 }
