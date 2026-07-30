@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { createServerClient } from "@supabase/ssr";
 import { rateLimit } from "@/lib/rate-limit";
 import { isValidUrl, createDummyClient } from "./lib/supabase";
@@ -85,6 +86,12 @@ function getClientIp(request: NextRequest): string {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const requestId =
+  request.headers.get("x-request-id") ?? crypto.randomUUID();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+
   // ── 1. Rate Limit ────────────────────────────────────────────────────
   const ip = getClientIp(request);
   const { limit, window, group } = getLimitForPath(pathname);
@@ -98,6 +105,7 @@ export async function middleware(request: NextRequest) {
         status: 429,
         headers: {
           "Content-Type": "application/json",
+          "X-Request-ID": requestId,
           "Retry-After": String(Math.ceil((reset - Date.now()) / 1000)),
           "X-RateLimit-Limit": String(limit),
           "X-RateLimit-Remaining": "0",
@@ -112,7 +120,11 @@ export async function middleware(request: NextRequest) {
     .getAll()
     .some((c) => c.name.startsWith("sb-"));
 
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 
   if (hasSession) {
     const url = process.env['NEXT_PUBLIC_SUPABASE_URL'];
@@ -131,7 +143,11 @@ export async function middleware(request: NextRequest) {
                 cookiesToSet.forEach(({ name, value }) =>
                   request.cookies.set(name, value),
                 );
-                supabaseResponse = NextResponse.next({ request });
+                supabaseResponse = NextResponse.next({
+                  request: {
+                    headers: requestHeaders,
+                  },
+                });
                 cookiesToSet.forEach(({ name, value, options }) =>
                   supabaseResponse.cookies.set(name, value, options),
                 );
@@ -233,6 +249,8 @@ export async function middleware(request: NextRequest) {
     "X-RateLimit-Reset",
     String(Math.ceil(reset / 1000)),
   );
+
+  supabaseResponse.headers.set("X-Request-ID", requestId);
 
   return supabaseResponse;
 }
