@@ -1,14 +1,24 @@
-export async function fetchLeetCodeAboutMe(username: string): Promise<string | null> {
+export enum LeetCodeFetchError {
+    NETWORK_ERROR = "NETWORK_ERROR",
+    HTTP_ERROR = "HTTP_ERROR",
+    PARSE_ERROR = "PARSE_ERROR",
+}
+
+export async function fetchLeetCodeAboutMe(
+    username: string
+): Promise<{ data: string | null; error: LeetCodeFetchError | null }> {
     try {
-        const res = await fetch("https://leetcode.com/graphql", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0",
-                "Referer": "https://leetcode.com/"
-            },
-            body: JSON.stringify({
-                query: `
+        let res: Response;
+        try {
+            res = await fetch("https://leetcode.com/graphql", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://leetcode.com/"
+                },
+                body: JSON.stringify({
+                    query: `
           query getUserProfile($username: String!) {
             matchedUser(username: $username) {
               profile {
@@ -17,16 +27,33 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
             }
           }
         `,
-                variables: { username }
-            })
-        });
+                    variables: { username }
+                })
+            });
+        } catch (err) {
+            console.error("[leetcode.ts] failed to fetch LeetCode aboutMe (network):", err);
+            return { data: null, error: LeetCodeFetchError.NETWORK_ERROR };
+        }
 
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data?.data?.matchedUser?.profile?.aboutMe ?? null;
+        if (!res.ok) {
+            return { data: null, error: LeetCodeFetchError.HTTP_ERROR };
+        }
+
+        let data: unknown;
+        try {
+            data = await res.json();
+        } catch (err) {
+            console.error("[leetcode.ts] failed to parse LeetCode aboutMe JSON:", err);
+            return { data: null, error: LeetCodeFetchError.PARSE_ERROR };
+        }
+
+        const aboutMe =
+            (data as { data?: { matchedUser?: { profile?: { aboutMe?: string } } } })
+                ?.data?.matchedUser?.profile?.aboutMe ?? null;
+        return { data: aboutMe, error: null };
     } catch (err) {
         console.error("[leetcode.ts] failed to fetch LeetCode aboutMe:", err);
-        return null;
+        return { data: null, error: LeetCodeFetchError.NETWORK_ERROR };
     }
 }
 
@@ -76,7 +103,9 @@ export function parseMaxStreak(
     return maxStreak;
 }
 
-export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<number | null> {
+export async function fetchLeetCodeWeeklySubmissions(
+    username: string
+): Promise<{ data: number | null; error: LeetCodeFetchError | null }> {
     try {
         const now = new Date();
         const currentYear = now.getFullYear();
@@ -92,15 +121,17 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
         let totalWeeklyCount = 0;
 
         for (const year of yearsToFetch) {
-            const res = await fetch("https://leetcode.com/graphql", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "User-Agent": "Mozilla/5.0",
-                    "Referer": "https://leetcode.com/"
-                },
-                body: JSON.stringify({
-                    query: `
+            let res: Response;
+            try {
+                res = await fetch("https://leetcode.com/graphql", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0",
+                        "Referer": "https://leetcode.com/"
+                    },
+                    body: JSON.stringify({
+                        query: `
               query getUserCalendar($username: String!, $year: Int) {
                 matchedUser(username: $username) {
                   userCalendar(year: $year) {
@@ -109,20 +140,39 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
                 }
               }
             `,
-                    variables: { username, year }
-                })
-            });
+                        variables: { username, year }
+                    })
+                });
+            } catch (err) {
+                console.error("[leetcode.ts] failed to fetch weekly submissions (network):", err);
+                return { data: null, error: LeetCodeFetchError.NETWORK_ERROR };
+            }
 
-            // A failed request (or missing calendar) means we cannot compute a
-            // trustworthy weekly total. Return null so callers preserve the
-            // existing contribution count instead of overwriting it with a
-            // partial/zero value during a transient LeetCode outage.
-            if (!res.ok) return null;
-            const data = await res.json();
-            const calendarStr = data?.data?.matchedUser?.userCalendar?.submissionCalendar;
-            if (!calendarStr) return null;
+            if (!res.ok) {
+                return { data: null, error: LeetCodeFetchError.HTTP_ERROR };
+            }
 
-            const calendar = JSON.parse(calendarStr);
+            let data: unknown;
+            try {
+                data = await res.json();
+            } catch (err) {
+                console.error("[leetcode.ts] failed to parse weekly submissions JSON:", err);
+                return { data: null, error: LeetCodeFetchError.PARSE_ERROR };
+            }
+
+            const calendarStr =
+                (data as { data?: { matchedUser?: { userCalendar?: { submissionCalendar?: string } } } })
+                    ?.data?.matchedUser?.userCalendar?.submissionCalendar;
+            if (!calendarStr) return { data: null, error: null };
+
+            let calendar: Record<string, number>;
+            try {
+                calendar = JSON.parse(calendarStr);
+            } catch (err) {
+                console.error("[leetcode.ts] failed to parse submissionCalendar string:", err);
+                return { data: null, error: LeetCodeFetchError.PARSE_ERROR };
+            }
+
             const sevenDaysAgoTs = nowTs - 7 * 24 * 60 * 60;
 
             for (const [timestampStr, count] of Object.entries(calendar)) {
@@ -133,10 +183,9 @@ export async function fetchLeetCodeWeeklySubmissions(username: string): Promise<
             }
         }
 
-        return totalWeeklyCount;
+        return { data: totalWeeklyCount, error: null };
     } catch (err) {
         console.error("[leetcode.ts] failed to fetch weekly submissions:", err);
-        // Signal failure (not a real zero) so the caller keeps the prior count.
-        return null;
+        return { data: null, error: LeetCodeFetchError.NETWORK_ERROR };
     }
 }
