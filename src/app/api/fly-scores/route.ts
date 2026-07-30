@@ -4,6 +4,14 @@ import { rateLimit } from "@/lib/rate-limit";
 import { trackDailyMission } from "@/lib/dailies";
 import { buildFlyLeaderboard, type FlyScoreRow } from "@/lib/fly-leaderboard";
 import { getTodaySeed } from "@/lib/fly-seed";
+import { z } from "zod";
+
+const flyScoreSchema = z.object({
+  score: z.number().int().min(0, "Invalid score").max(430, "Invalid score"),
+  collected: z.number().int().min(0, "Invalid collected").max(40, "Invalid collected"),
+  max_combo: z.number().int().min(1, "Invalid combo").max(3, "Invalid combo"),
+  flight_ms: z.number().int().min(10000, "Invalid flight time"),
+});
 
 function maxScoreForCollected(collected: number): number {
   if (collected <= 0) return 0;
@@ -32,21 +40,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
 
-  const body = await request.json();
-  const { score, collected, max_combo, flight_ms } = body;
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  if (typeof score !== "number" || score < 0 || score > 430) {
-    return NextResponse.json({ error: "Invalid score" }, { status: 400 });
+  const parsed = flyScoreSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstIssue = parsed.error.issues[0];
+    return NextResponse.json({ error: firstIssue.message }, { status: 400 });
   }
-  if (typeof collected !== "number" || collected < 0 || collected > 40) {
-    return NextResponse.json({ error: "Invalid collected" }, { status: 400 });
-  }
-  if (typeof max_combo !== "number" || max_combo < 1 || max_combo > 3) {
-    return NextResponse.json({ error: "Invalid combo" }, { status: 400 });
-  }
-  if (typeof flight_ms !== "number" || flight_ms < 10_000) {
-    return NextResponse.json({ error: "Invalid flight time" }, { status: 400 });
-  }
+
+  const { score, collected, max_combo, flight_ms } = parsed.data;
 
   const ceiling = maxScoreForCollected(collected);
   if (score > ceiling) {
