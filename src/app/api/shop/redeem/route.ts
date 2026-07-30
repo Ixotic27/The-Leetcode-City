@@ -131,6 +131,6 @@ export async function POST(request: Request) {
     success: true,
     item_id: itemId,
     item_name: item.name,
-    message: `🎉 "${item.name}" has been added to your inventory!`,
+    message: `"${item.name}" has been added to your inventory!"`,
   });
 }
