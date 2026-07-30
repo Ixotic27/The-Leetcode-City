@@ -120,6 +120,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const requestId = request.headers.get("x-request-id");
   const auth = await resolveAuthenticatedDeveloper({ select: "id" });
 
   if (!auth.ok || !auth.user) {
@@ -167,7 +168,10 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       }, { onConflict: "developer_id" });
     } catch (e) {
-      console.warn("Could not save legacy sprite mapping to database:", e);
+      console.warn(
+        `[Request ID: ${requestId}] Could not save legacy sprite mapping to database:`,
+        e,
+      );
     }
 
     return NextResponse.json({ loadout: { developer_id: dev.id, ...newLoadout } });
@@ -205,7 +209,10 @@ export async function POST(request: Request) {
         );
       }
     } catch (error) {
-      console.warn("Could not verify item ownership from database:", error);
+      console.warn(
+        `[Request ID: ${requestId}] Could not verify item ownership from database:`,
+        error,
+      );
       return NextResponse.json({ error: "Failed to verify item ownership" }, { status: 500 });
     }
   }
@@ -261,7 +268,10 @@ export async function POST(request: Request) {
       .upsert(loadoutData, { onConflict: "developer_id" });
 
     if (error) {
-      console.error("Loadout upsert error:", error);
+      console.error(
+        `[Request ID: ${requestId}] Loadout upsert error:`,
+        error,
+      );
       return NextResponse.json({ error: "Failed to save loadout" }, { status: 500 });
     }
 
@@ -274,7 +284,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ loadout: saved });
   } catch (e) {
-    console.warn("Could not save loadout to database (falling back to returning request loadout):", e);
+    console.warn(
+      `[Request ID: ${requestId}] Could not save loadout to database (falling back to returning request loadout):`,
+      e,
+    );
     return NextResponse.json({ loadout: loadoutData });
   }
 }
