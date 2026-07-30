@@ -1,12 +1,12 @@
 /**
- * Tests for fetchLeetCodeWeeklySubmissions (Issue #533).
- *
- * The contract: return a number on success (including a genuine 0 when the
- * developer made no submissions this week), and null on any failure so callers
- * preserve the existing contribution count instead of resetting it to 0.
+ * Tests for fetchLeetCodeWeeklySubmissions and fetchLeetCodeAboutMe (Issue #1136 & #533).
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { fetchLeetCodeWeeklySubmissions } from "../leetcode";
+import {
+  fetchLeetCodeWeeklySubmissions,
+  fetchLeetCodeAboutMe,
+  LeetCodeFetchError,
+} from "../leetcode";
 
 const FIXED_NOW = "2025-06-04T12:00:00.000Z";
 
@@ -48,7 +48,7 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
       ),
     );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(result).toBe(5);
+    expect(result).toEqual({ data: 5, error: null });
   });
 
   it("returns a genuine 0 when the user has no recent submissions", async () => {
@@ -57,19 +57,19 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
       vi.fn().mockResolvedValue(calendarResponse({ [tenDaysAgoTs]: 99 })),
     );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(result).toBe(0);
+    expect(result).toEqual({ data: 0, error: null });
   });
 
-  it("returns null (not 0) when the API responds with a non-OK status", async () => {
+  it("returns HTTP_ERROR when the API responds with a non-OK status", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
     );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.HTTP_ERROR });
   });
 
-  it("returns null (not 0) when the calendar payload is missing", async () => {
+  it("returns data: null, error: null when the calendar payload is missing", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -78,32 +78,104 @@ describe("fetchLeetCodeWeeklySubmissions", () => {
       }),
     );
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, error: null });
   });
 
-  it("returns null (not 0) when fetch throws (network error)", async () => {
+  it("returns NETWORK_ERROR when fetch throws (network error)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(result).toBeNull();
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.NETWORK_ERROR });
   });
 
-  it("returns null when a year-boundary window has one failed year request", async () => {
-    // Early January: the 7-day window straddles the year boundary, so two
-    // year requests are made. The first (current year) succeeds but the
-    // second (previous year) fails. The current-year calendar alone is an
-    // undercount of the window, so the function must return null rather than
-    // overwrite the stored count with a partial total.
+  it("returns PARSE_ERROR when JSON parsing throws", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new Error("Invalid JSON");
+        },
+      }),
+    );
+    const result = await fetchLeetCodeWeeklySubmissions("alice");
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.PARSE_ERROR });
+  });
+
+  it("returns PARSE_ERROR when inner submissionCalendar string parsing throws", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            matchedUser: {
+              userCalendar: { submissionCalendar: "invalid-json" },
+            },
+          },
+        }),
+      }),
+    );
+    const result = await fetchLeetCodeWeeklySubmissions("alice");
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.PARSE_ERROR });
+  });
+
+  it("returns error when a year-boundary window has one failed year request", async () => {
     vi.setSystemTime(new Date("2026-01-02T12:00:00.000Z"));
     const jan1Ts = Math.floor(new Date("2026-01-01T00:00:00.000Z").getTime() / 1000);
 
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(calendarResponse({ [jan1Ts]: 3 })) // current year ok
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) }); // prior year fails
+      .mockResolvedValueOnce(calendarResponse({ [jan1Ts]: 3 }))
+      .mockResolvedValueOnce({ ok: false, json: async () => ({}) });
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await fetchLeetCodeWeeklySubmissions("alice");
-    expect(fetchMock).toHaveBeenCalledTimes(2); // current year then prior year (which fails)
-    expect(result).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.HTTP_ERROR });
+  });
+});
+
+describe("fetchLeetCodeAboutMe", () => {
+  it("returns aboutMe text on success", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: { matchedUser: { profile: { aboutMe: "LCC-12345" } } },
+        }),
+      }),
+    );
+    const result = await fetchLeetCodeAboutMe("alice");
+    expect(result).toEqual({ data: "LCC-12345", error: null });
+  });
+
+  it("returns HTTP_ERROR when HTTP status is not ok", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }),
+    );
+    const result = await fetchLeetCodeAboutMe("alice");
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.HTTP_ERROR });
+  });
+
+  it("returns NETWORK_ERROR when fetch fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Network failure")));
+    const result = await fetchLeetCodeAboutMe("alice");
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.NETWORK_ERROR });
+  });
+
+  it("returns PARSE_ERROR when response JSON parsing fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new Error("Bad JSON");
+        },
+      }),
+    );
+    const result = await fetchLeetCodeAboutMe("alice");
+    expect(result).toEqual({ data: null, error: LeetCodeFetchError.PARSE_ERROR });
   });
 });
