@@ -102,11 +102,6 @@ async function grantStreakReward(
   return null;
 }
 
-// Lightweight LeetCode fetch: only current week contributions
-async function fetchWeeklyContributions(login: string): Promise<number | null> {
-  return fetchLeetCodeWeeklySubmissions(login);
-}
-
 export async function POST() {
   const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
@@ -333,8 +328,8 @@ export async function POST() {
   }
 
   // Refresh weekly contributions from LeetCode
-  const weeklyContribs = await fetchWeeklyContributions(githubLogin);
-  if (weeklyContribs !== null) {
+  const { data: weeklyContribs, error: weeklyContribsError } = await fetchLeetCodeWeeklySubmissions(githubLogin);
+  if (weeklyContribsError === null && weeklyContribs !== null) {
     await sb.from("developers").update({ current_week_contributions: weeklyContribs }).eq("id", dev.id);
   }
 
