@@ -56,9 +56,10 @@ const TIERS: ReEngagementTier[] = [
 /**
  * Cron: Daily 14:00 UTC - Re-engagement emails for inactive developers.
  * Category: marketing (opt-in only, defaults to false).
- */
-/**
- * @param {import('next/server').NextRequest} request
+ * Sends tiered re-engagement emails (7d, 14d, 30d inactive) to opted-in developers.
+ *
+ * @param request - Incoming NextRequest with Authorization header
+ * @returns JSON with ok, sent, skipped, and errors counts
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
