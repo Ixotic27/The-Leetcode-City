@@ -34,17 +34,16 @@ interface TermLine {
 
 // ─── Constants ─────────────────────────────────────────────────
 
-// Fallbacks used when stats haven't loaded yet
-const FALLBACK_DEVS = 12_800;
-const FALLBACK_CONTRIBS = 8_450_000;
+// Fallbacks for when the snapshot stats haven't arrived yet
+const FALLBACK_DEVS = 12500;
+const FALLBACK_CONTRIBS = 8500000;
 
 const EASTER_EGGS = [
-  "remote: warning: 3 devs submitted on a Sunday night",
-  "remote: hint: someone just solved a hard DP problem in 2 lines",
+  "remote: warning: 3 devs pushed to main on a Friday",
+  "remote: hint: neon fog detected over the city, rendering anyway",
   "remote: 42 merge conflicts resolved peacefully today",
-  "remote: note: the tallest building belongs to whoever grinds most",
-  "remote: tip: fly mode unlocks at the skyline — try it",
-  "remote: hint: buildings glow brighter with recent submissions",
+  "remote: note: someone force-pushed. the city forgives.",
+  "remote: tip: tallest building belongs to whoever solves the most",
 ];
 
 const KEEPALIVE = [
@@ -53,8 +52,8 @@ const KEEPALIVE = [
   "remote: almost there...",
 ];
 
-// Script timing: runs at relaxed pace normally, boosts 10x when real
-// load finishes (stage === "ready") so it wraps up fast.
+// Script plays at this relaxed pace by default; when the real load finishes
+// (stage === "ready") the clock runs at READY_BOOST so it wraps up fast.
 const READY_BOOST = 10;
 const TICK_MS = 40;
 
@@ -78,9 +77,11 @@ export default function LoadingScreen({
   const lineIdRef = useRef(0);
   const stageRef = useRef(stage);
   const statsRef = useRef(stats);
+  const fadeCalledRef = useRef(false);
   const [restartKey, setRestartKey] = useState(0);
 
   const isError = stage === "error";
+  const color = accentColor;
 
   useEffect(() => {
     stageRef.current = stage;
@@ -105,11 +106,6 @@ export default function LoadingScreen({
     let aborted = false;
     const alive = () => !aborted && stageRef.current !== "error";
 
-    // Sleeps `virtualMs` of script time; real time shrinks when the city is
-    // already loaded so the script fast-forwards instead of holding the user.
-    // Boosted ticks overshoot small sleeps (e.g. per-character typing), so the
-    // surplus carries over as credit — without it every sleep would still cost
-    // a full real tick and the fast-forward would crawl.
     let credit = 0;
     const vsleep = async (virtualMs: number) => {
       if (credit >= virtualMs) {
@@ -148,7 +144,6 @@ export default function LoadingScreen({
       while (consumed < virtualMs) {
         await vsleep(60);
         consumed += 60;
-        // occasional stall, like a real network
         if (Math.random() < 0.15) continue;
         updateLine(id, { text: render(Math.min(1, consumed / virtualMs)) });
       }
@@ -166,20 +161,20 @@ export default function LoadingScreen({
       setShowCursor(false);
       setFlashing(false);
       setFading(false);
+      fadeCalledRef.current = false;
 
       const devs = () => statsRef.current?.total_developers || FALLBACK_DEVS;
       const contribs = () => statsRef.current?.total_contributions || FALLBACK_CONTRIBS;
 
-      // ── Phase 1: Clone command ──
-      await typeCmd("leetcode clone @city/the-leetcode-city");
+      // ── Phase 1: git clone ──
+      await typeCmd("git clone git@leetcode.city:world/the-leetcode-city.git");
       await vsleep(150);
       addLine("out", "Cloning into 'the-leetcode-city'...");
       await vsleep(200);
 
-      addLine("remote", `remote: Enumerating buildings: ${fmt(devs())}, done.`);
+      // ── Phase 2: Enumerating ──
+      addLine("remote", `remote: Enumerating coders: ${fmt(devs())}, done.`);
       await vsleep(180);
-
-      // ── Phase 2: Counting progress ──
       await progressLine(
         "remote",
         (p) =>
@@ -213,7 +208,7 @@ export default function LoadingScreen({
         "out",
         (p) =>
           `Resolving districts: ${Math.floor(p * 100)}% (${Math.floor(p * districts)}/${districts})${p >= 1 ? ", done." : ""}`,
-        250,
+        350,
       );
 
       addLine("out", "Checking out the skyline... done.");
@@ -233,8 +228,7 @@ export default function LoadingScreen({
       addLine("welcome", `Welcome to LEETCODE CITY — population ${fmt(devs())}`);
       setShowCursor(true);
 
-      // Script finished before the real load? Blink and drop a keep-alive
-      // line every few seconds so it never looks frozen.
+      // Script finished before the real load? Keep-alive lines
       let waited = 0;
       let keepaliveIdx = 0;
       while (stageRef.current !== "ready") {
@@ -246,9 +240,9 @@ export default function LoadingScreen({
           waited = 0;
         }
       }
-      await vsleep(500 * READY_BOOST); // brief hold on the welcome line
+      await vsleep(500 * READY_BOOST);
 
-      // Exit: the terminal "executes" the city — flash, then fade out.
+      // Exit: flash then fade out
       if (!alive()) throw new Error("aborted");
       setShowCursor(false);
       setFlashing(true);
@@ -264,15 +258,28 @@ export default function LoadingScreen({
     };
   }, [restartKey, addLine, updateLine]);
 
-  // On error the script self-aborts (alive() checks stageRef every tick) and
-  // the fatal lines render declaratively below. Retry replays from the top.
   const handleRetry = useCallback(() => {
     setRestartKey((k) => k + 1);
     onRetry();
   }, [onRetry]);
 
-  const handleTransitionEnd = useCallback(() => {
-    if (fading) onFadeComplete();
+  const handleTransitionEnd = useCallback((e: React.TransitionEvent) => {
+    if (fading && !fadeCalledRef.current && e.target === e.currentTarget && e.propertyName === "opacity") {
+      fadeCalledRef.current = true;
+      onFadeComplete();
+    }
+  }, [fading, onFadeComplete]);
+
+  // Safety fallback
+  useEffect(() => {
+    if (!fading) return;
+    const timer = setTimeout(() => {
+      if (!fadeCalledRef.current) {
+        fadeCalledRef.current = true;
+        onFadeComplete();
+      }
+    }, 800);
+    return () => clearTimeout(timer);
   }, [fading, onFadeComplete]);
 
   // ── Render ────────────────────────────────────────────────────
@@ -282,7 +289,7 @@ export default function LoadingScreen({
       className={`fixed inset-0 z-[100] bg-[#070709] transition-opacity duration-[400ms] ${
         fading ? "opacity-0" : "opacity-100"
       }`}
-      onTransitionEnd={handleTransitionEnd}
+      onTransitionEnd={handleTransitionEnd as unknown as React.TransitionEventHandler<HTMLDivElement>}
     >
       <style>{`
         @keyframes gc-cursor { 50% { opacity: 0; } }
@@ -295,7 +302,7 @@ export default function LoadingScreen({
           className="w-full max-w-2xl overflow-hidden font-pixel text-[11px] leading-[1.9] tracking-wide sm:text-xs"
           style={{
             fontVariantNumeric: "tabular-nums",
-            textShadow: `0 0 6px ${accentColor}40`,
+            textShadow: `0 0 6px ${color}40`,
             animation: "gc-flicker 4s infinite",
           }}
         >
@@ -303,27 +310,27 @@ export default function LoadingScreen({
             <div key={l.id} className="min-h-[1.9em] whitespace-pre-wrap break-all">
               {l.cls === "cmd" && (
                 <>
-                  <span style={{ color: accentColor }}>$ </span>
+                  <span style={{ color }}>{`$ `}</span>
                   <span className="text-neutral-300">{l.text}</span>
-                  {l.typing && <Cursor color={accentColor} />}
+                  {l.typing && <Cursor color={color} />}
                 </>
               )}
               {l.cls === "out" && <span className="text-neutral-300">{l.text}</span>}
               {l.cls === "remote" && <span className="text-neutral-500">{l.text}</span>}
               {l.cls === "step" && (
                 <span className="text-neutral-500">
-                  {"  ▸ "}{l.text}...{l.done && <span style={{ color: accentColor }}> done</span>}
+                  {"  ▸ "}{l.text}...{l.done && <span style={{ color }}> done</span>}
                 </span>
               )}
-              {l.cls === "welcome" && <span style={{ color: accentColor }}>{l.text}</span>}
+              {l.cls === "welcome" && <span style={{ color }}>{l.text}</span>}
               {l.cls === "error" && <span className="text-[#e05252]">{l.text}</span>}
             </div>
           ))}
 
           {showCursor && !isError && (
             <div className="min-h-[1.9em]">
-              <span style={{ color: accentColor }}>$ </span>
-              <Cursor color={accentColor} />
+              <span style={{ color }}>{`$ `}</span>
+              <Cursor color={color} />
             </div>
           )}
 
@@ -338,8 +345,8 @@ export default function LoadingScreen({
               </div>
               <button
                 onClick={handleRetry}
-                className="btn-press mt-4 px-6 py-2 font-pixel text-xs text-bg"
-                style={{ backgroundColor: accentColor }}
+                className="mt-4 px-6 py-2 font-pixel text-xs text-[#070709]"
+                style={{ backgroundColor: color }}
               >
                 RETRY
               </button>
