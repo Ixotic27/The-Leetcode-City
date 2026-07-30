@@ -88,12 +88,18 @@ export async function POST() {
             }
         }
 
-        return NextResponse.json({
-            active: isActive,
-            username: dev.github_login,
-            recent_solves: recentSolves?.length ?? 0,
-        });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return NextResponse.json(
+            {
+                active: isActive,
+                username: dev.github_login,
+                recent_solves: recentSolves?.length ?? 0,
+            },
+            {
+                headers: { "Cache-Control": "no-store" },
+            }
+        );
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Internal server error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
