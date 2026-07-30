@@ -9,7 +9,7 @@ async function run() {
     const prToFiles: Record<number, string[]> = {};
 
     for (const file of files) {
-        const prNumber = parseInt(file.split('.')[0]);
+        const prNumber = parseInt(file.split('.', 10)[0]);
         const diffText = fs.readFileSync(path.join(diffDir, file), 'utf-8');
         
         // Find lines starting with "+++ b/"
