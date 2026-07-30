@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { createServerClient } from "@supabase/ssr";
 import { rateLimit } from "@/lib/rate-limit";
 import { isValidUrl, createDummyClient } from "./lib/supabase";
+
+const crypto = globalThis.crypto;
 
 
 // ---------------------------------------------------------------------------
