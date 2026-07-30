@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+const VALID_TABS = new Set(["solved", "lc_rank", "streak", "contest", "xp", "achievers"]);
+
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -11,6 +13,13 @@ export async function GET(request: Request) {
 
   if (!login) {
     return NextResponse.json({ error: "Missing login" }, { status: 400 });
+  }
+
+  if (!VALID_TABS.has(tab)) {
+    return NextResponse.json(
+      { error: `Invalid tab '${tab}'. Accepted values: ${[...VALID_TABS].join(", ")}` },
+      { status: 400 }
+    );
   }
 
   const sb = getSupabaseAdmin();
