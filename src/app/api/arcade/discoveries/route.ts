@@ -29,6 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const requestId = request.headers.get("x-request-id");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -82,11 +83,17 @@ export async function POST(request: Request) {
     );
 
     if (error) {
-      console.error("Discoveries upsert error:", error);
+      console.error(
+        `[Request ID: ${requestId}] Discoveries upsert error:`,
+        error,
+      );
       return NextResponse.json({ error: "Failed to save" }, { status: 500 });
     }
   } catch (e) {
-    console.warn("Could not upsert discoveries, mocking success:", e);
+    console.warn(
+      `[Request ID: ${requestId}] Could not upsert discoveries, mocking success:`,
+      e,
+    );
   }
 
   return NextResponse.json({ commands: updated, new: true });
