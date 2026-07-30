@@ -1781,6 +1781,96 @@ function Bridge({ bridge }: { bridge: CityBridge }) {
   );
 }
 
+// ─── Marina Lighthouse Monument ────────────────────────────────
+
+function MarinaLighthouse({ position }: { position: [number, number, number] }) {
+  const beaconRef = useRef<THREE.Mesh>(null);
+  const lightGroupRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (lightGroupRef.current) {
+      lightGroupRef.current.rotation.y = clock.elapsedTime * 1.5;
+    }
+    if (beaconRef.current) {
+      const pulse = 1.5 + Math.sin(clock.elapsedTime * 3) * 0.8;
+      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
+    }
+  });
+
+  const stripeCount = 8;
+  const stripeH = 5.2;
+  const baseR = 5.5;
+  const taperTotal = 1.8;
+  const taperPerStripe = taperTotal / stripeCount;
+
+  return (
+    <group position={position}>
+      {/* Base platform */}
+      <mesh position={[0, 0.8, 0]}>
+        <cylinderGeometry args={[7, 7.5, 1.6, 20]} />
+        <meshStandardMaterial color="#b0b0b0" roughness={0.6} />
+      </mesh>
+
+      {/* Tower body with even red-white stripes */}
+      {Array.from({ length: stripeCount }, (_, i) => {
+        const y = 1.6 + i * stripeH + stripeH / 2;
+        const rBottom = baseR - i * taperPerStripe;
+        const rTop = baseR - (i + 1) * taperPerStripe;
+        const color = i % 2 === 0 ? '#cc2020' : '#f0f0f0';
+        return (
+          <mesh key={`stripe-${i}`} position={[0, y, 0]}>
+            <cylinderGeometry args={[rTop, rBottom, stripeH, 16]} />
+            <meshStandardMaterial color={color} roughness={0.4} />
+          </mesh>
+        );
+      })}
+
+      {/* Lantern room */}
+      <mesh position={[0, 1.6 + stripeCount * stripeH + 1.5, 0]}>
+        <cylinderGeometry args={[3.8, 4.2, 3, 16]} />
+        <meshStandardMaterial color="#2a2a3a" metalness={0.7} roughness={0.3} />
+      </mesh>
+
+      {/* Glass panes around lantern room */}
+      <mesh position={[0, 1.6 + stripeCount * stripeH + 1.5, 0]}>
+        <cylinderGeometry args={[3.6, 3.6, 2.8, 16, 1, true]} />
+        <meshStandardMaterial color="#88ccff" transparent opacity={0.35} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Rotating beacon light group */}
+      <group ref={lightGroupRef} position={[0, 1.6 + stripeCount * stripeH + 1.5, 0]}>
+        {/* Beacon bulb */}
+        <mesh ref={beaconRef}>
+          <sphereGeometry args={[1.2, 12, 10]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={2} toneMapped={false} />
+        </mesh>
+        {/* Light beam cone - sweep axis along X */}
+        <mesh rotation={[0, 0, Math.PI / 2]} position={[6, 0, 0]}>
+          <coneGeometry args={[2, 12, 8, 1, true]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={2} transparent opacity={0.3} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+        {/* Opposite beam */}
+        <mesh rotation={[0, 0, -Math.PI / 2]} position={[-6, 0, 0]}>
+          <coneGeometry args={[2, 12, 8, 1, true]} />
+          <meshStandardMaterial color="#ffd700" emissive="#ffd700" emissiveIntensity={2} transparent opacity={0.3} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+      </group>
+
+      {/* Roof cap */}
+      <mesh position={[0, 1.6 + stripeCount * stripeH + 3.8, 0]}>
+        <coneGeometry args={[4.5, 2.5, 16]} />
+        <meshStandardMaterial color="#8b0000" roughness={0.4} />
+      </mesh>
+
+      {/* Top finial */}
+      <mesh position={[0, 1.6 + stripeCount * stripeH + 5.5, 0]}>
+        <sphereGeometry args={[0.7, 8, 8]} />
+        <meshStandardMaterial color="#ffd700" metalness={0.8} roughness={0.2} />
+      </mesh>
+    </group>
+  );
+}
+
 // ─── Decoration Renderer ──────────────────────────────────────
 
 function Decorations({ items }: { items: CityDecoration[] }) {
@@ -1795,6 +1885,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'fountain': return <Fountain key={`fountain-${i}`} position={d.position} />;
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
+          case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
           default: return null;
         }
