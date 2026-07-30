@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { z } from "zod";
 
-const MAX_THEME = 3;
+const themeSchema = z.object({
+  city_theme: z.number().int().min(0, "Invalid theme index").max(3, "Invalid theme index"),
+});
+
 
 /**
  * GET /api/preferences/theme
@@ -43,13 +47,19 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
-  const body = await request.json();
-  const theme = body.city_theme;
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
-  if (typeof theme !== "number" || theme < 0 || theme > MAX_THEME || !Number.isInteger(theme)) {
+  const parsed = themeSchema.safeParse(rawBody);
+  if (!parsed.success) {
     return NextResponse.json({ error: "Invalid theme index" }, { status: 400 });
   }
 
+  const theme = parsed.data.city_theme;
   const sb = getSupabaseAdmin();
   const { error } = await sb
     .from("developers")
