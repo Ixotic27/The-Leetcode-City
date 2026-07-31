@@ -1,10 +1,11 @@
+import { describe, it, expect, beforeEach, afterAll, vi } from "vitest";
 import { getEnvNumber } from "@/lib/env";
 
 describe("getEnvNumber", () => {
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
     process.env = { ...ORIGINAL_ENV };
     delete process.env.TEST_ENV_NUM;
   });
