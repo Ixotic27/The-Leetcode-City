@@ -227,6 +227,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid problem_id" }, { status: 400 });
   }
 
+  // Issue #1208: Validate that problem_id belongs to the challenge if challenge_id is provided
+  // Prevents users from submitting solutions for problems not in their active match
+  if (challenge_id) {
+    const { data: challengeRow, error: challengeLookupError } = await sb
+      .from("arena_challenges")
+      .select("problem_id")
+      .eq("id", challenge_id)
+      .maybeSingle();
+
+    if (challengeLookupError) {
+      return NextResponse.json({ error: "Failed to validate challenge" }, { status: 500 });
+    }
+
+    if (!challengeRow) {
+      return NextResponse.json({ error: "Invalid challenge_id" }, { status: 400 });
+    }
+
+    // Verify the submitted problem belongs to this challenge
+    if (challengeRow.problem_id !== problem_id) {
+      return NextResponse.json(
+        {
+          error: "Problem is not part of this challenge",
+          reason: "problem_mismatch"
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   // 1. Fetch challenge details (if linked) and developer timezone in parallel
   let challenge: { difficulty: string; reward_points: number; reward_xp: number } | null = null;
   let difficulty = "medium";
