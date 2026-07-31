@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
+import { validateParams, validateQuery } from "@/lib/validation";
+import { z } from "zod";
+
+const paramsSchema = z.object({
+  username: z.string().trim().min(1, "Username is required"),
+});
+
+const querySchema = z.object({
+  refresh: z.enum(["true", "false"]).optional(),
+});
+
 export const dynamic = "force-dynamic";
 
 interface LeetCodeProfile {
