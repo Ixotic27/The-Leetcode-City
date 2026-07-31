@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchLeetCodeAboutMe, parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
+import { sanitizeLeetCodeBio } from "@/lib/sanitize-bio";
 
 type TagProblem = {
     tagName: string;
@@ -194,7 +195,10 @@ export async function POST(req: Request) {
         const lc_badge = badges.length > 0 ? badges[badges.length - 1].name : null;
 
         // Profile metadata
-        const lc_bio = lcUserStats?.profile?.aboutMe ?? null;
+        // Sanitize LeetCode bio to prevent stored XSS (issue #1211)
+        const lc_bio = lcUserStats?.profile?.aboutMe
+          ? sanitizeLeetCodeBio(lcUserStats.profile.aboutMe)
+          : null;
         const lc_country_code = lcUserStats?.profile?.countryName ?? null;
         const lc_school = lcUserStats?.profile?.school ?? null;
         const lc_company = lcUserStats?.profile?.company ?? null;
