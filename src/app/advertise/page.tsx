@@ -6,6 +6,8 @@ import { AdPurchaseForm } from "./AdPurchaseForm";
 
 const ACCENT = "#ffa116";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Advertise on LeetCode City",
   description:
