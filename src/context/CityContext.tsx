@@ -822,7 +822,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
       try {
         currentPB = Math.max(
           currentPB,
-          parseInt(localStorage.getItem("leetcodecity_fly_pb") || "0", 10) || 0
+          parseInt(localStorage.getItem("leetcodecity_fly_pb", 10) || "0", 10) || 0
         );
       } catch (err) {
         console.warn("[fly] Failed to read personal best from localStorage:", err);
