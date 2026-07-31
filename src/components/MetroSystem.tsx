@@ -17,16 +17,34 @@ interface MetroStationProps {
   name: string;
 }
 
-function MetroStation({ position, name }: MetroStationProps) {
+function PillarFooting({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.75, 0]}>
+        <cylinderGeometry args={[5.2, 6.4, 1.5, 8]} />
+        <meshStandardMaterial color="#343740" roughness={0.92} />
+      </mesh>
+      <mesh position={[0, 2.1, 0]}>
+        <cylinderGeometry args={[3.2, 5.2, 1.2, 8]} />
+        <meshStandardMaterial color="#3d4049" roughness={0.88} />
+      </mesh>
+    </group>
+  );
+}
+
+function MetroStation({ position }: MetroStationProps) {
   return (
     <group position={position}>
       {/* 1. Large pillars holding the station */}
       {[-16, 16].map((x) =>
         [-30, 0, 30].map((z) => (
-          <mesh key={`sp-${x}-${z}`} position={[x, 20, z]}>
-            <cylinderGeometry args={[2.5, 3.2, 40, 6]} />
-            <meshStandardMaterial color="#3a3d45" roughness={0.8} />
-          </mesh>
+          <group key={`sp-${x}-${z}`}>
+            <PillarFooting position={[x, 0, z]} />
+            <mesh position={[x, 20, z]}>
+              <cylinderGeometry args={[2.5, 3.2, 40, 6]} />
+              <meshStandardMaterial color="#3a3d45" roughness={0.8} />
+            </mesh>
+          </group>
         ))
       )}
 
@@ -35,7 +53,26 @@ function MetroStation({ position, name }: MetroStationProps) {
         <boxGeometry args={[45, 2, 90]} />
         <meshStandardMaterial color="#2d2d30" roughness={0.9} />
       </mesh>
-      
+
+      {/* Raised platform edges and inset safety lines */}
+      {[-1, 1].map((side) => (
+        <group key={`platform-edge-${side}`}>
+          <mesh position={[side * 21.7, 40.45, 0]}>
+            <boxGeometry args={[1.1, 0.9, 90]} />
+            <meshStandardMaterial color="#c7c9ce" roughness={0.75} />
+          </mesh>
+          <mesh position={[side * 19.9, 40.08, 0]}>
+            <boxGeometry args={[1.4, 0.16, 86]} />
+            <meshStandardMaterial
+              color="#ffa116"
+              emissive="#ffa116"
+              emissiveIntensity={1.2}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
+
       {/* 3. Platform Roof canopy */}
       <mesh position={[0, 58, 0]}>
         <boxGeometry args={[48, 1, 94]} />
@@ -227,6 +264,7 @@ export default function MetroSystem() {
         const pos = new THREE.Vector3().addScaledVector(normDir, d).add(segment.start);
         pillars.push(
           <group key={`metro-pill-${segment.name}-${d}`}>
+            <PillarFooting position={[pos.x, 0, pos.z]} />
             {/* Main support column */}
             <mesh position={[pos.x, 20, pos.z]}>
               <cylinderGeometry args={[2.8, 3.8, 40, 6]} />
