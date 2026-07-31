@@ -53,8 +53,8 @@ const KEEPALIVE = [
 ];
 
 // Script plays at this relaxed pace by default; when the real load finishes
-// (stage === "ready") the clock runs at READY_BOOST so it wraps up fast.
-const READY_BOOST = 10;
+// (stage === "ready") the clock speeds up moderately (2.5x) to wrap up smoothly.
+const READY_BOOST = 2.5;
 const TICK_MS = 40;
 
 const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
