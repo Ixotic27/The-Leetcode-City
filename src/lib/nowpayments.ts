@@ -159,7 +159,7 @@ export function verifyIpnSignature(
 /** Recursively sort object keys alphabetically (required by NOWPayments). */
 function sortObject(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.keys(obj)
-    .sort()
+    .sort((a, b) => a - b)
     .reduce<Record<string, unknown>>((result, key) => {
       const val = obj[key];
       result[key] =

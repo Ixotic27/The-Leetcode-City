@@ -42,16 +42,4 @@ self.addEventListener("notificationclick", (event) => {
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((windowClients) => {
-        // If the target URL is already open in a tab, just focus it
-        for (const client of windowClients) {
-          if (client.url === url && "focus" in client) {
-            return client.focus();
-          }
-        }
-        // Otherwise open a new tab
-        if (clients.openWindow) {
-          return clients.openWindow(url);
-        }
-      })
-  );
-});
+      .catch(err=>console.error(err))

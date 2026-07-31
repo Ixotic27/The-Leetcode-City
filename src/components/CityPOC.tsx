@@ -379,7 +379,7 @@ function RenderStats({ mode, count }: { mode: string; count: number }) {
 
     if (statsRef.current) {
       const info = gl.info.render;
-      statsRef.current.innerHTML = [
+      statsRef.current.textContent = [
         `<b>FPS:</b> ${avgFps.toFixed(0)}`,
         `<b>Draw Calls:</b> ${info.calls}`,
         `<b>Triangles:</b> ${info.triangles.toLocaleString()}`,
