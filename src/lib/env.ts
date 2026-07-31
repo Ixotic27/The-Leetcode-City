@@ -8,6 +8,7 @@ export function getEnvString(name: string, fallback = ""): string {
   const raw = process.env[name];
   if (raw === undefined || raw === null || raw.trim() === "") return fallback;
   return raw.trim();
+  return raw;
 }
 
 export function getEnvBoolean(name: string, fallback = false): boolean {
