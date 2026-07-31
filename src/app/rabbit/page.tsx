@@ -211,14 +211,16 @@ function PixelRabbitStatue({ completed }: { completed: boolean }) {
 // ─── Floating Particles ─────────────────────────────────────
 
 function FloatingParticlesCSS() {
-  const particles = useMemo(() =>
-    Array.from({ length: 15 }, () => ({
-      left: `${15 + Math.random() * 70}%`,
-      duration: 6 + Math.random() * 8,
-      delay: Math.random() * 6,
-      size: 2 + Math.random() * 2,
-    })),
-    []);
+  const particles = useMemo(() => {
+    const generateRandomParticles = () =>
+      Array.from({ length: 15 }, () => ({
+        left: `${15 + Math.random() * 70}%`,
+        duration: 6 + Math.random() * 8,
+        delay: Math.random() * 6,
+        size: 2 + Math.random() * 2,
+      }));
+    return generateRandomParticles();
+  }, []);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
