@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { validateParams, validateQuery } from "../validation";
+import { validateBody, validateParams, validateQuery } from "../validation";
 
 describe("validation library", () => {
   describe("validateParams", () => {
@@ -24,6 +24,37 @@ describe("validation library", () => {
         const json = await result.response.json();
         expect(json.error).toBe("Invalid request parameters");
         expect(json.details.length).toBeGreaterThan(0);
+      }
+    });
+  });
+
+  describe("validateBody", () => {
+    const schema = z.object({
+      score: z.number().min(0).max(430),
+      collected: z.number().min(0).max(40),
+    });
+
+    it("should return typed data for a valid request body", () => {
+      const result = validateBody({ score: 120, collected: 8 }, schema);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toEqual({ score: 120, collected: 8 });
+      }
+    });
+
+    it("should return a 400 response with field details for an invalid body", async () => {
+      const result = validateBody({ score: 431, collected: "8" }, schema);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.response.status).toBe(400);
+        const json = await result.response.json();
+        expect(json.error).toBe("Invalid request parameters");
+        expect(json.details).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ path: "score" }),
+            expect.objectContaining({ path: "collected" }),
+          ])
+        );
       }
     });
   });

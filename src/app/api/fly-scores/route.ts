@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { trackDailyMission } from "@/lib/dailies";
 import { buildFlyLeaderboard, type FlyScoreRow } from "@/lib/fly-leaderboard";
 import { getTodaySeed } from "@/lib/fly-seed";
+import { validateBody } from "@/lib/validation";
+
+const flyScoreSchema = z.object({
+  score: z.number().min(0).max(430),
+  collected: z.number().min(0).max(40),
+  max_combo: z.number().min(1).max(3),
+  flight_ms: z.number().min(10_000),
+});
 
 function maxScoreForCollected(collected: number): number {
   if (collected <= 0) return 0;
@@ -32,21 +41,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too fast" }, { status: 429 });
   }
 
-  const body = await request.json();
-  const { score, collected, max_combo, flight_ms } = body;
-
-  if (typeof score !== "number" || score < 0 || score > 430) {
-    return NextResponse.json({ error: "Invalid score" }, { status: 400 });
+  const validation = validateBody(await request.json(), flyScoreSchema);
+  if (!validation.success) {
+    return validation.response;
   }
-  if (typeof collected !== "number" || collected < 0 || collected > 40) {
-    return NextResponse.json({ error: "Invalid collected" }, { status: 400 });
-  }
-  if (typeof max_combo !== "number" || max_combo < 1 || max_combo > 3) {
-    return NextResponse.json({ error: "Invalid combo" }, { status: 400 });
-  }
-  if (typeof flight_ms !== "number" || flight_ms < 10_000) {
-    return NextResponse.json({ error: "Invalid flight time" }, { status: 400 });
-  }
+  const { score, collected, max_combo, flight_ms } = validation.data;
 
   const ceiling = maxScoreForCollected(collected);
   if (score > ceiling) {
