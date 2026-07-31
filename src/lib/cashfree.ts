@@ -151,6 +151,8 @@ export function verifyCashfreeWebhook(
   rawBody: string,
   timestamp: string,
 ): boolean {
+  if (!signature) return false;
+
   const secretKey = getSecretKey();
   const data = timestamp + rawBody;
   const expectedSignature = crypto
@@ -158,7 +160,17 @@ export function verifyCashfreeWebhook(
     .update(data)
     .digest("base64");
 
-  return expectedSignature === signature;
+  // Use timingSafeEqual to prevent timing attacks (issue #1210)
+  // Timing attacks allow attackers to brute-force signatures by measuring response time
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, "utf-8"),
+      Buffer.from(signature, "utf-8")
+    );
+  } catch {
+    // If buffers have different lengths, timingSafeEqual throws
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

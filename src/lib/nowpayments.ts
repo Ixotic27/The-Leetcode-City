@@ -145,7 +145,7 @@ export function verifyIpnSignature(
   signature: string,
 ): boolean {
   const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
-  if (!ipnSecret) return false;
+  if (!ipnSecret || !signature) return false;
 
   const sorted = sortObject(rawBody);
   const hmac = crypto
@@ -153,7 +153,17 @@ export function verifyIpnSignature(
     .update(JSON.stringify(sorted))
     .digest("hex");
 
-  return hmac === signature;
+  // Use timingSafeEqual to prevent timing attacks (issue #1210)
+  // Timing attacks allow attackers to brute-force signatures by measuring response time
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(hmac, "utf-8"),
+      Buffer.from(signature, "utf-8")
+    );
+  } catch {
+    // If buffers have different lengths, timingSafeEqual throws
+    return false;
+  }
 }
 
 /** Recursively sort object keys alphabetically (required by NOWPayments). */
