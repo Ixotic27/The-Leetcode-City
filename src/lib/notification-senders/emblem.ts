@@ -24,7 +24,7 @@ export function sendEmblemNotification(
 
   const dedupKey = notable.length === 1
     ? `emblem:${devId}:${notable[0].id}`
-    : `emblem_batch:${devId}:${notable.map((e) => e.id).sort().join(",")}`;
+    : `emblem_batch:${devId}:${notable.map((e) => e.id).sort((a, b) => a - b).join(",")}`;
 
   const isSingle = notable.length === 1;
   const first = notable[0];
