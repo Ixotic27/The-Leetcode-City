@@ -42,6 +42,9 @@ const ALLOWED_LANGUAGES = new Set([
 const MAX_CODE_BYTES = 65536;
 const CODE_HASH_RE = /^[0-9a-f]{1,128}$/i;
 
+// Default match duration: 10 minutes (same as client-side)
+const MATCH_DURATION_SECONDS = 600;
+
 async function rollItemDrops(
   sb: SupabaseClient,
   difficulty: string,
@@ -175,6 +178,39 @@ export async function POST(request: NextRequest) {
   }
 
   const sb = getSupabaseAdmin();
+
+  // Server-side time limit validation (issue #1209)
+  // Reject submissions that arrive too late (after match duration + grace period)
+  // This prevents exploitation of client-side timer vulnerabilities
+  const submissionTimestamp = Date.now();
+
+  // If challenge_id is provided, we can validate against challenge timing
+  if (challenge_id) {
+    const { data: challengeData } = await sb
+      .from("arena_challenges")
+      .select("created_at")
+      .eq("id", challenge_id)
+      .maybeSingle();
+
+    if (challengeData?.created_at) {
+      const challengeCreatedTime = new Date(challengeData.created_at).getTime();
+      const elapsedSeconds = (submissionTimestamp - challengeCreatedTime) / 1000;
+
+      // Allow 60-second grace period for network latency (issue #1209)
+      const GRACE_PERIOD_SECONDS = 60;
+      const totalAllowedSeconds = MATCH_DURATION_SECONDS + GRACE_PERIOD_SECONDS;
+
+      if (elapsedSeconds > totalAllowedSeconds) {
+        return NextResponse.json(
+          {
+            error: "Submission rejected: match time limit exceeded",
+            reason: "server_side_time_validation"
+          },
+          { status: 400 }
+        );
+      }
+    }
+  }
 
   // Validate problem_id exists in arena_problems before doing any reward work
   const { data: problemRow, error: problemLookupError } = await sb

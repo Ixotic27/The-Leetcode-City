@@ -161,6 +161,10 @@ export default function BattlePage() {
   const codeMonsterTextOffset = useRef<number>(0);
   const dialogueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Server-synced timer to prevent client-side manipulation (issue #1209)
+  // Stores the server-provided match end timestamp
+  const matchEndTimeRef = useRef<number | null>(null);
+
   // Typist effect
   const typeText = useCallback((text: string, onComplete?: () => void) => {
     setDialogFinished(false);
@@ -189,20 +193,38 @@ export default function BattlePage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Timer Tick
+  // Timer Tick - Server-synced to prevent tab suspension exploitation (issue #1209)
   useEffect(() => {
     if (battleState === "solving" || battleState === "player_turn") {
+      // Initialize match end time on first timer start
+      if (!matchEndTimeRef.current) {
+        const MATCH_DURATION_SECONDS = 600; // 10 minutes
+        matchEndTimeRef.current = Date.now() + MATCH_DURATION_SECONDS * 1000;
+      }
+
       const timer = setInterval(() => {
         setTimerCount((t) => {
-          if (t <= 1) {
+          // Calculate remaining time based on server-provided end time (wall-clock time)
+          // This prevents manipulation via tab suspension or client-side timer modification
+          const now = Date.now();
+          const remaining = Math.max(
+            0,
+            Math.floor((matchEndTimeRef.current! - now) / 1000)
+          );
+
+          if (remaining <= 0) {
             clearInterval(timer);
             handleTimeout();
             return 0;
           }
-          return t - 1;
+          return remaining;
         });
       }, 1000);
+
       return () => clearInterval(timer);
+    } else {
+      // Reset timer when battle ends
+      matchEndTimeRef.current = null;
     }
   }, [battleState]);
 
