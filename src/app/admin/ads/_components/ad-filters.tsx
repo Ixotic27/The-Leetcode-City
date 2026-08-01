@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { AdsFilters, Period, StatusFilter, VehicleFilter, SourceFilter } from "../_lib/types";
 import { VEHICLE_LABELS } from "../_lib/constants";
 
