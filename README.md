@@ -454,6 +454,19 @@ npm run dev
 
 Open [http://localhost:3001](http://localhost:3001) to see the city.
 
+### Option 4: Docker Compose
+
+Builds the app from the existing `Dockerfile` and starts it with a single command — handy for testing a production build locally or for full-stack testing against Supabase Realtime.
+
+```bash
+git clone https://github.com/Ixotic27/The-Leetcode-City.git
+cd The-Leetcode-City
+cp .env.example .env.local
+docker-compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the city. See the comments in [`docker-compose.yml`](docker-compose.yml) for pointing the container at a local Supabase CLI stack (`supabase start`) instead of the hosted project.
+
 ---
 
 ## 🔧 Environment Variables
