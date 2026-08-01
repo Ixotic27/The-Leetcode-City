@@ -1022,6 +1022,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
     data_ai: ['bangalorePalace'],
   };
 
+
   const placedTypes = new Set<string>();
 
   for (const dz of districtZones) {
@@ -1039,6 +1040,7 @@ export function generateCityLayout(devs: DeveloperRecord[]): {
         rotation: rot,
         variant: 0,
       });
+     
       placedTypes.add(type);
     });
   }
