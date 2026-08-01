@@ -316,7 +316,7 @@ function RabbitContent() {
   useEffect(() => {
     const supabase = createBrowserSupabase();
 
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Record<string, unknown> | null } }) => {
       const login = (
         session?.user?.user_metadata?.user_name ??
         session?.user?.user_metadata?.preferred_username ??
