@@ -166,6 +166,8 @@ export default async function ShopPage({ params, searchParams }: Props) {
   // A10: Compute top 3 most purchased items (min 5 purchases)
   const purchaseCounts: Record<string, number> = {};
   const weeklyPurchaseCounts: Record<string, number> = {};
+  // This is a server component, so Date.now() is safe here
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   for (const p of allPurchasesResult.data ?? []) {
     purchaseCounts[p.item_id] = (purchaseCounts[p.item_id] ?? 0) + 1;
