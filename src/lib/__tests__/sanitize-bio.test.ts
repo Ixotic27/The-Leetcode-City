@@ -157,15 +157,15 @@ describe("sanitizeBio", () => {
     });
 
     it("should handle null-like values", () => {
-      expect(sanitizeBio(null as any)).toBe("");
+      expect(sanitizeBio(null as unknown)).toBe("");
     });
 
     it("should handle undefined", () => {
-      expect(sanitizeBio(undefined as any)).toBe("");
+      expect(sanitizeBio(undefined as unknown)).toBe("");
     });
 
     it("should handle non-string input", () => {
-      expect(sanitizeBio(123 as any)).toBe("");
+      expect(sanitizeBio(123 as unknown)).toBe("");
     });
 
     it("should preserve normal text without HTML", () => {
