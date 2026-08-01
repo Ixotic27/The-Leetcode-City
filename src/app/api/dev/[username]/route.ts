@@ -244,7 +244,6 @@ export async function GET(
       }
       // Record immediately, before the LeetCode API call, to prevent race condition
       await recordRateLimitRequest(key);
-      rateLimitKey = null;
     }
   }
 
