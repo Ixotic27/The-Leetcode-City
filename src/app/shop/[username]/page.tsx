@@ -227,6 +227,7 @@ export default async function ShopPage({ params, searchParams }: Props) {
   const isDevAccount = ["ishant_27", "ixotic", "ixotic27"].includes(dev.github_login.toLowerCase());
 
   const ownedTitles = (arenaInventoryResult.data ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((inv: any) => Array.isArray(inv.arena_items) ? inv.arena_items[0]?.slug : inv.arena_items?.slug)
     .filter((slug): slug is string => typeof slug === "string" && (
       slug === "crown_of_code" ||
