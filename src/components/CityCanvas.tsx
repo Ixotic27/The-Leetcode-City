@@ -1783,6 +1783,80 @@ function Bridge({ bridge }: { bridge: CityBridge }) {
 
 // ─── Marina Lighthouse Monument ────────────────────────────────
 
+function ShaniwarWada({ position }: { position: [number, number, number] }) {
+  const flameRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!flameRef.current) return;
+    const flicker = 1 + Math.sin(clock.elapsedTime * 7) * 0.08;
+    flameRef.current.scale.set(1, flicker, 1);
+    flameRef.current.rotation.y = Math.sin(clock.elapsedTime * 3) * 0.08;
+  });
+
+  const wallColor = "#8f4a2f";
+  const trimColor = "#c97845";
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 8, 0]}>
+        <boxGeometry args={[30, 16, 12]} />
+        <meshStandardMaterial color={wallColor} roughness={0.88} />
+      </mesh>
+      <mesh position={[0, 7, 6.1]}>
+        <boxGeometry args={[14, 14, 0.8]} />
+        <meshStandardMaterial color="#17100d" roughness={1} />
+      </mesh>
+      <mesh position={[0, 14, 6.55]}>
+        <ringGeometry args={[7, 10.8, 24, 1, 0, Math.PI]} />
+        <meshStandardMaterial color={trimColor} roughness={0.78} side={THREE.DoubleSide} />
+      </mesh>
+      {[-12, 12].map((x) => (
+        <mesh key={`gate-pier-${x}`} position={[x, 10, 6.4]}>
+          <boxGeometry args={[5, 20, 1.5]} />
+          <meshStandardMaterial color={trimColor} roughness={0.8} />
+        </mesh>
+      ))}
+
+      {[-1, 1].map((side) => (
+        <group key={`wall-${side}`}>
+          <mesh position={[side * 34, 7, 0]}>
+            <boxGeometry args={[38, 14, 10]} />
+            <meshStandardMaterial color={wallColor} roughness={0.9} />
+          </mesh>
+          {Array.from({ length: 6 }, (_, i) => (
+            <mesh key={`merlon-${side}-${i}`} position={[side * (18 + i * 6.4), 16, 0]}>
+              <boxGeometry args={[3.8, 4, 10.5]} />
+              <meshStandardMaterial color={trimColor} roughness={0.82} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+
+      <group position={[0, 0, 24]}>
+        <mesh position={[0, 1, 0]}>
+          <boxGeometry args={[12, 2, 12]} />
+          <meshStandardMaterial color="#54515a" roughness={0.72} />
+        </mesh>
+        <mesh position={[0, 2.6, 0]}>
+          <cylinderGeometry args={[3.6, 4.4, 1.4, 12]} />
+          <meshStandardMaterial color="#26242a" metalness={0.55} roughness={0.35} />
+        </mesh>
+        <group ref={flameRef} position={[0, 6.5, 0]}>
+          <mesh>
+            <coneGeometry args={[2.5, 8, 12]} />
+            <meshStandardMaterial color="#ff6a00" emissive="#ff4500" emissiveIntensity={3.2} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, -0.7, 0.15]} scale={0.55}>
+            <coneGeometry args={[2.2, 7, 12]} />
+            <meshStandardMaterial color="#ffe36e" emissive="#ffd000" emissiveIntensity={4} toneMapped={false} />
+          </mesh>
+        </group>
+        <pointLight position={[0, 7, 0]} color="#ff7a1a" intensity={28} distance={42} decay={2} />
+      </group>
+    </group>
+  );
+}
+
 function MarinaLighthouse({ position }: { position: [number, number, number] }) {
   const beaconRef = useRef<THREE.Mesh>(null);
   const lightGroupRef = useRef<THREE.Group>(null);
@@ -1886,6 +1960,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
+          case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
           default: return null;
         }
