@@ -226,7 +226,6 @@ export async function GET(
   }
 
   
-  let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   if (!cachedRecord) {
     const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
@@ -235,7 +234,6 @@ export async function GET(
     const key = auth.user ? `user:${auth.user.id}` : (
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
     );
-    rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;
     if (!skipRateLimit) {

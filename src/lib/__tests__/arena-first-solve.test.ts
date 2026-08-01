@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // Pure unit tests for the idempotency logic — mocking the Supabase RPC
 // to verify the application layer correctly interprets claim_first_solve results.
 
-function buildMockSb(wonRace: boolean, claimError: any = null) {
+function buildMockSb(wonRace: boolean, claimError: Record<string, unknown> | null = null) {
   return {
     from: vi.fn().mockReturnValue({
       select: vi.fn().mockReturnThis(),
