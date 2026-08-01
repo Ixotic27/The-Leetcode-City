@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
-import { validateParams, validateQuery } from "@/lib/validation";
 import { z } from "zod";
+import { validateParams, validateQuery } from "@/lib/validation";
 
 const paramsSchema = z.object({
-  username: z.string().trim().min(1, "Username is required"),
+  username: z.string().trim().min(1, "Username parameter is required"),
 });
 
 const querySchema = z.object({
-  refresh: z.enum(["true", "false"]).optional(),
+  refresh: z.string().optional(),
 });
 
 export const dynamic = "force-dynamic";
