@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { AdStats, AdForm } from "../_lib/types";
 import { EMPTY_FORM } from "../_lib/constants";
 import { AdFormFields } from "./ad-form-fields";
@@ -40,11 +40,13 @@ export function AdModal({
   onEdit,
 }: AdModalProps) {
   const [form, setForm] = useState<AdForm>(EMPTY_FORM);
+  const prevOpenRef = useRef(open);
 
   useEffect(() => {
-    if (open) {
+    if (open && !prevOpenRef.current) {
       setForm(mode === "edit" && ad ? adToForm(ad) : EMPTY_FORM);
     }
+    prevOpenRef.current = open;
   }, [open, mode, ad]);
 
   // Close on Escape

@@ -33,7 +33,7 @@ const MOCK_PROBLEMS: DailyProblem[] = [
 function playRetroSound(type: "hit" | "heal" | "defend" | "victory" | "defeat" | "special", enabled: boolean) {
   if (!enabled || typeof window === "undefined") return;
   try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioContextClass = window.AudioContext || (window as Record<string, any>).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
     
@@ -447,7 +447,7 @@ export default function DungeonPage() {
           if (arenaRes.ok) {
             const arenaData = await arenaRes.json();
             const matchingCh = arenaData.challenges?.find(
-              (c: any) => c.difficulty.toLowerCase() === resolvedProblem.difficulty.toLowerCase()
+              (c: Record<string, any>) => c.difficulty.toLowerCase() === resolvedProblem.difficulty.toLowerCase()
             );
             if (matchingCh) {
               setChallengeId(matchingCh.id);
@@ -456,8 +456,9 @@ export default function DungeonPage() {
         } catch (e) {
           console.error("Failed to fetch matching challenge ID:", e);
         }
-      } catch (err: any) {
-        if (err.name === "AbortError") return;
+      } catch (err: unknown) {
+        const error = err as Record<string, any>;
+        if (error.name === "AbortError") return;
         console.warn("LeetCode daily API offline, falling back to local simulation database.");
         setIsOffline(true);
         const randomMock = MOCK_PROBLEMS[Math.floor(Math.random() * MOCK_PROBLEMS.length)];

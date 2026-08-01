@@ -48,11 +48,7 @@ export function AdFilters({
   totalCount,
 }: AdFiltersProps) {
   // Local search state for debounce (visual responsiveness)
-  const [searchLocal, setSearchLocal] = useState(filters.q);
-
-  useEffect(() => {
-    setSearchLocal(filters.q);
-  }, [filters.q]);
+  const [searchLocal, setSearchLocal] = useState(() => filters.q);
 
   return (
     <div className="mb-4 space-y-3">

@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config: any) => {
+  webpack: (config: Record<string, any>) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string | false>),
