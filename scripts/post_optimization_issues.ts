@@ -27,7 +27,8 @@ async function createIssue(title: string, body: string, labels: string[]) {
         body: JSON.stringify({ title, body, labels })
     });
     if (res.status === 201) {
-        const issue = await res.json();
+        if (!res.ok) throw new Error("Request failed");
+const issue = await res.json();
         console.log(`✅ Created issue #${issue.number}: "${title}"`);
     } else {
         console.error(`❌ Failed to create issue "${title}":`, await res.text());
