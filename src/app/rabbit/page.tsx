@@ -314,6 +314,7 @@ function RabbitContent() {
   useEffect(() => {
     const supabase = createBrowserSupabase();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       const login = (
         session?.user?.user_metadata?.user_name ??
