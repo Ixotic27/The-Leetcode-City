@@ -79,9 +79,9 @@ export async function POST(req: Request) {
         const expectedToken = "LCC-" + user.id.split("-")[0].toUpperCase();
 
         // Fetch the user's public LeetCode 'About Me' / Summary
-        const { data: aboutMe, error: aboutMeError } = await fetchLeetCodeAboutMe(leetcode_username);
+        const aboutMe = await fetchLeetCodeAboutMe(leetcode_username);
 
-        if (aboutMeError !== null || aboutMe === null) {
+        if (aboutMe === null) {
             return NextResponse.json({ error: "Could not find this LeetCode account" }, { status: 404 });
         }
 
