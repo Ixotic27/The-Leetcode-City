@@ -8,14 +8,17 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const [fontData, completerCount] = await Promise.all([
-    readFile(join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf")),
-    getSupabaseAdmin()
+  const fontData = await readFile(join(process.cwd(), "public/fonts/Silkscreen-Regular.ttf"));
+  let completerCount = 0;
+  try {
+    const { count } = await getSupabaseAdmin()
       .from("developers")
       .select("id", { count: "exact", head: true })
-      .eq("rabbit_completed", true)
-      .then(({ count }) => count ?? 0),
-  ]);
+      .eq("rabbit_completed", true);
+    completerCount = count ?? 0;
+  } catch {
+    completerCount = 0;
+  }
 
   const green = "#ffa116";
   const red = "#ff0000";

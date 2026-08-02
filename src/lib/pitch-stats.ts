@@ -48,21 +48,31 @@ function fmtRounded(n: number): string {
 export async function getPitchStats(): Promise<PitchStats> {
   const admin = getSupabaseAdmin();
 
-  const [
-    devsResult,
-    claimedResult,
-    adsResult,
-    kudosResult,
-    visitsResult,
-    achievementsResult,
-  ] = await Promise.all([
-    admin.from("developers").select("*", { count: "exact", head: true }),
-    admin.from("developers").select("*", { count: "exact", head: true }).eq("claimed", true),
-    admin.from("sky_ads").select("plan_id, purchaser_email").not("purchaser_email", "is", null),
-    admin.from("developer_kudos").select("*", { count: "exact", head: true }),
-    admin.from("building_visits").select("*", { count: "exact", head: true }),
-    admin.from("developer_achievements").select("*", { count: "exact", head: true }),
-  ]);
+  let devsResult, claimedResult, adsResult, kudosResult, visitsResult, achievementsResult;
+  try {
+    [devsResult, claimedResult, adsResult, kudosResult, visitsResult, achievementsResult] =
+      await Promise.all([
+        admin.from("developers").select("*", { count: "exact", head: true }),
+        admin.from("developers").select("*", { count: "exact", head: true }).eq("claimed", true),
+        admin.from("sky_ads").select("plan_id, purchaser_email").not("purchaser_email", "is", null),
+        admin.from("developer_kudos").select("*", { count: "exact", head: true }),
+        admin.from("building_visits").select("*", { count: "exact", head: true }),
+        admin.from("developer_achievements").select("*", { count: "exact", head: true }),
+      ]);
+  } catch {
+    const daysOld = Math.floor((Date.now() - LAUNCH_DATE.getTime()) / 86400000);
+    return {
+      developers: 0, claimed: 0, adCampaigns: 0, uniqueBrands: 0, shopPurchases: 0,
+      kudos: 0, buildingVisits: 0, achievements: 0, daysOld, conversionRate: "0%",
+      formattedDevelopers: "0", formattedClaimed: "0", formattedAdCampaigns: "0",
+      formattedUniqueBrands: "0", formattedShopPurchases: "0", formattedKudos: "0",
+      formattedBuildingVisits: "0", formattedAchievements: "0",
+      formattedDaysOld: `${daysOld} days old`,
+      formattedRevenue: `R$${fmt(KNOWN_REVENUE_BRL)}+`,
+      formattedAdRevenue: `R$${fmt(KNOWN_AD_REVENUE_BRL)}`,
+      formattedShopRevenue: KNOWN_SHOP_REVENUE_BRL > 0 ? `R$${fmt(KNOWN_SHOP_REVENUE_BRL)}` : "Early sales",
+    };
+  }
 
   const developers = devsResult.count ?? 0;
   const claimed = claimedResult.count ?? 0;

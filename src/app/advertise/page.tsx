@@ -32,30 +32,34 @@ function formatK(n: number): string {
 }
 
 async function getStats() {
-  const supabase = getSupabaseAdmin();
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  try {
+    const supabase = getSupabaseAdmin();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
 
-  const [devResult, impressionResult, clickResult] = await Promise.all([
-    supabase
-      .from("developers")
-      .select("id", { count: "exact", head: true }),
-    supabase
-      .from("sky_ad_events")
-      .select("id", { count: "exact", head: true })
-      .eq("event_type", "impression")
-      .gte("created_at", thirtyDaysAgo),
-    supabase
-      .from("sky_ad_events")
-      .select("id", { count: "exact", head: true })
-      .in("event_type", ["click", "cta_click"])
-      .gte("created_at", thirtyDaysAgo),
-  ]);
+    const [devResult, impressionResult, clickResult] = await Promise.all([
+      supabase
+        .from("developers")
+        .select("id", { count: "exact", head: true }),
+      supabase
+        .from("sky_ad_events")
+        .select("id", { count: "exact", head: true })
+        .eq("event_type", "impression")
+        .gte("created_at", thirtyDaysAgo),
+      supabase
+        .from("sky_ad_events")
+        .select("id", { count: "exact", head: true })
+        .in("event_type", ["click", "cta_click"])
+        .gte("created_at", thirtyDaysAgo),
+    ]);
 
-  const impressions = impressionResult.count ?? 0;
-  const clicks = clickResult.count ?? 0;
-  const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const impressions = impressionResult.count ?? 0;
+    const clicks = clickResult.count ?? 0;
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-  return { devCount: devResult.count ?? 0, monthlyImpressions: impressions, monthlyClicks: clicks, ctr };
+    return { devCount: devResult.count ?? 0, monthlyImpressions: impressions, monthlyClicks: clicks, ctr };
+  } catch {
+    return { devCount: 0, monthlyImpressions: 0, monthlyClicks: 0, ctr: 0 };
+  }
 }
 
 const COMPETITORS = [

@@ -31,7 +31,7 @@ export function createDummyClient(): any {
     get(target, prop) {
       if (prop === "then") {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (resolve: any) => resolve({ data: null, error: null });
+        return (resolve: any) => resolve({ data: null, error: null, count: null });
       }
       if (prop === "auth") {
         return {

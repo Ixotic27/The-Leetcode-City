@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-export const revalidate = 300; // ISR: regenerate every 5 min
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const admin = getSupabaseAdmin();
