@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/purity */
 
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
