@@ -31,9 +31,9 @@ function getArg(name: string): string | null {
 }
 
 const type = getArg("type") ?? "all_items";
-const maxUses = parseInt(getArg("uses") ?? "1", 10);
+const maxUses = parseInt(getArg("uses", 10) ?? "1", 10);
 const note = getArg("note") ?? null;
-const count = parseInt(getArg("count") ?? "1", 10);
+const count = parseInt(getArg("count", 10) ?? "1", 10);
 
 const label = TYPE_LABELS[type];
 if (!label) {
