@@ -1,5 +1,5 @@
 import { createBrowserSupabase } from "@/lib/supabase";
-import type { ClientMsg, PlayerState, ChatLogEntry, GameResult, AvatarLoadout } from "../types";
+import type { ClientMsg, ServerMsg, PlayerState, ChatLogEntry, GameResult, AvatarLoadout } from "../types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "error";
@@ -16,7 +16,6 @@ export interface ArcadeCallbacks {
   onAvatar: (id: string, spriteId: number) => void;
   onLoadout: (id: string, loadout: AvatarLoadout) => void;
   onMapReload: (map: Record<string, unknown>) => void;
-  onMapStateChange: (delta: Record<string, unknown>) => void;
   onGameAck: (game: string) => void;
   onGameResult: (game: string, result: GameResult) => void;
   onStatusChange: (status: ConnectionStatus) => void;
@@ -39,7 +38,7 @@ let unloadHandler: (() => void) | null = null;
 
 let lastPresenceTrack = 0;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
-let activeGameToken: string | null = null;
+let activeGameToken: any = null;
 
 // Track recent positions to prevent visual glitches during presence sync
 const recentPositions = new Map<string, { x: number; y: number; dir: PlayerState["dir"] }>();
@@ -106,7 +105,7 @@ export function connect(
           .limit(30);
 
         if (chatData) {
-          const history: ChatLogEntry[] = chatData.map((c: { username: string; text: string; created_at: string }) => ({
+          const history: ChatLogEntry[] = chatData.map((c: any) => ({
             username: c.username,
             text: c.text,
             ts: new Date(c.created_at).getTime(),
@@ -130,7 +129,7 @@ export function connect(
         const playersList: PlayerState[] = [];
 
         for (const [key, presences] of Object.entries(presenceState)) {
-          const p = (presences as Record<string, unknown>[])[0] as Partial<PlayerState> | undefined;
+          const p = (presences as any[])[0];
           if (p && p.github_login) {
             playersList.push({
               id: key,
@@ -162,7 +161,7 @@ export function connect(
         .on("presence", { event: "sync" }, () => {
           syncPlayers();
         })
-        .on("presence", { event: "join" }, () => {
+        .on("presence", { event: "join" }, ({ key }: { key: string }) => {
           syncPlayers();
         })
         .on("presence", { event: "leave" }, ({ key }: { key: string }) => {
@@ -170,24 +169,24 @@ export function connect(
           syncPlayers();
           callbacks.onLeave(key);
         })
-        .on("broadcast", { event: "move" }, ({ payload }: { payload: { id: string; x: number; y: number; dir: PlayerState["dir"]; ackSeq?: number } }) => {
+        .on("broadcast", { event: "move" }, ({ payload }: { payload: any }) => {
           const { id, x, y, dir, ackSeq } = payload;
           if (id === localUserId) return;
           recentPositions.set(id, { x, y, dir });
           callbacks.onMove(id, x, y, dir, ackSeq);
         })
-        .on("broadcast", { event: "chat" }, ({ payload }: { payload: { id: string; text: string } }) => {
+        .on("broadcast", { event: "chat" }, ({ payload }: { payload: any }) => {
           const { id, text } = payload;
           if (id === localUserId) return;
           callbacks.onChat(id, text);
         })
-        .on("broadcast", { event: "sit" }, ({ payload }: { payload: { id: string; x: number; y: number; dir: PlayerState["dir"] } }) => {
+        .on("broadcast", { event: "sit" }, ({ payload }: { payload: any }) => {
           const { id, x, y, dir } = payload;
           if (id === localUserId) return;
           recentPositions.set(id, { x, y, dir });
           callbacks.onSit(id, x, y, dir);
         })
-        .on("broadcast", { event: "stand" }, ({ payload }: { payload: { id: string; x: number; y: number } }) => {
+        .on("broadcast", { event: "stand" }, ({ payload }: { payload: any }) => {
           const { id, x, y } = payload;
           if (id === localUserId) return;
           if (recentPositions.has(id)) {
@@ -196,27 +195,24 @@ export function connect(
           }
           callbacks.onStand(id, x, y);
         })
-        .on("broadcast", { event: "avatar" }, ({ payload }: { payload: { id: string; sprite_id: number } }) => {
+        .on("broadcast", { event: "avatar" }, ({ payload }: { payload: any }) => {
           const { id, sprite_id } = payload;
           if (id === localUserId) return;
           callbacks.onAvatar(id, sprite_id);
         })
-        .on("broadcast", { event: "loadout" }, ({ payload }: { payload: { id: string; loadout: AvatarLoadout } }) => {
+        .on("broadcast", { event: "loadout" }, ({ payload }: { payload: any }) => {
           const { id, loadout } = payload;
           if (id === localUserId) return;
           callbacks.onLoadout(id, loadout);
         })
-        .on("broadcast", { event: "warp" }, ({ payload }: { payload: { id: string; x: number; y: number; dir: PlayerState["dir"] } }) => {
+        .on("broadcast", { event: "warp" }, ({ payload }: { payload: any }) => {
           const { id, x, y, dir } = payload;
           if (id === localUserId) return;
           recentPositions.set(id, { x, y, dir });
           callbacks.onMove(id, x, y, dir);
         })
-        .on("broadcast", { event: "map_reload" }, ({ payload }: { payload: { map: Record<string, unknown> } }) => {
+        .on("broadcast", { event: "map_reload" }, ({ payload }: { payload: any }) => {
           callbacks.onMapReload(payload.map);
-        })
-        .on("broadcast", { event: "map_state_change" }, ({ payload }: { payload: { delta: Record<string, unknown> } }) => {
-          callbacks.onMapStateChange(payload.delta);
         });
 
       chan.subscribe((subStatus: string) => {
@@ -274,7 +270,7 @@ export function connect(
           callbacks.onStatusChange("reconnecting");
         }
       });
-    } catch {
+    } catch (e) {
       callbacks.onStatusChange("error");
     }
   }
@@ -469,19 +465,6 @@ export function sendLoadout(loadout: AvatarLoadout): void {
   });
 
   currentCallbacks?.onLoadout(localUserId, loadout);
-}
-
-export function sendMapStateChange(delta: Record<string, unknown>): void {
-  if (!channel) return;
-  channel.send({
-    type: "broadcast",
-    event: "map_state_change",
-    payload: {
-      id: localUserId,
-      delta,
-    },
-  });
-  currentCallbacks?.onMapStateChange(delta);
 }
 
 export function sendGameStart(game: string): void {

@@ -84,22 +84,12 @@ export function touchLastActive(devId: number): void {
   void (async () => {
     try {
       const sb = getSupabaseAdmin();
-      const { error } = await sb
+      await sb
         .from("developers")
         .update({ last_active_at: new Date().toISOString() })
         .eq("id", devId);
-
-      if (error) {
-        console.error("[notification-helpers] touchLastActive failed:", {
-          devId,
-          error,
-        });
-      }
     } catch (err: unknown) {
-      console.error("[notification-helpers] Unexpected error:", {
-        devId,
-        err,
-      });
+      console.error(`Error updating last active time for developer ${devId}:`, err);
     }
   })();
 }
