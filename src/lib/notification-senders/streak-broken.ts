@@ -9,30 +9,26 @@ export function sendStreakBrokenNotification(
   previousStreak: number,
   date: string, // YYYY-MM-DD
 ) {
-  try {
-    sendNotificationAsync({
-      type: "streak_broken",
-      category: "streak_reminders",
-      developerId: devId,
-      dedupKey: `streak_broken:${devId}:${date}`,
-      title: `Your ${previousStreak}-day streak ended. Start fresh!`,
-      body: `Your ${previousStreak}-day streak has ended. Check in today to start a new one!`,
-      html: `
-        <div style="text-align: center;">
-          <p style="color: #f0f0f0; font-size: 16px;">
-            Your <strong style="color: #ff6b6b;">${previousStreak}-day</strong> streak ended.
-          </p>
-          <p style="color: #f0f0f0;">
-            Every streak starts with day 1. Check in now to begin again!
-          </p>
-        </div>
-        ${buildButton("Start Fresh", BASE_URL)}
-      `,
-      actionUrl: BASE_URL,
-      priority: "high",
-      channels: ["email"],
-    });
-  } catch (err) {
-    console.error("[streak-broken] sendStreakBrokenNotification error:", err);
-  }
+  sendNotificationAsync({
+    type: "streak_broken",
+    category: "streak_reminders",
+    developerId: devId,
+    dedupKey: `streak_broken:${devId}:${date}`,
+    title: `Your ${previousStreak}-day streak ended. Start fresh!`,
+    body: `Your ${previousStreak}-day streak has ended. Check in today to start a new one!`,
+    html: `
+      <div style="text-align: center;">
+        <p style="color: #f0f0f0; font-size: 16px;">
+          Your <strong style="color: #ff6b6b;">${previousStreak}-day</strong> streak ended.
+        </p>
+        <p style="color: #f0f0f0;">
+          Every streak starts with day 1. Check in now to begin again!
+        </p>
+      </div>
+      ${buildButton("Start Fresh", BASE_URL)}
+    `,
+    actionUrl: BASE_URL,
+    priority: "high",
+    channels: ["email"],
+  });
 }
