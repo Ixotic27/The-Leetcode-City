@@ -78,7 +78,6 @@ export default function LoadingScreen({
   const stageRef = useRef(stage);
   const statsRef = useRef(stats);
   const fadeCalledRef = useRef(false);
-  const hasRunRef = useRef(false);
   const [restartKey, setRestartKey] = useState(0);
 
   const isError = stage === "error";
@@ -104,11 +103,6 @@ export default function LoadingScreen({
   // ── Script engine ─────────────────────────────────────────────
 
   useEffect(() => {
-    // React Strict Mode double-fires effects. Skip re-run if the script
-    // already started for this restartKey to prevent the animation playing twice.
-    if (hasRunRef.current) return;
-    hasRunRef.current = true;
-
     let aborted = false;
     const alive = () => !aborted && stageRef.current !== "error";
 
@@ -261,13 +255,10 @@ export default function LoadingScreen({
 
     return () => {
       aborted = true;
-      // Don't reset hasRunRef here — Strict Mode will re-fire the effect
-      // and we want to skip the second run.
     };
   }, [restartKey, addLine, updateLine]);
 
   const handleRetry = useCallback(() => {
-    hasRunRef.current = false; // Allow re-run on explicit retry
     setRestartKey((k) => k + 1);
     onRetry();
   }, [onRetry]);
