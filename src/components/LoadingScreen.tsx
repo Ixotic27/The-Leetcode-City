@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
