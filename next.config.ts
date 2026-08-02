@@ -22,6 +22,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  reactStrictMode: false,
   output: "standalone",
   images: {
     unoptimized: true,
@@ -36,6 +37,17 @@ const nextConfig: NextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
+  },
+  turbopack: {
+    resolveAlias: {
+      "pino-pretty": { browser: "" },
+      "@react-native-async-storage/async-storage": { browser: "" },
+      "accounts": { browser: "" },
+      "@metamask/connect-evm": { browser: "" },
+      "porto": { browser: "" },
+      "porto/internal": { browser: "" },
+      "@walletconnect/ethereum-provider": { browser: "" },
+    },
   },
   webpack: (config: any) => {
     config.resolve = config.resolve ?? {};
