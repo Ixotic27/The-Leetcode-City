@@ -233,7 +233,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
       contributions: Math.max(1, totalSolved),
       contributions_total: Math.round(litPercentage * 1000), // Visual light intensity
       total_stars: reputation,
-      public_repos: Math.max(0, parseInt(String(lcRank), 10) > 0 ? 500000 - lcRank : 0),
+      public_repos: Math.max(0, parseInt(String(lcRank, 10), 10) > 0 ? 500000 - lcRank : 0),
       rank: lcRank,
       lc_global_rank: lcRank,
       fetch_priority: 2,
