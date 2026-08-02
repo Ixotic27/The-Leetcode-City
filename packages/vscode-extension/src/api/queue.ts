@@ -72,4 +72,4 @@ async function flush() {
 
 function persist() {
   globalState.update(QUEUE_STORAGE_KEY, queue).then(() => {});
-}
+  .catch(err => console.error(err))
