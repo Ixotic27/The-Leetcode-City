@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase", () => {
             select: (cols: string, opts?: { count?: string; head?: boolean }) => {
               if (opts?.count === "exact") {
                 return {
-                  eq: (_col: string, _val: boolean) => {
+                  eq: () => {
                     return Promise.resolve({ count: 42, data: null, error: null });
                   },
                   then: (resolve: (val: { count: number; data: null; error: null }) => void) =>
@@ -34,8 +34,9 @@ vi.mock("@/lib/supabase", () => {
 
               // tallestResult
               return {
-                order: (_col: string, _options?: { ascending?: boolean }) => ({
-                  limit: (_n: number) => ({
+                order: () => ({
+                  limit: () => ({
+
                     maybeSingle: () =>
                       Promise.resolve({
                         data: {
@@ -75,8 +76,11 @@ describe("GET /api/stats", () => {
       username: "top-coder",
       hardSolved: 30,
     });
+    expect(json.totalDevelopers).toBe(100);
+    expect(json.claimedBuildings).toBe(42);
     expect(json.totalSolves).toBe(60); // (10+5+2) + (20+15+8) = 60
 
     expect(res.headers.get("Cache-Control")).toContain("public");
+
   });
 });

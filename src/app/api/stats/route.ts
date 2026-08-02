@@ -22,7 +22,14 @@ export async function GET() {
       sb.from("developers").select("easy_solved, medium_solved, hard_solved"),
     ]);
 
+    const queryError =
+      totalResult.error ?? claimedResult.error ?? tallestResult.error ?? solveResult.error;
+    if (queryError) {
+      throw queryError;
+    }
+
     const totalDevelopers = totalResult.count ?? 0;
+
     const claimedBuildings = claimedResult.count ?? 0;
 
     const solves = solveResult.data ?? [];
