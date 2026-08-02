@@ -4,7 +4,6 @@
  * @param referenceDate - Date used to determine the ISO week.
  * @returns The start of the ISO week in UTC.
  */
-
 export function getIsoWeekStart(referenceDate = new Date()): Date {
   const weekStart = new Date(referenceDate);
   const dayOfWeek = weekStart.getUTCDay();
@@ -22,7 +21,6 @@ export function getIsoWeekStart(referenceDate = new Date()): Date {
  * @param referenceDate - Date used to determine the ISO week.
  * @returns ISO week start date in YYYY-MM-DD format.
  */
-
 export function getIsoWeekStartDateString(referenceDate = new Date()): string {
   return getIsoWeekStart(referenceDate).toISOString().slice(0, 10);
 }
@@ -33,7 +31,6 @@ export function getIsoWeekStartDateString(referenceDate = new Date()): string {
  * @param referenceDate - Date or date string to convert.
  * @returns UTC date formatted as YYYY-MM-DD.
  */
-
 export function getUtcDateString(referenceDate: Date | string): string {
   return new Date(referenceDate).toISOString().slice(0, 10);
 }
