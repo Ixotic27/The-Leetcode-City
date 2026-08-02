@@ -6,13 +6,13 @@ type EnvNumberOptions = {
 
 export function getEnvString(name: string, fallback = ""): string {
   const raw = process.env[name];
-  if (raw === undefined || raw === null || raw.trim() === "") return fallback;
+  if (raw === undefined || raw === null || raw.trim().length === 0) return fallback;
   return raw;
 }
 
 export function getEnvBoolean(name: string, fallback = false): boolean {
   const raw = process.env[name];
-  if (raw === undefined || raw === null || raw.trim() === "") return fallback;
+  if (raw === undefined || raw === null || raw.trim().length === 0) return fallback;
 
   const normalized = raw.trim().toLowerCase();
   if (["1", "true", "yes", "on"].includes(normalized)) return true;
@@ -27,7 +27,7 @@ export function getEnvNumber(
   options: EnvNumberOptions = {}
 ): number {
   const raw = process.env[name];
-  if (raw === undefined || raw === null || raw.trim() === "") return fallback;
+  if (raw === undefined || raw === null || raw.trim().length === 0) return fallback;
 
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
