@@ -182,7 +182,7 @@ async function main() {
 
     for (let i = 0; i < LC_USERS.length; i++) {
         const username = LC_USERS[i];
-        process.stdout.write(`  [${String(i + 1).padStart(3)}/${LC_USERS.length}] ${username.padEnd(22)} `);
+        process.stdout.write(`  [${String(i + 1).padStart(3, "0")}/${LC_USERS.length}] ${username.padEnd(22)} `);
 
         const data = await fetchLCUser(username);
         if (!data?.matchedUser) {
