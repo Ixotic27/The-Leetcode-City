@@ -4,8 +4,9 @@
 import * as THREE from "three";
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-// useGLTF removed — FlyingAirplane dead code, not rendered
+import { useGLTF } from "@react-three/drei";
 import { useWeather } from "@/context/WeatherContext";
+
 
 // Helper to interpolate two hex colors using THREE.Color
 function lerpColor(c1: string, c2: string, alpha: number): string {
