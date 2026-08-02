@@ -427,10 +427,6 @@ export default function CityScene({
     return () => atlasTexture.dispose();
   }, [atlasTexture]);
 
-  // Initial camera position (matches Canvas camera prop)
-  const INITIAL_CAM_X = 1300;
-  const INITIAL_CAM_Z = 1500;
-
   const buildingChunks = useMemo(() => {
     const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
     const map = new Map<string, CityBuilding[]>();
@@ -445,7 +441,7 @@ export default function CityScene({
       }
       arr.push(b);
     }
-    const chunks = Array.from(map.values()).map(chunk => {
+    return Array.from(map.values()).map(chunk => {
       // Calculate center of chunk for distance culling
       let sumX = 0, sumZ = 0;
       for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
@@ -453,43 +449,11 @@ export default function CityScene({
       const cz = sumZ / chunk.length;
       return { chunk, cx, cz };
     });
-
-    // Sort by distance from initial camera — nearest chunks first
-    chunks.sort((a, b) => {
-      const dA = (a.cx - INITIAL_CAM_X) ** 2 + (a.cz - INITIAL_CAM_Z) ** 2;
-      const dB = (b.cx - INITIAL_CAM_X) ** 2 + (b.cz - INITIAL_CAM_Z) ** 2;
-      return dA - dB;
-    });
-
-    return chunks;
   }, [buildings]);
-
-  // Progressive chunk mounting: render nearest chunks first, load rest over time
-  const [mountedChunkCount, setMountedChunkCount] = useState(0);
-
-  useEffect(() => {
-    if (buildingChunks.length === 0) return;
-
-    // Mount first 3 chunks immediately (nearest to camera)
-    const INITIAL_CHUNKS = Math.min(3, buildingChunks.length);
-    setMountedChunkCount(INITIAL_CHUNKS);
-
-    // Then mount 2 more chunks every 100ms until all are loaded
-    if (buildingChunks.length <= INITIAL_CHUNKS) return;
-
-    let current = INITIAL_CHUNKS;
-    const timer = setInterval(() => {
-      current = Math.min(current + 2, buildingChunks.length);
-      setMountedChunkCount(current);
-      if (current >= buildingChunks.length) clearInterval(timer);
-    }, 100);
-
-    return () => clearInterval(timer);
-  }, [buildingChunks]);
 
   return (
     <>
-      {buildingChunks.slice(0, mountedChunkCount).map((chunkData, idx) => (
+      {buildingChunks.map((chunkData, idx) => (
         <group
           key={`chunk-${idx}`}
           ref={(el) => {
