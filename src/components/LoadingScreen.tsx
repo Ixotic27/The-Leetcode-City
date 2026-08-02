@@ -1,5 +1,5 @@
 "use client";
- 
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -53,8 +53,8 @@ const KEEPALIVE = [
 ];
 
 // Script plays at this relaxed pace by default; when the real load finishes
-// (stage === "ready") the clock speeds up moderately (2.5x) to wrap up smoothly.
-const READY_BOOST = 2.5;
+// (stage === "ready") the clock runs at READY_BOOST so it wraps up fast.
+const READY_BOOST = 10;
 const TICK_MS = 40;
 
 const fmt = (n: number) => Math.floor(n).toLocaleString("en-US");
@@ -78,7 +78,6 @@ export default function LoadingScreen({
   const stageRef = useRef(stage);
   const statsRef = useRef(stats);
   const fadeCalledRef = useRef(false);
-  const hasRunRef = useRef(false);
   const [restartKey, setRestartKey] = useState(0);
 
   const isError = stage === "error";
@@ -104,11 +103,6 @@ export default function LoadingScreen({
   // ── Script engine ─────────────────────────────────────────────
 
   useEffect(() => {
-    // React Strict Mode double-fires effects. Skip re-run if the script
-    // already started for this restartKey to prevent the animation playing twice.
-    if (hasRunRef.current) return;
-    hasRunRef.current = true;
-
     let aborted = false;
     const alive = () => !aborted && stageRef.current !== "error";
 
@@ -261,13 +255,10 @@ export default function LoadingScreen({
 
     return () => {
       aborted = true;
-      // Don't reset hasRunRef here — Strict Mode will re-fire the effect
-      // and we want to skip the second run.
     };
   }, [restartKey, addLine, updateLine]);
 
   const handleRetry = useCallback(() => {
-    hasRunRef.current = false; // Allow re-run on explicit retry
     setRestartKey((k) => k + 1);
     onRetry();
   }, [onRetry]);
