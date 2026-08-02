@@ -16,7 +16,6 @@ export interface XpTier {
 /**
  * Represents a rank assigned to a specific level.
  */
-
 export interface XpRank {
   level: number;
   title: string;

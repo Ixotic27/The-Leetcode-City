@@ -234,8 +234,6 @@ export const ROADMAP_PHASES: RoadmapPhase[] = [
  * A set containing all valid roadmap item IDs.
  * Used for server-side vote validation.
  */
-
-// All valid item IDs (for server-side vote validation)
 export const VALID_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) => phase.items.map((item) => item.id))
 );
@@ -244,8 +242,6 @@ export const VALID_ITEM_IDS = new Set(
  * A set containing IDs of roadmap items that are eligible for voting.
  * Completed and mystery items are excluded.
  */
-
-// Items that can be voted on (not done, not mystery)
 export const VOTABLE_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) =>
     phase.items
