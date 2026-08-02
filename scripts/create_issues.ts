@@ -27,7 +27,8 @@ async function main() {
       method: 'POST', headers,
       body: JSON.stringify(issue),
     });
-    const data = await res.json();
+    if (!res.ok) throw new Error("Request failed");
+const data = await res.json();
     console.log(`Created issue: ${data.html_url}`);
   }
 }

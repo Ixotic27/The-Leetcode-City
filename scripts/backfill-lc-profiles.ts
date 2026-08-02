@@ -83,7 +83,8 @@ async function fetchLCFullProfile(username: string): Promise<any> {
             headers: LC_HEADERS,
             body: JSON.stringify({ query, variables: { username } }),
         });
-        const json = await res.json();
+        if (!res.ok) throw new Error("Request failed");
+const json = await res.json();
         if (json?.data?.matchedUser) {
             json.data.matchedUser.maxStreak = parseMaxStreak(json.data.matchedUser, new Date().getFullYear());
         }
