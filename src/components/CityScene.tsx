@@ -429,7 +429,7 @@ export default function CityScene({
     if (elapsed - lastChunkUpdate.current >= 0.2) {
       lastChunkUpdate.current = elapsed;
 
-      // 1. Dynamic chunk distance culling (6000 units radius matching camera far plane 6100)
+      // 1. Dynamic chunk distance culling
       const camX = camera.position.x;
       const camZ = camera.position.z;
       for (let i = 0; i < buildingChunks.length; i++) {
@@ -439,8 +439,9 @@ export default function CityScene({
           const dx = camX - chunkData.cx;
           const dz = camZ - chunkData.cz;
           const distSq = dx * dx + dz * dz;
-          // 6000 units radius = 36,000,000 distSq (matches camera far plane 6100)
-          group.visible = distSq < 36000000;
+          // 2000 units radius = 4,000,000 distSq.
+          // If camera is farther than this, hide the chunk to save GPU cycles.
+          group.visible = distSq < 4000000;
         }
       }
 
@@ -464,25 +465,25 @@ export default function CityScene({
     }
   });
 
-  // Progressive chunk mounting: render nearest visible chunks immediately, stream rest quickly
-  const [mountedChunkCount, setMountedChunkCount] = useState(8);
+  // Progressive chunk mounting: render nearest chunks first, load rest over time
+  const [mountedChunkCount, setMountedChunkCount] = useState(3);
 
   useEffect(() => {
     if (buildingChunks.length === 0) return;
 
-    // Mount first 8 nearest chunks immediately (entire visible central city)
-    const INITIAL_CHUNKS = Math.min(8, buildingChunks.length);
+    // Mount first 3 chunks immediately (nearest to camera)
+    const INITIAL_CHUNKS = Math.min(3, buildingChunks.length);
     setMountedChunkCount(INITIAL_CHUNKS);
 
-    // Then stream remaining peripheral chunks every 50ms
+    // Then mount 2 more chunks every 100ms until all are loaded
     if (buildingChunks.length <= INITIAL_CHUNKS) return;
 
     let current = INITIAL_CHUNKS;
     const timer = setInterval(() => {
-      current = Math.min(current + 3, buildingChunks.length);
+      current = Math.min(current + 2, buildingChunks.length);
       setMountedChunkCount(current);
       if (current >= buildingChunks.length) clearInterval(timer);
-    }, 50);
+    }, 100);
 
     return () => clearInterval(timer);
   }, [buildingChunks]);
@@ -491,7 +492,7 @@ export default function CityScene({
     <>
       {buildingChunks.slice(0, mountedChunkCount).map((chunkData, idx) => (
         <group
-          key={`chunk-${chunkData.cx}-${chunkData.cz}`}
+          key={`chunk-${idx}`}
           ref={(el) => {
             chunkRefs.current[idx] = el;
           }}
