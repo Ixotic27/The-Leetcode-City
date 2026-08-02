@@ -63,7 +63,7 @@ async function reconcile() {
     const codeId = parseInt(parts[2], 10);
     const devId = parseInt(parts[3], 10);
 
-    if (isNaN(codeId) || isNaN(devId)) continue;
+    if (Number.isNaN(codeId) || Number.isNaN(devId)) continue;
 
     const { data: usage } = await sb
       .from("special_code_usages")
