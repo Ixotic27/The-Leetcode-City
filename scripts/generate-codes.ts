@@ -34,8 +34,8 @@ function getArg(name: string): string | null {
 }
 
 const itemId = getArg("item");
-const count = parseInt(getArg("count") ?? "1", 10);
-const maxUses = parseInt(getArg("uses") ?? "1", 10);
+const count = parseInt(getArg("count", 10) ?? "1", 10);
+const maxUses = parseInt(getArg("uses", 10) ?? "1", 10);
 const note = getArg("note") ?? null;
 const expiresInput = getArg("expires");
 const expiresAt = expiresInput ? new Date(expiresInput).toISOString() : null;
