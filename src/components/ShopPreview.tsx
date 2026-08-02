@@ -447,9 +447,9 @@ export default function ShopPreview({
 
   // Clamp building dims for preview (cap height, ensure min width/depth)
   const raw = buildingDims ?? DEFAULT_DIMS;
-  const rawWidth = raw.width && !isNaN(raw.width) ? raw.width : DEFAULT_DIMS.width;
-  const rawHeight = raw.height && !isNaN(raw.height) ? raw.height : DEFAULT_DIMS.height;
-  const rawDepth = raw.depth && !isNaN(raw.depth) ? raw.depth : DEFAULT_DIMS.depth;
+  const rawWidth = raw.width && !Number.isNaN(raw.width) ? raw.width : DEFAULT_DIMS.width;
+  const rawHeight = raw.height && !Number.isNaN(raw.height) ? raw.height : DEFAULT_DIMS.height;
+  const rawDepth = raw.depth && !Number.isNaN(raw.depth) ? raw.depth : DEFAULT_DIMS.depth;
 
   const isBungalow = buildingStyle === "bungalow";
   const dims: BuildingDims = {

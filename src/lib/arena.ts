@@ -178,14 +178,14 @@ export async function scrapeCodeforcesProblem(contestId: number, index: string) 
     if (timeLimitMatch) {
       const text = cleanHtml(timeLimitMatch[1]);
       const secVal = parseFloat(text);
-      if (!isNaN(secVal)) timeLimitMs = Math.round(secVal * 1000);
+      if (!Number.isNaN(secVal)) timeLimitMs = Math.round(secVal * 1000);
     }
 
     const memoryLimitMatch = /<div class="memory-limit">[\s\S]*?<div class="property-title">memory limit per test<\/div>([\s\S]*?)<\/div>/.exec(html);
     if (memoryLimitMatch) {
       const text = cleanHtml(memoryLimitMatch[1]);
       const mbVal = parseInt(text);
-      if (!isNaN(mbVal)) memoryLimitMb = mbVal;
+      if (!Number.isNaN(mbVal)) memoryLimitMb = mbVal;
     }
 
     return {

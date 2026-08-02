@@ -712,7 +712,7 @@ export default function Building3D({ building, colors, atlasTexture, emissiveAtl
     const seed =
       building.login.split("").reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
 
-    const safeLitPct = typeof building.litPercentage === "number" && !isNaN(building.litPercentage) ? building.litPercentage : 0.3;
+    const safeLitPct = typeof building.litPercentage === "number" && !Number.isNaN(building.litPercentage) ? building.litPercentage : 0.3;
 
     // Custom color buildings: per-building canvas textures (rare, <5%)
     if (building.custom_color) {

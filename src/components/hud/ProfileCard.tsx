@@ -451,7 +451,7 @@ export default function ProfileCard() {
                 const reputation = selectedBuilding.total_stars;
                 const acceptanceRateRaw = selectedBuilding.acceptance_rate;
                 const acceptanceRate =
-                  typeof acceptanceRateRaw === "number" && !isNaN(acceptanceRateRaw)
+                  typeof acceptanceRateRaw === "number" && !Number.isNaN(acceptanceRateRaw)
                     ? acceptanceRateRaw
                     : -1;
 
