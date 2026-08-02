@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useRef, useMemo, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
@@ -377,6 +378,47 @@ export default function CityScene({
     return buildings[idx];
   }, [focusedBLower, lookup, buildings]);
 
+  useEffect(() => {
+    return () => atlasTexture.dispose();
+  }, [atlasTexture]);
+
+  // Initial camera position (matches Canvas camera prop)
+  const INITIAL_CAM_X = 1300;
+  const INITIAL_CAM_Z = 1500;
+
+  const buildingChunks = useMemo(() => {
+    const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
+    const map = new Map<string, CityBuilding[]>();
+    for (const b of buildings) {
+      const cx = Math.floor(b.position[0] / CHUNK_SIZE);
+      const cz = Math.floor(b.position[2] / CHUNK_SIZE);
+      const key = `${cx},${cz}`;
+      let arr = map.get(key);
+      if (!arr) {
+        arr = [];
+        map.set(key, arr);
+      }
+      arr.push(b);
+    }
+    const chunks = Array.from(map.values()).map(chunk => {
+      // Calculate center of chunk for distance culling
+      let sumX = 0, sumZ = 0;
+      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
+      const cx = sumX / chunk.length;
+      const cz = sumZ / chunk.length;
+      return { chunk, cx, cz };
+    });
+
+    // Sort by distance from initial camera — nearest chunks first
+    chunks.sort((a, b) => {
+      const dA = (a.cx - INITIAL_CAM_X) ** 2 + (a.cz - INITIAL_CAM_Z) ** 2;
+      const dB = (b.cx - INITIAL_CAM_X) ** 2 + (b.cz - INITIAL_CAM_Z) ** 2;
+      return dA - dB;
+    });
+
+    return chunks;
+  }, [buildings]);
+
   const chunkRefs = useRef<(THREE.Group | null)[]>([]);
   const lastChunkUpdate = useRef(-1);
 
@@ -423,49 +465,8 @@ export default function CityScene({
     }
   });
 
-  useEffect(() => {
-    return () => atlasTexture.dispose();
-  }, [atlasTexture]);
-
-  // Initial camera position (matches Canvas camera prop)
-  const INITIAL_CAM_X = 1300;
-  const INITIAL_CAM_Z = 1500;
-
-  const buildingChunks = useMemo(() => {
-    const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
-    const map = new Map<string, CityBuilding[]>();
-    for (const b of buildings) {
-      const cx = Math.floor(b.position[0] / CHUNK_SIZE);
-      const cz = Math.floor(b.position[2] / CHUNK_SIZE);
-      const key = `${cx},${cz}`;
-      let arr = map.get(key);
-      if (!arr) {
-        arr = [];
-        map.set(key, arr);
-      }
-      arr.push(b);
-    }
-    const chunks = Array.from(map.values()).map(chunk => {
-      // Calculate center of chunk for distance culling
-      let sumX = 0, sumZ = 0;
-      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
-      const cx = sumX / chunk.length;
-      const cz = sumZ / chunk.length;
-      return { chunk, cx, cz };
-    });
-
-    // Sort by distance from initial camera — nearest chunks first
-    chunks.sort((a, b) => {
-      const dA = (a.cx - INITIAL_CAM_X) ** 2 + (a.cz - INITIAL_CAM_Z) ** 2;
-      const dB = (b.cx - INITIAL_CAM_X) ** 2 + (b.cz - INITIAL_CAM_Z) ** 2;
-      return dA - dB;
-    });
-
-    return chunks;
-  }, [buildings]);
-
   // Progressive chunk mounting: render nearest chunks first, load rest over time
-  const [mountedChunkCount, setMountedChunkCount] = useState(0);
+  const [mountedChunkCount, setMountedChunkCount] = useState(3);
 
   useEffect(() => {
     if (buildingChunks.length === 0) return;
