@@ -66,6 +66,27 @@ describe("updater.ts", () => {
       expect(res).toBe(mockRes);
       expect((globalThis as any).fetch).toHaveBeenCalledTimes(1);
     });
+
+    it("propagates caller signal abort to controller signal", async () => {
+      const callerController = new AbortController();
+      (globalThis as any).fetch = vi.fn().mockImplementation((_url: string, init: any) => {
+        return new Promise((_resolve, reject) => {
+          init.signal.addEventListener("abort", () => {
+            reject(new Error("Aborted by signal"));
+          });
+        });
+      });
+
+      const fetchPromise = fetchWithTimeout(
+        "https://example.com/test",
+        { signal: callerController.signal },
+        5000
+      );
+
+      callerController.abort();
+
+      await expect(fetchPromise).rejects.toThrow("Aborted by signal");
+    });
   });
 
   describe("fetchWithRetry", () => {
@@ -73,7 +94,7 @@ describe("updater.ts", () => {
       const mockRes = { ok: true, status: 200 };
       (globalThis as any).fetch = vi.fn().mockResolvedValue(mockRes);
 
-      const res = await fetchWithRetry("https://example.com/test", {}, 1000, 2, 10);
+      const res = await fetchWithRetry("https://example.com/test", {}, 1000, 2, 0);
       expect(res).toBe(mockRes);
       expect((globalThis as any).fetch).toHaveBeenCalledTimes(1);
     });
@@ -86,7 +107,7 @@ describe("updater.ts", () => {
         .mockResolvedValueOnce(failRes)
         .mockResolvedValueOnce(successRes);
 
-      const res = await fetchWithRetry("https://example.com/test", {}, 1000, 2, 10);
+      const res = await fetchWithRetry("https://example.com/test", {}, 1000, 2, 0);
       expect(res).toBe(successRes);
       expect((globalThis as any).fetch).toHaveBeenCalledTimes(2);
     });
@@ -96,7 +117,7 @@ describe("updater.ts", () => {
       (globalThis as any).fetch = vi.fn().mockResolvedValue(failRes);
 
       await expect(
-        fetchWithRetry("https://example.com/test", {}, 1000, 2, 10)
+        fetchWithRetry("https://example.com/test", {}, 1000, 2, 0)
       ).rejects.toThrow("HTTP 404 Not Found");
       expect((globalThis as any).fetch).toHaveBeenCalledTimes(3);
     });
@@ -112,7 +133,7 @@ describe("updater.ts", () => {
       (globalThis as any).fetch = vi.fn().mockResolvedValue(emptyRes);
 
       const tmpFile = path.join(os.tmpdir(), "test_empty.vsix");
-      await expect(downloadFile("https://example.com/empty.vsix", tmpFile)).rejects.toThrow(
+      await expect(downloadFile("https://example.com/empty.vsix", tmpFile, 0)).rejects.toThrow(
         "Downloaded file is empty"
       );
     });
@@ -127,7 +148,7 @@ describe("updater.ts", () => {
       (globalThis as any).fetch = vi.fn().mockResolvedValue(successRes);
 
       const tmpFile = path.join(os.tmpdir(), "test_success.vsix");
-      await downloadFile("https://example.com/valid.vsix", tmpFile);
+      await downloadFile("https://example.com/valid.vsix", tmpFile, 0);
 
       expect(fs.existsSync(tmpFile)).toBe(true);
       const readData = fs.readFileSync(tmpFile, "utf-8");
@@ -166,10 +187,17 @@ describe("updater.ts", () => {
     });
 
     it("logs warning and aborts cleanly when fetch throws an error", async () => {
+      vi.useFakeTimers();
       (globalThis as any).fetch = vi.fn().mockRejectedValue(new Error("Network disconnect"));
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      await checkForUpdates(mockContext);
+      try {
+        const updatePromise = checkForUpdates(mockContext);
+        await vi.runAllTimersAsync();
+        await updatePromise;
+      } finally {
+        vi.useRealTimers();
+      }
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("[LeetCode City Updater] Check for updates failed: Network disconnect")
@@ -198,12 +226,12 @@ describe("updater.ts", () => {
     });
 
     it("shows warning message when update download/install fails", async () => {
+      vi.useFakeTimers();
       const mockPackageJsonRes = {
         ok: true,
         status: 200,
         text: vi.fn().mockResolvedValue(JSON.stringify({ version: "0.3.0" })),
       };
-      // package.json fetch succeeds, vsix download fails (e.g., 404)
       const failVsixRes = {
         ok: false,
         status: 404,
@@ -212,8 +240,8 @@ describe("updater.ts", () => {
 
       (globalThis as any).fetch = vi
         .fn()
-        .mockResolvedValueOnce(mockPackageJsonRes) // package.json check attempt 1
-        .mockResolvedValue(failVsixRes); // vsix download attempts
+        .mockResolvedValueOnce(mockPackageJsonRes)
+        .mockResolvedValue(failVsixRes);
 
       vi.mocked(vscode.extensions.getExtension).mockReturnValue({
         packageJSON: { version: "0.2.3" },
@@ -225,7 +253,13 @@ describe("updater.ts", () => {
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-      await checkForUpdates(mockContext);
+      try {
+        const updatePromise = checkForUpdates(mockContext);
+        await vi.runAllTimersAsync();
+        await updatePromise;
+      } finally {
+        vi.useRealTimers();
+      }
 
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining("[LeetCode City Updater] Extension update failed")
@@ -233,7 +267,6 @@ describe("updater.ts", () => {
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
         expect.stringContaining("🏙️ LeetCode City: Pulse update failed:")
       );
-      // Ensure globalState timestamp was NOT updated on failure
       expect(globalStateStore["leetcodecity.lastUpdateCheck"]).toBeUndefined();
     });
 

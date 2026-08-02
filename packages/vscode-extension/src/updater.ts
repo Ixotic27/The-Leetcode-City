@@ -25,6 +25,7 @@ export function compareSemver(a: string, b: string): number {
 
 /**
  * Perform a fetch call with timeout control via AbortController.
+ * Respects any caller-provided RequestInit.signal by propagating abort events.
  */
 export async function fetchWithTimeout(
   url: string,
@@ -33,6 +34,17 @@ export async function fetchWithTimeout(
 ): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let abortListener: (() => void) | undefined;
+  if (options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      abortListener = () => controller.abort();
+      options.signal.addEventListener("abort", abortListener);
+    }
+  }
+
   try {
     const res = await (globalThis as any).fetch(url, {
       ...options,
@@ -41,6 +53,9 @@ export async function fetchWithTimeout(
     return res;
   } finally {
     clearTimeout(timeoutId);
+    if (options.signal && abortListener) {
+      options.signal.removeEventListener("abort", abortListener);
+    }
   }
 }
 
@@ -75,8 +90,12 @@ export async function fetchWithRetry(
 /**
  * Download a file from a URL to a local path with retries and validation.
  */
-export async function downloadFile(url: string, destPath: string): Promise<void> {
-  const res = await fetchWithRetry(url, {}, 30000, 2, 1000);
+export async function downloadFile(
+  url: string,
+  destPath: string,
+  backoffMs = 1000
+): Promise<void> {
+  const res = await fetchWithRetry(url, {}, 30000, 2, backoffMs);
   const buffer = await res.arrayBuffer();
   if (!buffer || buffer.byteLength === 0) {
     throw new Error("Downloaded file is empty");
@@ -178,9 +197,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext): Promise
     );
   } finally {
     try {
-      if (fs.existsSync(vsixPath)) {
-        await fs.promises.unlink(vsixPath);
-      }
+      await fs.promises.unlink(vsixPath);
     } catch {
       /* best effort cleanup */
     }
