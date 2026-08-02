@@ -45,9 +45,28 @@ function createListAdmin({ data = [], error = null, throws }: SelectResult) {
 }
 
 /** Stubs `arcade_room_favorites` for the read-then-write flow used by POST. */
-function createToggleAdmin({ existing }: { existing: FavoriteRow | null }) {
-  const del = { eq: vi.fn().mockReturnThis() };
+function createToggleAdmin({
+  existing,
+  deleteError = null,
+}: {
+  existing: FavoriteRow | null;
+  deleteError?: { message: string } | null;
+}) {
   const insert = vi.fn().mockResolvedValue({ error: null });
+  const del = vi.fn();
+  const delEq = vi.fn();
+
+  // Mirrors a real Supabase delete builder: chainable via `.eq()` *and*
+  // thenable. A plain object would resolve on `await` even if the route
+  // stopped awaiting the delete, hiding that regression.
+  const deleteBuilder = {
+    eq: (...args: unknown[]) => {
+      delEq(...args);
+      return deleteBuilder;
+    },
+    then: (resolve: (value: { error: { message: string } | null }) => unknown) =>
+      Promise.resolve({ error: deleteError }).then(resolve),
+  };
 
   mockFrom.mockImplementation((table: string) => {
     if (table !== "arcade_room_favorites") {
@@ -58,13 +77,16 @@ function createToggleAdmin({ existing }: { existing: FavoriteRow | null }) {
       select: () => query,
       eq: () => query,
       single: vi.fn().mockResolvedValue({ data: existing, error: null }),
-      delete: () => del,
+      delete: () => {
+        del();
+        return deleteBuilder;
+      },
       insert,
     };
     return query;
   });
 
-  return { del, insert };
+  return { del, delEq, insert };
 }
 
 function postRequest(body: unknown) {
@@ -135,7 +157,7 @@ describe("/api/arcade/favorites", () => {
     });
 
     it("removes an existing favorite without caching the response", async () => {
-      const { insert } = createToggleAdmin({ existing: { room_id: "lobby" } });
+      const { insert, del, delEq } = createToggleAdmin({ existing: { room_id: "lobby" } });
 
       const response = await POST(postRequest({ room_id: "lobby" }));
 
@@ -143,6 +165,24 @@ describe("/api/arcade/favorites", () => {
       expect(response.headers.get("Cache-Control")).toBe("no-store");
       await expect(response.json()).resolves.toEqual({ favorited: false });
       expect(insert).not.toHaveBeenCalled();
+      // Assert the delete actually ran and was scoped to this user + room, so
+      // the route cannot regress to reporting `favorited: false` without it.
+      expect(del).toHaveBeenCalledOnce();
+      expect(delEq).toHaveBeenCalledWith("user_id", "user-1");
+      expect(delEq).toHaveBeenCalledWith("room_id", "lobby");
+    });
+
+    it("does not report success when the delete fails", async () => {
+      createToggleAdmin({
+        existing: { room_id: "lobby" },
+        deleteError: { message: "delete failed" },
+      });
+
+      const response = await POST(postRequest({ room_id: "lobby" }));
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      await expect(response.json()).resolves.toEqual({ error: "delete failed" });
     });
 
     it("does not allow validation errors to be cached", async () => {
@@ -151,6 +191,19 @@ describe("/api/arcade/favorites", () => {
       expect(response.status).toBe(400);
       expect(response.headers.get("Cache-Control")).toBe("no-store");
       await expect(response.json()).resolves.toEqual({ error: "room_id required" });
+    });
+
+    it("does not allow a malformed JSON body to escape uncached", async () => {
+      const request = new NextRequest("http://localhost/api/arcade/favorites", {
+        method: "POST",
+        body: "{ not json",
+      });
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      await expect(response.json()).resolves.toEqual({ error: "Invalid JSON body" });
     });
 
     it("does not allow unauthenticated responses to be cached", async () => {

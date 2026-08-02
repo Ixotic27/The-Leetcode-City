@@ -52,7 +52,16 @@ export async function POST(req: NextRequest) {
   }
   const user = auth.user;
 
-  const { room_id } = (await req.json()) as { room_id?: string };
+  // Parsed inside a try: a malformed body makes `req.json()` throw, and an
+  // uncaught throw here would escape the handler as a bodyless 500 with no
+  // Cache-Control header at all.
+  let room_id: string | undefined;
+  try {
+    ({ room_id } = (await req.json()) as { room_id?: string });
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400, headers: NO_STORE });
+  }
+
   if (!room_id) {
     return NextResponse.json({ error: "room_id required" }, { status: 400, headers: NO_STORE });
   }
@@ -69,11 +78,18 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existing) {
-      // Remove favorite
-      await sb.from("arcade_room_favorites")
+      // Remove favorite. The delete error is surfaced rather than ignored:
+      // reporting `favorited: false` after a failed delete would leave the
+      // client's state out of sync with the row that is still in the table.
+      const { error: deleteError } = await sb.from("arcade_room_favorites")
         .delete()
         .eq("user_id", user.id)
         .eq("room_id", room_id);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500, headers: NO_STORE });
+      }
+
       return NextResponse.json({ favorited: false }, { headers: NO_STORE });
     }
 
