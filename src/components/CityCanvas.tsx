@@ -4,7 +4,7 @@ import { useRef, useEffect, useState, useMemo, useCallback, lazy, Suspense, memo
 import type { MutableRefObject, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Stats } from "@react-three/drei";
+import { OrbitControls, Stats } from "@react-three/drei";
 import * as THREE from "three";
 import CityScene from "./CityScene";
 import type { FocusInfo } from "./CityScene";
@@ -191,19 +191,7 @@ function SceneBackground({ color }: { color: string }) {
   return null;
 }
 
-// ─── Paper Plane (GLB model) ─────────────────────────────────
-
-function PlaneModel() {
-  const { scene } = useGLTF("/models/paper-plane.glb");
-
-  return (
-    <group scale={[3, 3, 3]} rotation={[0, Math.PI / 2, 0]}>
-      <primitive object={scene} />
-    </group>
-  );
-}
-
-useGLTF.preload("/models/paper-plane.glb");
+// ─── Paper Plane (removed: unused GLB preload was crashing production) ───
 
 // ─── Intro Flyover ──────────────────────────────────────────
 
@@ -2786,7 +2774,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
       <MetroSystem />
       <TramSystem />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
-        <>
+        <Suspense fallback={null}>
           <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
           <BuildingAds
             ads={skyAds}
@@ -2796,7 +2784,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
             focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
             focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
           />
-        </>
+        </Suspense>
       )}
       {isRaining && (
         <>
