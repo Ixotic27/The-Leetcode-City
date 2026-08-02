@@ -108,3 +108,16 @@ export type ServerMsg =
   | { type: "map_reload"; map: Record<string, unknown> }
   | { type: "game_ack"; game: string }
   | { type: "game_result"; game: string; result: GameResult };
+
+export interface ArcadeCustomMap {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  category?: string;
+  plays?: number;
+  creator: string;
+  creator_name?: string;
+  data: Record<string, unknown>;
+  created_at: string;
+}
