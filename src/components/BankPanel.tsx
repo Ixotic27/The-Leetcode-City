@@ -110,7 +110,7 @@ function prettyTx(tx: WalletTx): string {
     return tx.description.replace(/\s*to dev\s+\d+/gi, "").trim();
   }
   const text = tx.source.replace(/_/g, " ").trim();
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+  return text[0].toUpperCase() + text.slice(1).toLowerCase();
 }
 
 function timeAgo(iso: string): string {

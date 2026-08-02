@@ -160,7 +160,7 @@ export default async function TrackingPage({ params }: Props) {
           <h2 className="text-sm text-cream">Details</h2>
           <div className="mt-4 space-y-3">
             {[
-              { label: "Vehicle", value: ad.vehicle === "rooftop_sign" ? "Rooftop Sign" : ad.vehicle === "led_wrap" ? "LED Wrap" : ad.vehicle.charAt(0).toUpperCase() + ad.vehicle.slice(1) },
+              { label: "Vehicle", value: ad.vehicle === "rooftop_sign" ? "Rooftop Sign" : ad.vehicle === "led_wrap" ? "LED Wrap" : ad.vehicle[0].toUpperCase() + ad.vehicle.slice(1) },
               { label: "Plan", value: ad.plan_id?.replace("_", " ") ?? "-" },
               { label: "Created", value: formatDate(ad.created_at) },
               { label: "Started", value: formatDate(ad.starts_at) },
