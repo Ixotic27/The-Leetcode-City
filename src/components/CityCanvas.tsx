@@ -203,8 +203,6 @@ function PlaneModel() {
   );
 }
 
-useGLTF.preload("/models/paper-plane.glb");
-
 // ─── Intro Flyover ──────────────────────────────────────────
 
 const INTRO_DURATION = 14; // seconds
@@ -2502,16 +2500,18 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
     <>
       {showPerf && <Stats />}
       <CityExposure cityEnergy={cityEnergy ?? 1} />
-      <AtmosphereCycleManager
-        theme={theme}
-        themeIndex={themeIndex}
-        active={dayNightCycleActive ?? false}
-        timeRef={timeRef}
-        cityRadius={cityRadius}
-        weatherMode={weatherMode}
-      />
+      <Suspense fallback={null}>
+        <AtmosphereCycleManager
+          theme={theme}
+          themeIndex={themeIndex}
+          active={dayNightCycleActive ?? false}
+          timeRef={timeRef}
+          cityRadius={cityRadius}
+          weatherMode={weatherMode}
+        />
 
-      {introMode && <IntroFlyover onEnd={onIntroEnd ?? (() => { })} />}
+        {introMode && <IntroFlyover onEnd={onIntroEnd ?? (() => { })} />}
+      </Suspense>
 
       {rabbitCinematic && rabbitCinematicTarget != null && (
         <RabbitFlyover
@@ -2695,7 +2695,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
       <MetroSystem />
       <TramSystem />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
-        <>
+        <Suspense fallback={null}>
           <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
           <BuildingAds
             ads={skyAds}
@@ -2705,7 +2705,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
             focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
             focusedBuildingB={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidAttacker?.login ?? null) : focusedBuildingB}
           />
-        </>
+        </Suspense>
       )}
       {isRaining && (
         <>
@@ -2926,7 +2926,7 @@ export default function CityCanvas({
                 for (const m of mats) {
                   const maps = [m.map, m.alphaMap, m.emissiveMap, m.roughnessMap, m.metalnessMap, m.normalMap];
                   for (const tx of maps) {
-                    if (tx && tx instanceof THREE.Texture) {
+                    if (tx && tx instanceof THREE.Texture && tx.magFilter !== THREE.NearestFilter) {
                       tx.magFilter = THREE.NearestFilter;
                       tx.minFilter = THREE.NearestFilter;
                       tx.generateMipmaps = false;
