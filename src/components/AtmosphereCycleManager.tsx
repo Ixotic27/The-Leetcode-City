@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/immutability, react-hooks/purity, @typescript-eslint/no-unused-vars */
 
 import * as THREE from "three";
-import { useRef, useMemo, useEffect } from "react";
+import { Suspense, useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useWeather } from "@/context/WeatherContext";
@@ -1096,7 +1096,9 @@ function FlyingCityShips({ cityRadius }: { cityRadius: number }) {
           )}
 
           {s.type === "airplane" && (
-            <FlyingAirplane s={s} />
+            <Suspense fallback={null}>
+              <FlyingAirplane s={s} />
+            </Suspense>
           )}
 
           {/* Towable dynamic LED banner inside the city! */}
