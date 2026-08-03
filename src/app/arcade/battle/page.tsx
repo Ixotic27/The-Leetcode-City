@@ -280,7 +280,7 @@ export default function BattlePage() {
     let idx = 0;
     const interval = setInterval(() => {
       if (idx < activeProblem.tests.length) {
-        const passed = isCorrect || (idx < 3); // mock partially passing if incorrect
+        const passed = isCorrect;
         results.push(passed);
         setTestsEvaluated([...results]);
         setConsoleLogs((prev) => [
