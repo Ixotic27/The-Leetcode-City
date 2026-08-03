@@ -727,7 +727,7 @@ export default function BattlePage() {
                     <span
                       key={i}
                       className={`h-2 w-5 border ${
-                        testsEvaluated[i] === true
+                        testsEvaluated[i] 
                           ? "bg-lime border-lime"
                           : testsEvaluated[i] === false
                           ? "bg-rose border-rose"
