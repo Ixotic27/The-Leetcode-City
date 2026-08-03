@@ -136,8 +136,10 @@ export default function MiniMap({ buildings, playerX, playerZ, visible, currentD
 
   if (!visible || buildings.length === 0) return null;
 
+  const districts = Object.entries(DISTRICT_RGB);
+
   return (
-    <div className="pointer-events-none fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
+    <div className="pointer-events-none fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4 flex flex-col items-end gap-1">
       <canvas
         ref={canvasRef}
         width={RES}
@@ -149,6 +151,26 @@ export default function MiniMap({ buildings, playerX, playerZ, visible, currentD
           border: "1px solid rgba(42, 42, 48, 0.4)",
         }}
       />
+      <div
+        className="flex flex-wrap gap-x-2 gap-y-0.5 justify-end max-w-[140px]"
+        style={{ maxWidth: DISPLAY }}
+      >
+        {districts.map(([name, rgb]) => (
+          <div key={name} className="flex items-center gap-0.5">
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                backgroundColor: `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`,
+                flexShrink: 0,
+              }}
+            />
+            <span className="text-[6px] text-gray-300 leading-none capitalize">
+              {name.replace(/_/g, "\u00a0")}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
