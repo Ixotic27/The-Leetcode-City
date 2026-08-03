@@ -8,6 +8,7 @@ import * as THREE from "three";
 // ─── Shared Geometries (reused across all effect components) ─
 const _box = /* @__PURE__ */ new THREE.BoxGeometry(1, 1, 1);
 const _plane = /* @__PURE__ */ new THREE.PlaneGeometry(1, 1);
+const _cylinder = /* @__PURE__ */ new THREE.CylinderGeometry(0.5, 0.5, 1, 8);
 
 // ─── Neon Outline ────────────────────────────────────────────
 // Wireframe edges with strong emission around the building
@@ -140,7 +141,61 @@ export const SpotlightEffect = memo(function SpotlightEffect({
   depth: number;
   color?: string;
 }) {
-  return null;
+  const beam1Ref = useRef<THREE.Mesh>(null);
+  const beam2Ref = useRef<THREE.Mesh>(null);
+  const frameCount = useRef(0);
+
+  useFrame((state) => {
+    if (!beam1Ref.current || !beam2Ref.current) return;
+    frameCount.current++;
+    if (frameCount.current % 3 !== 0) return;
+    const t = state.clock.elapsedTime;
+    const mat1 = beam1Ref.current.material as THREE.MeshStandardMaterial;
+    const mat2 = beam2Ref.current.material as THREE.MeshStandardMaterial;
+    const pulse = 0.5 + Math.sin(t * 3) * 0.3;
+    mat1.emissiveIntensity = pulse;
+    mat2.emissiveIntensity = pulse * 0.85;
+  });
+
+  const beamH = height * 0.6;
+  const spread = Math.min(width, depth) * 0.35;
+
+  return (
+    <group>
+      {/* Left beam */}
+      <mesh
+        ref={beam1Ref}
+        position={[-spread, height + beamH / 2, -spread * 0.5]}
+        geometry={_cylinder}
+        scale={[0.3, beamH, 0.3]}
+      >
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.5}
+          transparent
+          opacity={0.6}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Right beam */}
+      <mesh
+        ref={beam2Ref}
+        position={[spread, height + beamH / 2, spread * 0.5]}
+        geometry={_cylinder}
+        scale={[0.3, beamH, 0.3]}
+      >
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.43}
+          transparent
+          opacity={0.5}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
 });
 
 // ─── Rooftop Fire ────────────────────────────────────────────
