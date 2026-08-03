@@ -156,13 +156,7 @@ const fragmentShader = /* glsl */ `
     vec3 snowColor = vec3(0.97, 0.98, 1.0);
     roofFinal = mix(roofFinal, snowColor * (ambientDay + 1.0), uSnowIntensity);
 
-    // Silhouette LOD handling for distant cities
-    float distToCurrent = distance(vWorldPos.xz, uCurrentOrigin);
-    if (distToCurrent > 1500.0) {
-      vec3 silhouetteColor = vec3(0.05, 0.06, 0.09);
-      wallFinal = mix(wallFinal, silhouetteColor, 0.88);
-      roofFinal = mix(roofFinal, silhouetteColor, 0.88);
-    }
+    // Full color rendering for all buildings across the entire city
 
     vec3 color = mix(wallFinal, roofFinal, isRoof);
 
