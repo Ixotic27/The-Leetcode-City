@@ -1,5 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Aggregated pitch / dashboard statistics for the LeetCode City.
+ * Used by the public-facing stats endpoint and marketing materials.
+ */
 export interface PitchStats {
   developers: number;
   claimed: number;
@@ -25,18 +29,33 @@ export interface PitchStats {
   formattedShopRevenue: string;
 }
 
+/** UTC timestamp of the LeetCode City public launch date. */
 const LAUNCH_DATE = new Date("2026-02-19T00:00:00Z");
 
-// Revenue from Stripe dashboard (update manually, can't be calculated from DB
-// because sky_ads doesn't store which currency was used per ad)
+/**
+ * Known revenue figures sourced from the Stripe dashboard.
+ * Updated manually since sky_ads does not store per-ad currency metadata,
+ * preventing server-side revenue calculation from the database alone.
+ */
 const KNOWN_REVENUE_BRL = 1586;
 const KNOWN_AD_REVENUE_BRL = 1550;
 const KNOWN_SHOP_REVENUE_BRL = 36;
 
+/**
+ * Formats a number with US locale comma separators (e.g. 1234 -> "1,234").
+ * @param n - The number to format.
+ * @returns A locale-formatted string with no decimal places.
+ */
 function fmt(n: number): string {
   return n.toLocaleString("en-US");
 }
 
+/**
+ * Formats a number with US locale comma separators and rounds values >= 1000
+ * to the nearest hundred with a trailing "+".
+ * @param n - The number to format.
+ * @returns A formatted string (e.g. "1,200+" for 1234, "999" for 999).
+ */
 function fmtRounded(n: number): string {
   if (n >= 1000) {
     const rounded = Math.floor(n / 100) * 100;
@@ -45,6 +64,15 @@ function fmtRounded(n: number): string {
   return fmt(n);
 }
 
+/**
+ * Fetches aggregate platform statistics from the database.
+ *
+ * Queries developers, ad campaigns, kudos, building visits, and achievements
+ * in parallel, then computes derived fields (days old, conversion rate,
+ * formatted display strings) before returning a full PitchStats object.
+ *
+ * @returns A Promise resolving to a populated {@link PitchStats} object.
+ */
 export async function getPitchStats(): Promise<PitchStats> {
   const admin = getSupabaseAdmin();
 
