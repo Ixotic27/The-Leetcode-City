@@ -5,14 +5,27 @@ import { buildButton } from "@/lib/email-template";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
+/**
+ * Describes a single re-engagement email tier.
+ * Each tier triggers for developers who have been inactive for the specified number of days.
+ */
 interface ReEngagementTier {
+  /** Number of days of inactivity that triggers this tier. */
   daysInactive: number;
+  /** Short tier identifier (e.g. "7d", "14d"). Used in dedup keys. */
   tier: string;
+  /** Returns the email subject line for a given developer login. */
   subject: (login: string) => string;
+  /** Returns the plain-text email body for a given developer login. */
   body: (login: string) => string;
+  /** Returns the HTML email body, optionally including extra info (e.g. kudos received). */
   html: (login: string, extraInfo: string) => string;
 }
 
+/**
+ * Re-engagement email tiers — ordered from shortest to longest inactivity.
+ * Each tier fires at most once per developer per ISO week to avoid spam.
+ */
 const TIERS: ReEngagementTier[] = [
   {
     daysInactive: 7,
@@ -56,9 +69,15 @@ const TIERS: ReEngagementTier[] = [
 /**
  * Cron: Daily 14:00 UTC - Re-engagement emails for inactive developers.
  * Category: marketing (opt-in only, defaults to false).
- */
-/**
- * @param {import('next/server').NextRequest} request
+ *
+ * Finds developers who have been inactive for 7, 14, or 30 days and sends
+ * them a re-engagement email, provided they have opted into marketing notifications.
+ * Uses a year-week dedup key so each developer receives at most one email per tier per week.
+ *
+ * Authentication: requires a `Bearer ${process.env.CRON_SECRET}` Authorization header.
+ *
+ * @param request - The incoming Next.js request (used to read the Authorization header).
+ * @returns JSON with `{ ok: true, sent, skipped, errors }` on success.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
