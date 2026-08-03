@@ -14,6 +14,8 @@ export default function InstancePage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [instanceName, setInstanceName] = useState('');
+  const [joinError, setJoinError] = useState('');
+  const [createError, setCreateError] = useState('');
 
   // Admin Mock Data State for Pending Requests and Active Users
   const [pendingRequests, setPendingRequests] = useState([
@@ -123,11 +125,18 @@ export default function InstancePage() {
                 />
               </div>
               <button 
-                onClick={() => setViewState('joined-member')}
+                onClick={() => {
+                  if (!inviteToken.trim()) { setJoinError('Invite token is required.'); return; }
+                  if (!username.trim()) { setJoinError('Username is required.'); return; }
+                  if (!password) { setJoinError('Password is required.'); return; }
+                  setJoinError('');
+                  setViewState('joined-member');
+                }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm w-full transition-colors"
               >
                 Submit Join Request
               </button>
+              {joinError && <p className="text-xs text-red-500">{joinError}</p>}
             </div>
           ) : (
             <div className="space-y-4 max-w-md p-6 border rounded-xl border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/30">
@@ -143,11 +152,16 @@ export default function InstancePage() {
                 className="w-full p-2 text-sm border rounded bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700" 
               />
               <button 
-                onClick={() => setViewState('admin-dashboard')}
+                onClick={() => {
+                  if (!instanceName.trim()) { setCreateError('Instance name is required.'); return; }
+                  setCreateError('');
+                  setViewState('admin-dashboard');
+                }}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium text-sm w-full transition-colors"
               >
                 Confirm Setup Flow
               </button>
+              {createError && <p className="text-xs text-red-500">{createError}</p>}
             </div>
           )}
         </div>
