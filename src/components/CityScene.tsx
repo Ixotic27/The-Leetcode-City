@@ -434,12 +434,7 @@ export default function CityScene({
       for (let i = 0; i < buildingChunks.length; i++) {
         const group = chunkRefs.current[i];
         if (group) {
-          const chunkData = buildingChunks[i];
-          const dx = camX - chunkData.cx;
-          const dz = camZ - chunkData.cz;
-          const distSq = dx * dx + dz * dz;
-          // 6000 units radius = 36,000,000 distSq (matches camera far plane 6100)
-          group.visible = distSq < 36000000;
+          group.visible = true;
         }
       }
 
@@ -488,7 +483,7 @@ export default function CityScene({
 
   return (
     <>
-      {buildingChunks.slice(0, mountedChunkCount).map((chunkData, idx) => (
+      {buildingChunks.map((chunkData, idx) => (
         <group
           key={`chunk-${chunkData.cx}-${chunkData.cz}`}
           ref={(el) => {
