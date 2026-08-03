@@ -1,8 +1,19 @@
 /**
+ * UTC date string utilities for the LeetCode City.
+ *
+ * Provides a reliable way to compute today's and yesterday's UTC date strings
+ * without being affected by server-side DST transitions or request-boundary drift.
+ */
+
+/**
  * Returns the current UTC calendar date as a YYYY-MM-DD string.
  * Uses a single Date instantiation so `today` and `yesterday` are
  * guaranteed to be derived from the same moment — they can never
  * drift relative to each other if a request straddles midnight.
+ *
+ * @returns An object containing `today` and `yesterday` as YYYY-MM-DD strings.
+ * @example
+ * // On 2026-08-03 at 23:59 UTC returns { today: "2026-08-03", yesterday: "2026-08-02" }
  */
 export function getUtcDateStrings(): { today: string; yesterday: string } {
   const now = new Date();
