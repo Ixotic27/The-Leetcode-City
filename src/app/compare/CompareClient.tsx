@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +13,7 @@ interface Developer {
   contributions: number;
   total_stars: number;
   rank: number | null;
+  lc_global_rank?: number;
   easy_solved?: number;
   medium_solved?: number;
   hard_solved?: number;
@@ -363,7 +364,25 @@ export function CompareClient({
                     {statRow("Contest Rating", "contest_rating", "contest_rating")}
                     {statRow("Active Days", "active_days_last_year", "active_days_last_year")}
                     {statRow("Current Streak", "lc_streak", "lc_streak")}
-                    {statRow("Global Rank", "rank", "rank", true)}
+                    {/* Global Rank — use lc_global_rank (actual LC rank), fallback to rank */}
+                    {((): React.ReactNode => {
+                      const valA = devA ? (devA.lc_global_rank ?? devA.rank) : null;
+                      const valB = devB ? (devB.lc_global_rank ?? devB.rank) : null;
+                      const winner = valA !== null && valB !== null
+                        ? (valA < valB ? "A" : valA > valB ? "B" : "tie")
+                        : null;
+                      return (
+                        <tr className="border-b border-gray-800 hover:bg-white/5 transition-colors">
+                          <td className={`py-3.5 px-4 font-mono text-sm text-right transition-colors ${winner === "A" ? "text-[#ffa116] font-bold" : "text-gray-400"}`}>
+                            {valA !== null ? valA.toLocaleString() : "—"}
+                          </td>
+                          <td className="py-3.5 px-2 text-center text-xs font-pixel text-cream uppercase tracking-wider">Global Rank</td>
+                          <td className={`py-3.5 px-4 font-mono text-sm text-left transition-colors ${winner === "B" ? "text-[#ffa116] font-bold" : "text-gray-400"}`}>
+                            {valB !== null ? valB.toLocaleString() : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })()}
                     {statRow("Reputation", "total_stars", "total_stars")}
                     {statRow("Kudos", "kudos_count", "kudos_count")}
                     {statRow("Total XP", "xp_total", "xp_total")}
