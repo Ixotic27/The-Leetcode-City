@@ -7,6 +7,7 @@
  *   3. Browser language (`navigator.language`) — least reliable for devs with English OS
  */
 
+/** Set of IANA timezone identifiers covering Brazilian territory. */
 const BR_TIMEZONES = new Set([
   "America/Sao_Paulo",
   "America/Fortaleza",
@@ -26,7 +27,20 @@ const BR_TIMEZONES = new Set([
   "America/Santarem",
 ]);
 
-/** Client-side check. Use `serverCountry` from headers when available. */
+/**
+ * Detects whether the current user is likely in Brazil.
+ *
+ * Checks three signals in order of reliability:
+ *   1. `serverCountry` — the Vercel `x-vercel-ip-country` header (most reliable)
+ *   2. Browser `Intl.DateTimeFormat().resolvedOptions().timeZone` against BR timezones
+ *   3. Browser `navigator.language` starting with "pt" (least reliable)
+ *
+ * Returns `true` as soon as any signal matches. Safe to call on both
+ * server and client (guards against `navigator` being undefined on the server).
+ *
+ * @param serverCountry - The country code detected server-side, or null/undefined.
+ * @returns `true` if Brazil is detected, `false` otherwise.
+ */
 export function isBrazilClient(serverCountry?: string | null): boolean {
   if (serverCountry && serverCountry.toUpperCase() === "BR") return true;
   if (typeof navigator === "undefined") return false;
