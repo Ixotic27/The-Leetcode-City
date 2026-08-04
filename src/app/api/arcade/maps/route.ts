@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
         creator_id: auth.user.id,
         creator_name: creatorName,
         category: category ?? "custom",
+        // duplicate key tags removed
         tags: Array.isArray(tags) ? tags : [],
         is_public: is_public ?? true,
         version: 1,
