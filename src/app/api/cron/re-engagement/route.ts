@@ -54,11 +54,12 @@ const TIERS: ReEngagementTier[] = [
 ];
 
 /**
- * Cron: Daily 14:00 UTC - Re-engagement emails for inactive developers.
- * Category: marketing (opt-in only, defaults to false).
- */
-/**
+ * Cron: Daily 14:00 UTC - Send re-engagement emails to inactive developers.
+ * Requires `Authorization: Bearer ${CRON_SECRET}` to verify the cron request.
+ *
  * @param {import('next/server').NextRequest} request
+ * @returns {Promise<NextResponse>} JSON response with `{ ok: true, sent, skipped, errors }` on success,
+ * or `{ error: string }` on failure.
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
