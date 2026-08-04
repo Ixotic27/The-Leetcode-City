@@ -75,6 +75,11 @@ export async function GET(request: Request) {
     });
     position = (devsAbove ?? 0) + 1;
     metricValue = String(achCount);
+  } else {
+    return NextResponse.json(
+      { error: "Invalid tab. Must be one of: solved, lc_rank, streak, contest, xp, achievers." },
+      { status: 400 }
+    );
   }
 
   return NextResponse.json(
