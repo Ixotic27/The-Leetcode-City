@@ -4,10 +4,20 @@ import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * SHA-256 hash a VS Code API key for storage.
+ * @param key - The raw API key string to hash.
+ * @returns A 64-character hexadecimal SHA-256 digest.
+ */
 function hashKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
 }
 
+/**
+ * Resolves the authenticated developer ID from the current session.
+ * First tries matching by `claimed_by`, then falls back to GitHub login.
+ * @returns The developer `id` on success, or an `{ error, status }` object on failure.
+ */
 async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: string; status: number }> {
   const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
@@ -45,6 +55,11 @@ async function getAuthenticatedDevId(): Promise<{ devId: number } | { error: str
   return { error: "Developer not found. Claim your building first.", status: 404 };
 }
 
+/**
+ * GET /api/vscode-key
+ * Returns whether the authenticated developer has a stored VS Code API key.
+ * @returns `{ hasKey: boolean }`
+ */
 export async function GET() {
   const auth = await getAuthenticatedDevId();
   if ("error" in auth) {
@@ -62,6 +77,11 @@ export async function GET() {
   return NextResponse.json({ hasKey: !!dev?.vscode_api_key_hash });
 }
 
+/**
+ * POST /api/vscode-key
+ * Generates and stores a new random VS Code API key for the authenticated developer.
+ * @returns `{ key: string }` containing the raw key (shown once, never stored).
+ */
 export async function POST() {
   const auth = await getAuthenticatedDevId();
   if ("error" in auth) {
