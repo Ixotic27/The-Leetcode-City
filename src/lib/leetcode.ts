@@ -30,7 +30,7 @@ export async function fetchLeetCodeAboutMe(username: string): Promise<string | n
     }
 }
 
-// Calendars are keyed dynamically as `y<year>` (e.g. y2015, y2016, …),
+// Calendars are keyed dynamically as `y<year>` (e.g. y2020, y2021, …),
 // each holding a JSON-encoded submissionCalendar string.
 type YearCalendar = { submissionCalendar?: string };
 
@@ -40,7 +40,7 @@ export function parseMaxStreak(
 ): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
-    for (let y = 2015; y <= currentYear; y++) {
+    for (let y = 2020; y <= currentYear; y++) {
         const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
