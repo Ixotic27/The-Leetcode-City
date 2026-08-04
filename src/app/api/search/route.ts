@@ -9,6 +9,13 @@ const querySchema = z.object({
   q: z.string().optional(),
 });
 
+/**
+ * GET /api/search
+ * Searches developers by GitHub login (case-insensitive, partial match).
+ * Returns up to 8 results including avatar_url and name for richer UI display.
+ * @param req.query.q - Search term (min 2 chars, case-insensitive partial match)
+ * @returns Array of developer records matching the query
+ */
 export async function GET(req: NextRequest) {
   const queryVal = validateQuery(req.nextUrl.searchParams, querySchema);
   if (!queryVal.success) {
@@ -23,7 +30,7 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("developers")
-    .select("github_login, easy_solved, medium_solved, hard_solved, lc_global_rank")
+    .select("github_login, name, avatar_url, easy_solved, medium_solved, hard_solved, lc_global_rank")
     .ilike("github_login", `%${q}%`)
     .limit(8);
 
