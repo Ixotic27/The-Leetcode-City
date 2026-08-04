@@ -1,12 +1,25 @@
 import { getSupabaseAdmin } from "./supabase";
 
+/**
+ * Represents a developer's pixel wallet balance and lifetime statistics.
+ */
 export interface WalletBalance {
+  /** Current spendable pixel balance */
   balance: number;
+  /** Total pixels earned through all activities */
   lifetime_earned: number;
+  /** Total pixels purchased with real money */
   lifetime_bought: number;
+  /** Total pixels spent on purchases and upgrades */
   lifetime_spent: number;
 }
 
+/**
+ * Retrieves the pixel wallet balance for a given developer.
+ *
+ * @param developerId - The unique ID of the developer
+ * @returns Promise resolving to the developer's WalletBalance, or zeroed balance if not found
+ */
 export async function getBalance(developerId: number): Promise<WalletBalance> {
   const sb = getSupabaseAdmin();
   const { data } = await sb
@@ -18,6 +31,16 @@ export async function getBalance(developerId: number): Promise<WalletBalance> {
   return data ?? { balance: 0, lifetime_earned: 0, lifetime_bought: 0, lifetime_spent: 0 };
 }
 
+/**
+ * Awards pixels to a developer via the `earn_pixels` RPC function.
+ * Supports idempotency to prevent double-credits on retry.
+ *
+ * @param developerId - The unique ID of the developer to credit
+ * @param earnRuleId  - The rule identifier defining how many pixels to award
+ * @param referenceId - Optional reference ID (e.g., contribution ID) for audit trail
+ * @param idempotencyKey - Optional key to prevent duplicate credits on retries
+ * @returns Promise resolving to success status, earned amount, or error message
+ */
 export async function earnPixels(
   developerId: number,
   earnRuleId: string,
