@@ -27,7 +27,12 @@ export function loadRadioState(): RadioState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_STATE, ...parsed };
+    const state: RadioState = { ...DEFAULT_STATE, ...parsed };
+    // Clamp volume to [0, 1] to prevent invalid audio levels
+    state.volume = Math.max(0, Math.min(1, state.volume));
+    // Clamp trackIndex to valid range to prevent out-of-bounds track access
+    state.trackIndex = Math.max(0, Math.min(TRACKS.length - 1, state.trackIndex));
+    return state;
   } catch (err) {
     console.warn("[radio.ts] failed to load saved radio state:", err);
     return DEFAULT_STATE;
