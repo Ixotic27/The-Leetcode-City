@@ -106,42 +106,18 @@ export type ServerMsg =
   | { type: "avatar"; id: string; sprite_id: number }
   | { type: "loadout"; id: string; loadout: AvatarLoadout }
   | { type: "map_reload"; map: Record<string, unknown> }
-  | { type: "map_state_change"; delta: Record<string, unknown> }
   | { type: "game_ack"; game: string }
   | { type: "game_result"; game: string; result: GameResult };
 
-// ─── Arcade Custom Maps ───────────────────────────────────────
 export interface ArcadeCustomMap {
   id: string;
   slug: string;
   name: string;
-  description: string | null;
-  creator_id: string | null;
-  creator_name: string | null;
-  category: string;
-  tags: string[];
-  is_public: boolean;
-  version: number;
-  map_json: Record<string, unknown>;
+  description?: string;
+  category?: string;
+  plays?: number;
+  creator: string;
+  creator_name?: string;
+  data: Record<string, unknown>;
   created_at: string;
-  updated_at: string;
-}
-
-export interface CreateMapDTO {
-  name: string;
-  slug?: string;
-  description?: string;
-  category?: string;
-  tags?: string[];
-  is_public?: boolean;
-  map_json: Record<string, unknown>;
-}
-
-export interface UpdateMapDTO {
-  name?: string;
-  description?: string;
-  category?: string;
-  tags?: string[];
-  is_public?: boolean;
-  map_json?: Record<string, unknown>;
 }
