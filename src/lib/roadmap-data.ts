@@ -241,7 +241,7 @@ export const VALID_ITEM_IDS = new Set(
 /**
  * A set containing IDs of roadmap items that are eligible for voting.
  * Completed and mystery items are excluded.
-*/
+ */
 export const VOTABLE_ITEM_IDS = new Set(
   ROADMAP_PHASES.flatMap((phase) =>
     phase.items
