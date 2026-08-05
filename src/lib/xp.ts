@@ -2,6 +2,9 @@
 
 // ─── Types ──────────────────────────────────────────────────
 
+/**
+ * Represents an XP tier and its corresponding level range.
+ */
 export interface XpTier {
   id: string;
   name: string;
@@ -10,11 +13,18 @@ export interface XpTier {
   maxLevel: number;
 }
 
+/**
+ * Represents a rank assigned to a specific level.
+ */
 export interface XpRank {
   level: number;
   title: string;
   tier: XpTier;
 }
+
+/**
+ * Supported sources that can award XP.
+ */
 
 export type XpSourceType =
   | "checkin"
@@ -34,6 +44,9 @@ export type XpSourceType =
 
 // ─── Constants ──────────────────────────────────────────────
 
+/**
+ * Available XP tiers used throughout the leveling system.
+ */
 export const XP_TIERS: XpTier[] = [
   { id: "novice", name: "Novice", color: "#4ade80", minLevel: 1, maxLevel: 4 },
   { id: "apprentice", name: "Apprentice", color: "#60a5fa", minLevel: 5, maxLevel: 8 },
@@ -71,6 +84,9 @@ const RANK_TITLES: [number, string][] = [
   [25, "LeetCode Legend"],
 ];
 
+/**
+ * Maps each level to its corresponding title and tier.
+ */
 export const XP_RANKS: XpRank[] = RANK_TITLES.map(([level, title]) => ({
   level,
   title,
@@ -79,6 +95,9 @@ export const XP_RANKS: XpRank[] = RANK_TITLES.map(([level, title]) => ({
 
 export const DAILY_XP_CAP = 150;
 
+/**
+ * XP sources that count toward daily engagement rewards.
+ */
 export const ENGAGEMENT_SOURCES: Set<XpSourceType> = new Set([
   "checkin",
   "dailies",
