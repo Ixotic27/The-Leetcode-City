@@ -1,3 +1,4 @@
+import { runBattleTests } from "@/lib/arcade-eval";
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -271,16 +272,14 @@ export default function BattlePage() {
     const timerIdx = [0, 1, 2, 3, 4];
     const results: boolean[] = [];
 
-    // Evaluate code correctness based on if it matches solution length/keywords
-    const normalized = code.replace(/\s+/g, "");
-    const correctNormalized = activeProblem.solutionTemplate.replace(/\s+/g, "");
-    // Check key variables to mock correct vs incorrect solution
-    const isCorrect = normalized.includes("seen") || normalized.includes("width=r-l") || normalized === correctNormalized;
+    // Execute each listed test against the submission (no keyword shortcuts).
+    const problemKey = Object.keys(PROBLEMS).find((k) => PROBLEMS[k] === activeProblem) || "twosum";
+    const evaluated = runBattleTests(code, problemKey, activeProblem.tests);
 
     let idx = 0;
     const interval = setInterval(() => {
       if (idx < activeProblem.tests.length) {
-        const passed = isCorrect || (idx < 3); // mock partially passing if incorrect
+        const passed = evaluated[idx] === true;
         results.push(passed);
         setTestsEvaluated([...results]);
         setConsoleLogs((prev) => [
