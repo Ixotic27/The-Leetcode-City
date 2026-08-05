@@ -7,8 +7,6 @@ import { validateParams, validateQuery } from "@/lib/validation";
 import { devQuerySchema, usernameParamSchema } from "@/lib/validation/schemas";
 export const dynamic = "force-dynamic";
 
-export const dynamic = "force-dynamic";
-
 const paramsSchema = z.object({
   username: z.string().trim().min(1, "Username is required"),
 });
