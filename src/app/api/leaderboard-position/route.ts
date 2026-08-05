@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+const VALID_TABS = ["solved", "lc_rank", "streak", "contest", "xp", "achievers"] as const;
+type Tab = (typeof VALID_TABS)[number];
+
 /**
  * @param {import('next/server').NextRequest} request
  */
@@ -9,11 +12,20 @@ export async function GET(request: Request) {
   const tab = searchParams.get("tab") ?? "solved";
   const login = searchParams.get("login")?.toLowerCase();
 
+  if (!VALID_TABS.includes(tab as Tab)) {
+    return NextResponse.json(
+      { error: `Invalid tab value: "${tab}". Must be one of: ${VALID_TABS.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
   if (!login) {
     return NextResponse.json({ error: "Missing login" }, { status: 400 });
   }
 
   const sb = getSupabaseAdmin();
+
+
 
   const { data: dev } = await sb
     .from("developers")
