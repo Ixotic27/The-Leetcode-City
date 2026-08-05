@@ -1,6 +1,6 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
-import { TIER_EMOJI } from "../achievements";
+import { TIER_COLORS } from "../achievements";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://thegitcity.com";
 
@@ -39,8 +39,8 @@ export function sendEmblemNotification(
 
   const emblemListHtml = notable
     .map((e) => {
-      const emoji = TIER_EMOJI[e.tier] ?? "";
-      return `<li style="margin-bottom:8px; font-size:15px; color:#555555;">${emoji} <strong style="color:#111111;">${e.name}</strong> <span style="color:#999;">(${e.tier})</span></li>`;
+      const tierColor = TIER_COLORS[e.tier] ?? "#888888";
+      return `<li style="margin-bottom:8px; font-size:15px; color:#555555;"><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${tierColor}; margin-right: 8px;"></span><strong style="color:#111111;">${e.name}</strong> <span style="color:#999;">(${e.tier})</span></li>`;
     })
     .join("");
 
