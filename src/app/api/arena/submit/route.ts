@@ -42,6 +42,9 @@ const ALLOWED_LANGUAGES = new Set([
 const MAX_CODE_BYTES = 65536;
 const CODE_HASH_RE = /^[0-9a-f]{1,128}$/i;
 
+// Default match duration: 10 minutes (same as client-side)
+const MATCH_DURATION_SECONDS = 600;
+
 async function rollItemDrops(
   sb: SupabaseClient,
   difficulty: string,
@@ -176,6 +179,39 @@ export async function POST(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
 
+  // Server-side time limit validation (issue #1209)
+  // Reject submissions that arrive too late (after match duration + grace period)
+  // This prevents exploitation of client-side timer vulnerabilities
+  const submissionTimestamp = Date.now();
+
+  // If challenge_id is provided, we can validate against challenge timing
+  if (challenge_id) {
+    const { data: challengeData } = await sb
+      .from("arena_challenges")
+      .select("created_at")
+      .eq("id", challenge_id)
+      .maybeSingle();
+
+    if (challengeData?.created_at) {
+      const challengeCreatedTime = new Date(challengeData.created_at).getTime();
+      const elapsedSeconds = (submissionTimestamp - challengeCreatedTime) / 1000;
+
+      // Allow 60-second grace period for network latency (issue #1209)
+      const GRACE_PERIOD_SECONDS = 60;
+      const totalAllowedSeconds = MATCH_DURATION_SECONDS + GRACE_PERIOD_SECONDS;
+
+      if (elapsedSeconds > totalAllowedSeconds) {
+        return NextResponse.json(
+          {
+            error: "Submission rejected: match time limit exceeded",
+            reason: "server_side_time_validation"
+          },
+          { status: 400 }
+        );
+      }
+    }
+  }
+
   // Validate problem_id exists in arena_problems before doing any reward work
   const { data: problemRow, error: problemLookupError } = await sb
     .from("arena_problems")
@@ -189,6 +225,35 @@ export async function POST(request: NextRequest) {
 
   if (!problemRow) {
     return NextResponse.json({ error: "Invalid problem_id" }, { status: 400 });
+  }
+
+  // Issue #1208: Validate that problem_id belongs to the challenge if challenge_id is provided
+  // Prevents users from submitting solutions for problems not in their active match
+  if (challenge_id) {
+    const { data: challengeRow, error: challengeLookupError } = await sb
+      .from("arena_challenges")
+      .select("problem_id")
+      .eq("id", challenge_id)
+      .maybeSingle();
+
+    if (challengeLookupError) {
+      return NextResponse.json({ error: "Failed to validate challenge" }, { status: 500 });
+    }
+
+    if (!challengeRow) {
+      return NextResponse.json({ error: "Invalid challenge_id" }, { status: 400 });
+    }
+
+    // Verify the submitted problem belongs to this challenge
+    if (challengeRow.problem_id !== problem_id) {
+      return NextResponse.json(
+        {
+          error: "Problem is not part of this challenge",
+          reason: "problem_mismatch"
+        },
+        { status: 403 }
+      );
+    }
   }
 
   // 1. Fetch challenge details (if linked) and developer timezone in parallel
