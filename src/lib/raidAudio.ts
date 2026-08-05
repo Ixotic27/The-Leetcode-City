@@ -38,6 +38,10 @@ export function stopRaidSound(name: string) {
   raidSounds?.[name]?.stop();
 }
 
+export function isRaidSoundPlaying(name: string): boolean {
+  return raidSounds?.[name]?.playing() ?? false;
+}
+
 export function fadeOutRaidSound(name: string, duration = 1000) {
   const s = raidSounds?.[name];
   if (s && s.playing()) {
