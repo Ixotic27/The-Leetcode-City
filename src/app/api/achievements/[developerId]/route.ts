@@ -7,7 +7,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ developerId: string }> }
 ) {
-  const paramValidation = validateParams(developerIdParamSchema, await params);
+  const paramValidation = validateParams(await params,developerIdParamSchema);
   if (!paramValidation.success) {
     return paramValidation.response;
   }
