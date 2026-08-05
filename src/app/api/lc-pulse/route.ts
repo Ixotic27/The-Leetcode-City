@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+// This endpoint reports per-user live presence, so no response may be stored
+// by the browser or a shared CDN.
+const NO_STORE = { "Cache-Control": "no-store" } as const;
+
 // Check if a LeetCode user has solved a problem in the last N minutes
 async function getRecentSubmissions(username: string, withinMinutes = 30) {
     try {
@@ -38,7 +42,7 @@ export async function POST() {
     try {
         const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
         const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
-        if (!auth.ok || !auth.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+        if (!auth.ok || !auth.user) return NextResponse.json({ error: "Not authenticated" }, { status: 401, headers: NO_STORE });
 
         const admin = getSupabaseAdmin();
 
@@ -49,7 +53,7 @@ export async function POST() {
             .eq("claimed_by", auth.user.id)
             .maybeSingle();
 
-        if (!dev) return NextResponse.json({ error: "No linked GitHub account" }, { status: 404 });
+        if (!dev) return NextResponse.json({ error: "No linked GitHub account" }, { status: 404, headers: NO_STORE });
 
         // Check for recent submissions
         const recentSolves = await getRecentSubmissions(dev.github_login, 30);
@@ -92,8 +96,12 @@ export async function POST() {
             active: isActive,
             username: dev.github_login,
             recent_solves: recentSolves?.length ?? 0,
-        });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        }, { headers: NO_STORE });
+    } catch (err: unknown) {
+        console.warn("[app/api/lc-pulse/route.ts] error:", err);
+        return NextResponse.json(
+            { error: err instanceof Error ? err.message : "Internal server error" },
+            { status: 500, headers: NO_STORE }
+        );
     }
 }

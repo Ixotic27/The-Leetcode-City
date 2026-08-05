@@ -5,6 +5,8 @@ import { createServerSupabase } from "@/lib/supabase-server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import SignInButton from "./sign-in-button";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Shop - LeetCode City",
   description: "Customize your building in LeetCode City with effects, structures and more",
