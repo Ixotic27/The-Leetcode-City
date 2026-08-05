@@ -514,3 +514,20 @@ html, body {
   animation: rise 3.5s infinite ease-in 1.5s;
 }
 
+
+/* ─── Custom Cursors ─── */
+body[data-cursor="pixel"] *, body[data-cursor="pixel"] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><polygon points="0,0 0,18 5,13 11,20 14,18 8,11 16,11" fill="%23ffa116" stroke="%23000000" stroke-width="2"/></svg>') 0 0, auto;
+}
+
+body[data-cursor="glow"] *, body[data-cursor="glow"] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="%23ffa116" opacity="0.8" stroke="%23ffffff" stroke-width="2"/></svg>') 12 12, auto;
+}
+
+body[data-cursor="trail"] *, body[data-cursor="trail"] {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="%2338bdf8" stroke="%23ffffff" stroke-width="2"/><circle cx="12" cy="12" r="9" fill="none" stroke="%2338bdf8" stroke-width="1.5" stroke-dasharray="2 2"/></svg>') 12 12, auto;
+}
+
+body[data-cursor="crosshair"] *, body[data-cursor="crosshair"] {
+  cursor: crosshair;
+}

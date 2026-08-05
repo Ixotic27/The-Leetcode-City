@@ -20,8 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     # Skip bot-triggered label events unless it's a review submission to avoid loops
     if: >
-      github.actor != 'github-actions[bot]' ||
-      github.event_name == 'pull_request_review'
+      github.event_name == 'pull_request_review' ||
+      github.event.action == 'labeled' ||
+      github.event.action == 'unlabeled' ||
+      github.actor != 'github-actions[bot]'
 
     steps:
       - name: Audit GSSoC Labels
