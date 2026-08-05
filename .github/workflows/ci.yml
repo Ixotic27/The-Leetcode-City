@@ -8,6 +8,9 @@ on:
 jobs:
   lint-build:
     runs-on: ubuntu-latest
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || github.ref_name || 'main' }}
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -18,7 +21,7 @@ jobs:
 
       - name: Fetch base branch for diff
         if: github.event_name == 'pull_request_target'
-        run: git fetch origin main:refs/remotes/origin/main
+        run: git fetch origin "refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,7 +39,7 @@ jobs:
           # This prevents pre-existing errors in untouched lines from
           # blocking new contributions.
           if [ "${{ github.event_name }}" = "pull_request_target" ]; then
-            CHANGED=$(git diff --name-only --diff-filter=d origin/main...HEAD \
+            CHANGED=$(git diff --name-only --diff-filter=d "origin/$BASE_REF...HEAD" \
               -- 'src/**/*.ts' 'src/**/*.tsx' 'src/**/*.js' 'src/**/*.jsx' | head -200)
             if [ -z "$CHANGED" ]; then
               echo "✅ No lintable source files changed in this PR. Skipping."
@@ -49,7 +52,7 @@ jobs:
             # Step 1: Build a map of changed line ranges per file from the diff.
             # Format: file.ts:startLine-endLine (one per hunk)
             DIFF_MAP=$(mktemp)
-            git diff origin/main...HEAD -- $CHANGED | awk '
+            git diff "origin/$BASE_REF...HEAD" -- $CHANGED | awk '
               /^diff --git/ { file = substr($3, 3) }
               /^@@/ {
                 # Parse new-file hunk header: @@ -old,len +new,len @@
@@ -125,6 +128,8 @@ jobs:
   build:
     name: Production Build
     runs-on: ubuntu-latest
+    env:
+      BASE_REF: ${{ github.event.pull_request.base.ref || github.ref_name || 'main' }}
 
     steps:
       - name: Checkout Code
@@ -147,4 +152,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: "https://supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key-placeholder-string-12345"
         run: npm run build
-
+    
