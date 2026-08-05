@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { AdsFilters, Period, StatusFilter, VehicleFilter, SourceFilter } from "../_lib/types";
 import { VEHICLE_LABELS } from "../_lib/constants";
 
@@ -48,11 +48,7 @@ export function AdFilters({
   totalCount,
 }: AdFiltersProps) {
   // Local search state for debounce (visual responsiveness)
-  const [searchLocal, setSearchLocal] = useState(filters.q);
-
-  useEffect(() => {
-    setSearchLocal(filters.q);
-  }, [filters.q]);
+  const [searchLocal, setSearchLocal] = useState(() => filters.q);
 
   return (
     <div className="mb-4 space-y-3">
