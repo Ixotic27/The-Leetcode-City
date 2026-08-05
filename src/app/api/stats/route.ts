@@ -18,6 +18,7 @@ export async function GET() {
     return NextResponse.json({ error: "Failed to fetch stats" }, { status: 500 });
   }
 
+// Explicit null guard to prevent unexpected behavior with null last_active_at values
   const { count: activeToday } = await sb
     .from("developers")
     .select("id", { count: "exact", head: true })
