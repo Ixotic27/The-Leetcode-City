@@ -21,6 +21,14 @@ const STORAGE_KEY = "gc_radio";
 
 const DEFAULT_STATE: RadioState = { volume: 0.15, trackIndex: 0, shuffle: false };
 
+/**
+ * Loads the saved radio state from localStorage.
+ *
+ * If localStorage is unavailable or contains invalid data,
+ * the default radio state is returned.
+ *
+ * @returns The saved or default radio state.
+ */
 export function loadRadioState(): RadioState {
   if (typeof window === "undefined") return DEFAULT_STATE;
   try {
@@ -34,6 +42,14 @@ export function loadRadioState(): RadioState {
   }
 }
 
+/**
+ * Saves radio state properties to localStorage.
+ *
+ * Existing radio state is preserved, and only the provided
+ * properties are updated.
+ *
+ * @param state - The radio state properties to save.
+ */
 export function saveRadioState(state: Partial<RadioState>) {
   if (typeof window === "undefined") return;
   try {
