@@ -38,6 +38,16 @@ export function _setMaxStoreSizeForTesting(size: number): void {
   MAX_STORE_SIZE = size;
 }
 
+// Periodic cleanup interval to prevent memory growth from expired entries
+// on cold-start serverless instances or processes with sparse traffic.
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+
+function ensureCleanupInterval(): void {
+  if (cleanupIntervalId === null) {
+    cleanupIntervalId = setInterval(() => cleanup(true), CLEANUP_INTERVAL);
+  }
+}
+
 function cleanup(force = false) {
   const now = Date.now();
   if (!force && now - lastCleanup < CLEANUP_INTERVAL) return;
@@ -52,6 +62,7 @@ function rateLimitLocal(
   limit: number,
   windowMs: number,
 ): RateLimitResult {
+  ensureCleanupInterval();
   cleanup();
 
   const now = Date.now();
