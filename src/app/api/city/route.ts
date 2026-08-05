@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const rawFrom = parseInt(searchParams.get("from") ?? "0", 10);
   const rawTo = parseInt(searchParams.get("to") ?? "500", 10);
 
-  if (isNaN(rawFrom) || isNaN(rawTo)) {
+  if (Number.isNaN(rawFrom) || isNaN(rawTo)) {
     return NextResponse.json(
       { error: "Invalid pagination parameters: 'from' and 'to' must be numbers." },
       { status: 400 }
