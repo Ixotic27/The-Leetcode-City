@@ -617,7 +617,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ city_theme: next }),
-        }).catch(() => { });
+        }).catch( => console.error());
       }
       return next;
     });
