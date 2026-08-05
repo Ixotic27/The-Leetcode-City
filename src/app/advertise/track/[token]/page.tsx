@@ -209,3 +209,5 @@ export default async function TrackingPage({ params }: Props) {
     </main>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
