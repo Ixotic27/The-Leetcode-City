@@ -1,6 +1,6 @@
 import { sendNotificationAsync } from "../notifications";
 import { buildButton } from "../email-template";
-import { TIER_EMOJI } from "../achievements";
+import { TIER_COLORS } from "../achievements";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
@@ -41,9 +41,10 @@ export function sendAchievementNotification(
 
   const achievementListHtml = notable
     .map((a) => {
-      const emoji = TIER_EMOJI[a.tier] ?? "";
+      const tierColor = TIER_COLORS[a.tier] ?? "#888888";
       return `<li style="margin-bottom: 6px; color: #f0f0f0;">
-        ${emoji} <strong style="color: #ffa116;">${a.name}</strong>
+        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${tierColor}; margin-right: 8px;"></span>
+        <strong style="color: #ffa116;">${a.name}</strong>
         <span style="color: #666;">(${a.tier})</span>
       </li>`;
     })
