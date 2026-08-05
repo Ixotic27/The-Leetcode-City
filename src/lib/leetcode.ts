@@ -40,7 +40,7 @@ export function parseMaxStreak(
 ): number {
     if (!matchedUser) return 0;
     const allTimestamps: number[] = [];
-    for (let y = 2015; y <= currentYear; y++) {
+    for (let y = currentYear-2; y <= currentYear; y++) {
         const cal = (matchedUser[`y${y}`] as YearCalendar | undefined)?.submissionCalendar;
         if (cal) {
             try {
@@ -72,7 +72,7 @@ export function parseMaxStreak(
             previousDate = ts;
         }
     }
-    if (currentStreak > maxStreak) maxStreak = currentStreak;
+    maxStreak = Math.max(maxStreak,currentStreak)
     return maxStreak;
 }
 
