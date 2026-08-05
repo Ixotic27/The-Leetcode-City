@@ -135,7 +135,7 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
             name: realName,
             avatar_url: user.profile?.userAvatar || "",
             contributions: Math.max(1, totalSolved),
-            contributions_total: Math.round(litPercentage * 1000),
+            contributions_total: Math.round(litPercentage * 1000 + Number.EPSILON),
             total_stars: user.profile?.reputation ?? 0,
             public_repos: Math.max(0, 500000 - lcRank),
             rank: lcRank,
