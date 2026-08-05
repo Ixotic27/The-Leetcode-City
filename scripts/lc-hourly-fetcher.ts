@@ -112,6 +112,16 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
     const user = data?.matchedUser;
     if (!user) return false;
 
+    if (!user.submitStats) {
+        console.warn(`  [lc-refresh] Missing submitStats for ${username}, skipping.`);
+        return false;
+    }
+
+    if (!user.userCalendar) {
+        console.warn(`  [lc-refresh] Missing userCalendar for ${username}, skipping.`);
+        return false;
+    }
+
     const acNums = user.submitStats?.acSubmissionNum ?? [];
     const totNums = user.submitStats?.totalSubmissionNum ?? [];
     const getAC = (d: string) => acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
