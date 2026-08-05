@@ -194,14 +194,14 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
-  const paramValidation = validateParams(usernameParamSchema, await params);
+  const paramValidation = validateParams<{ username: string }>(await params, usernameParamSchema);
   if (!paramValidation.success) {
     return paramValidation.response;
   }
 
   const { username } = paramValidation.data;
   const { searchParams } = new URL(request.url);
-  const queryValidation = validateQuery(devQuerySchema, searchParams);
+  const queryValidation = validateQuery(searchParams, devQuerySchema);
   if (!queryValidation.success) {
     return queryValidation.response;
   }
