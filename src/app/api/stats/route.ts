@@ -21,6 +21,7 @@ export async function GET() {
   const { count: activeToday } = await sb
     .from("developers")
     .select("id", { count: "exact", head: true })
+    .not("last_active_at", "is", null)
     .gte("last_active_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
   return NextResponse.json(
