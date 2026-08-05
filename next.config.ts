@@ -37,6 +37,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   webpack: (config: any) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {

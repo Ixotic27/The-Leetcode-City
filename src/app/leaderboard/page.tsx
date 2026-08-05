@@ -11,7 +11,7 @@ import FlyLeaderboard from "@/components/FlyLeaderboard";
 import DailiesLeaderboard from "@/components/DailiesLeaderboard";
 import { rankFromLevel, tierFromLevel } from "@/lib/xp";
 
-export const revalidate = 300; // ISR: regenerate every 5 min
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Leaderboard - LeetCode City",
