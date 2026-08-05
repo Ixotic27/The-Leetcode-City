@@ -1,0 +1,67 @@
+# docker-compose.yml
+#
+# Unifies local development for The Leetcode City: builds the Next.js
+# frontend from the existing Dockerfile and wires it up to Supabase and
+# the project's backend/seeder scripts, so the whole stack starts with
+# a single `docker-compose up`.
+#
+# ── Quick start ────────────────────────────────────────────────────
+#   1. cp .env.example .env.local          (or `npm run setup`)
+#   2. docker-compose up --build
+#   3. open http://localhost:3000
+#
+# By default the app talks to the hosted Supabase project that already
+# ships in `.env.example` (public, read-only anon key — no setup
+# needed). See the "Local Supabase" note below if you want to point it
+# at a Supabase CLI instance running on your machine instead.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://ykqxkfazxsyantffjouf.supabase.co}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    container_name: leetcode-city-app
+    env_file:
+      # Runtime env vars (service role key, cron secret, etc). Falls back
+      # to an empty file if .env.local hasn't been created yet.
+      - path: .env.local
+        required: false
+    ports:
+      - "3000:3000"
+    # Lets the container reach a Supabase CLI stack running on the host
+    # (e.g. `supabase start`, which listens on 127.0.0.1:54321 by
+    # default) — see the "Local Supabase" note below.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - leetcode-city
+
+networks:
+  leetcode-city:
+    driver: bridge
+
+# ── Local Supabase (optional) ────────────────────────────────────────
+# This repo doesn't vendor a `supabase/config.toml`, so local Supabase
+# is run via the Supabase CLI (`supabase start`) rather than as a
+# service in this file — that keeps us from duplicating the ~10
+# containers the CLI already manages (Postgres, GoTrue, Realtime,
+# Studio, etc.) and lets `supabase db reset` / migrations keep working
+# normally.
+#
+# To point this app at that local stack instead of the hosted project:
+#   1. supabase start
+#   2. In .env.local set:
+#        NEXT_PUBLIC_SUPABASE_URL=http://host.docker.internal:54321
+#        NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key printed by `supabase start`>
+#   3. docker-compose up --build
+#
+# Backend/seeder scripts (npm run seed-lc, backfill-lc, etc.) run
+# against whatever NEXT_PUBLIC_SUPABASE_URL points to, so the same
+# .env.local also drives them — run them on the host with
+# `npm run seed-lc`, no separate container needed.
