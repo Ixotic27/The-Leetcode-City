@@ -13,8 +13,6 @@ export async function GET(
   }
   const { developerId } = paramValidation.data;
 
-  const { developerId } = validation.data;
-
   const sb = getSupabaseAdmin();
 
   const [allRes, unlockedRes] = await Promise.all([
