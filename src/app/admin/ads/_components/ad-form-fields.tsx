@@ -124,7 +124,7 @@ export function AdFormFields({ form, onChange }: AdFormFieldsProps) {
         <input
           type="number"
           value={form.priority}
-          onChange={(e) => set("priority", parseInt(e.target.value) || 50)}
+          onChange={(e) => set("priority", parseInt(e.target.value, 10) || 50)}
           className="w-full border border-border bg-bg px-3 py-2.5 text-xs text-cream outline-none focus:border-lime"
         />
       </div>
