@@ -15,22 +15,28 @@ const CURSOR_OPTIONS: { id: CursorType; label: string }[] = [
 ];
 
 export const CursorSelector: React.FC<CursorSelectorProps> = ({ accentColor = '#3b82f6' }) => {
-  const [activeCursor, setActiveCursor] = useState<CursorType>('default');
+  const [activeCursor, setActiveCursor] = useState<CursorType>(() => {
+    try {
+      const saved = localStorage.getItem('leetcodecity_cursor') as CursorType;
+      if (saved && CURSOR_OPTIONS.some(c => c.id === saved)) {
+        return saved;
+      }
+    } catch (err) {
+      console.warn('[CursorSelector] Failed to load cursor preference:', err);
+    }
+    return 'default';
+  });
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('leetcodecity_cursor') as CursorType;
-      if (saved && CURSOR_OPTIONS.some(c => c.id === saved)) {
-        setActiveCursor(saved);
-        document.body.setAttribute('data-cursor', saved);
-      }
+      document.body.setAttribute('data-cursor', activeCursor);
     } catch (err) {
-      console.warn('[CursorSelector] Failed to load cursor preference:', err);
+      console.warn('[CursorSelector] Failed to set body cursor attribute:', err);
     }
 
-    // Close dropdown on outside click
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -38,11 +44,10 @@ export const CursorSelector: React.FC<CursorSelectorProps> = ({ accentColor = '#
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [activeCursor]);
 
   const changeCursor = (cursor: CursorType) => {
     setActiveCursor(cursor);
-    document.body.setAttribute('data-cursor', cursor);
     setIsOpen(false);
     try {
       localStorage.setItem('leetcodecity_cursor', cursor);
