@@ -35,6 +35,23 @@ export function validateParams<T>(
 }
 
 /**
+ * Validates a parsed request body against a Zod schema.
+ */
+export function validateBody<T>(
+  data: unknown,
+  schema: ZodSchema<T>
+): { success: true; data: T } | { success: false; response: NextResponse } {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    return {
+      success: false,
+      response: validationErrorResponse(result.error),
+    };
+  }
+  return { success: true, data: result.data };
+}
+
+/**
  * Converts URLSearchParams into an object and validates against a Zod schema.
  */
 export function validateQuery<T>(
