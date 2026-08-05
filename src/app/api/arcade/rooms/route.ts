@@ -6,7 +6,7 @@ import { arcadeRoomsQuerySchema } from "@/lib/validation/schemas";
 // GET /api/arcade/rooms — list rooms with search, category, pagination
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const queryValidation = validateQuery(arcadeRoomsQuerySchema, url.searchParams);
+  const queryValidation = validateQuery(url.searchParams,arcadeRoomsQuerySchema);
   if (!queryValidation.success) {
     return queryValidation.response;
   }
