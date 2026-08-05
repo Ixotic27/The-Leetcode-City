@@ -18,7 +18,7 @@ export async function GET(
   request: NextRequest,
   props: { params: Promise<{ username: string }> }
 ) {
-  const paramValidation = validateParams(usernameParamSchema, await props.params);
+  const paramValidation = validateParams<{ username: string }>(await props.params, usernameParamSchema);
   if (!paramValidation.success) {
     return paramValidation.response;
   }

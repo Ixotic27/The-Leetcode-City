@@ -25,9 +25,9 @@ export function validationErrorResponse(error: z.ZodError, source: ValidationSou
 
 function parse<T>(schema: ZodTypeAny, input: unknown, source: ValidationSource): ValidationResult<T> {
   // Accept any Zod schema (including preprocess/coerce/effects wrappers).
-  const parsed = schema.safeParse(input) as z.SafeParseReturnType<T, T>;
+  const parsed = schema.safeParse(input);
   if (parsed.success) {
-    return { success: true, data: parsed.data };
+    return { success: true, data: parsed.data as T };
   }
   return { success: false, response: validationErrorResponse(parsed.error, source) };
 }
