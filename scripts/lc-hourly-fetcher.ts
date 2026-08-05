@@ -36,7 +36,7 @@ function getArgValue(name: string): string | null {
     return null;
 }
 
-const LIMIT = parseInt(getArgValue("--limit") || "75", 10);
+const LIMIT = parseInt(getArgValue("--limit", 10) || "75", 10);
 const CONCURRENCY = parseInt(getArgValue("--concurrency") || "5", 10);
 const DISCOVER_PAGES = parseInt(getArgValue("--discover-pages") || "2", 10);
 
