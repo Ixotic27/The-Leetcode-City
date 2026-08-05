@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parsePagination } from "../parse-pagination";
+import { parsePagination, parsePageParams } from "../parse-pagination";
 
 describe("parsePagination", () => {
   // ── limit: NaN inputs ──────────────────────────────────────────────────────
@@ -151,5 +151,70 @@ describe("parsePagination", () => {
     const upperBound = offset + limit - 1;
     expect(Number.isFinite(upperBound)).toBe(true);
     expect(upperBound).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("parsePageParams", () => {
+  // ── page guard ─────────────────────────────────────────────────────────────
+
+  it("non-numeric page falls back to 1", () => {
+    expect(parsePageParams("abc", null).page).toBe(1);
+  });
+
+  it("null page falls back to 1", () => {
+    expect(parsePageParams(null, null).page).toBe(1);
+  });
+
+  it("empty page falls back to 1", () => {
+    expect(parsePageParams("", null).page).toBe(1);
+  });
+
+  it("page below 1 is clamped to 1", () => {
+    expect(parsePageParams("-5", null).page).toBe(1);
+    expect(parsePageParams("0", null).page).toBe(1);
+  });
+
+  it("a valid page is preserved", () => {
+    expect(parsePageParams("3", null).page).toBe(3);
+  });
+
+  it("page has no upper clamp — deep paging stays available", () => {
+    expect(parsePageParams("500", null).page).toBe(500);
+  });
+
+  // ── limit is delegated, so it inherits the same guarantees ─────────────────
+
+  it("non-numeric limit falls back to the default", () => {
+    expect(parsePageParams(null, "abc").limit).toBe(20);
+    expect(parsePageParams(null, "abc", 10).limit).toBe(10);
+  });
+
+  it("limit is clamped to [1, 50]", () => {
+    expect(parsePageParams(null, "-5").limit).toBe(1);
+    expect(parsePageParams(null, "99999").limit).toBe(50);
+  });
+
+  // ── derived offset ─────────────────────────────────────────────────────────
+
+  it("derives offset from page and limit", () => {
+    expect(parsePageParams("3", "20")).toEqual({ page: 3, limit: 20, offset: 40 });
+  });
+
+  it("page 1 starts at offset 0", () => {
+    expect(parsePageParams("1", "20").offset).toBe(0);
+  });
+
+  // ── the actual regression: NaN must never reach Supabase .range() ──────────
+
+  it("never produces NaN for .range() when both params are garbage", () => {
+    // The pre-fix inline pattern (Math.min/Math.max with no isNaN guard) made
+    // both values NaN here, so the routes issued `.range(NaN, NaN)` instead of
+    // falling back to page 1 / limit 20.
+    const { page, limit, offset } = parsePageParams("abc", "abc");
+
+    expect(page).toBe(1);
+    expect(limit).toBe(20);
+    expect(offset).toBe(0);
+    expect(Number.isNaN(offset + limit - 1)).toBe(false);
   });
 });

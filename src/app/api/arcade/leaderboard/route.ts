@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { parsePagination } from "@/lib/parse-pagination";
 
 type ScoreRow = {
   user_id: string;
@@ -16,7 +17,9 @@ type DevLoginRow = {
 // GET /api/arcade/leaderboard?game=10s_classic&limit=10
 export async function GET(req: NextRequest) {
   const game = req.nextUrl.searchParams.get("game") ?? "10s_classic";
-  const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10), 50);
+  // This route is offset-less, so only `limit` is used. Its default is 10
+  // rather than the helper's 20, hence the explicit third argument.
+  const { limit } = parsePagination(req.nextUrl.searchParams.get("limit"), null, 10);
 
   const sb = getSupabaseAdmin();
   let data: ScoreRow[] = [];

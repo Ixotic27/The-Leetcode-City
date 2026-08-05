@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
+import { parsePageParams } from "@/lib/parse-pagination";
 
 function slugify(text: string): string {
   return text
@@ -17,9 +18,10 @@ export async function GET(req: NextRequest) {
   const search = url.searchParams.get("q")?.trim();
   const category = url.searchParams.get("category");
   const creatorId = url.searchParams.get("creator_id");
-  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
-  const offset = (page - 1) * limit;
+  const { page, limit, offset } = parsePageParams(
+    url.searchParams.get("page"),
+    url.searchParams.get("limit")
+  );
 
   const sb = getSupabaseAdmin();
 
