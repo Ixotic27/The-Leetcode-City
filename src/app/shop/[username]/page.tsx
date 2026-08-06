@@ -334,3 +334,5 @@ export default async function ShopPage({ params, searchParams }: Props) {
     </main>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
