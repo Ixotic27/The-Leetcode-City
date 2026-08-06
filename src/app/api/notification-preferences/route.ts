@@ -31,7 +31,7 @@ const notificationPrefsSchema = z
     digest_frequency: z.enum(["realtime", "hourly", "daily", "weekly"]).optional(),
     quiet_hours_start: z.number().int().min(0).max(23).nullable().optional(),
     quiet_hours_end: z.number().int().min(0).max(23).nullable().optional(),
-    channel_overrides: z.record(z.unknown()).optional(),
+    channel_overrides: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
