@@ -48,9 +48,13 @@ function createListAdmin({ data = [], error = null, throws }: SelectResult) {
 function createToggleAdmin({
   existing,
   deleteError = null,
+  throws,
+  deleteThrows,
 }: {
   existing: FavoriteRow | null;
   deleteError?: { message: string } | null;
+  throws?: Error;
+  deleteThrows?: Error;
 }) {
   const insert = vi.fn().mockResolvedValue({ error: null });
   const del = vi.fn();
@@ -64,8 +68,13 @@ function createToggleAdmin({
       delEq(...args);
       return deleteBuilder;
     },
-    then: (resolve: (value: { error: { message: string } | null }) => unknown) =>
-      Promise.resolve({ error: deleteError }).then(resolve),
+    then: (
+      resolve: (value: { error: { message: string } | null }) => unknown,
+      reject?: (reason: unknown) => unknown
+    ) =>
+      deleteThrows
+        ? Promise.reject(deleteThrows).then(resolve, reject)
+        : Promise.resolve({ error: deleteError }).then(resolve, reject),
   };
 
   mockFrom.mockImplementation((table: string) => {
@@ -76,7 +85,9 @@ function createToggleAdmin({
     const query = {
       select: () => query,
       eq: () => query,
-      single: vi.fn().mockResolvedValue({ data: existing, error: null }),
+      single: vi.fn().mockImplementation(() =>
+        throws ? Promise.reject(throws) : Promise.resolve({ data: existing, error: null })
+      ),
       delete: () => {
         del();
         return deleteBuilder;
@@ -183,6 +194,34 @@ describe("/api/arcade/favorites", () => {
       expect(response.status).toBe(500);
       expect(response.headers.get("Cache-Control")).toBe("no-store");
       await expect(response.json()).resolves.toEqual({ error: "delete failed" });
+    });
+
+    it("does not fabricate success when the favorites table is unreachable", async () => {
+      // GET degrades to an empty list on a throw, but a write cannot be faked:
+      // a 200 here would suppress the client's `if (!res.ok)` rollback and leave
+      // the star lit for a row that was never written.
+      createToggleAdmin({ existing: null, throws: new Error("connection reset") });
+
+      const response = await POST(postRequest({ room_id: "lobby" }));
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      await expect(response.json()).resolves.toEqual({ error: "Could not toggle favorite" });
+    });
+
+    it("never reports favorited: true for an un-favorite that throws", async () => {
+      // The hardcoded fallback returned the *opposite* of the requested action
+      // whenever a removal threw, so assert on the body and not just the status.
+      createToggleAdmin({
+        existing: { room_id: "lobby" },
+        deleteThrows: new Error("connection reset"),
+      });
+
+      const response = await POST(postRequest({ room_id: "lobby" }));
+
+      expect(response.status).toBe(500);
+      expect(response.headers.get("Cache-Control")).toBe("no-store");
+      await expect(response.json()).resolves.not.toMatchObject({ favorited: true });
     });
 
     it("does not allow validation errors to be cached", async () => {
