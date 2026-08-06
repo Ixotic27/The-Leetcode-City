@@ -26,10 +26,10 @@ const c = {
   blue: "\x1b[34m",
 };
 
-const ok = (msg) => console.log(`${c.green}  ✓${c.reset} ${msg}`);
-const warn = (msg) => console.log(`${c.yellow}  ⚠${c.reset} ${msg}`);
-const fail = (msg) => console.log(`${c.red}  ✗${c.reset} ${msg}`);
-const info = (msg) => console.log(`${c.cyan}  ℹ${c.reset} ${msg}`);
+const ok = (msg) => console.log(`${c.green}[OK]${c.reset}   ${msg}`);
+const warn = (msg) => console.log(`${c.yellow}[WARN]${c.reset} ${msg}`);
+const fail = (msg) => console.log(`${c.red}[FAIL]${c.reset} ${msg}`);
+const info = (msg) => console.log(`${c.cyan}[INFO]${c.reset} ${msg}`);
 const step = (n, total, msg) =>
   console.log(`\n${c.bold}${c.magenta}[${n}/${total}]${c.reset} ${c.bold}${msg}${c.reset}`);
 
@@ -46,7 +46,7 @@ ${c.cyan}${c.bold}
   ██║     ██╔══╝  ██╔══╝     ██║   ██║     ██║   ██║██║  ██║██╔══╝
   ███████╗███████╗███████╗   ██║   ╚██████╗╚██████╔╝██████╔╝███████╗
   ╚══════╝╚══════╝╚══════╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
-${c.reset}${c.bold}${c.yellow}                        ⚡ C I T Y ⚡${c.reset}
+${c.reset}${c.bold}${c.yellow}                        C I T Y${c.reset}
 ${c.dim}       Your LeetCode profile as a 3D pixel art building${c.reset}
 `);
 }
@@ -161,7 +161,7 @@ function init(folder) {
 
   console.log(`
 ${c.green}${c.bold}  ══════════════════════════════════════════════
-  🎉 Setup complete! You're ready to develop.
+  Setup complete! You're ready to develop.
   ══════════════════════════════════════════════${c.reset}
 
   ${c.bold}Start the dev server:${c.reset}
@@ -171,16 +171,16 @@ ${c.green}${c.bold}  ═══════════════════�
   ${c.dim}Opens at http://localhost:3001${c.reset}
 
 ${c.bold}  What works without secret keys:${c.reset}
-  ${c.green}✓${c.reset} View the city, browse profiles
-  ${c.green}✓${c.reset} UI/CSS/3D component changes
-  ${c.green}✓${c.reset} Leaderboard, search, animations
+  [OK] View the city, browse profiles
+  [OK] UI/CSS/3D component changes
+  [OK] Leaderboard, search, animations
 
 ${c.bold}  What needs the service role key:${c.reset}
-  ${c.yellow}⚠${c.reset} Auth, raids, shop, claiming
+  [WARN] Auth, raids, shop, claiming
 
   ${c.dim}Need full access? Ask @Ixotic27 for the key.${c.reset}
 
-${c.bold}  Happy contributing! 🚀${c.reset}
+${c.bold}  Happy contributing!${c.reset}
 `);
 }
 
@@ -246,7 +246,7 @@ function doctor() {
 
   console.log();
   if (issues === 0) {
-    console.log(`${c.green}${c.bold}  All checks passed! ✅${c.reset}\n`);
+    console.log(`${c.green}${c.bold}  All checks passed!${c.reset}\n`);
   } else {
     console.log(`${c.yellow}${c.bold}  ${issues} issue(s) found — see above.${c.reset}\n`);
   }
