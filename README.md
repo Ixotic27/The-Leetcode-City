@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://theleetcode.city">theleetcode.city</a>
+  <a href="the-leetcode-city.vercel.app">theleetcode.city</a>
 </p>
 
 <p align="center">
