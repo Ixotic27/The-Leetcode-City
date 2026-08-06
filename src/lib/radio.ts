@@ -21,42 +21,35 @@ const STORAGE_KEY = "gc_radio";
 
 const DEFAULT_STATE: RadioState = { volume: 0.15, trackIndex: 0, shuffle: false };
 
+/**
+ * Loads the saved radio state from localStorage.
+ *
+ * If localStorage is unavailable or contains invalid data,
+ * the default radio state is returned.
+ *
+ * @returns The saved or default radio state.
+ */
 export function loadRadioState(): RadioState {
   if (typeof window === "undefined") return DEFAULT_STATE;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw);
-
-    // Validate volume: must be a finite number in [0, 1]
-    const volume =
-      typeof parsed.volume === "number" &&
-      Number.isFinite(parsed.volume) &&
-      parsed.volume >= 0 &&
-      parsed.volume <= 1
-        ? parsed.volume
-        : DEFAULT_STATE.volume;
-
-    // Validate trackIndex: must be a non-negative integer within track bounds
-    const trackIndex =
-      typeof parsed.trackIndex === "number" &&
-      Number.isInteger(parsed.trackIndex) &&
-      parsed.trackIndex >= 0 &&
-      parsed.trackIndex < TRACKS.length
-        ? parsed.trackIndex
-        : DEFAULT_STATE.trackIndex;
-
-    // Validate shuffle: must be a boolean
-    const shuffle =
-      typeof parsed.shuffle === "boolean" ? parsed.shuffle : DEFAULT_STATE.shuffle;
-
-    return { volume, trackIndex, shuffle };
+    return { ...DEFAULT_STATE, ...parsed };
   } catch (err) {
     console.warn("[radio.ts] failed to load saved radio state:", err);
     return DEFAULT_STATE;
   }
 }
 
+/**
+ * Saves radio state properties to localStorage.
+ *
+ * Existing radio state is preserved, and only the provided
+ * properties are updated.
+ *
+ * @param state - The radio state properties to save.
+ */
 export function saveRadioState(state: Partial<RadioState>) {
   if (typeof window === "undefined") return;
   try {

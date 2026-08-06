@@ -75,6 +75,6 @@ export async function POST(request: Request) {
     success: true,
     item_id: result.item_id,
     item_name: result.item_name,
-    message: `🎉 "${result.item_name}" has been added to your inventory!`,
+    message: `"${result.item_name}" has been added to your inventory!`,
   });
 }

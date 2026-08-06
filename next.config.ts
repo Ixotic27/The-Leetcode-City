@@ -22,7 +22,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  reactStrictMode: false,
   output: "standalone",
   images: {
     unoptimized: true,
@@ -38,17 +37,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  turbopack: {
-    resolveAlias: {
-      "pino-pretty": { browser: "" },
-      "@react-native-async-storage/async-storage": { browser: "" },
-      "accounts": { browser: "" },
-      "@metamask/connect-evm": { browser: "" },
-      "porto": { browser: "" },
-      "porto/internal": { browser: "" },
-      "@walletconnect/ethereum-provider": { browser: "" },
-    },
-  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   webpack: (config: any) => {
     config.resolve = config.resolve ?? {};
     config.resolve.alias = {

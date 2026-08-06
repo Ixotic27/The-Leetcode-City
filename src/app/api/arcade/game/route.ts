@@ -28,7 +28,6 @@ function verifyToken(userId: string, game: string, startTime: number, sig: strin
 
 // POST /api/arcade/game — handles game actions
 export async function POST(req: NextRequest) {
-  const requestId = req.headers.get("x-request-id");
   try {
     const body = await req.json();
     const { action, game, slug } = body;
@@ -135,10 +134,7 @@ export async function POST(req: NextRequest) {
           if (res.milestones) milestones_earned.push(...res.milestones);
         }
       } catch (err) {
-        console.error(
-          `[Request ID: ${requestId}] submit_arcade_score RPC error:`,
-          err
-        );
+        console.error("[api/arcade/game] submit_arcade_score RPC error:", err);
         return NextResponse.json({ error: "Failed to submit score" }, { status: 500 });
       }
 
@@ -177,10 +173,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (achievementErr) {
-        console.error(
-          `[Request ID: ${requestId}] [api/arcade/game] achievement error:`,
-          achievementErr,
-        );
+        console.error("[api/arcade/game] achievement error:", achievementErr);
       }
 
       const result = {
@@ -222,10 +215,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err: unknown) {
-    console.error(
-      `[Request ID: ${requestId}] [api/arcade/game] error:`,
-      err,
-    );
+    console.error("[api/arcade/game] error:", err);
     const message = err instanceof Error ? err.message : "Internal server error";
     return NextResponse.json({ error: message }, { status: 500 });
   }

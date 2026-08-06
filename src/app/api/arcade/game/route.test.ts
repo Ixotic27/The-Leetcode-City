@@ -1,36 +1,26 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 type DevRow = { id: number };
 
 type RpcResponse<T> = { data: T[] | null; error: unknown | null };
 
-interface ChainMock {
-  select: () => ChainMock;
-  eq: () => ChainMock;
-  limit: () => ChainMock;
-  then: (cb: (res: { data: DevRow[] }) => unknown) => Promise<unknown>;
-  data: DevRow[];
-}
-
-function createChainMock(data: DevRow[] = []): ChainMock {
-  const chain: ChainMock = {
-    select: () => chain,
-    eq: () => chain,
-    limit: () => chain,
-    then: (cb: (res: { data: DevRow[] }) => unknown) => Promise.resolve({ data }).then(cb),
-    data,
-  };
-  return chain;
-}
-
 type MockSb = {
-  from: (_table: string) => ChainMock;
+  from: (_table: string) => {
+    select: () => {
+      eq: (col: string, val?: unknown) => {
+        limit: (n?: number) => { data: DevRow[] };
+      };
+    };
+  };
   rpc: ReturnType<typeof vi.fn>;
   auth: { getUser: ReturnType<typeof vi.fn> };
 };
 
+// Create a stable mock Supabase admin object shared by route and test
 const mockSb = {
-  from: vi.fn().mockImplementation(() => createChainMock([])),
+  from: vi.fn().mockImplementation(() => ({
+    select: () => ({ eq: () => ({ limit: () => ({ data: [] as DevRow[] }) }) }),
+  })),
   rpc: vi.fn() as unknown as ReturnType<typeof vi.fn>,
   auth: { getUser: vi.fn() } as { getUser: ReturnType<typeof vi.fn> },
 } as unknown as MockSb;
@@ -61,7 +51,15 @@ describe('arcade game route', () => {
   });
 
   it('passes a null developer id through when no developer profile is linked', async () => {
-    (mockSb.from as ReturnType<typeof vi.fn>).mockImplementation(() => createChainMock([]));
+    (mockSb.from as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      return {
+        select: () => ({
+          eq: () => ({
+            limit: () => ({ data: [] as DevRow[] }),
+          }),
+        }),
+      } as unknown as ReturnType<typeof vi.fn>;
+    });
 
     (mockSb.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: [{ best_ms: 100, attempts: 1, is_new_record: true, rank: 1, milestones: ['first_try'], px_earned: 5 }],
@@ -97,8 +95,15 @@ describe('arcade game route', () => {
   });
 
   it('processes concurrent submits with one winning RPC', async () => {
+    // Mock developer lookup returning id. Support chain .select(...).eq(...).limit(...)
     (mockSb.from as ReturnType<typeof vi.fn>).mockImplementation((_table: string) => {
-      return createChainMock(_table === 'developers' ? [{ id: 123 }] : []);
+      return {
+        select: () => ({
+          eq: () => ({
+            limit: () => ({ data: _table === 'developers' ? [{ id: 123 }] : [] as DevRow[] }),
+          }),
+        }),
+      } as unknown as ReturnType<typeof vi.fn>;
     });
 
     // Simulate RPC: first call returns success, second call returns subsequent response
@@ -130,8 +135,8 @@ describe('arcade game route', () => {
       headers: { get: () => `Bearer ${token}` },
     });
 
-    const p1 = POST(makeReq('t1') as unknown as Parameters<typeof POST>[0]);
-    const p2 = POST(makeReq('t2') as unknown as Parameters<typeof POST>[0]);
+    const p1 = POST(makeReq('t1') as any);
+    const p2 = POST(makeReq('t2') as any);
 
     const r1 = await p1;
     const r2 = await p2;
