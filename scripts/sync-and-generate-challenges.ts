@@ -165,7 +165,7 @@ async function main() {
             difficulty,
             difficulty_rating: rating,
             tags: row.tags || [],
-            time_limit_ms: row.time_limit ? Math.round(row.time_limit * 1000) : 2000,
+            time_limit_ms: row.time_limit ? Math.round(row.time_limit * 1000 + Number.EPSILON) : 2000,
             memory_limit_mb: row.memory_limit || 256,
             sample_tests: formattedSamples,
             hidden_tests: formattedHidden,
