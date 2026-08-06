@@ -1273,7 +1273,7 @@ export class ArenaProvider implements vscode.WebviewViewProvider {
     function goBack() {
       if (navigationStack.length > 1) {
         navigationStack.pop();
-        const prev = navigationStack[navigationStack.length - 1];
+        const prev = navigationStack.at(-1);
         showView(prev);
       }
     }
