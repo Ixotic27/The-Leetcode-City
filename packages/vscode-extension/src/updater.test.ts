@@ -265,7 +265,7 @@ describe("updater.ts", () => {
         expect.stringContaining("[LeetCode City Updater] Extension update failed")
       );
       expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
-        expect.stringContaining("🏙️ LeetCode City: Pulse update failed:")
+        expect.stringContaining("LeetCode City: Pulse update failed:")
       );
       expect(globalStateStore["leetcodecity.lastUpdateCheck"]).toBeUndefined();
     });
