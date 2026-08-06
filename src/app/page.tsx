@@ -49,7 +49,6 @@ import CityHUD from "@/components/hud/CityHUD";
 import AuthManager from "@/components/hud/AuthManager";
 import SettingsPanel from "@/components/hud/SettingsPanel";
 import ModalsOverlay from "@/components/hud/ModalsOverlay";
-import CityStatsBar from "@/components/CityStatsBar";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -346,13 +345,6 @@ function HomeContent() {
       <AuthManager />
       <SettingsPanel />
       <ModalsOverlay />
-
-      {/* Aggregate City Statistics Bar Overlay */}
-      {!introMode && !flyMode && (
-        <div className="pointer-events-none fixed inset-x-0 top-14 z-[25] flex justify-center px-4 sm:top-16">
-          <CityStatsBar />
-        </div>
-      )}
 
       {/* Multiplayer Chat Overlay */}
       {!introMode && !flyMode && (
