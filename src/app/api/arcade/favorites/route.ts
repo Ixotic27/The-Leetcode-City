@@ -103,8 +103,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ favorited: true }, { headers: NO_STORE });
   } catch (e) {
-    console.warn("Could not toggle favorite in DB, fallback to fake success:", e);
-    // Just toggle locally
-    return NextResponse.json({ favorited: true }, { headers: NO_STORE });
+    // A throw here means the toggle never reached the table, so there is no
+    // state to report. The previous hardcoded `favorited: true` was wrong twice
+    // over: it claimed a write that did not happen, and for an un-favorite it
+    // returned the opposite of the action the user took. Unlike GET — where an
+    // unreachable table can safely degrade to "no favorites" — a write cannot
+    // be faked, so this surfaces a 500 and lets the optimistic update in
+    // /arcade roll back via its `if (!res.ok)` check.
+    console.error("Could not toggle favorite in DB:", e);
+    return NextResponse.json(
+      { error: "Could not toggle favorite" },
+      { status: 500, headers: NO_STORE }
+    );
   }
 }
