@@ -160,7 +160,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext): Promise
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `🏙️ Updating LeetCode City: Pulse to v${remoteVersion}...`,
+        title: `Updating LeetCode City: Pulse to v${remoteVersion}...`,
         cancellable: false,
       },
       async (progress) => {
@@ -181,7 +181,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext): Promise
 
     // Prompt to reload so the new version activates
     const action = await vscode.window.showInformationMessage(
-      `🏙️ LeetCode City: Pulse has been updated to v${remoteVersion}! Please reload to activate.`,
+      `LeetCode City: Pulse has been updated to v${remoteVersion}! Please reload to activate.`,
       "Reload Now",
       "Later"
     );
@@ -193,7 +193,7 @@ export async function checkForUpdates(context: vscode.ExtensionContext): Promise
     const errMsg = err?.message || String(err);
     console.warn(`[LeetCode City Updater] Extension update failed: ${errMsg}`);
     vscode.window.showWarningMessage(
-      `🏙️ LeetCode City: Pulse update failed: ${errMsg}`
+      `LeetCode City: Pulse update failed: ${errMsg}`
     );
   } finally {
     try {
