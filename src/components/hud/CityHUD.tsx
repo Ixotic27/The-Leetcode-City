@@ -201,7 +201,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-md border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -255,7 +255,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-md border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -320,7 +320,7 @@ export default function CityHUD() {
                   const isDone = count >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-md border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -472,36 +472,15 @@ export default function CityHUD() {
                     </button>
                   </div>
 
-                  {/* Line 1: Arcade & Arena (with NEW badges) */}
+                  {/* Row 2: Arcade, Leaderboard, Roadmap (Smaller buttons, side-by-side) */}
                   <div className="flex w-full items-center justify-center gap-3 mt-1.5">
-                    <div className="relative flex-1">
-                      <button
-                        onClick={() => setEArcadeOpen(true)}
-                        className="btn-press w-full border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
-                        style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
-                      >
-                        🕹️ ARCADE
-                      </button>
-                      <span className="pointer-events-none absolute -top-2 -right-1 z-10 bg-amber-400 text-black text-[7px] font-black tracking-tighter px-1.5 py-[1px] rounded-[2px] border border-amber-300 shadow-[1px_1px_0_0_rgba(0,0,0,0.8)] animate-pulse">
-                        NEW
-                      </span>
-                    </div>
-                    <div className="relative flex-1">
-                      <Link
-                        href="/arena"
-                        className="btn-press block w-full border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
-                        style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
-                      >
-                        ⚔️ ARENA
-                      </Link>
-                      <span className="pointer-events-none absolute -top-2 -right-1 z-10 bg-amber-400 text-black text-[7px] font-black tracking-tighter px-1.5 py-[1px] rounded-[2px] border border-amber-300 shadow-[1px_1px_0_0_rgba(0,0,0,0.8)] animate-pulse">
-                        NEW
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Line 2: Leaderboard & Shop */}
-                  <div className="flex w-full items-center justify-center gap-3 mt-1.5">
+                    <button
+                      onClick={() => setEArcadeOpen(true)}
+                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
+                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
+                    >
+                      🕹️ ARCADE
+                    </button>
                     <Link
                       href="/leaderboard"
                       className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
@@ -510,35 +489,37 @@ export default function CityHUD() {
                       🏆 LEADERBOARD
                     </Link>
                     <Link
-                      href={shopHref}
-                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
-                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
-                    >
-                      🛍️ SHOP
-                    </Link>
-                  </div>
-
-                  {/* Line 3: Roadmap & Compare (with NEW badge) */}
-                  <div className="flex w-full items-center justify-center gap-3 mt-1.5">
-                    <Link
                       href="/roadmap"
                       className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
                       style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
                     >
                       🗺️ ROADMAP
                     </Link>
-                    <div className="relative flex-1">
-                      <Link
-                        href="/compare"
-                        className="btn-press block w-full border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
-                        style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
-                      >
-                        ⚖️ COMPARE
-                      </Link>
-                      <span className="pointer-events-none absolute -top-2 -right-1 z-10 bg-amber-400 text-black text-[7px] font-black tracking-tighter px-1.5 py-[1px] rounded-[2px] border border-amber-300 shadow-[1px_1px_0_0_rgba(0,0,0,0.8)] animate-pulse">
-                        NEW
-                      </span>
-                    </div>
+                  </div>
+
+                  {/* Row 3: Shop, Compare and Arena (Smaller buttons, side-by-side) */}
+                  <div className="flex w-full items-center justify-center gap-3 mt-1.5">
+                    <Link
+                      href={shopHref}
+                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
+                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
+                    >
+                      🛍️ SHOP
+                    </Link>
+                    <Link
+                      href="/compare"
+                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
+                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
+                    >
+                      ⚖️ COMPARE
+                    </Link>
+                    <Link
+                      href="/arena"
+                      className="btn-press flex-1 border-[2px] border-border bg-bg/85 py-2.5 sm:py-3 text-[9px] sm:text-[10px] tracking-wider text-cream font-bold transition-colors hover:bg-white/10 active:bg-white/5 text-center"
+                      style={{ boxShadow: `3px 3px 0 0 ${theme.shadow}` }}
+                    >
+                      ⚔️ ARENA
+                    </Link>
                   </div>
                 </div>
               )}
