@@ -39,6 +39,7 @@ export function sendAchievementNotification(
     ? `You unlocked ${first.name} (${first.tier}).`
     : `You unlocked ${notable.length} new achievements: ${notable.map((a) => a.name).join(", ")}.`;
 
+  // Use tier colors instead of emoji icons for project policy compliance
   const achievementListHtml = notable
     .map((a) => {
       const tierColor = TIER_COLORS[a.tier] ?? "#888888";
