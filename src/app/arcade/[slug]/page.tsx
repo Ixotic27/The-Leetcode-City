@@ -1274,14 +1274,22 @@ export default function ArcadeRoomPage({
     });
     setTerminalLines((prev) => [...prev, ...lines]);
 
-    // Save new discovery to server
+    // Persist discovery only after a successful write
     if (discovery && !discoveriesRef.current.includes(discovery)) {
-      discoveriesRef.current.push(discovery);
       fetch("/api/arcade/discoveries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: discovery }),
-      }).catch(() => {});
+      })
+        .then(async (r) => {
+          if (!r.ok) return;
+          const data = (await r.json()) as { commands?: string[] };
+          discoveriesRef.current = data.commands ?? [
+            ...discoveriesRef.current,
+            discovery,
+          ];
+        })
+        .catch(() => {});
     }
   };
 

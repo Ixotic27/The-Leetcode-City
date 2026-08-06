@@ -3,6 +3,10 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "@/lib/supabase";
+import {
+  runBattleTests,
+  type BattleTestCase,
+} from "@/lib/arcade/battleJudge";
 
 // Custom styles for CRT, retro borders, and scanlines
 const RETRO_CSS = `
@@ -84,9 +88,10 @@ interface Problem {
   difficulty: "Easy" | "Medium" | "Hard";
   stars: string;
   description: string;
+  fnName: string;
   defaultCode: string;
   solutionTemplate: string;
-  tests: { input: string; output: string }[];
+  tests: BattleTestCase[];
 }
 
 const PROBLEMS: Record<string, Problem> = {
@@ -95,14 +100,15 @@ const PROBLEMS: Record<string, Problem> = {
     difficulty: "Easy",
     stars: "★☆☆",
     description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+    fnName: "twoSum",
     defaultCode: `def twoSum(nums, target):\n    # Write your code here\n    pass`,
     solutionTemplate: `def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []`,
     tests: [
-      { input: "nums = [2,7,11,15], target = 9", output: "[0, 1]" },
-      { input: "nums = [3,2,4], target = 6", output: "[1, 2]" },
-      { input: "nums = [3,3], target = 6", output: "[0, 1]" },
-      { input: "nums = [1,5,8,3], target = 11", output: "[2, 3]" },
-      { input: "nums = [2,5,5,11], target = 10", output: "[1, 2]" },
+      { input: "nums = [2,7,11,15], target = 9", output: "[0, 1]", args: [[2, 7, 11, 15], 9], expected: [0, 1] },
+      { input: "nums = [3,2,4], target = 6", output: "[1, 2]", args: [[3, 2, 4], 6], expected: [1, 2] },
+      { input: "nums = [3,3], target = 6", output: "[0, 1]", args: [[3, 3], 6], expected: [0, 1] },
+      { input: "nums = [1,5,8,3], target = 11", output: "[2, 3]", args: [[1, 5, 8, 3], 11], expected: [2, 3] },
+      { input: "nums = [2,5,5,11], target = 10", output: "[1, 2]", args: [[2, 5, 5, 11], 10], expected: [1, 2] },
     ]
   },
   container: {
@@ -110,14 +116,15 @@ const PROBLEMS: Record<string, Problem> = {
     difficulty: "Medium",
     stars: "★★☆",
     description: "Find two lines that together with the x-axis form a container, such that the container contains the most water.",
+    fnName: "maxArea",
     defaultCode: `def maxArea(height):\n    # Write your code here\n    l, r = 0, len(height) - 1\n    res = 0\n    return res`,
     solutionTemplate: `def maxArea(height):\n    l, r = 0, len(height) - 1\n    res = 0\n    while l < r:\n        width = r - l\n        area = min(height[l], height[r]) * width\n        res = max(res, area)\n        if height[l] < height[r]:\n            l += 1\n        else:\n            r -= 1\n    return res`,
     tests: [
-      { input: "height = [1,8,6,2,5,4,8,3,7]", output: "49" },
-      { input: "height = [1,1]", output: "1" },
-      { input: "height = [4,3,2,1,4]", output: "16" },
-      { input: "height = [1,2,1]", output: "2" },
-      { input: "height = [2,3,4,5,18,17,6]", output: "17" },
+      { input: "height = [1,8,6,2,5,4,8,3,7]", output: "49", args: [[1, 8, 6, 2, 5, 4, 8, 3, 7]], expected: 49 },
+      { input: "height = [1,1]", output: "1", args: [[1, 1]], expected: 1 },
+      { input: "height = [4,3,2,1,4]", output: "16", args: [[4, 3, 2, 1, 4]], expected: 16 },
+      { input: "height = [1,2,1]", output: "2", args: [[1, 2, 1]], expected: 2 },
+      { input: "height = [2,3,4,5,18,17,6]", output: "17", args: [[2, 3, 4, 5, 18, 17, 6]], expected: 17 },
     ]
   }
 };
@@ -267,20 +274,16 @@ export default function BattlePage() {
   const runTests = () => {
     setSolveMode("testing");
     setConsoleLogs(["[compiler] Compiling main.py...", "[compiler] Running test cases..."]);
+    setTestsPassed(0);
+    setTestsEvaluated([]);
 
-    const timerIdx = [0, 1, 2, 3, 4];
+    const judged = runBattleTests(code, activeProblem.fnName, activeProblem.tests);
     const results: boolean[] = [];
-
-    // Evaluate code correctness based on if it matches solution length/keywords
-    const normalized = code.replace(/\s+/g, "");
-    const correctNormalized = activeProblem.solutionTemplate.replace(/\s+/g, "");
-    // Check key variables to mock correct vs incorrect solution
-    const isCorrect = normalized.includes("seen") || normalized.includes("width=r-l") || normalized === correctNormalized;
-
     let idx = 0;
+
     const interval = setInterval(() => {
       if (idx < activeProblem.tests.length) {
-        const passed = isCorrect || (idx < 3); // mock partially passing if incorrect
+        const passed = judged[idx]?.passed === true;
         results.push(passed);
         setTestsEvaluated([...results]);
         setConsoleLogs((prev) => [
