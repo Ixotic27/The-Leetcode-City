@@ -16,7 +16,7 @@ type DevLoginRow = {
 // GET /api/arcade/leaderboard?game=10s_classic&limit=10
 export async function GET(req: NextRequest) {
   const game = req.nextUrl.searchParams.get("game") ?? "10s_classic";
-  const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10), 50);
+  const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit", 10) ?? "10", 10), 50);
 
   const sb = getSupabaseAdmin();
   let data: ScoreRow[] = [];
