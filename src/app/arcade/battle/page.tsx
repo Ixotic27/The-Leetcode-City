@@ -283,7 +283,7 @@ export default function BattlePage() {
 
     const interval = setInterval(() => {
       if (idx < activeProblem.tests.length) {
-        const passed = judged[idx]?.passed === true;
+        const passed = judged[idx]?.passed ;
         results.push(passed);
         setTestsEvaluated([...results]);
         setConsoleLogs((prev) => [

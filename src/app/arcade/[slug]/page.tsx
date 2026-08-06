@@ -156,7 +156,7 @@ function SpritePreview({ charIndex, scale = 3 }: { charIndex: number; scale?: nu
     // Try cozy avatar first
     const avatar = loadoutToAvatar(getDefaultLoadout());
     const basePath = cozyUrl("walk");
-    const promises = avatar.layers.map((layer: CozyLayer) => {
+    const promises = avatar.(layers ?? []).map((layer: CozyLayer) => {
       return new Promise<{ layer: CozyLayer; img: HTMLImageElement } | null>((resolve) => {
         const img = new Image();
         img.onload = () => resolve({ layer, img });
