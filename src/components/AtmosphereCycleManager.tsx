@@ -13,6 +13,7 @@ function lerpColor(c1: string, c2: string, alpha: number): string {
   const color1 = new THREE.Color(c1);
   const color2 = new THREE.Color(c2);
   color1.lerp(color2, alpha);
+  
   return "#" + color1.getHexString();
 }
 
