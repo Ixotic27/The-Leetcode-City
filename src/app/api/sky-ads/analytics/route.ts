@@ -70,13 +70,16 @@ export async function GET(request: Request) {
     cur.cta_clicks += Number(row.cta_clicks);
     aggregated.set(row.ad_id, cur);
   }
-  // Merge historical baselines
-  for (const [adId, baseline] of Object.entries(HISTORICAL_BASELINES)) {
-    const cur = aggregated.get(adId) ?? { impressions: 0, clicks: 0, cta_clicks: 0 };
-    cur.impressions += baseline.impressions;
-    cur.clicks += baseline.clicks;
-    cur.cta_clicks += baseline.cta_clicks;
-    aggregated.set(adId, cur);
+  // Merge historical baselines only for all-time reports. Short windows must
+  // reflect activity inside the selected period, not lifetime migrated totals.
+  if (!dayFilter) {
+    for (const [adId, baseline] of Object.entries(HISTORICAL_BASELINES)) {
+      const cur = aggregated.get(adId) ?? { impressions: 0, clicks: 0, cta_clicks: 0 };
+      cur.impressions += baseline.impressions;
+      cur.clicks += baseline.clicks;
+      cur.cta_clicks += baseline.cta_clicks;
+      aggregated.set(adId, cur);
+    }
   }
 
   function buildAdEntry(id: string, s: { impressions: number; clicks: number; cta_clicks: number }) {
