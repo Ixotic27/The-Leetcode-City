@@ -201,7 +201,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -255,7 +255,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -320,7 +320,7 @@ export default function CityHUD() {
                   const isDone = count >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
