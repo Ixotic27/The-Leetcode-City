@@ -211,14 +211,14 @@ function PixelRabbitStatue({ completed }: { completed: boolean }) {
 // ─── Floating Particles ─────────────────────────────────────
 
 function FloatingParticlesCSS() {
-  const particles = useMemo(() =>
+  const [particles] = useState(() =>
     Array.from({ length: 15 }, () => ({
       left: `${15 + Math.random() * 70}%`,
       duration: 6 + Math.random() * 8,
       delay: Math.random() * 6,
       size: 2 + Math.random() * 2,
-    })),
-    []);
+    }))
+  );
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
@@ -314,6 +314,7 @@ function RabbitContent() {
   useEffect(() => {
     const supabase = createBrowserSupabase();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       const login = (
         session?.user?.user_metadata?.user_name ??

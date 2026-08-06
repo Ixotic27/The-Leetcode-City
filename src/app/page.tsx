@@ -35,7 +35,9 @@ const CityCanvas = dynamic(() => import("@/components/CityCanvas"), {
 });
 
 const CityChat = dynamic(() => import("@/components/CityChat"), { ssr: false });
-const LoadingScreen = dynamic(() => import("@/components/LoadingScreen"), { ssr: false });
+const LoadingScreen = dynamic(() => import("@/components/LoadingScreen"), {
+  ssr: false,
+});
 
 // HUD Modular Subcomponents
 import SearchBar from "@/components/hud/SearchBar";
@@ -231,9 +233,15 @@ function HomeContent() {
         onClearFocus={() => setFocusedBuilding(null)}
         onBuildingFocus={(b) => setFocusedBuilding(b.login)}
         flyPauseSignal={flyPauseSignal}
-        flyHasOverlay={!!selectedBuilding || eArcadeOpen || zenCodingOpen || codeForgeOpen}
+        flyHasOverlay={
+          !!selectedBuilding || eArcadeOpen || zenCodingOpen || codeForgeOpen
+        }
         flyStartPaused={flyPaused}
-        holdRise={loadStage !== "rendering" && loadStage !== "ready" && loadStage !== "done"}
+        holdRise={
+          loadStage !== "rendering" &&
+          loadStage !== "ready" &&
+          loadStage !== "done"
+        }
         equippedRelicId={equippedRelicId}
         celebrationActive={celebrationActive}
         skyAds={skyAds}
@@ -300,7 +308,11 @@ function HomeContent() {
           }
           const clickCount = (buildingClickCountRef.current[b.login] || 0) + 1;
           buildingClickCountRef.current[b.login] = clickCount;
-          if (!session && clickCount >= 3 && !signInPromptShownRef.current.has(b.login)) {
+          if (
+            !session &&
+            clickCount >= 3 &&
+            !signInPromptShownRef.current.has(b.login)
+          ) {
             signInPromptShownRef.current.add(b.login);
             setSignInPromptVisible(true);
           }
@@ -392,27 +404,31 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <ErrorBoundary fallback={
-      <div className="h-screen w-screen bg-black flex items-center justify-center">
-        <div className="text-red-500 font-pixel text-center px-4">
-          Something went wrong loading the city.
-          <button
-            onClick={() => window.location.reload()}
-            className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-    }>
-      <WeatherProvider>
-        <Suspense fallback={
-          <div className="h-screen w-screen bg-black flex items-center justify-center">
-            <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
-              Loading...
-            </div>
+    <ErrorBoundary
+      fallback={
+        <div className="h-screen w-screen bg-black flex items-center justify-center">
+          <div className="text-red-500 font-pixel text-center px-4">
+            Something went wrong loading the city.
+            <button
+              onClick={() => window.location.reload()}
+              className="block mx-auto mt-4 px-4 py-2 bg-[#ffa116] text-black font-pixel text-sm"
+            >
+              Refresh
+            </button>
           </div>
-        }>
+        </div>
+      }
+    >
+      <WeatherProvider>
+        <Suspense
+          fallback={
+            <div className="h-screen w-screen bg-black flex items-center justify-center">
+              <div className="text-[#ffa116] font-pixel text-lg animate-pulse">
+                Loading...
+              </div>
+            </div>
+          }
+        >
           <CityProvider>
             <HomeContent />
           </CityProvider>

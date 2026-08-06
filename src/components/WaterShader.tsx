@@ -10,7 +10,7 @@ import * as THREE from "three";
  * Uses a simple ShaderMaterial with:
  * - Vertex: gentle sine-wave swell (2 waves only)
  * - Fragment: basic animated color shift + Fresnel edge highlight
- * - Fog integration: fades into scene fog at distance
+ * - No per-pixel ripple normals (GPU-friendly)
  * - Low segment count for minimal vertex processing
  */
 
@@ -42,9 +42,7 @@ export function WaterPlane({
         transparent: true,
         depthWrite: false,
         side: THREE.DoubleSide,
-        fog: true, // Enable Three.js fog integration
         uniforms: {
-          ...THREE.UniformsLib.fog, // Include fog uniforms (fogColor, fogNear, fogFar)
           uTime: { value: 0 },
           uDeep: { value: new THREE.Color(deepColor) },
           uShallow: { value: new THREE.Color(shallowColor) },
@@ -53,7 +51,6 @@ export function WaterPlane({
         vertexShader: /* glsl */ `
           uniform float uTime;
           varying vec3 vWPos;
-          varying float vFogDepth;
 
           void main() {
             vec4 wp = modelMatrix * vec4(position, 1.0);
@@ -61,10 +58,7 @@ export function WaterPlane({
             wp.y += sin(wp.x * 0.003 + uTime * 0.4) * 0.3
                    + sin(wp.z * 0.004 - uTime * 0.35) * 0.25;
             vWPos = wp.xyz;
-
-            vec4 mvPosition = viewMatrix * wp;
-            vFogDepth = -mvPosition.z;
-            gl_Position = projectionMatrix * mvPosition;
+            gl_Position = projectionMatrix * viewMatrix * wp;
           }
         `,
 
@@ -73,18 +67,6 @@ export function WaterPlane({
           uniform vec3 uDeep;
           uniform vec3 uShallow;
           varying vec3 vWPos;
-          varying float vFogDepth;
-
-          // Three.js fog uniforms (injected by fog: true)
-          #ifdef USE_FOG
-            uniform vec3 fogColor;
-            #ifdef FOG_EXP2
-              uniform float fogDensity;
-            #else
-              uniform float fogNear;
-              uniform float fogFar;
-            #endif
-          #endif
 
           void main() {
             // View-angle based deep/shallow blend
@@ -99,20 +81,7 @@ export function WaterPlane({
             // Edge glow at horizon
             col += uShallow * fresnel * 0.2;
 
-            float alpha = mix(0.8, 0.95, fresnel);
-
-            // Apply fog — blend water color toward fog color at distance
-            #ifdef USE_FOG
-              #ifdef FOG_EXP2
-                float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
-              #else
-                float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
-              #endif
-              col = mix(col, fogColor, fogFactor);
-              alpha = mix(alpha, 0.0, fogFactor); // Fade out water transparency at distance
-            #endif
-
-            gl_FragColor = vec4(col, alpha);
+            gl_FragColor = vec4(col, mix(0.8, 0.95, fresnel));
           }
         `,
       }),

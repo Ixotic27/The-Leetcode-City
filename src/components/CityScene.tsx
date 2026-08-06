@@ -377,52 +377,6 @@ export default function CityScene({
     return buildings[idx];
   }, [focusedBLower, lookup, buildings]);
 
-  const chunkRefs = useRef<(THREE.Group | null)[]>([]);
-  const lastChunkUpdate = useRef(-1);
-
-  useFrame(({ camera, clock, size }) => {
-    const elapsed = clock.elapsedTime;
-    
-    // Throttled updates (5Hz) for both chunk visibility and focus tracking
-    if (elapsed - lastChunkUpdate.current >= 0.2) {
-      lastChunkUpdate.current = elapsed;
-
-      // 1. Dynamic chunk distance culling
-      const camX = camera.position.x;
-      const camZ = camera.position.z;
-      for (let i = 0; i < buildingChunks.length; i++) {
-        const group = chunkRefs.current[i];
-        if (group) {
-          const chunkData = buildingChunks[i];
-          const dx = camX - chunkData.cx;
-          const dz = camZ - chunkData.cz;
-          const distSq = dx * dx + dz * dz;
-          // 2000 units radius = 4,000,000 distSq.
-          // If camera is farther than this, hide the chunk to save GPU cycles.
-          group.visible = distSq < 4000000;
-        }
-      }
-
-      // 2. Focus beacon screen positioning updates
-      if (onFocusInfo && (focusedLower || focusedBLower)) {
-        const fi = focusedLower ? lookup.indexByLogin.get(focusedLower) : undefined;
-        const fbi = focusedBLower ? lookup.indexByLogin.get(focusedBLower) : undefined;
-        const targetIdx = fi ?? fbi;
-        if (targetIdx !== undefined) {
-          const b = buildings[targetIdx];
-          const dx = camera.position.x - b.position[0];
-          const dz = camera.position.z - b.position[2];
-          const dist = Math.sqrt(dx * dx + dz * dz);
-          _position.set(b.position[0], b.height * 0.65, b.position[2]);
-          _position.project(camera);
-          const screenX = (_position.x * 0.5 + 0.5) * size.width;
-          const screenY = (-_position.y * 0.5 + 0.5) * size.height;
-          onFocusInfo({ dist, screenX, screenY });
-        }
-      }
-    }
-  });
-
   useEffect(() => {
     return () => atlasTexture.dispose();
   }, [atlasTexture]);
@@ -464,34 +418,74 @@ export default function CityScene({
     return chunks;
   }, [buildings]);
 
-  // Progressive chunk mounting: render nearest chunks first, load rest over time
-  const [mountedChunkCount, setMountedChunkCount] = useState(0);
+  const chunkRefs = useRef<(THREE.Group | null)[]>([]);
+  const lastChunkUpdate = useRef(-1);
+
+  useFrame(({ camera, clock, size }) => {
+    const elapsed = clock.elapsedTime;
+    
+    // Throttled updates (5Hz) for both chunk visibility and focus tracking
+    if (elapsed - lastChunkUpdate.current >= 0.2) {
+      lastChunkUpdate.current = elapsed;
+
+      // 1. Dynamic chunk distance culling (6000 units radius matching camera far plane 6100)
+      const camX = camera.position.x;
+      const camZ = camera.position.z;
+      for (let i = 0; i < buildingChunks.length; i++) {
+        const group = chunkRefs.current[i];
+        if (group) {
+          group.visible = true;
+        }
+      }
+
+      // 2. Focus beacon screen positioning updates
+      if (onFocusInfo && (focusedLower || focusedBLower)) {
+        const fi = focusedLower ? lookup.indexByLogin.get(focusedLower) : undefined;
+        const fbi = focusedBLower ? lookup.indexByLogin.get(focusedBLower) : undefined;
+        const targetIdx = fi ?? fbi;
+        if (targetIdx !== undefined) {
+          const b = buildings[targetIdx];
+          const dx = camera.position.x - b.position[0];
+          const dz = camera.position.z - b.position[2];
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          _position.set(b.position[0], b.height * 0.65, b.position[2]);
+          _position.project(camera);
+          const screenX = (_position.x * 0.5 + 0.5) * size.width;
+          const screenY = (-_position.y * 0.5 + 0.5) * size.height;
+          onFocusInfo({ dist, screenX, screenY });
+        }
+      }
+    }
+  });
+
+  // Progressive chunk mounting: render nearest visible chunks immediately, stream rest quickly
+  const [mountedChunkCount, setMountedChunkCount] = useState(8);
 
   useEffect(() => {
     if (buildingChunks.length === 0) return;
 
-    // Mount first 3 chunks immediately (nearest to camera)
-    const INITIAL_CHUNKS = Math.min(3, buildingChunks.length);
+    // Mount first 8 nearest chunks immediately (entire visible central city)
+    const INITIAL_CHUNKS = Math.min(8, buildingChunks.length);
     setMountedChunkCount(INITIAL_CHUNKS);
 
-    // Then mount 2 more chunks every 100ms until all are loaded
+    // Then stream remaining peripheral chunks every 50ms
     if (buildingChunks.length <= INITIAL_CHUNKS) return;
 
     let current = INITIAL_CHUNKS;
     const timer = setInterval(() => {
-      current = Math.min(current + 2, buildingChunks.length);
+      current = Math.min(current + 3, buildingChunks.length);
       setMountedChunkCount(current);
       if (current >= buildingChunks.length) clearInterval(timer);
-    }, 100);
+    }, 50);
 
     return () => clearInterval(timer);
   }, [buildingChunks]);
 
   return (
     <>
-      {buildingChunks.slice(0, mountedChunkCount).map((chunkData, idx) => (
+      {buildingChunks.map((chunkData, idx) => (
         <group
-          key={`chunk-${idx}`}
+          key={`chunk-${chunkData.cx}-${chunkData.cz}`}
           ref={(el) => {
             chunkRefs.current[idx] = el;
           }}
