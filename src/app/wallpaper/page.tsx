@@ -127,3 +127,5 @@ export default function WallpaperPage() {
     </div>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
