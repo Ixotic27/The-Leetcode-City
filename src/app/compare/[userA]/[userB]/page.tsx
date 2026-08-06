@@ -47,3 +47,5 @@ export default async function ComparePage({ params }: Props) {
   const { userA, userB } = await params;
   return <CompareRedirect userA={userA} userB={userB} />;
 }
+
+.catch(err => console.error("Promise.all failed:", err));

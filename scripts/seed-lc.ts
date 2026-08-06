@@ -153,7 +153,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
         name: user.profile?.realName || user.username,
         avatar_url: user.profile?.userAvatar || "",
         contributions: Math.max(1, totalSolved),
-        contributions_total: Math.round(litPercentage * 1000),
+        contributions_total: Math.round(litPercentage * 1000 + Number.EPSILON),
         total_stars: reputation,
         public_repos: Math.max(0, 500000 - lcRank),
         rank: lcRank,
