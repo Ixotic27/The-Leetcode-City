@@ -107,7 +107,6 @@ export function useRaidSequence(): [RaidState, RaidActions] {
     // Audio triggers
     switch (phase) {
       case "intro":
-        preloadRaidAudio();
         playRaidSound("takeoff");
         break;
       case "flight":
@@ -253,6 +252,9 @@ export function useRaidSequence(): [RaidState, RaidActions] {
             loading: false,
           };
         });
+
+        // Preload audio once for this raid execution
+        preloadRaidAudio();
 
         // Set phase using setPhase so all audio preloading and fallback timers are set up!
         setPhase("intro");
