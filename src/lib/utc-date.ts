@@ -1,8 +1,17 @@
 /**
- * Returns the current UTC calendar date as a YYYY-MM-DD string.
- * Uses a single Date instantiation so `today` and `yesterday` are
- * guaranteed to be derived from the same moment — they can never
- * drift relative to each other if a request straddles midnight.
+ * Utility functions for generating UTC date strings.
+ * These helpers ensure consistent date calculations without timezone or DST issues.
+ */
+/**
+ * Returns the current UTC date and the previous UTC date.
+ *
+ * Uses a single Date instance to ensure both values are derived
+ * from the same moment, preventing inconsistencies around midnight
+ * and daylight saving time (DST) transitions.
+ *
+ * @returns An object containing:
+ * - `today`: The current UTC date in YYYY-MM-DD format.
+ * - `yesterday`: The previous UTC date in YYYY-MM-DD format.
  */
 export function getUtcDateStrings(): { today: string; yesterday: string } {
   const now = new Date();

@@ -140,7 +140,69 @@ export const SpotlightEffect = memo(function SpotlightEffect({
   depth: number;
   color?: string;
 }) {
-  return null;
+  const beam1Ref = useRef<THREE.Mesh>(null);
+  const beam2Ref = useRef<THREE.Mesh>(null);
+  const frameCount = useRef(0);
+
+  useFrame((state) => {
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
+    const t = state.clock.elapsedTime;
+    if (beam1Ref.current) {
+      beam1Ref.current.rotation.y = t * 0.6;
+      const mat = beam1Ref.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.12 + Math.sin(t * 1.5) * 0.05;
+    }
+    if (beam2Ref.current) {
+      beam2Ref.current.rotation.y = -t * 0.4;
+      const mat = beam2Ref.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.10 + Math.sin(t * 1.2 + 1) * 0.05;
+    }
+  });
+
+  const beamLength = 300;
+  const hw = width / 2;
+  const hd = depth / 2;
+
+  return (
+    <group position={[0, height, 0]}>
+      {/* Base lamp housings */}
+      {([ [-hw * 0.5, hd * 0.5], [hw * 0.5, -hd * 0.5] ] as [number, number][]).map(([x, z], i) => (
+        <mesh key={i} position={[x, 1, z]}>
+          <boxGeometry args={[2, 1.5, 2]} />
+          <meshStandardMaterial color="#333344" metalness={0.7} roughness={0.3} />
+        </mesh>
+      ))}
+      {/* Beam 1 */}
+      <mesh ref={beam1Ref} position={[-hw * 0.5, 1, hd * 0.5]} rotation={[0.15, 0, 0]}>
+        <mesh position={[0, beamLength / 2, 0]}>
+          <cylinderGeometry args={[8, 1, beamLength, 12, 1, true]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.12}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </mesh>
+      {/* Beam 2 */}
+      <mesh ref={beam2Ref} position={[hw * 0.5, 1, -hd * 0.5]} rotation={[-0.15, 0, 0]}>
+        <mesh position={[0, beamLength / 2, 0]}>
+          <cylinderGeometry args={[8, 1, beamLength, 12, 1, true]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.10}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      </mesh>
+    </group>
+  );
 });
 
 // ─── Rooftop Fire ────────────────────────────────────────────
@@ -1766,7 +1828,7 @@ export const TierBaseGlow = memo(function TierBaseGlow({
   );
 });
 
-/** Sky beam effect for high tiers (Unicorn/Founder) */
+/** Sky beam effect for high tiers (Knight/Guardian) */
 export const TierSkyBeam = memo(function TierSkyBeam({
   height,
   color,
@@ -1776,7 +1838,63 @@ export const TierSkyBeam = memo(function TierSkyBeam({
   color: string;
   prismatic?: boolean;
 }) {
-  return null;
+  const beamRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
+  const frameCount = useRef(0);
+
+  const prismaticColors = ["#ff0080", "#ff8800", "#ffff00", "#00ff80", "#0080ff", "#8000ff"];
+  const colorRef = useRef(new THREE.Color(color));
+
+  useFrame((state) => {
+    frameCount.current++;
+    if (frameCount.current % 2 !== 0) return;
+    const t = state.clock.elapsedTime;
+
+    if (beamRef.current) {
+      const mat = beamRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.18 + Math.sin(t * 2) * 0.06;
+      if (prismatic) {
+        const idx = Math.floor(t * 1.5) % prismaticColors.length;
+        colorRef.current.set(prismaticColors[idx]);
+        mat.color = colorRef.current;
+      }
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.y = t * 1.2;
+      const mat = ringRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.3 + Math.sin(t * 3) * 0.15;
+    }
+  });
+
+  const beamLength = 400;
+
+  return (
+    <group position={[0, height, 0]}>
+      {/* Vertical sky beam */}
+      <mesh ref={beamRef} position={[0, beamLength / 2, 0]}>
+        <cylinderGeometry args={[6, 1.5, beamLength, 12, 1, true]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.18}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      {/* Rotating ring at base of beam */}
+      <mesh ref={ringRef} position={[0, 2, 0]}>
+        <torusGeometry args={[8, 0.5, 8, 32]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.35}
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
 });
 
 
