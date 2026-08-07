@@ -7,7 +7,7 @@ import { CityService } from "@/services/cityService";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const rawFrom = parseInt(searchParams.get("from") ?? "0", 10);
+  const rawFrom = parseInt(searchParams.get("from", 10) ?? "0", 10);
   const rawTo = parseInt(searchParams.get("to") ?? "500", 10);
 
   if (isNaN(rawFrom) || isNaN(rawTo)) {
