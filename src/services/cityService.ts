@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { CitySerializer, type CityDeveloperLike, type CitySerializableValue } from "@/services/citySerializer";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CityLoadOptions = {
@@ -88,18 +89,15 @@ export class CityService {
       };
     }
 
-    const [purchasesResult, giftPurchasesResult, customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
-      sb
-        .from("purchases")
-        .select("developer_id, item_id, provider, amount_cents")
-        .in("developer_id", devIds)
-        .is("gifted_to", null)
-        .eq("status", "completed"),
-      sb
-        .from("purchases")
-        .select("gifted_to, item_id, provider, amount_cents")
-        .in("gifted_to", devIds)
-        .eq("status", "completed"),
+    let ownedItemsMap: Record<number, string[]> = {};
+    try {
+      const resolver = new OwnershipResolver();
+      ownedItemsMap = await resolver.buildOwnedItemsMap(devIds);
+    } catch {
+      return cityLoadError();
+    }
+
+    const [customizationsResult, achievementsResult, raidTagsResult] = await Promise.all([
       sb
         .from("developer_customizations")
         .select("developer_id, item_id, config")
@@ -116,36 +114,8 @@ export class CityService {
         .eq("active", true),
     ]);
 
-    if (hasQueryError(
-      purchasesResult,
-      giftPurchasesResult,
-      customizationsResult,
-      achievementsResult,
-      raidTagsResult,
-    )) {
+    if (hasQueryError(customizationsResult, achievementsResult, raidTagsResult)) {
       return cityLoadError();
-    }
-
-    const ownedItemsMap: Record<number, string[]> = {};
-    for (const row of purchasesResult.data ?? []) {
-      const developerId = typeof row.developer_id === "number" ? row.developer_id : Number(row.developer_id);
-      const provider = typeof row.provider === "string" ? row.provider : "";
-      const amountCents = typeof row.amount_cents === "number" ? row.amount_cents : Number(row.amount_cents);
-      if (amountCents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)) {
-        continue;
-      }
-      if (!ownedItemsMap[developerId]) ownedItemsMap[developerId] = [];
-      ownedItemsMap[developerId].push(String(row.item_id));
-    }
-    for (const row of giftPurchasesResult.data ?? []) {
-      const amountCents = typeof row.amount_cents === "number" ? row.amount_cents : Number(row.amount_cents);
-      const provider = typeof row.provider === "string" ? row.provider : "";
-      if (amountCents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(provider)) {
-        continue;
-      }
-      const devId = typeof row.gifted_to === "number" ? row.gifted_to : Number(row.gifted_to);
-      if (!ownedItemsMap[devId]) ownedItemsMap[devId] = [];
-      ownedItemsMap[devId].push(String(row.item_id));
     }
 
     const customColorMap: Record<number, string> = {};
