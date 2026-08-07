@@ -141,7 +141,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
             contributions: Math.max(1, totalSolved),
             contributions_total: Math.round(litPercentage * 1000), // V2 detection uses this for litPercentage
             total_stars: reputation,
-            public_repos: Math.max(0, parseInt(String(lcRank), 10) > 0 ? 500000 - lcRank : 0),
+            public_repos: Math.max(0, parseInt(String(lcRank, 10), 10) > 0 ? 500000 - lcRank : 0),
             rank: lcRank,
             fetch_priority: 2, // General mass pool
             fetched_at: new Date().toISOString(),
