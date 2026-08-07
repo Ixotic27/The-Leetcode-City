@@ -445,7 +445,7 @@ export default function ArcadeRoomPage({
           // Set avatar for each player (loadout from PartyKit or default)
           if (p.loadout) {
             setPlayerAvatar(p.id, p.loadout);
-            preloadLoadout(p.loadout).catch(() => {});
+            preloadLoadout(p.loadout).catch( => console.error());
           }
           pmap.set(p.id, {
             ...p,
