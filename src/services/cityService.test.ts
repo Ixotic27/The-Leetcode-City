@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { CityService, type CityLoadSuccessBody } from "./cityService";
+import { clearCityCache } from "../lib/cityCache";
 
 type QueryResult<T> = { data: T | null; error?: Error | null };
+
+function buildErrorResult(error: Error | null | undefined): QueryResult<Record<string, unknown>> {
+  return { data: null, error };
+}
 
 type FakeTable = {
   select: (...args: string[]) => FakeQueryBuilder;
@@ -45,14 +50,28 @@ class FakeSupabaseClient {
       not: () => builder,
       order: () => builder,
       range: () => builder,
-      maybeSingle: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
-      single: async () => ({ data: Array.isArray(data) ? data[0] ?? null : data, error }),
+      maybeSingle: async () => {
+        if (error) {
+          return buildErrorResult(error);
+        }
+        return { data: Array.isArray(data) ? data[0] ?? null : data, error };
+      },
+      single: async () => {
+        if (error) {
+          return buildErrorResult(error);
+        }
+        return { data: Array.isArray(data) ? data[0] ?? null : data, error };
+      },
     };
     return builder;
   }
 }
 
 describe("CityService", () => {
+  beforeEach(() => {
+    clearCityCache();
+  });
+
   it("loads city data and serializes developers without changing the public shape", async () => {
     const admin = new FakeSupabaseClient({
       developers: [
@@ -114,6 +133,10 @@ describe("CityService", () => {
 
 
 describe("CityService query failures", () => {
+  beforeEach(() => {
+    clearCityCache();
+  });
+
   const emptyRows = {
     developers: [],
     city_stats: [{ total_developers: 0, total_contributions: 0 }],
