@@ -10,6 +10,11 @@ import {
 import type { RaidBoostItem } from "@/lib/raid";
 import { findRaidAttackerForUser } from "@/lib/raid-attacker";
 import { getIsoWeekStart } from "@/lib/week";
+import {
+  buildRaidOffensiveItems,
+  buildRaidVehicleOptions,
+  resolveRaidLoadoutSelection,
+} from "@/lib/raid-planner";
 
 type RaidDefender = {
   id: number;
@@ -214,40 +219,17 @@ export async function POST(request: Request) {
     };
   });
 
-  // Build available vehicles list (always includes default airplane)
-  const VEHICLE_META: Record<string, { name: string; emoji: string; type: string }> = {
-    airplane: { name: "Airplane", emoji: "✈️", type: "air" },
-    raid_helicopter: { name: "Helicopter", emoji: "🚁", type: "air" },
-    raid_drone: { name: "Stealth Drone", emoji: "🛸", type: "air" },
-    raid_rocket: { name: "Rocket", emoji: "🚀", type: "air" },
-    raid_b2_bomber: { name: "B-2 Bomber", emoji: "🛩️", type: "air" },
-    raid_ufo: { name: "UFO", emoji: "👽", type: "air" },
-    vehicle_tank: { name: "Heavy Tank", emoji: "🛡️", type: "ground" },
-  };
-
   const ownedVehicleIds = new Set((vehiclePurchases ?? []).map((p) => p.item_id));
-  const available_vehicles = [
-    { item_id: "airplane", name: "Airplane", emoji: "✈️" },
-    { item_id: "raid_helicopter", name: "Helicopter", emoji: "🚁" },
-    { item_id: "vehicle_tank", name: "Heavy Tank", emoji: "🛡️" },
-    { item_id: "raid_b2_bomber", name: "B-2 Bomber", emoji: "🛩️" },
-    ...Array.from(ownedVehicleIds)
-      .filter((id) => VEHICLE_META[id] && id !== "raid_helicopter" && id !== "vehicle_tank" && id !== "raid_b2_bomber")
-      .map((id) => ({ item_id: id, ...VEHICLE_META[id] })),
-  ];
+  const available_vehicles = buildRaidVehicleOptions(ownedVehicleIds);
 
   // Use saved selection, fallback to airplane
-  const savedLoadout = (raidLoadoutRow?.config as { vehicle?: string } | null) ?? {};
-  let vehicle = savedLoadout.vehicle ?? "airplane";
-  if (
-    vehicle !== "airplane" &&
-    vehicle !== "raid_helicopter" &&
-    vehicle !== "vehicle_tank" &&
-    vehicle !== "raid_b2_bomber" &&
-    !ownedVehicleIds.has(vehicle)
-  ) {
-    vehicle = "airplane";
-  }
+  const savedLoadout = (raidLoadoutRow?.config as { vehicle?: string; tag?: string } | null) ?? {};
+  const { vehicle } = resolveRaidLoadoutSelection({
+    savedVehicle: savedLoadout.vehicle ?? "airplane",
+    savedTag: savedLoadout.tag ?? "default",
+    ownedItemIds: ownedVehicleIds,
+    xpLevel: attacker.xp_level ?? 1,
+  });
 
   // Calculate scores
   const attack = calculateAttackScore({
@@ -265,21 +247,8 @@ export async function POST(request: Request) {
   );
 
   // Compute available offensive consumables (must have qty > 0 and < 3 weekly uses)
-  const currentWeekStr = getIsoWeekStart().toISOString().split('T')[0];
-  const availableOffensiveItems = (offensiveConsumables ?? []).filter(c => {
-    if (c.quantity <= 0) return false;
-    const lastReset = c.last_reset_week ? new Date(c.last_reset_week).toISOString().split('T')[0] : null;
-    const weeklyUses = lastReset === currentWeekStr ? c.weekly_uses : 0;
-    return weeklyUses < 3;
-  }).map(c => {
-    const lastReset = c.last_reset_week ? new Date(c.last_reset_week).toISOString().split('T')[0] : null;
-    const weeklyUses = lastReset === currentWeekStr ? c.weekly_uses : 0;
-    return {
-      item_id: c.item_id,
-      quantity: c.quantity,
-      uses_left_this_week: 3 - weeklyUses,
-    };
-  });
+  const currentWeekStr = getIsoWeekStart().toISOString().split("T")[0];
+  const availableOffensiveItems = buildRaidOffensiveItems(offensiveConsumables ?? [], currentWeekStr);
 
   return NextResponse.json({
     can_raid: true,
