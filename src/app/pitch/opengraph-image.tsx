@@ -96,3 +96,5 @@ export default async function Image() {
     }
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
