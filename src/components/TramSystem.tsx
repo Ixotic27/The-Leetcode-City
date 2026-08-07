@@ -4,15 +4,19 @@ import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { DISTRICT_ORIGINS } from "@/lib/github";
+import { useCity } from "@/context/CityContext";
 
 interface LocalTramProps {
   center: [number, number, number];
   color: string;
   radius?: number;
   speed?: number;
+  reducedMotion?: boolean;
 }
 
-function LocalTramLoop({ center, color, radius = 62, speed = 0.25 }: LocalTramProps) {
+function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion: propReducedMotion }: LocalTramProps) {
+  const cityContext = useCity();
+  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
   const tramRef = useRef<THREE.Group>(null);
 
   // Pre-calculate track segment lines (for visual details)
@@ -57,7 +61,7 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25 }: LocalTramPr
   }, [radius]);
 
   useFrame(({ clock }) => {
-    if (!tramRef.current) return;
+    if (!tramRef.current || reducedMotion) return;
     const time = clock.getElapsedTime() * speed;
     const x = Math.cos(time) * radius;
     const z = Math.sin(time) * radius;
@@ -114,20 +118,20 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25 }: LocalTramPr
   );
 }
 
-export default function TramSystem() {
+export default function TramSystem({ reducedMotion }: { reducedMotion?: boolean } = {}) {
   const o = DISTRICT_ORIGINS;
 
   // We place a local tram loop around each city's plaza center (origins)
   return (
     <group>
-      {o.downtown && <LocalTramLoop center={o.downtown} color="#ffa116" radius={150} speed={0.10} />}
-      {o.frontend && <LocalTramLoop center={o.frontend} color="#34d399" radius={155} speed={0.12} />}
-      {o.backend && <LocalTramLoop center={o.backend} color="#60a5fa" radius={148} speed={0.11} />}
-      {o.fullstack && <LocalTramLoop center={o.fullstack} color="#f472b6" radius={152} speed={0.09} />}
-      {o.mobile && <LocalTramLoop center={o.mobile} color="#a7f3d0" radius={150} speed={0.13} />}
-      {o.devops && <LocalTramLoop center={o.devops} color="#f87171" radius={154} speed={0.11} />}
-      {o.data_ai && <LocalTramLoop center={o.data_ai} color="#22d3ee" radius={149} speed={0.10} />}
-      {o.security && <LocalTramLoop center={o.security} color="#818cf8" radius={153} speed={0.12} />}
+      {o.downtown && <LocalTramLoop center={o.downtown} color="#ffa116" radius={150} speed={0.10} reducedMotion={reducedMotion} />}
+      {o.frontend && <LocalTramLoop center={o.frontend} color="#34d399" radius={155} speed={0.12} reducedMotion={reducedMotion} />}
+      {o.backend && <LocalTramLoop center={o.backend} color="#60a5fa" radius={148} speed={0.11} reducedMotion={reducedMotion} />}
+      {o.fullstack && <LocalTramLoop center={o.fullstack} color="#f472b6" radius={152} speed={0.09} reducedMotion={reducedMotion} />}
+      {o.mobile && <LocalTramLoop center={o.mobile} color="#a7f3d0" radius={150} speed={0.13} reducedMotion={reducedMotion} />}
+      {o.devops && <LocalTramLoop center={o.devops} color="#f87171" radius={154} speed={0.11} reducedMotion={reducedMotion} />}
+      {o.data_ai && <LocalTramLoop center={o.data_ai} color="#22d3ee" radius={149} speed={0.10} reducedMotion={reducedMotion} />}
+      {o.security && <LocalTramLoop center={o.security} color="#818cf8" radius={153} speed={0.12} reducedMotion={reducedMotion} />}
     </group>
   );
 }

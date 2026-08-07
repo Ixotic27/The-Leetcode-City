@@ -3,6 +3,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useCity } from '@/context/CityContext';
 
 type RainParticlesProps = {
   dropCount?: number;
@@ -10,6 +11,7 @@ type RainParticlesProps = {
   windX?: number;
   areaSize?: number;
   height?: number;
+  reducedMotion?: boolean;
 };
 
 export function RainParticles({
@@ -18,7 +20,10 @@ export function RainParticles({
   windX = 0.5,
   areaSize = 400,
   height = 200,
+  reducedMotion: propReducedMotion,
 }: RainParticlesProps) {
+  const cityContext = useCity();
+  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
   const pointsRef = useRef<THREE.Points>(null);
   const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
    
@@ -47,7 +52,7 @@ export function RainParticles({
   );
 
   useFrame((state) => {
-    if (shaderMaterialRef.current) {
+    if (shaderMaterialRef.current && !reducedMotion) {
       shaderMaterialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
     }
 

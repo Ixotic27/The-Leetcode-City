@@ -510,7 +510,7 @@ export function JungleCorridor({ start: startCoords, end: endCoords }: BridgePro
 }
 
 // ─── Main Connections Assembly ──────────────────────────────────
-export default function InterCityConnections() {
+export default function InterCityConnections({ reducedMotion }: { reducedMotion?: boolean } = {}) {
   const connections = useMemo(() => {
     const list: React.ReactNode[] = [];
 

@@ -3,6 +3,7 @@
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { useCity } from "@/context/CityContext";
 
 /**
  * Lightweight animated water surface.
@@ -34,6 +35,8 @@ export function WaterPlane({
   segments = 8,
   renderOrder = -1,
 }: WaterPlaneProps) {
+  const cityContext = useCity();
+  const reducedMotion = cityContext?.reducedMotion ?? false;
   const matRef = useRef<THREE.ShaderMaterial>(null);
 
   const mat = useMemo(
@@ -89,7 +92,7 @@ export function WaterPlane({
   );
 
   useFrame(({ clock }) => {
-    if (matRef.current) {
+    if (matRef.current && !reducedMotion) {
       matRef.current.uniforms.uTime.value = clock.elapsedTime;
     }
   });

@@ -81,12 +81,16 @@ const ShimmerShader = {
 
 // --- 3. SUB-COMPONENTS ---
 
+import { useCity } from "@/context/CityContext";
+
 /**
  * HeatShimmerPlane
  * Generates a bounded ground-volume mesh executing the displacement shader.
  */
 const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const cityContext = useCity();
+  const reducedMotion = cityContext?.reducedMotion ?? false;
   
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -95,7 +99,7 @@ const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   }), [intensity]);
 
   useFrame((state) => {
-    if (meshRef.current) {
+    if (meshRef.current && !reducedMotion) {
       const mat = meshRef.current.material as THREE.ShaderMaterial;
       mat.uniforms.uTime.value = state.clock.getElapsedTime();
     }

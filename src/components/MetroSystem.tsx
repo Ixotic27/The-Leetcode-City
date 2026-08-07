@@ -4,6 +4,7 @@ import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { DISTRICT_ORIGINS } from "@/lib/github";
+import { useCity } from "@/context/CityContext";
 
 interface TrackSegment {
   start: THREE.Vector3;
@@ -58,11 +59,7 @@ function MetroStation({ position }: MetroStationProps) {
       {[-1, 1].map((side) => (
         <group key={`platform-edge-${side}`}>
           <mesh position={[side * 21.7, 40.45, 0]}>
-            <boxGeometry args={[1.1, 0.9, 90]} />
-            <meshStandardMaterial color="#c7c9ce" roughness={0.75} />
-          </mesh>
-          <mesh position={[side * 19.9, 40.08, 0]}>
-            <boxGeometry args={[1.4, 0.16, 86]} />
+            <boxGeometry args={[1.5, 0.9, 90]} />
             <meshStandardMaterial
               color="#ffa116"
               emissive="#ffa116"
@@ -133,9 +130,12 @@ function MetroStation({ position }: MetroStationProps) {
 interface TrainProps {
   segment: TrackSegment;
   speedMultiplier?: number;
+  reducedMotion?: boolean;
 }
 
-function MetroTrain({ segment, speedMultiplier = 1.0 }: TrainProps) {
+function MetroTrain({ segment, speedMultiplier = 1.0, reducedMotion: propReducedMotion }: TrainProps) {
+  const cityContext = useCity();
+  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
   const trainRef = useRef<THREE.Group>(null);
   
   const dir = useMemo(() => new THREE.Vector3().subVectors(segment.end, segment.start), [segment]);
@@ -144,7 +144,7 @@ function MetroTrain({ segment, speedMultiplier = 1.0 }: TrainProps) {
   const angle = useMemo(() => Math.atan2(dir.x, dir.z), [dir]);
 
   useFrame(({ clock }) => {
-    if (!trainRef.current) return;
+    if (!trainRef.current || reducedMotion) return;
     
     // Train cycle loop: speed up, glide, slow down at station
     const time = clock.getElapsedTime() * 0.08 * speedMultiplier;
@@ -198,7 +198,7 @@ function MetroTrain({ segment, speedMultiplier = 1.0 }: TrainProps) {
 }
 
 // ─── Main Elevated Track & Pillars Assembly ───────────────────────
-export default function MetroSystem() {
+export default function MetroSystem({ reducedMotion }: { reducedMotion?: boolean } = {}) {
   const o = DISTRICT_ORIGINS;
 
   // Define elevated track paths (Y=40)
@@ -296,7 +296,7 @@ export default function MetroSystem() {
 
       {/* Animated Metro Trains running on the track segments */}
       {trackSegments.map((seg, idx) => (
-        <MetroTrain key={`train-${idx}`} segment={seg} speedMultiplier={idx % 2 === 0 ? 1.0 : 1.2} />
+        <MetroTrain key={`train-${idx}`} segment={seg} speedMultiplier={idx % 2 === 0 ? 1.0 : 1.2} reducedMotion={reducedMotion} />
       ))}
     </group>
   );
