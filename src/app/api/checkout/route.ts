@@ -7,6 +7,7 @@ import { createCashfreeCheckout } from "@/lib/cashfree";
 import { rateLimit } from "@/lib/rate-limit";
 
 import { createAtomicCheckoutPurchase, autoEquipIfSolo } from "@/lib/items";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 
 // Defense-in-depth: per-user rate limit IN ADDITION to the IP-based
 // middleware rate limit.  This one is keyed by Supabase user ID so it
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const ownershipResolver = new OwnershipResolver();
 
   // Validate user has claimed building
   const { data: dev } = await sb
@@ -102,30 +104,7 @@ export async function POST(request: Request) {
     }
 
     // Check receiver doesn't already own this item (bought or gifted)
-    const { data: receiverOwnsBought } = await sb
-      .from("purchases")
-      .select("id, amount_cents, provider")
-      .eq("developer_id", receiver.id)
-      .is("gifted_to", null)
-      .eq("item_id", item_id)
-      .eq("status", "completed");
-
-    const realReceiverBought = (receiverOwnsBought ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
-    );
-
-    const { data: receiverOwnsGifted } = await sb
-      .from("purchases")
-      .select("id, amount_cents, provider")
-      .eq("gifted_to", receiver.id)
-      .eq("item_id", item_id)
-      .eq("status", "completed");
-
-    const realReceiverGifted = (receiverOwnsGifted ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
-    );
-
-    if (realReceiverBought || realReceiverGifted) {
+    if (await ownershipResolver.ownsItem(receiver.id, item_id)) {
       return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
     }
 
@@ -224,18 +203,7 @@ export async function POST(request: Request) {
   } else if (!isConsumable && !giftedToDevId) {
     // Non-consumable, non-billboard, non-gift items: check if buyer already owns it
     // Exclude dev-mode purchases (amount_cents=0) so real purchases can proceed
-    const { data: existingPurchases } = await sb
-      .from("purchases")
-      .select("id, amount_cents, provider")
-      .or(`and(developer_id.eq.${dev.id},gifted_to.is.null),gifted_to.eq.${dev.id}`)
-      .eq("item_id", item_id)
-      .eq("status", "completed");
-
-    const realPurchase = (existingPurchases ?? []).find(
-      (p) => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider))
-    );
-
-    if (realPurchase) {
+    if (await ownershipResolver.ownsItem(dev.id, item_id)) {
       return NextResponse.json({ error: "Already owned" }, { status: 409 });
     }
   }
