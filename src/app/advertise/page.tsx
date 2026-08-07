@@ -369,3 +369,5 @@ export default async function AdvertisePage() {
     </main>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
