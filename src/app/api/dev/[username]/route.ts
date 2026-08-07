@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
 import { validateParams, validateQuery } from "@/lib/validation";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 
 export const dynamic = "force-dynamic";
 
@@ -403,18 +404,7 @@ export async function GET(
   }
 
   
-  const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
-    sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("developer_id", upserted.id)
-      .is("gifted_to", null)
-      .eq("status", "completed"),
-    sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("gifted_to", upserted.id)
-      .eq("status", "completed"),
+  const [customizationsResult, raidTagsResult] = await Promise.all([
     sb
       .from("developer_customizations")
       .select("item_id, config")
@@ -427,14 +417,8 @@ export async function GET(
       .eq("active", true),
   ]);
 
-  const ownedItems = [
-    ...(purchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
-    ...(giftPurchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
-  ];
+  const ownershipResolver = new OwnershipResolver();
+  const ownedItems = await ownershipResolver.listOwnedItems(upserted.id);
 
   const customColor = (customizationsResult.data ?? []).find(c => c.item_id === "custom_color")?.config?.color ?? null;
   const billboardConfig = (customizationsResult.data ?? []).find(c => c.item_id === "billboard")?.config;

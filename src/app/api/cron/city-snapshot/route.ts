@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { buildDeveloperProjection } from "@/services/cityProjection";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 
 const STORAGE_BUCKET = "city-data";
 const STORAGE_PATH = "snapshot.json";
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
   await sb.storage.createBucket(STORAGE_BUCKET, { public: true }).catch(() => {});
 
   // Fetch everything in parallel
-  const [devs, purchases, giftPurchases, customizations, achievements, raidTags, statsResult] =
+  const [devs, customizations, achievements, raidTags, statsResult] =
     await Promise.all([ 
       fetchAll<DeveloperRow>(
         sb,
@@ -104,18 +105,6 @@ export async function GET(request: NextRequest) {
         "id, github_login, name, avatar_url, contributions, total_stars, public_repos, primary_language, rank, claimed, kudos_count, visit_count, contributions_total, contribution_years, total_prs, total_reviews, repos_contributed_to, followers, following, organizations_count, account_created_at, current_streak, active_days_last_year, language_diversity, app_streak, rabbit_completed, district, district_chosen, xp_total, xp_level, raid_xp",
         undefined,
         "rank",
-      ),
-      fetchAll<{ developer_id: number; item_id: string; provider: string; amount_cents: number }>(
-        sb,
-        "purchases",
-        "developer_id, item_id, provider, amount_cents",
-        (q) => q.is("gifted_to", null).eq("status", "completed"),
-      ),
-      fetchAll<{ gifted_to: number; item_id: string; provider: string; amount_cents: number }>(
-        sb,
-        "purchases",
-        "gifted_to, item_id, provider, amount_cents",
-        (q) => q.not("gifted_to", "is", null).eq("status", "completed"),
       ),
       fetchAll<{ developer_id: number; item_id: string; config: Record<string, unknown> }>(
         sb,
@@ -137,20 +126,8 @@ export async function GET(request: NextRequest) {
       sb.from("city_stats").select("*").eq("id", 1).single(),
     ]);
 
-  // Build owned items map
-  const ownedItemsMap: Record<number, string[]> = {};
-  for (const row of purchases) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
-      continue;
-    }
-    (ownedItemsMap[row.developer_id] ??= []).push(row.item_id);
-  }
-  for (const row of giftPurchases) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
-      continue;
-    }
-    (ownedItemsMap[row.gifted_to] ??= []).push(row.item_id);
-  }
+  const resolver = new OwnershipResolver();
+  const ownedItemsMap = await resolver.buildOwnedItemsMap(devs.map((dev) => dev.id));
 
   // Build customization maps
   const customColorMap: Record<number, string> = {};

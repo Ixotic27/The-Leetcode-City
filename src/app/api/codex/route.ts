@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -61,29 +62,8 @@ export async function GET() {
       .eq("developer_id", dev.id);
     const unlockedAchievements = (unlockedAchievementsData ?? []).map(r => r.achievement_id);
 
-    // Fetch user's owned items (purchases completed)
-    const { data: directPurchases } = await sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("developer_id", dev.id)
-      .is("gifted_to", null)
-      .eq("status", "completed");
-    const { data: giftedPurchases } = await sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("gifted_to", dev.id)
-      .eq("status", "completed");
-
-    const ownedItems = Array.from(
-      new Set([
-        ...(directPurchases ?? [])
-          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-          .map(p => p.item_id),
-        ...(giftedPurchases ?? [])
-          .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-          .map(p => p.item_id)
-      ])
-    );
+    const ownershipResolver = new OwnershipResolver();
+    const ownedItems = Object.values(await ownershipResolver.buildOwnedItemsMap([dev.id]))[0] ?? [];
 
     // Fetch user's Arena Inventory items (for Arena Badges/Customizations)
     const { data: arenaInvData } = await sb
