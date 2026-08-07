@@ -136,8 +136,13 @@ export default function MiniMap({ buildings, playerX, playerZ, visible, currentD
 
   if (!visible || buildings.length === 0) return null;
 
+  // Only show districts that are present in the current city
+  const activeDistricts = Object.keys(DISTRICT_RGB).filter((d) =>
+    buildings.some((b) => b.district === d)
+  );
+
   return (
-    <div className="pointer-events-none fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
+    <div className="pointer-events-none fixed bottom-3 right-3 z-30 sm:bottom-4 sm:right-4 flex flex-col items-end gap-1">
       <canvas
         ref={canvasRef}
         width={RES}
@@ -149,6 +154,57 @@ export default function MiniMap({ buildings, playerX, playerZ, visible, currentD
           border: "1px solid rgba(42, 42, 48, 0.4)",
         }}
       />
+      {/* District legend */}
+      <div
+        style={{
+          width: DISPLAY,
+          backgroundColor: "rgba(5, 5, 7, 0.85)",
+          border: "1px solid rgba(42, 42, 48, 0.4)",
+          padding: "4px 6px",
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "2px 6px",
+        }}
+      >
+        {activeDistricts.map((d) => {
+          const [r, g, b] = DISTRICT_RGB[d];
+          const isActive = d === currentDistrict;
+          return (
+            <div
+              key={d}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                opacity: isActive ? 1 : 0.5,
+              }}
+            >
+              <div
+                style={{
+                  width: 6,
+                  height: 6,
+                  flexShrink: 0,
+                  backgroundColor: `rgb(${r},${g},${b})`,
+                  imageRendering: "pixelated",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 7,
+                  fontFamily: "monospace",
+                  textTransform: "uppercase",
+                  color: isActive ? `rgb(${r},${g},${b})` : "#606070",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {d.replace("_", " ")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
