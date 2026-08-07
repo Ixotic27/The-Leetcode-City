@@ -1,6 +1,13 @@
 import { coordinateRewardSideEffects } from "@/lib/rewardCoordinator";
 import { getDailyMissions, getTodayStr, MISSIONS_BY_ID, type Mission } from "@/lib/dailies";
+import { rateLimit } from "@/lib/rate-limit";
+import { ITEM_NAMES } from "@/lib/zones";
+import { touchLastActive } from "@/lib/notification-helpers";
+import { sendStreakMilestoneNotification } from "@/lib/notification-senders/streak";
+import { sendStreakBrokenNotification } from "@/lib/notification-senders/streak-broken";
+import { fetchLeetCodeWeeklySubmissions } from "@/lib/leetcode";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { InventoryEconomyService } from "@/services/inventoryEconomyService";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export class DailyMissionServiceError extends Error {
@@ -21,6 +28,8 @@ export type DailyMissionDeveloper = {
   public_repos?: number | null;
   total_stars?: number | null;
   kudos_count?: number | null;
+  app_streak?: number | null;
+  streak_freeze_30d_claimed?: boolean | null;
   dailies_completed?: number | null;
   dailies_streak?: number | null;
   last_dailies_date?: string | null;
@@ -66,11 +75,246 @@ export type DailyMissionClaimPayload = {
   today?: string;
 };
 
+export type DailyCheckinResponse = {
+  checked_in: boolean;
+  already_today: boolean;
+  streak: number;
+  longest: number;
+  was_frozen: boolean;
+  new_achievements: string[];
+  unseen_count: number;
+  kudos_since_last: number;
+  raids_since_last: Array<{ attacker_login: string; success: boolean; created_at: string }>;
+  streak_reward: { milestone: number; item_id: string; item_name: string } | null;
+  xp: { granted: number; new_total: number; new_level: number } | null;
+};
+
+// A12: Streak reward milestones — {milestone: days, pool: item_ids to pick from}
+const STREAK_MILESTONES: Array<{ milestone: number; pool: string[] }> = [
+  { milestone: 3, pool: ["flag"] },
+  { milestone: 7, pool: ["satellite_dish", "antenna_array", "rooftop_garden", "neon_trim"] },
+  { milestone: 14, pool: ["neon_outline", "rooftop_fire", "hologram_ring"] },
+  { milestone: 30, pool: ["lightning_aura", "pool_party", "crown_item"] },
+];
+
 export class DailyMissionService {
   private readonly admin: SupabaseClient;
 
   constructor(admin?: SupabaseClient) {
     this.admin = admin ?? getSupabaseAdmin();
+  }
+
+  async checkIn(userId: string): Promise<DailyCheckinResponse> {
+    const developer = await this.loadCheckinDeveloper(userId);
+    if (!developer) {
+      throw new DailyMissionServiceError(
+        "Your LeetCode stats are still being synced. Please check back in a few minutes!",
+        403,
+      );
+    }
+
+    if (!developer.claimed) {
+      throw new DailyMissionServiceError("Must claim building first", 403);
+    }
+
+    const githubLogin = developer.github_login ?? "";
+
+    const { data: result, error: rpcError } = await this.admin.rpc("perform_checkin", {
+      p_developer_id: developer.id,
+    });
+
+    if (rpcError) {
+      console.error("perform_checkin RPC error:", rpcError);
+      throw new DailyMissionServiceError("Check-in failed", 500);
+    }
+
+    const checkinResult = result as {
+      checked_in: boolean;
+      already_today?: boolean;
+      streak: number;
+      longest: number;
+      was_frozen?: boolean;
+      error?: string;
+    };
+
+    if (checkinResult.error) {
+      throw new DailyMissionServiceError(checkinResult.error, 400);
+    }
+
+    if (checkinResult.checked_in) {
+      const { ok: successOk } = await rateLimit(`checkin:success:${userId}`, 1, 10_000);
+      if (!successOk) {
+        throw new DailyMissionServiceError("Check-in already processed", 429);
+      }
+    }
+
+    await touchLastActive(developer.id);
+    await this.trackMissionProgress(developer.id, "checkin");
+
+    const previousStreak = developer.app_streak ?? 0;
+    if (
+      checkinResult.checked_in &&
+      checkinResult.streak === 1 &&
+      previousStreak >= 7 &&
+      !checkinResult.was_frozen
+    ) {
+      const today = getTodayStr();
+      sendStreakBrokenNotification(developer.id, githubLogin, previousStreak, today);
+    }
+
+    let newAchievements: string[] = [];
+    let streakReward: { milestone: number; item_id: string; item_name: string } | null = null;
+    let xpResult: { granted: number; new_total: number; new_level: number } | null = null;
+
+    const today = getTodayStr();
+
+    if (checkinResult.checked_in) {
+      const { error: xpLogError } = await this.admin
+        .from("checkin_xp_log")
+        .insert({ developer_id: developer.id, granted_date: today })
+        .select("id")
+        .maybeSingle();
+
+      if (!xpLogError) {
+        const { data: xpData } = await this.admin.rpc("grant_xp_atomic", {
+          p_developer_id: developer.id,
+          p_source: "checkin",
+          p_amount: 10,
+        });
+        if (xpData) xpResult = xpData as { granted: number; new_total: number; new_level: number };
+
+        const eventDate = getTodayStr();
+        const coordinationResult = await coordinateRewardSideEffects(this.admin as never, {
+          developerId: developer.id,
+          actorLogin: githubLogin,
+          stats: {
+            contributions: developer.contributions ?? 0,
+            public_repos: developer.public_repos ?? 0,
+            total_stars: developer.total_stars ?? 0,
+            referral_count: 0,
+            kudos_count: developer.kudos_count ?? 0,
+            gifts_sent: 0,
+            gifts_received: 0,
+            app_streak: checkinResult.streak,
+            easy_solved: developer.easy_solved ?? 0,
+            medium_solved: developer.medium_solved ?? 0,
+            hard_solved: developer.hard_solved ?? 0,
+            contest_rating: developer.contest_rating ?? 0,
+            lc_streak: developer.lc_streak ?? 0,
+            total_prs: developer.total_prs ?? 0,
+          },
+          xpGrants: [],
+          feedEvent: {
+            event_type: "streak_checkin",
+            metadata: {
+              login: githubLogin,
+              streak: checkinResult.streak,
+              was_frozen: checkinResult.was_frozen ?? false,
+              reward: null,
+            },
+            actor_id: developer.id,
+            event_date: eventDate,
+            upsert: true,
+            onConflict: "actor_id,event_type,event_date",
+            ignoreDuplicates: true,
+          },
+        });
+        newAchievements = coordinationResult.newAchievements;
+      } else if (!xpLogError.code?.includes("23505")) {
+        console.error("[checkin] checkin_xp_log insert error:", xpLogError);
+      }
+    }
+
+    if (checkinResult.checked_in) {
+      if (checkinResult.streak >= 30 && !developer.streak_freeze_30d_claimed) {
+        await this.admin.rpc("grant_streak_freeze", { p_developer_id: developer.id });
+        await this.admin.from("developers").update({ streak_freeze_30d_claimed: true }).eq("id", developer.id);
+        await this.admin.from("streak_freeze_log").upsert(
+          { developer_id: developer.id, action: "granted_milestone", granted_date: today },
+          { onConflict: "developer_id,action,granted_date", ignoreDuplicates: true },
+        );
+      }
+
+      streakReward = await this.grantStreakReward(developer.id, checkinResult.streak);
+
+      if ([7, 30, 100, 365].includes(checkinResult.streak)) {
+        sendStreakMilestoneNotification(
+          developer.id,
+          githubLogin,
+          checkinResult.streak,
+          checkinResult.longest,
+          streakReward?.item_name,
+        );
+      }
+
+      if (streakReward) {
+        const eventDate = getTodayStr();
+        await this.admin.from("activity_feed").update({
+          metadata: {
+            login: githubLogin,
+            streak: checkinResult.streak,
+            was_frozen: checkinResult.was_frozen ?? false,
+            reward: streakReward.item_id,
+          },
+        })
+          .eq("actor_id", developer.id)
+          .eq("event_type", "streak_checkin")
+          .eq("event_date", eventDate);
+      }
+    }
+
+    const weeklyContribs = await fetchWeeklyContributions(githubLogin);
+    if (weeklyContribs !== null) {
+      await this.admin.from("developers").update({ current_week_contributions: weeklyContribs }).eq("id", developer.id);
+    }
+
+    const { count: unseenCount } = await this.admin
+      .from("developer_achievements")
+      .select("achievement_id", { count: "exact", head: true })
+      .eq("developer_id", developer.id)
+      .eq("seen", false);
+
+    const { data: recentKudos } = await this.admin
+      .from("developer_kudos")
+      .select("giver_id, given_date")
+      .eq("receiver_id", developer.id)
+      .order("given_date", { ascending: false })
+      .limit(10);
+
+    let raidsSinceLast: Array<{ attacker_login: string; success: boolean; created_at: string }> = [];
+    try {
+      const lastCheckin = developer.last_checkin_date as string | null;
+      const { data: recentRaids } = await this.admin
+        .from("raids")
+        .select("attacker_id, success, created_at, attacker:developers!raids_attacker_id_fkey(github_login)")
+        .eq("defender_id", developer.id)
+        .gt("created_at", lastCheckin ?? "1970-01-01")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      raidsSinceLast = (recentRaids ?? []).map((raid) => ({
+        attacker_login:
+          (raid.attacker as unknown as { github_login: string })?.github_login ?? "unknown",
+        success: raid.success,
+        created_at: raid.created_at,
+      }));
+    } catch (error) {
+      console.warn("[dailyMissionService] non-critical raids query error:", error);
+    }
+
+    return {
+      checked_in: checkinResult.checked_in,
+      already_today: checkinResult.already_today ?? false,
+      streak: checkinResult.streak,
+      longest: checkinResult.longest,
+      was_frozen: checkinResult.was_frozen ?? false,
+      new_achievements: newAchievements,
+      unseen_count: unseenCount ?? 0,
+      kudos_since_last: recentKudos?.length ?? 0,
+      raids_since_last: raidsSinceLast,
+      streak_reward: streakReward,
+      xp: xpResult,
+    };
   }
 
   async loadMissionSummary(developer: DailyMissionDeveloper, options?: { isMobile?: boolean; today?: string }): Promise<DailyMissionSummary> {
@@ -282,4 +526,93 @@ export class DailyMissionService {
       getDailyMissions(developerId, today, isMobile).find((m) => m.id === missionId)
     ) ?? null;
   }
+
+  private async loadCheckinDeveloper(userId: string): Promise<DailyMissionDeveloper | null> {
+    const { data: devData } = await this.admin
+      .from("developers")
+      .select(
+        "id, github_login, claimed, contributions, public_repos, total_stars, kudos_count, app_streak, streak_freeze_30d_claimed, last_checkin_date",
+      )
+      .eq("claimed_by", userId)
+      .single();
+
+    let developer: DailyMissionDeveloper | null = devData;
+
+    try {
+      const { data: v2Data, error: v2Err } = await this.admin
+        .from("developers")
+        .select("easy_solved, medium_solved, hard_solved, contest_rating, lc_streak, total_prs")
+        .eq("claimed_by", userId)
+        .maybeSingle();
+      if (!v2Err && developer && v2Data) {
+        developer = { ...developer, ...v2Data };
+      }
+    } catch (error) {
+      console.error("[dailyMissionService] schema query failed:", error);
+    }
+
+    return developer;
+  }
+
+  private async grantStreakReward(
+    developerId: number,
+    streak: number,
+  ): Promise<{ milestone: number; item_id: string; item_name: string } | null> {
+    for (const tier of [...STREAK_MILESTONES].reverse()) {
+      if (streak < tier.milestone) continue;
+
+      const { data: existing } = await this.admin
+        .from("streak_rewards")
+        .select("id")
+        .eq("developer_id", developerId)
+        .eq("milestone", tier.milestone)
+        .maybeSingle();
+      if (existing) continue;
+
+      const { data: ownedRows } = await this.admin
+        .from("purchases")
+        .select("item_id")
+        .eq("developer_id", developerId)
+        .eq("status", "completed");
+      const ownedSet = new Set((ownedRows ?? []).map((row: { item_id: string }) => row.item_id));
+
+      const unowned = tier.pool.filter((id) => !ownedSet.has(id));
+      const itemId =
+        unowned.length > 0
+          ? unowned[Math.floor(Math.random() * unowned.length)]
+          : tier.pool[Math.floor(Math.random() * tier.pool.length)];
+
+      const { data: rewardInserted } = await this.admin
+        .from("streak_rewards")
+        .upsert(
+          { developer_id: developerId, milestone: tier.milestone, item_id: itemId },
+          { onConflict: "developer_id,milestone", ignoreDuplicates: true },
+        )
+        .select("id")
+        .maybeSingle();
+
+      if (!rewardInserted) continue;
+
+      const service = new InventoryEconomyService(this.admin);
+      await service.grantRewardItem({
+        developerId,
+        itemId,
+        providerTxId: `streak_reward_${tier.milestone}_${developerId}`,
+        supabaseClient: this.admin,
+      });
+
+      return {
+        milestone: tier.milestone,
+        item_id: itemId,
+        item_name: ITEM_NAMES[itemId] ?? itemId,
+      };
+    }
+
+    return null;
+  }
+}
+
+// Lightweight LeetCode fetch: only current week contributions
+async function fetchWeeklyContributions(login: string): Promise<number | null> {
+  return fetchLeetCodeWeeklySubmissions(login);
 }
