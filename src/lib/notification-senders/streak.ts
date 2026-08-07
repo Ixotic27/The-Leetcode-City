@@ -35,7 +35,7 @@ export function sendStreakMilestoneNotification(
         body: `${streak}-day streak! ${milestoneInfo.tagline}${rewardItemName ? ` Reward: ${rewardItemName}` : ""}`,
         html: `
           <div style="text-align: center;">
-            <p style="font-family: monospace; font-size: 28px; font-weight: bold; color: #ffa116; margin: 0; letter-spacing: 2px;">
+            <p style=" display: inline-block; padding: 8px 16px; margin: 0; border: 2px solid #ffa116; border-radius: 6px; background: #2a2a2a; color: #ffa116; font-family: monospace; font-size: 22px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">
               ${milestoneInfo.badge}
             </p>
             <p style="color: #ffa116; font-size: 24px; font-weight: bold; margin: 8px 0;">
