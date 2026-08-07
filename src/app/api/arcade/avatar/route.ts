@@ -52,7 +52,7 @@ export async function GET() {
   const admin = getSupabaseAdmin();
   const dev = auth.developer;
 
-  if (!dev || dev.id == null) {
+  if (!dev || dev.id === null) {
     return NextResponse.json(
       { error: "Developer not found" },
       { status: 404 },
