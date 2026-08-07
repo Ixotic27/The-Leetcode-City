@@ -163,3 +163,5 @@ export async function GET(req: NextRequest) {
     headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
   });
 }
+
+.catch(err => console.error("Promise.all failed:", err));
