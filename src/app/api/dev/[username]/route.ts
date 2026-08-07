@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
 import { validateParams, validateQuery } from "@/lib/validation";
+import { logApiError, newReqId } from "@/lib/api-logger";
 import { OwnershipResolver } from "@/services/ownershipResolver";
 
 export const dynamic = "force-dynamic";
@@ -115,7 +116,7 @@ const LC_HEADERS = {
 import { parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
 
-async function fetchLeetCodeUser(username: string) {
+async function fetchLeetCodeUser(username: string, reqId: string) {
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
 
@@ -155,17 +156,17 @@ async function fetchLeetCodeUser(username: string) {
       body: JSON.stringify({ query, variables: { username } }),
     });
     if (!res.ok) {
-      console.error(`[/api/dev] LeetCode responded ${res.status} for user "${username}"`);
+      logApiError({ reqId, route: "/api/dev/[username]", error: `LeetCode responded ${res.status} for user "${username}"` });
       return null;
     }
     const rawText = await res.text();
     let json: LeetCodeApiResponse;
     try { json = JSON.parse(rawText); } catch (err) { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
+      logApiError({ reqId, route: "/api/dev/[username]", error: err, message: `LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}` });
       return null;
     }
     if (!json?.data?.matchedUser) {
-      console.error(`[/api/dev] LeetCode returned no matchedUser for "${username}". Status: ${res.status}. firstErr:`, json?.errors?.[0]?.message);
+      logApiError({ reqId, route: "/api/dev/[username]", error: json?.errors?.[0]?.message ?? "LeetCode returned no matchedUser", message: `LeetCode returned no matchedUser for "${username}". Status: ${res.status}.` });
     }
     const apiData = json.data;
     if (apiData?.matchedUser) {
@@ -196,6 +197,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const resolvedParams = await params;
+  const reqId = newReqId();
   const paramVal = validateParams(resolvedParams, paramsSchema);
   if (!paramVal.success) {
     return paramVal.response;
@@ -229,10 +231,12 @@ export async function GET(
   
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
+  let authUserId: string | null = null;
   if (!cachedRecord) {
     const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     isAuthenticatedUser = !!auth.user;
+    authUserId = auth.user?.id ?? null;
     const key = auth.user ? `user:${auth.user.id}` : (
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
     );
@@ -252,7 +256,7 @@ export async function GET(
   let upserted = cachedRecord;
 
   if (!cachedRecord) {
-    const data = await fetchLeetCodeUser(username);
+    const data = await fetchLeetCodeUser(username, reqId);
     if (!data) {
       if (cached) {
         upserted = cached;
@@ -398,7 +402,7 @@ export async function GET(
           upserted.github_login,
         );
       } catch (err) {
-        console.error("[dev/[username]] achievement check failed:", err);
+        logApiError({ reqId, userId: authUserId, route: "/api/dev/[username]", error: err, message: "Achievement check failed" });
       }
     }
   }
