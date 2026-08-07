@@ -308,11 +308,19 @@ export async function GET(request: NextRequest) {
   const sb = getSupabaseAdmin();
   const results = { refreshed: 0, skipped: 0, failed: 0, users: [] as string[] };
 
-  // ── Discovery: insert new users from ranking page ──
-  // Rotate through pages using Unix hour as cursor — no DB state needed
-  const discoveryPage = (Math.floor(Date.now() / 3_600_000) % 50) + 1;
-  const discovered = await discoverAndInsertNewUsers(sb, discoveryPage);
-  console.log(`[lc-refresh] Discovery: ${discovered} new users inserted from page ${discoveryPage}`);
+  // ── Discovery: insert new users from ranking pages ──
+  // Rotate through pages using Unix hour as cursor — check current and next page
+  const page1 = (Math.floor(Date.now() / 3_600_000) % 50) + 1;
+  const page2 = (page1 % 50) + 1;
+
+  const discovered1 = await discoverAndInsertNewUsers(sb, page1);
+  const discovered2 = await discoverAndInsertNewUsers(sb, page2);
+
+  const totalDiscovered = discovered1 + discovered2;
+
+  console.log(
+    `[lc-refresh] Discovery: ${totalDiscovered} new users inserted from pages ${page1} and ${page2}`
+  );
 
   // ── Pick most-stale developers (claimed first, then unclaimed) ──
   const staleClaimedCutoff = new Date(Date.now() - 6 * 3600_000).toISOString();   // 6h
