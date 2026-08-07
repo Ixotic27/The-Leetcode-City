@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "./supabase";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { InfrastructureError } from "./errors";
 import { InventoryEconomyService } from "@/services/inventoryEconomyService";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -40,32 +41,8 @@ export type OwnedItems = string[];
 // ─── Helpers ─────────────────────────────────────────────────
 
 export async function getOwnedItems(developerId: number): Promise<string[]> {
-  const sb = getSupabaseAdmin();
-
-  // Items bought directly (not gifts to others)
-  const { data: ownData } = await sb
-    .from("purchases")
-    .select("item_id, provider, amount_cents")
-    .eq("developer_id", developerId)
-    .is("gifted_to", null)
-    .eq("status", "completed");
-
-  // Items received as gifts
-  const { data: giftData } = await sb
-    .from("purchases")
-    .select("item_id, provider, amount_cents")
-    .eq("gifted_to", developerId)
-    .eq("status", "completed");
-
-  const ownFiltered = (ownData ?? [])
-    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
-    .map((row) => row.item_id);
-
-  const giftFiltered = (giftData ?? [])
-    .filter(row => !(row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)))
-    .map((row) => row.item_id);
-
-  return [...ownFiltered, ...giftFiltered];
+  const resolver = new OwnershipResolver();
+  return resolver.listOwnedItems(developerId);
 }
 
 /** Item granted for free when a developer first claims their building. */
@@ -128,42 +105,8 @@ export async function autoEquipIfSolo(
 export async function getOwnedItemsForDevelopers(
   developerIds: number[]
 ): Promise<Record<number, string[]>> {
-  if (developerIds.length === 0) return {};
-
-  const sb = getSupabaseAdmin();
-
-  // Items bought directly (not gifts)
-  const { data: ownData } = await sb
-    .from("purchases")
-    .select("developer_id, item_id, provider, amount_cents")
-    .in("developer_id", developerIds)
-    .is("gifted_to", null)
-    .eq("status", "completed");
-
-  // Items received as gifts
-  const { data: giftData } = await sb
-    .from("purchases")
-    .select("gifted_to, item_id, provider, amount_cents")
-    .in("gifted_to", developerIds)
-    .eq("status", "completed");
-
-  const result: Record<number, string[]> = {};
-  for (const row of ownData ?? []) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
-      continue;
-    }
-    if (!result[row.developer_id]) result[row.developer_id] = [];
-    result[row.developer_id].push(row.item_id);
-  }
-  for (const row of giftData ?? []) {
-    if (row.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(row.provider)) {
-      continue;
-    }
-    const devId = row.gifted_to as number;
-    if (!result[devId]) result[devId] = [];
-    result[devId].push(row.item_id);
-  }
-  return result;
+  const resolver = new OwnershipResolver();
+  return resolver.buildOwnedItemsMap(developerIds);
 }
 
 /**
