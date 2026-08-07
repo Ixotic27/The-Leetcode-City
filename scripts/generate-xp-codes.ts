@@ -38,7 +38,7 @@ const note = getArg("note") ?? null;
 const expiresInput = getArg("expires");
 const expiresAt = expiresInput ? new Date(expiresInput).toISOString() : null;
 
-if (!amountStr || isNaN(parseInt(amountStr, 10))) {
+if (!amountStr || Number.isNaN(parseInt(amountStr, 10))) {
     console.error("❌ --amount is required. Example: --amount 500");
     process.exit(1);
 }
