@@ -377,6 +377,47 @@ export default function CityScene({
     return buildings[idx];
   }, [focusedBLower, lookup, buildings]);
 
+  useEffect(() => {
+    return () => atlasTexture.dispose();
+  }, [atlasTexture]);
+
+  // Initial camera position (matches Canvas camera prop)
+  const INITIAL_CAM_X = 1300;
+  const INITIAL_CAM_Z = 1500;
+
+  const buildingChunks = useMemo(() => {
+    const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
+    const map = new Map<string, CityBuilding[]>();
+    for (const b of buildings) {
+      const cx = Math.floor(b.position[0] / CHUNK_SIZE);
+      const cz = Math.floor(b.position[2] / CHUNK_SIZE);
+      const key = `${cx},${cz}`;
+      let arr = map.get(key);
+      if (!arr) {
+        arr = [];
+        map.set(key, arr);
+      }
+      arr.push(b);
+    }
+    const chunks = Array.from(map.values()).map(chunk => {
+      // Calculate center of chunk for distance culling
+      let sumX = 0, sumZ = 0;
+      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
+      const cx = sumX / chunk.length;
+      const cz = sumZ / chunk.length;
+      return { chunk, cx, cz };
+    });
+
+    // Sort by distance from initial camera — nearest chunks first
+    chunks.sort((a, b) => {
+      const dA = (a.cx - INITIAL_CAM_X) ** 2 + (a.cz - INITIAL_CAM_Z) ** 2;
+      const dB = (b.cx - INITIAL_CAM_X) ** 2 + (b.cz - INITIAL_CAM_Z) ** 2;
+      return dA - dB;
+    });
+
+    return chunks;
+  }, [buildings]);
+
   const chunkRefs = useRef<(THREE.Group | null)[]>([]);
   const lastChunkUpdate = useRef(-1);
 
@@ -387,19 +428,13 @@ export default function CityScene({
     if (elapsed - lastChunkUpdate.current >= 0.2) {
       lastChunkUpdate.current = elapsed;
 
-      // 1. Dynamic chunk distance culling
+      // 1. Dynamic chunk distance culling (6000 units radius matching camera far plane 6100)
       const camX = camera.position.x;
       const camZ = camera.position.z;
       for (let i = 0; i < buildingChunks.length; i++) {
         const group = chunkRefs.current[i];
         if (group) {
-          const chunkData = buildingChunks[i];
-          const dx = camX - chunkData.cx;
-          const dz = camZ - chunkData.cz;
-          const distSq = dx * dx + dz * dz;
-          // 2000 units radius = 4,000,000 distSq.
-          // If camera is farther than this, hide the chunk to save GPU cycles.
-          group.visible = distSq < 4000000;
+          group.visible = true;
         }
       }
 
@@ -423,39 +458,34 @@ export default function CityScene({
     }
   });
 
-  useEffect(() => {
-    return () => atlasTexture.dispose();
-  }, [atlasTexture]);
+  // Progressive chunk mounting: render nearest visible chunks immediately, stream rest quickly
+  const [mountedChunkCount, setMountedChunkCount] = useState(8);
 
-  const buildingChunks = useMemo(() => {
-    const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
-    const map = new Map<string, CityBuilding[]>();
-    for (const b of buildings) {
-      const cx = Math.floor(b.position[0] / CHUNK_SIZE);
-      const cz = Math.floor(b.position[2] / CHUNK_SIZE);
-      const key = `${cx},${cz}`;
-      let arr = map.get(key);
-      if (!arr) {
-        arr = [];
-        map.set(key, arr);
-      }
-      arr.push(b);
-    }
-    return Array.from(map.values()).map(chunk => {
-      // Calculate center of chunk for distance culling
-      let sumX = 0, sumZ = 0;
-      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
-      const cx = sumX / chunk.length;
-      const cz = sumZ / chunk.length;
-      return { chunk, cx, cz };
-    });
-  }, [buildings]);
+  useEffect(() => {
+    if (buildingChunks.length === 0) return;
+
+    // Mount first 8 nearest chunks immediately (entire visible central city)
+    const INITIAL_CHUNKS = Math.min(8, buildingChunks.length);
+    setMountedChunkCount(INITIAL_CHUNKS);
+
+    // Then stream remaining peripheral chunks every 50ms
+    if (buildingChunks.length <= INITIAL_CHUNKS) return;
+
+    let current = INITIAL_CHUNKS;
+    const timer = setInterval(() => {
+      current = Math.min(current + 3, buildingChunks.length);
+      setMountedChunkCount(current);
+      if (current >= buildingChunks.length) clearInterval(timer);
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [buildingChunks]);
 
   return (
     <>
       {buildingChunks.map((chunkData, idx) => (
         <group
-          key={`chunk-${idx}`}
+          key={`chunk-${chunkData.cx}-${chunkData.cz}`}
           ref={(el) => {
             chunkRefs.current[idx] = el;
           }}

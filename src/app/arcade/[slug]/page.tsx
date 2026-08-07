@@ -15,6 +15,7 @@ import type {
   ChatBubble,
   ChatLogEntry,
   Direction,
+  AvatarConfig,
 } from "@/lib/arcade/types";
 import { startGameLoop } from "@/lib/arcade/engine/gameLoop";
 import { loadSpritesheet, loadCozySprites, updateSpriteAnimation, resetSprites, loadPetSprites, resetPet, setActivePet, registerShopItems, setPlayerAvatar, preloadLoadout, getDefaultLoadout, loadoutToAvatar, type CozyLayer } from "@/lib/arcade/engine/sprites";
@@ -68,8 +69,6 @@ import type { GameResult } from "@/lib/arcade/types";
 import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
 import AvatarEditor from "@/components/arcade/AvatarEditor";
 import EditorMode from "@/components/arcade/EditorMode";
-import { MapBrowserModal } from "@/components/arcade/MapBrowserModal";
-import type { ArcadeCustomMap } from "@/lib/arcade/types";
 
 const REMOTE_PLAYER_SMOOTHING_MS = 180;
 const LERP_DURATION = REMOTE_PLAYER_SMOOTHING_MS / 1000;
@@ -290,7 +289,6 @@ export default function ArcadeRoomPage({
 
   // Avatar state
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [isMapBrowserOpen, setIsMapBrowserOpen] = useState(false);
 
   // Terminal state
   const [showTerminal, setShowTerminal] = useState(false);
@@ -686,13 +684,6 @@ export default function ArcadeRoomPage({
           (f: { sprite: string }) => f.sprite,
         );
         loadFurnitureSprites("/sprites/arcade", spriteKeys);
-      },
-      onMapStateChange(delta) {
-        if (mapRef.current) {
-          Object.assign(mapRef.current, delta);
-          loadMapFromData(mapRef.current);
-          buildLayerCaches(mapRef.current);
-        }
       },
       onGameAck(game: string) {
         // Forward to overlay via window global
@@ -1283,14 +1274,22 @@ export default function ArcadeRoomPage({
     });
     setTerminalLines((prev) => [...prev, ...lines]);
 
-    // Save new discovery to server
+    // Persist discovery only after a successful write
     if (discovery && !discoveriesRef.current.includes(discovery)) {
-      discoveriesRef.current.push(discovery);
       fetch("/api/arcade/discoveries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: discovery }),
-      }).catch(() => {});
+      })
+        .then(async (r) => {
+          if (!r.ok) return;
+          const data = (await r.json()) as { commands?: string[] };
+          discoveriesRef.current = data.commands ?? [
+            ...discoveriesRef.current,
+            discovery,
+          ];
+        })
+        .catch(() => {});
     }
   };
 
@@ -1951,14 +1950,6 @@ export default function ArcadeRoomPage({
                     >
                       Avatar
                     </button>
-                    <span className="text-[#c0bbb5]">|</span>
-                    <button
-                      onClick={() => setIsMapBrowserOpen(true)}
-                      className="cursor-pointer text-[11px] text-emerald-600 hover:text-emerald-700 transition-colors font-medium"
-                      title="Browse & load community maps"
-                    >
-                      Maps
-                    </button>
                     {isAdmin && (
                       <>
                         <span className="text-[#c0bbb5]">|</span>
@@ -2125,26 +2116,6 @@ export default function ArcadeRoomPage({
           </form>
         </div>
       )}
-
-      {/* Map Browser Modal */}
-      <MapBrowserModal
-        isOpen={isMapBrowserOpen}
-        onClose={() => setIsMapBrowserOpen(false)}
-        onSelectMap={(customMap: ArcadeCustomMap) => {
-          if (customMap.map_json) {
-            const map = customMap.map_json as unknown as GameMap;
-            loadMapFromData(map);
-            mapRef.current = map;
-            buildLayerCaches(map);
-            const spriteKeys = (map.furniture || []).map(
-              (f: { sprite: string }) => f.sprite,
-            );
-            loadFurnitureSprites("/sprites/arcade", spriteKeys);
-            setShowMessage(`Loaded map: ${customMap.name}`);
-            setTimeout(() => setShowMessage(null), 3000);
-          }
-        }}
-      />
     </div>
   );
 }

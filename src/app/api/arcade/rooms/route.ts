@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { parsePageParams } from "@/lib/parse-pagination";
 
 // GET /api/arcade/rooms — list rooms with search, category, pagination
 export async function GET(req: NextRequest) {
@@ -7,9 +8,10 @@ export async function GET(req: NextRequest) {
   const search = url.searchParams.get("q")?.trim();
   const category = url.searchParams.get("category");
   const featured = url.searchParams.get("featured");
-  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") ?? "20", 10)));
-  const offset = (page - 1) * limit;
+  const { page, limit, offset } = parsePageParams(
+    url.searchParams.get("page"),
+    url.searchParams.get("limit")
+  );
 
   const sb = getSupabaseAdmin();
 

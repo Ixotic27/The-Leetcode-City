@@ -163,14 +163,14 @@ export default function CityHUD() {
       {/* ─── Main Landing Panel ─── */}
       {!flyMode && !exploreMode && !introMode && !rabbitCinematic && (
         <div
-          className="pointer-events-none fixed inset-0 z-20 flex flex-col items-center justify-between pt-10 pb-14 px-3 sm:py-8 sm:px-4"
+          className="pointer-events-none fixed inset-0 z-20 flex flex-col items-center justify-between overflow-y-auto overflow-x-hidden pt-6 pb-20 px-3 sm:pt-10 sm:pb-14 sm:px-4"
           style={{
             background:
               "linear-gradient(to bottom, rgba(13,13,15,0.88) 0%, rgba(13,13,15,0.55) 30%, transparent 60%, transparent 85%, rgba(13,13,15,0.5) 100%)",
           }}
         >
           {/* Top Info Banner */}
-          <div className="pointer-events-auto flex w-full max-w-2xl flex-col items-center gap-2 sm:gap-5">
+          <div className="pointer-events-auto flex w-full max-w-2xl flex-col items-center gap-2 sm:gap-4">
             <div className="text-center">
               <h1 className="text-2xl text-cream sm:text-3xl md:text-5xl">
                 LeetCode <span style={{ color: theme.accent }}>City</span>
@@ -201,7 +201,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -255,7 +255,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -320,7 +320,7 @@ export default function CityHUD() {
                   const isDone = count >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -371,7 +371,7 @@ export default function CityHUD() {
               {/* Search Input Form */}
               <form
                 onSubmit={handleLandingSubmit}
-                className="flex w-full max-w-lg items-center gap-2 mt-4"
+                className="flex w-full max-w-lg items-center gap-2 px-2 sm:px-0 pt-2 sm:pt-0"
               >
                 <input
                   type="text"
@@ -381,14 +381,14 @@ export default function CityHUD() {
                     if (feedback?.type === "error") setFeedback(null);
                   }}
                   placeholder={session ? "search any LeetCode username" : "type your LeetCode username"}
-                  className="min-w-0 flex-1 border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none backdrop-blur-sm transition-colors placeholder:text-dim sm:px-4 sm:py-2.5"
+                  className="w-full min-w-0 flex-1 border-2 sm:border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none backdrop-blur-sm transition-colors placeholder:text-dim sm:px-4 sm:py-2.5"
                   onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = "")}
                 />
                 <button
                   type="submit"
                   disabled={loading || !landingSearchInput.trim()}
-                  className="btn-press flex-shrink-0 px-4 py-2 text-xs text-bg disabled:opacity-40 sm:px-5 sm:py-2.5"
+                  className="btn-press flex-shrink-0 px-2 sm:px-5 py-2 text-[11px] sm:text-xs text-bg disabled:opacity-40 sm:py-2.5"
                   style={{
                     backgroundColor: theme.accent,
                     boxShadow: `4px 4px 0 0 ${theme.shadow}`,

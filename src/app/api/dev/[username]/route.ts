@@ -5,15 +5,15 @@ import { checkAchievements, countGifts } from "@/lib/achievements";
 import { getEnvNumber } from "@/lib/env";
 import { validateParams, validateQuery } from "@/lib/validation";
 
+export const dynamic = "force-dynamic";
+
 const paramsSchema = z.object({
-  username: z.string().min(1),
+  username: z.string().trim().min(1, "Username is required"),
 });
 
 const querySchema = z.object({
   refresh: z.string().optional(),
 });
-
-export const dynamic = "force-dynamic";
 
 interface LeetCodeProfile {
   realName?: string;
@@ -81,7 +81,8 @@ async function hashKey(key: string): Promise<string> {
 }
 
 async function isRateLimited(key: string): Promise<boolean> {
-  const RATE_LIMIT = getEnvNumber("RATE_LIMIT_PER_HOUR", 15, { min: 1 });
+  const rateLimitEnv = process.env.RATE_LIMIT_PER_HOUR ?? "15";
+  const RATE_LIMIT = parseInt(rateLimitEnv);
   const sb = getSupabaseAdmin();
   const ipHash = await hashKey(key);
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -215,13 +216,15 @@ export async function GET(
     .ilike("github_login", username)
     .single();
 
- if (cached) {
-  const CACHE_TTL_MS = getEnvNumber("CACHE_TTL_HOURS", 12, { min: 1 }) * 3600000;
-  const age = Date.now() - new Date(cached.fetched_at).getTime();
-  if (!forceRefresh && age < CACHE_TTL_MS) {
-    cachedRecord = cached;
+  if (cached) {
+    const cacheTtlHours = process.env.CACHE_TTL_HOURS ?? "12";
+    const CACHE_TTL_MS = parseInt(cacheTtlHours) * 3600000;
+    const age = Date.now() - new Date(cached.fetched_at).getTime();
+    if (!forceRefresh && age < CACHE_TTL_MS) {
+      cachedRecord = cached;
+    }
   }
-}
+
   
   let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;

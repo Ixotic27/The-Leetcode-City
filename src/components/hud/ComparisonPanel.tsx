@@ -51,26 +51,71 @@ export function getDevClass(login: string) {
 }
 
 export function buildComparisonRows(
-  comparePair: CityBuilding[]
+  comparePair: CityBuilding[],
+  allBuildings: CityBuilding[] = comparePair,
 ) {
+  const cityRankOf = (login: string) => {
+    const sorted = allBuildings
+      .slice()
+      .sort((a, b) => b.contributions - a.contributions);
+    const idx = sorted.findIndex((b) => b.login === login);
+    return idx >= 0 ? idx + 1 : 0;
+  };
+
+  const lcRankOf = (building: CityBuilding) => {
+    const rank = building.rank ?? 0;
+    // Mirror ProfileCard: unset / placeholder ranks are unavailable
+    if (rank === 0 || rank === 999999) return 0;
+    return rank;
+  };
+
   const compareStatDefs: {
     label: string;
-    key: keyof CityBuilding;
+    id: string;
     invert?: boolean;
+    format: "rank" | "number";
+    get: (building: CityBuilding) => number;
   }[] = [
-      { label: "City Rank", key: "rank", invert: true },
-      { label: "Solved", key: "contributions" },
-      { label: "Reputation", key: "total_stars" },
-      { label: "LC Rank", key: "public_repos", invert: true },
-      { label: "Kudos", key: "kudos_count" },
-    ];
+    {
+      label: "City Rank",
+      id: "city_rank",
+      invert: true,
+      format: "rank",
+      get: (b) => cityRankOf(b.login),
+    },
+    {
+      label: "Solved",
+      id: "contributions",
+      format: "number",
+      get: (b) => b.contributions ?? 0,
+    },
+    {
+      label: "Reputation",
+      id: "total_stars",
+      format: "number",
+      get: (b) => b.total_stars ?? 0,
+    },
+    {
+      label: "LC Rank",
+      id: "lc_rank",
+      invert: true,
+      format: "rank",
+      get: (b) => lcRankOf(b),
+    },
+    {
+      label: "Kudos",
+      id: "kudos_count",
+      format: "number",
+      get: (b) => b.kudos_count ?? 0,
+    },
+  ];
 
   let totalAWins = 0;
   let totalBWins = 0;
 
   const cmpRows = compareStatDefs.map((s) => {
-    const a = (comparePair[0][s.key] as number) ?? 0;
-    const b = (comparePair[1][s.key] as number) ?? 0;
+    const a = s.get(comparePair[0]);
+    const b = s.get(comparePair[1]);
 
     let aW = false;
     let bW = false;
@@ -87,7 +132,9 @@ export function buildComparisonRows(
     if (bW) totalBWins++;
 
     return {
-      ...s,
+      label: s.label,
+      id: s.id,
+      format: s.format,
       a,
       b,
       aW,
@@ -144,6 +191,7 @@ export default function ComparisonPanel() {
     compareLang,
     setCompareLang,
     setComparePair,
+    buildings,
   } = useCity();
 
   const touchYRef = useRef<number | null>(null);
@@ -253,7 +301,7 @@ export default function ComparisonPanel() {
       cmpRows,
       totalAWins,
       totalBWins,
-    } = buildComparisonRows(comparePair);
+    } = buildComparisonRows(comparePair, buildings);
 
     const cmpSummary = getComparisonSummary(
       comparePair,
@@ -348,7 +396,7 @@ export default function ComparisonPanel() {
           <div className="mx-4 border-[2px] border-border bg-bg-card">
             {cmpRows.map((s, i) => (
               <div
-                key={s.key}
+                key={s.id}
                 className={`grid grid-cols-[1fr_auto_1fr] items-center py-2 px-3 ${i < cmpRows.length - 1 ? "border-b border-border/40" : ""}`}
               >
                 <span
@@ -357,7 +405,11 @@ export default function ComparisonPanel() {
                     color: s.aW ? theme.accent : s.bW ? "#555" : "#888",
                   }}
                 >
-                  {s.key === "rank" ? (s.a > 0 ? `#${s.a}` : "-") : s.a.toLocaleString()}
+                  {s.format === "rank"
+                    ? s.a > 0
+                      ? `#${s.a.toLocaleString()}`
+                      : "N/A"
+                    : s.a.toLocaleString()}
                 </span>
                 <span className="text-center text-[7px] md:text-[8px] text-muted uppercase tracking-wider mx-2">
                   {s.label}
@@ -368,7 +420,11 @@ export default function ComparisonPanel() {
                     color: s.bW ? theme.accent : s.aW ? "#555" : "#888",
                   }}
                 >
-                  {s.key === "rank" ? (s.b > 0 ? `#${s.b}` : "-") : s.b.toLocaleString()}
+                  {s.format === "rank"
+                    ? s.b > 0
+                      ? `#${s.b.toLocaleString()}`
+                      : "N/A"
+                    : s.b.toLocaleString()}
                 </span>
               </div>
             ))}

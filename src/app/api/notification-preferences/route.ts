@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation";
 
 const UPDATABLE_FIELDS = [
   "email_enabled",
@@ -14,6 +16,24 @@ const UPDATABLE_FIELDS = [
   "quiet_hours_end",
   "channel_overrides",
 ] as const;
+
+/**
+ * Zod schema for validating notification preference update payloads.
+ */
+const notificationPrefsSchema = z
+  .object({
+    email_enabled: z.boolean().optional(),
+    push_enabled: z.boolean().optional(),
+    social: z.boolean().optional(),
+    digest: z.boolean().optional(),
+    marketing: z.boolean().optional(),
+    streak_reminders: z.boolean().optional(),
+    digest_frequency: z.enum(["realtime", "hourly", "daily", "weekly"]).optional(),
+    quiet_hours_start: z.number().int().min(0).max(23).nullable().optional(),
+    quiet_hours_end: z.number().int().min(0).max(23).nullable().optional(),
+    channel_overrides: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
 
 /**
  * GET /api/notification-preferences
@@ -66,9 +86,6 @@ export async function GET() {
  * Update authenticated user's notification preferences.
  * `transactional` cannot be disabled (purchase receipts always send).
  */
-/**
- * @param {import('next/server').NextRequest} request
- */
 export async function PATCH(request: Request) {
   const auth = await resolveAuthenticatedDeveloper({
     select: "id",
@@ -78,7 +95,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: auth.error ?? "Not authenticated" }, { status: auth.status });
   }
 
-  const body = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const validated = validateBody(body, notificationPrefsSchema);
+  if (!validated.success) {
+    return validated.response;
+  }
+
   const sb = getSupabaseAdmin();
   const dev = auth.developer;
 
@@ -89,33 +117,14 @@ export async function PATCH(request: Request) {
   // Filter to only allowed fields
   const update: Record<string, unknown> = {};
   for (const field of UPDATABLE_FIELDS) {
-    if (field in body) {
-      update[field] = body[field];
+    if (field in validated.data) {
+      update[field] = (validated.data as Record<string, unknown>)[field];
     }
   }
 
   // Prevent disabling transactional
   if ("transactional" in update) {
     delete update.transactional;
-  }
-
-  // Validate digest_frequency
-  if (update.digest_frequency && !["realtime", "hourly", "daily", "weekly"].includes(update.digest_frequency as string)) {
-    return NextResponse.json({ error: "Invalid digest_frequency" }, { status: 400 });
-  }
-
-  // Validate quiet hours
-  if (update.quiet_hours_start !== undefined) {
-    const h = update.quiet_hours_start as number | null;
-    if (h !== null && (h < 0 || h > 23)) {
-      return NextResponse.json({ error: "quiet_hours_start must be 0-23" }, { status: 400 });
-    }
-  }
-  if (update.quiet_hours_end !== undefined) {
-    const h = update.quiet_hours_end as number | null;
-    if (h !== null && (h < 0 || h > 23)) {
-      return NextResponse.json({ error: "quiet_hours_end must be 0-23" }, { status: 400 });
-    }
   }
 
   if (Object.keys(update).length === 0) {

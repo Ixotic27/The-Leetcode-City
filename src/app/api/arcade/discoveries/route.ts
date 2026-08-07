@@ -29,7 +29,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const requestId = request.headers.get("x-request-id");
   const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
 
   if (!auth.ok || !auth.user) {
@@ -54,15 +53,21 @@ export async function POST(request: Request) {
 
   try {
     // Get current discoveries
-    const { data: existing } = await sb
+    const { data: existing, error: readError } = await sb
       .from("arcade_discoveries")
       .select("commands")
       .eq("user_id", userId)
       .maybeSingle();
 
+    if (readError) {
+      console.error("Discoveries read error:", readError);
+      return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+    }
+
     current = existing?.commands ?? [];
   } catch (e) {
-    console.warn("Could not query arcade_discoveries on POST:", e);
+    console.error("Could not query arcade_discoveries on POST:", e);
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 
   // Already discovered
@@ -83,17 +88,12 @@ export async function POST(request: Request) {
     );
 
     if (error) {
-      console.error(
-        `[Request ID: ${requestId}] Discoveries upsert error:`,
-        error,
-      );
+      console.error("Discoveries upsert error:", error);
       return NextResponse.json({ error: "Failed to save" }, { status: 500 });
     }
   } catch (e) {
-    console.warn(
-      `[Request ID: ${requestId}] Could not upsert discoveries, mocking success:`,
-      e,
-    );
+    console.error("Could not upsert discoveries:", e);
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
 
   return NextResponse.json({ commands: updated, new: true });

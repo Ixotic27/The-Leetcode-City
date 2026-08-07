@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://theleetcode.city">theleetcode.city</a>
+  <a href="https://the-leetcode-city.vercel.app">theleetcode.city</a>
 </p>
 
 <p align="center">
@@ -454,6 +454,19 @@ npm run dev
 
 Open [http://localhost:3001](http://localhost:3001) to see the city.
 
+### Option 4: Docker Compose
+
+Builds the app from the existing `Dockerfile` and starts it with a single command — handy for testing a production build locally or for full-stack testing against Supabase Realtime.
+
+```bash
+git clone https://github.com/Ixotic27/The-Leetcode-City.git
+cd The-Leetcode-City
+cp .env.example .env.local
+docker-compose up --build
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see the city. See the comments in [`docker-compose.yml`](docker-compose.yml) for pointing the container at a local Supabase CLI stack (`supabase start`) instead of the hosted project.
+
 ---
 
 ## 🔧 Environment Variables
@@ -527,29 +540,3 @@ Thanks to all contributors ❤️
 <p align="center">
   Inspired by <a href="https://github.com/srizzon/git-city">Git City</a>
 </p>
-
-## Troubleshooting
-
-### Installation fails
-- Ensure you are using the supported Node.js version.
-- Run `npm install` or `npm ci`.
-- Delete `node_modules` and reinstall dependencies if necessary.
-
-### Environment variables not loading
-- Verify that a `.env` file exists.
-- Ensure all required variables are defined.
-- Restart the development server after making changes.
-
-## FAQ
-
-### How do I start the project?
-Run:
-
-```bash
-npm install
-npm run dev
-```
-
-### How do I report a bug?
-Please open a GitHub issue with reproduction steps and relevant logs.
-

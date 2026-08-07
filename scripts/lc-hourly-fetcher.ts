@@ -55,8 +55,8 @@ function sleep(ms: number) {
 
 function calendarAliases(): string {
     const year = new Date().getFullYear();
-    // Return aliases from 2015 to current year
-    return Array.from({ length: year - 2014 }, (_, i) => 2015 + i)
+    // Return aliases from 2020 to current year to avoid oversized LC calendar payloads.
+    return Array.from({ length: year - 2019 }, (_, i) => 2020 + i)
         .map((y) => `\n        y${y}: userCalendar(year: ${y}) { submissionCalendar }`)
         .join("");
 }

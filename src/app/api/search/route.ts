@@ -21,10 +21,12 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
+  // Escape LIKE special characters (% _ \) to prevent wildcard injection
+  const escapedQ = q.replace(/[%_\\]/g, (c) => (c === "\\" ? "\\\\" : `\\${c}`));
   const { data, error } = await supabase
     .from("developers")
-    .select("github_login, easy_solved, medium_solved, hard_solved, lc_global_rank")
-    .ilike("github_login", `%${q}%`)
+    .select("github_login, avatar_url, name, easy_solved, medium_solved, hard_solved, lc_global_rank")
+    .ilike("github_login", `%${escapedQ}%`)
     .limit(8);
 
   if (error) {

@@ -1,4 +1,5 @@
 import React from 'react';
+import CursorSelector from './CursorSelector';
 
 interface ActionToolbarProps {
   cycleTheme: () => void;
@@ -33,7 +34,7 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
   cycleWeather = () => {},
 }) => {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Theme Cycle Button */}
       <button
         onClick={cycleTheme}
@@ -102,6 +103,9 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
         <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
         <span>WEATHER: {weatherMode.toUpperCase()}</span>
       </button>
+
+      {/* Cursor Selector Widget */}
+      <CursorSelector accentColor={theme.accent} />
 
       {/* Audio/Radio Slot if mounted */}
       {isMounted && <div id="gc-radio-slot" />}

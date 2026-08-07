@@ -39,13 +39,9 @@ export function AdModal({
   onCreate,
   onEdit,
 }: AdModalProps) {
-  const [form, setForm] = useState<AdForm>(EMPTY_FORM);
-
-  useEffect(() => {
-    if (open) {
-      setForm(mode === "edit" && ad ? adToForm(ad) : EMPTY_FORM);
-    }
-  }, [open, mode, ad]);
+  const [form, setForm] = useState<AdForm>(() =>
+    open && mode === "edit" && ad ? adToForm(ad) : EMPTY_FORM
+  );
 
   // Close on Escape
   useEffect(() => {

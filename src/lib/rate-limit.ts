@@ -33,6 +33,7 @@ const CLEANUP_INTERVAL =
   Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS) || 60_000;
 export let MAX_STORE_SIZE =
   Number(process.env.RATE_LIMIT_MAX_STORE_SIZE) || 10_000;
+let cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
 
 export function _setMaxStoreSizeForTesting(size: number): void {
   MAX_STORE_SIZE = size;
@@ -47,11 +48,18 @@ function cleanup(force = false) {
   }
 }
 
+function ensureCleanupInterval(): void {
+  if (!cleanupIntervalId) {
+    cleanupIntervalId = setInterval(() => cleanup(true), CLEANUP_INTERVAL);
+  }
+}
+
 function rateLimitLocal(
   key: string,
   limit: number,
   windowMs: number,
 ): RateLimitResult {
+  ensureCleanupInterval();
   cleanup();
 
   const now = Date.now();
@@ -154,4 +162,9 @@ export async function rateLimit(
 export function _resetLocalStoreForTesting(): void {
   store.clear();
   lastCleanup = Date.now();
+
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
 }
