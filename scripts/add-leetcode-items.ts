@@ -1,7 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
+import { existsSync } from "fs";
 import { resolve } from "path";
 import dotenv from "dotenv";
-dotenv.config({ path: resolve(__dirname, "../.env.local") });
+
+const envPath = resolve(__dirname, "../.env.local");
+if (existsSync(envPath)) {
+    try {
+        dotenv.config({ path: envPath });
+    } catch (err) {
+        console.warn("Warning: failed to load .env.local:", err);
+    }
+} else {
+    console.warn("Warning: .env.local not found. Ensure environment variables are set.");
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
