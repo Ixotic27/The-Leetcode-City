@@ -3,25 +3,20 @@
 import { useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useCity } from "@/context/CityContext";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 /**
  * Lightweight animated water surface.
  *
- * Uses a simple ShaderMaterial with:
- * - Vertex: gentle sine-wave swell (2 waves only)
- * - Fragment: basic animated color shift + Fresnel edge highlight
- * - No per-pixel ripple normals (GPU-friendly)
- * - Low segment count for minimal vertex processing
+ * Simulates low-poly ocean/river waves with custom vertex displacement
+ * and dual-color HSL gradient reflections.
  */
-
 interface WaterPlaneProps {
   position: [number, number, number];
   size: [number, number];
   rotation?: [number, number, number];
-  deepColor: string;
-  shallowColor: string;
-  /** Segments per axis for vertex displacement (default 8) */
+  deepColor?: string;
+  shallowColor?: string;
   segments?: number;
   renderOrder?: number;
 }
@@ -30,13 +25,12 @@ export function WaterPlane({
   position,
   size,
   rotation = [-Math.PI / 2, 0, 0],
-  deepColor,
-  shallowColor,
+  deepColor = "#006994",
+  shallowColor = "#77d1e8",
   segments = 8,
   renderOrder = -1,
 }: WaterPlaneProps) {
-  const cityContext = useCity();
-  const reducedMotion = cityContext?.reducedMotion ?? false;
+  const reducedMotion = useReducedMotion();
   const matRef = useRef<THREE.ShaderMaterial>(null);
 
   const mat = useMemo(

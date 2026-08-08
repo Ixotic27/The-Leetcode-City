@@ -1448,6 +1448,8 @@ interface AtmosphereCycleManagerProps {
   reducedMotion?: boolean;
 }
 
+import { useReducedMotion } from "@/lib/reducedMotion";
+
 export default function AtmosphereCycleManager({
   theme,
   themeIndex,
@@ -1457,8 +1459,7 @@ export default function AtmosphereCycleManager({
   weatherMode = "sunny",
   reducedMotion: propReducedMotion,
 }: AtmosphereCycleManagerProps) {
-  const cityContext = useCity();
-  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const isCycleActive = active && !reducedMotion;
   const { scene } = useThree();
   const { isRaining } = useWeather();

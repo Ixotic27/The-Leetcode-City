@@ -4,7 +4,7 @@ import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { DISTRICT_ORIGINS } from "@/lib/github";
-import { useCity } from "@/context/CityContext";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 interface LocalTramProps {
   center: [number, number, number];
@@ -15,8 +15,7 @@ interface LocalTramProps {
 }
 
 function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion: propReducedMotion }: LocalTramProps) {
-  const cityContext = useCity();
-  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const tramRef = useRef<THREE.Group>(null);
 
   // Pre-calculate track segment lines (for visual details)

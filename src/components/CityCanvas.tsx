@@ -2698,7 +2698,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         reducedMotion={reducedMotion}
       />
 
-      <InterCityConnections reducedMotion={reducedMotion} />
+      <InterCityConnections />
       <MetroSystem reducedMotion={reducedMotion} />
       <TramSystem reducedMotion={reducedMotion} />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
@@ -2741,6 +2741,8 @@ const CityCanvasOverlayLayer = memo(function CityCanvasOverlayLayer({
     </>
   );
 });
+
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 export default function CityCanvas({
   onReady,
@@ -2806,8 +2808,9 @@ export default function CityCanvas({
   transitState,
   onArrival,
   onOpenTransitMenu,
-  reducedMotion = false,
+  reducedMotion: propReducedMotion,
 }: CityCanvasProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
   const [codeForgeOpen, setCodeForgeOpen] = useState(false);

@@ -187,15 +187,15 @@ export function SkyTransitBoard({
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    texRef.current = tex;
     return tex;
   }, [fontReady, district, color]);
 
   useEffect(() => {
+    texRef.current = texture;
     return () => {
-      texRef.current?.dispose();
+      texture?.dispose();
     };
-  }, []);
+  }, [texture]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -346,7 +346,7 @@ export function BusModel({
   );
 }
 
-import { useCity } from "@/context/CityContext";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 // ─── Main Bus Transit Manager ─────────────────────────────────
 export default function BusTransit({
@@ -357,8 +357,7 @@ export default function BusTransit({
   onOpenTransitMenu,
   reducedMotion: propReducedMotion,
 }: BusTransitProps) {
-  const cityContext = useCity();
-  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const { camera } = useThree();
   const [progress, setProgress] = useState(0);
   const busPos = useMemo(() => new THREE.Vector3(), []);
@@ -427,7 +426,8 @@ export default function BusTransit({
   // Reset transit progress when state becomes active
   useEffect(() => {
     if (transitState?.active) {
-      setProgress(reducedMotion ? 1 : 0);
+      const targetProgress = reducedMotion ? 1 : 0;
+      queueMicrotask(() => setProgress(targetProgress));
     }
   }, [transitState, reducedMotion]);
 

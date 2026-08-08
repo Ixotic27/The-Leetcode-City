@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { useCitySafe } from "@/context/CityContext";
+
 export const REDUCED_MOTION_STORAGE_KEY = "leetcodecity_reduced_motion";
 
 /**
@@ -31,4 +34,37 @@ export function persistReducedMotion(reduced: boolean): void {
   } catch (err) {
     console.warn("[reducedMotion] Failed to persist preference:", err);
   }
+}
+
+/**
+ * Custom hook to safely get reduced motion state inside or outside CityProvider
+ */
+export function useReducedMotion(propReducedMotion?: boolean): boolean {
+  const cityContext = useCitySafe();
+  const [systemMotion, setSystemMotion] = useState<boolean>(() => getInitialReducedMotion());
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = (e: MediaQueryListEvent) => {
+      try {
+        if (localStorage.getItem(REDUCED_MOTION_STORAGE_KEY) === null) {
+          setSystemMotion(e.matches);
+        }
+      } catch {
+        setSystemMotion(e.matches);
+      }
+    };
+    if (mq.addEventListener) {
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    } else if (mq.addListener) {
+      mq.addListener(handler);
+      return () => mq.removeListener(handler);
+    }
+  }, []);
+
+  if (propReducedMotion !== undefined) return propReducedMotion;
+  if (cityContext?.reducedMotion !== undefined) return cityContext.reducedMotion;
+  return systemMotion;
 }

@@ -4,7 +4,7 @@ import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { DISTRICT_ORIGINS } from "@/lib/github";
-import { useCity } from "@/context/CityContext";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 interface TrackSegment {
   start: THREE.Vector3;
@@ -134,8 +134,7 @@ interface TrainProps {
 }
 
 function MetroTrain({ segment, speedMultiplier = 1.0, reducedMotion: propReducedMotion }: TrainProps) {
-  const cityContext = useCity();
-  const reducedMotion = propReducedMotion ?? cityContext?.reducedMotion ?? false;
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const trainRef = useRef<THREE.Group>(null);
   
   const dir = useMemo(() => new THREE.Vector3().subVectors(segment.end, segment.start), [segment]);

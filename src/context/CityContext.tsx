@@ -2281,3 +2281,8 @@ export function useCity() {
   }
   return context;
 }
+
+export function useCitySafe() {
+  const context = useContext(CityContext);
+  return context ?? null;
+}
