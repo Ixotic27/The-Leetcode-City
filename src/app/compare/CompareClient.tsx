@@ -443,3 +443,5 @@ export function CompareClient({
     </main>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
