@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import MiniMap from "@/components/MiniMap";
 import CityAnalyticsDashboard from "@/components/CityAnalyticsDashboard";
+import CityStatsTableModal from "@/components/hud/CityStatsTableModal";
 import ActivityTicker from "@/components/ActivityTicker";
 import ActivityPanel from "@/components/ActivityPanel";
 import DailiesWidget from "@/components/DailiesWidget";
@@ -114,6 +115,7 @@ export default function CityHUD() {
 
   // Search input specifically for the landing page
   const [landingSearchInput, setLandingSearchInput] = useState("");
+  const [staticStatsOpen, setStaticStatsOpen] = useState(false);
 
   const handleLandingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -817,6 +819,11 @@ export default function CityHUD() {
         districtZones={districtZones}
         open={analyticsOpen}
         onClose={() => setAnalyticsOpen(false)}
+        onOpenStaticTable={() => setStaticStatsOpen(true)}
+      />
+      <CityStatsTableModal
+        open={staticStatsOpen}
+        onClose={() => setStaticStatsOpen(false)}
       />
 
       {/* ─── Activity Ticker ─── */}

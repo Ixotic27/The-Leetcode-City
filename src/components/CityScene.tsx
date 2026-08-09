@@ -121,9 +121,10 @@ interface CitySceneProps {
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   /** Multiplayer: other players' state from PartyKit */
   multiplayerPlayers?: Map<string, CityPlayer>;
+  reducedMotion?: boolean;
 }
 
-function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy" }) {
+function WeatherSystem({ weatherMode, reducedMotion = false }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy"; reducedMotion?: boolean }) {
   const pointsRef = useRef<THREE.Points>(null);
   const leavesRef = useRef<THREE.Points>(null);
   const { camera } = useThree();
@@ -159,7 +160,7 @@ function WeatherSystem({ weatherMode }: { weatherMode: "sunny" | "rainy" | "wind
   const leafRespawnCyclesRef = useRef(initialLeavesState.respawnCycles);
 
   useFrame((state, delta) => {
-    if (weatherMode === "sunny") return;
+    if (weatherMode === "sunny" || reducedMotion) return;
 
     const centerX = state.camera.position.x;
     const centerZ = state.camera.position.z;
@@ -352,6 +353,7 @@ export default function CityScene({
   timeRef,
   weatherMode = "sunny",
   multiplayerPlayers,
+  reducedMotion = false,
 }: CitySceneProps) {
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
   const grid = useMemo(
@@ -539,7 +541,7 @@ export default function CityScene({
         ghostPreviewLogin={ghostPreviewLogin}
       />
 
-      {!introMode && <WeatherSystem weatherMode={weatherMode} />}
+      {!introMode && <WeatherSystem weatherMode={weatherMode} reducedMotion={reducedMotion} />}
 
       {!introMode && focusedBuildingData && (
         <group

@@ -22,6 +22,8 @@ export default function SettingsPanel() {
     cycleWeather,
     replayIntro,
     isMobile,
+    reducedMotion,
+    setReducedMotion,
   } = useCity();
 
   if (flyMode || introMode || rabbitCinematic) return null;
@@ -82,6 +84,18 @@ export default function SettingsPanel() {
           <span style={{ color: theme.accent }}>&#9654;</span>
           <span>GRID: {neonGridActive ? "ON" : "OFF"}</span>
         </button>
+        <button
+          onClick={() => setReducedMotion((prev: boolean) => !prev)}
+          className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${
+            reducedMotion
+              ? "border-cyan-500/80 bg-cyan-500/10 text-cyan-400 hover:border-cyan-400"
+              : "border-border bg-bg/70 text-cream hover:border-border-light"
+          }`}
+          aria-label={reducedMotion ? "Disable reduced motion mode" : "Enable reduced motion mode"}
+        >
+          <span style={{ color: theme.accent }}>&#9654;</span>
+          <span>MOTION: {reducedMotion ? "REDUCED" : "FULL"}</span>
+        </button>
         <div id="gc-radio-slot" />
       </div>
     );
@@ -103,6 +117,8 @@ export default function SettingsPanel() {
         setNeonGridActive={setNeonGridActive}
         weatherMode={weatherMode}
         cycleWeather={cycleWeather}
+        reducedMotion={reducedMotion}
+        setReducedMotion={setReducedMotion}
       />
     </div>
   );

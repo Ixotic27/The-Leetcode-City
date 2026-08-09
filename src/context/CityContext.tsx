@@ -52,6 +52,7 @@ import {
 import { applyLocalStorageOverrides } from "@/lib/cityOverrides";
 import { getCityCache, setCityCache, clearCityCache } from "@/lib/cityCache";
 import { getTodaySeed, seedToDate, getSeedForDate } from "@/lib/fly-seed";
+import { getInitialReducedMotion, persistReducedMotion, REDUCED_MOTION_STORAGE_KEY } from "@/lib/reducedMotion";
 
 export type CityDeveloperRecord = DeveloperRecord & {
   loadout?: unknown;
@@ -159,6 +160,8 @@ interface CityContextProps {
   setNeonGridActive: React.Dispatch<React.SetStateAction<boolean>>;
   weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   setWeatherMode: React.Dispatch<React.SetStateAction<"sunny" | "rainy" | "windy" | "stormy" | "snowy">>;
+  reducedMotion: boolean;
+  setReducedMotion: React.Dispatch<React.SetStateAction<boolean>>;
   hud: { speed: number; altitude: number };
   setHud: React.Dispatch<React.SetStateAction<{ speed: number; altitude: number }>>;
   playerPos: { x: number; z: number };
@@ -434,6 +437,46 @@ export function CityProvider({ children }: { children: ReactNode }) {
   const [dayNightCycleActive, setDayNightCycleActive] = useState(true);
   const [neonGridActive, setNeonGridActive] = useState(false);
   const [weatherMode, setWeatherMode] = useState<"sunny" | "rainy" | "windy" | "stormy" | "snowy">("sunny");
+  const [reducedMotion, setReducedMotionState] = useState<boolean>(getInitialReducedMotion);
+
+  const setReducedMotion: React.Dispatch<React.SetStateAction<boolean>> = useCallback((action) => {
+    setReducedMotionState((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      persistReducedMotion(next);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (reducedMotion) {
+        document.documentElement.classList.add("reduced-motion");
+      } else {
+        document.documentElement.classList.remove("reduced-motion");
+      }
+    }
+  }, [reducedMotion]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = (e: MediaQueryListEvent) => {
+      try {
+        if (localStorage.getItem(REDUCED_MOTION_STORAGE_KEY) === null) {
+          setReducedMotionState(e.matches);
+        }
+      } catch {
+        setReducedMotionState(e.matches);
+      }
+    };
+    if (mq.addEventListener) {
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    } else if (mq.addListener) {
+      mq.addListener(handler);
+      return () => mq.removeListener(handler);
+    }
+  }, []);
 
   const [hud, setHud] = useState({ speed: 0, altitude: 0 });
   const [playerPos, setPlayerPos] = useState<{ x: number; z: number }>({ x: 0, z: 0 });
@@ -2017,6 +2060,8 @@ export function CityProvider({ children }: { children: ReactNode }) {
         setNeonGridActive,
         weatherMode,
         setWeatherMode,
+        reducedMotion,
+        setReducedMotion,
         hud,
         setHud,
         playerPos,
@@ -2235,4 +2280,9 @@ export function useCity() {
     throw new Error("useCity must be used within a CityProvider");
   }
   return context;
+}
+
+export function useCitySafe() {
+  const context = useContext(CityContext);
+  return context ?? null;
 }
