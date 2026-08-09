@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
         .select("id, github_login")
         .eq("claimed", true)
         .not("email", "is", null)
+        .not("last_active_at", "is", null)
         .lte("last_active_at", inactiveBefore)
         .gte("last_active_at", inactiveAfter)
         .range(offset, offset + batchSize - 1);
