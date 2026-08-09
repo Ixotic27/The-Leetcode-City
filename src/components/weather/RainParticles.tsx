@@ -3,6 +3,7 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useReducedMotion } from '@/lib/reducedMotion';
 
 type RainParticlesProps = {
   dropCount?: number;
@@ -10,7 +11,26 @@ type RainParticlesProps = {
   windX?: number;
   areaSize?: number;
   height?: number;
+  reducedMotion?: boolean;
 };
+
+function generateRainPositions(dropCount: number, areaSize: number, height: number): Float32Array {
+  const pos = new Float32Array(dropCount * 3);
+  let seed = 12345;
+  for (let i = 0; i < dropCount; i++) {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    const r1 = seed / 4294967296;
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    const r2 = seed / 4294967296;
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    const r3 = seed / 4294967296;
+
+    pos[i * 3] = (r1 - 0.5) * areaSize;
+    pos[i * 3 + 1] = r2 * height;
+    pos[i * 3 + 2] = (r3 - 0.5) * areaSize;
+  }
+  return pos;
+}
 
 export function RainParticles({
   dropCount = 15000,
@@ -18,20 +38,14 @@ export function RainParticles({
   windX = 0.5,
   areaSize = 400,
   height = 200,
+  reducedMotion: propReducedMotion,
 }: RainParticlesProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const pointsRef = useRef<THREE.Points>(null);
   const shaderMaterialRef = useRef<THREE.ShaderMaterial>(null);
    
   const positions = useMemo(() => {
-    const pos = new Float32Array(dropCount * 3);
-
-    for (let i = 0; i < dropCount; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * areaSize;
-      pos[i * 3 + 1] = Math.random() * height;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * areaSize;
-    }
-
-    return pos;
+    return generateRainPositions(dropCount, areaSize, height);
   }, [dropCount, areaSize, height]);
 
   const uniforms = useMemo(
@@ -47,7 +61,7 @@ export function RainParticles({
   );
 
   useFrame((state) => {
-    if (shaderMaterialRef.current) {
+    if (shaderMaterialRef.current && !reducedMotion) {
       shaderMaterialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
     }
 

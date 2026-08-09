@@ -16,6 +16,7 @@ interface CityAnalyticsDashboardProps {
   districtZones: DistrictZone[];
   open: boolean;
   onClose: () => void;
+  onOpenStaticTable?: () => void;
 }
 
 // ─── Sub-components ───────────────────────────────────────────
@@ -288,6 +289,7 @@ export default function CityAnalyticsDashboard({
   districtZones,
   open,
   onClose,
+  onOpenStaticTable,
 }: CityAnalyticsDashboardProps) {
   const [activeTab, setActiveTab] = useState<
     "sessions" | "density" | "health"
@@ -316,6 +318,15 @@ export default function CityAnalyticsDashboard({
           <span className="text-[9px]" style={{ color: ACCENT }}>
             ANALYTICS
           </span>
+          {onOpenStaticTable && (
+            <button
+              onClick={onOpenStaticTable}
+              className="text-[8px] text-cyan-400 hover:underline border border-cyan-500/40 px-1 py-0.5 rounded bg-cyan-950/30"
+              title="Open accessible static table view"
+            >
+              TABLE
+            </button>
+          )}
         </div>
         <button
           onClick={onClose}
