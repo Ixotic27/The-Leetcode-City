@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
-import { getEnvNumber } from "@/lib/env";
 import { validateParams, validateQuery } from "@/lib/validation";
 import { logApiError, newReqId } from "@/lib/api-logger";
 import { OwnershipResolver } from "@/services/ownershipResolver";
+import { CityReadModel } from "@/services/cityReadModel";
 
 export const dynamic = "force-dynamic";
 
@@ -229,7 +229,6 @@ export async function GET(
   }
 
   
-  let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
   let authUserId: string | null = null;
   if (!cachedRecord) {
@@ -240,7 +239,6 @@ export async function GET(
     const key = auth.user ? `user:${auth.user.id}` : (
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
     );
-    rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;
     if (!skipRateLimit) {
@@ -249,7 +247,6 @@ export async function GET(
       }
       // Record immediately, before the LeetCode API call, to prevent race condition
       await recordRateLimitRequest(key);
-      rateLimitKey = null;
     }
   }
 
@@ -439,8 +436,21 @@ export async function GET(
 
   const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
 
+  const readModel = new CityReadModel(sb as never);
+  const normalizedDeveloper = readModel.buildDeveloperReadModel(upserted as never, {
+    ownedItems,
+    customColor,
+    billboardImages,
+    ledBannerText,
+    achievements: [],
+    loadout,
+    buildingStyle,
+    activeRaidTag: raidTagsResult.data?.[0] ?? null,
+  });
+
   const result = {
     ...upserted,
+    ...normalizedDeveloper,
     owned_items: ownedItems,
     custom_color: customColor,
     billboard_images: billboardImages,
