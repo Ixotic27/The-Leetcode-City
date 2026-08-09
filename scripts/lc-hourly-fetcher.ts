@@ -238,11 +238,19 @@ async function fetchRankingPage(page: number): Promise<string[]> {
             headers: LC_HEADERS,
             body: JSON.stringify({ query, variables: { page } }),
         });
+        if (res.status === 429) {
+            console.warn(`  ⚠️  Rate limited fetching ranking page ${page} (HTTP 429).`);
+            return [];
+        }
+        if (!res.ok) {
+            console.error(`  Error fetching ranking page ${page}: HTTP ${res.status}`);
+            return [];
+        }
         const json = await res.json();
         const nodes = json?.data?.globalRanking?.rankingNodes ?? [];
-        return nodes.map((n: { user: { username: string } }) => n.user.username);
+        return nodes.map((n: { user: { username: string } }) => n.user.username).filter(Boolean);
     } catch (err) {
-        console.error("Error fetching ranking page:", err);
+        console.error(`Error fetching ranking page ${page}:`, err);
         return [];
     }
 }
@@ -260,16 +268,16 @@ async function filterNewUsernames(usernames: string[]): Promise<string[]> {
 }
 
 async function discoverNewUsers(pagesToScan: number): Promise<number> {
-    console.log(`\n  Discovery: scanning ${pagesToScan} randomized ranking page(s) for new users...`);
+    console.log(`\n  Discovery: scanning ${pagesToScan} randomized ranking page(s) (pages 1-500) for new users...`);
 
     let totalDiscovered = 0;
     const scannedPages = new Set<number>();
 
     for (let i = 0; i < pagesToScan; i++) {
-        // Pick a random page from the top 100 global ranking pages
-        let page = Math.floor(Math.random() * 100) + 1;
+        // Pick a random page from the top 500 global ranking pages
+        let page = Math.floor(Math.random() * 500) + 1;
         while (scannedPages.has(page)) {
-            page = Math.floor(Math.random() * 100) + 1;
+            page = Math.floor(Math.random() * 500) + 1;
         }
         scannedPages.add(page);
 

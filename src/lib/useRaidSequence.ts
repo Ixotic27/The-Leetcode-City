@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { CityBuilding } from "@/lib/github";
 import type { RaidPreviewResponse, RaidExecuteResponse } from "@/lib/raid";
-import { preloadRaidAudio, playRaidSound, stopRaidSound, fadeOutRaidSound, stopAllRaidSounds } from "@/lib/raidAudio";
+import { preloadRaidAudio, playRaidSound, stopRaidSound, fadeOutRaidSound, stopAllRaidSounds, isRaidSoundPlaying } from "@/lib/raidAudio";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -107,7 +107,9 @@ export function useRaidSequence(): [RaidState, RaidActions] {
     // Audio triggers
     switch (phase) {
       case "intro":
-        playRaidSound("takeoff");
+        if (!isRaidSoundPlaying("takeoff")) {
+          playRaidSound("takeoff");
+        }
         break;
       case "flight":
         playRaidSound("flight");
