@@ -661,10 +661,10 @@ export default function EditorMode({ map, canvas, slug, onSave, onExit }: Editor
 
   // ─── Rebuild interactive objects from furniture ─────────────
   const rebuildObjects = (furn: PlacedFurniture[]): typeof map.objects => {
-    // Keep non-furniture objects (spawns, elevator, quotes)
+    // Keep non-furniture objects (spawns, elevator, quotes, NPCs)
     const kept = map.objects.filter((o) => {
       const t = o.type;
-      return t === "spawn" || t === "elevator" || t === "quote";
+      return t === "spawn" || t === "elevator" || t === "quote" || t === "npc";
     });
 
     // Generate seats and arcade_machine objects from furniture

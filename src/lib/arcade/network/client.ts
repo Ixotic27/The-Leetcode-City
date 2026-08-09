@@ -39,6 +39,7 @@ let unloadHandler: (() => void) | null = null;
 let lastPresenceTrack = 0;
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let activeGameToken: any = null;
+let visibilityHandler: (() => void) | null = null;
 
 // Track recent positions to prevent visual glitches during presence sync
 const recentPositions = new Map<string, { x: number; y: number; dir: PlayerState["dir"] }>();
@@ -241,27 +242,60 @@ export function connect(
                 room_id: slug,
                 last_heartbeat: new Date().toISOString(),
               })
-              .then(() => {});
+              .then(({ error }: { error: { message: string } | null }) => {
+                if (error) {
+                  console.warn("[arcade] heartbeat upsert failed:", error.message);
+                }
+              });
           };
-          sendHeartbeat();
-          heartbeatInterval = setInterval(sendHeartbeat, 20000);
+
+          // Self-heal: a crashed/force-closed tab leaves stale rows behind, so
+          // wipe any of this user's leftovers before registering a fresh one.
+          const primeHeartbeat = () => {
+            sendHeartbeat();
+            heartbeatInterval = setInterval(sendHeartbeat, 20000);
+          };
+          supabase
+            .from("arcade_active_players")
+            .delete()
+            .eq("user_id", localUserId)
+            .then(() => primeHeartbeat())
+            .catch(() => primeHeartbeat());
+
+          // Refresh the heartbeat when the tab is hidden (browsers may suspend
+          // timers in background tabs) and immediately on return, so the active
+          // player count stays accurate.
+          const onVisibility = () => {
+            sendHeartbeat();
+          };
+          visibilityHandler = onVisibility;
+          document.addEventListener("visibilitychange", onVisibility);
 
           // Register unload handlers for immediate cleanup
           unloadHandler = () => {
-            if (localUserId && localToken) {
-              const sbUrl = process.env['NEXT_PUBLIC_SUPABASE_URL'];
-              const sbKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
-              if (sbUrl && sbKey) {
-                const url = `${sbUrl}/rest/v1/arcade_active_players?user_id=eq.${localUserId}`;
-                fetch(url, {
-                  method: "DELETE",
-                  headers: {
-                    apikey: sbKey,
-                    Authorization: `Bearer ${localToken}`,
-                  },
-                  keepalive: true,
-                });
-              }
+            if (!localUserId || !localToken) return;
+            const sbUrl = process.env['NEXT_PUBLIC_SUPABASE_URL'];
+            const sbKey = process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+            if (sbUrl && sbKey) {
+              const url = `${sbUrl}/rest/v1/arcade_active_players?user_id=eq.${localUserId}`;
+              fetch(url, {
+                method: "DELETE",
+                headers: {
+                  apikey: sbKey,
+                  Authorization: `Bearer ${localToken}`,
+                },
+                keepalive: true,
+              });
+            }
+            // sendBeacon fallback: keepalive fetches can be dropped on unload.
+            // Our route validates the session token and deletes the rows.
+            try {
+              const blob = new Blob([JSON.stringify({ token: localToken })], {
+                type: "application/json",
+              });
+              navigator.sendBeacon("/api/arcade/presence/leave", blob);
+            } catch {
+              // ignored — the cron cleanup will eventually prune stale rows
             }
           };
           window.addEventListener("pagehide", unloadHandler);
@@ -542,6 +576,11 @@ export function disconnect(): void {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
+  }
+
+  if (visibilityHandler) {
+    document.removeEventListener("visibilitychange", visibilityHandler);
+    visibilityHandler = null;
   }
 
   if (unloadHandler) {

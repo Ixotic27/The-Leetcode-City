@@ -21004,7 +21004,7 @@
       1,
       1,
       0,
-      1,
+      0,
       1,
       1,
       1,
@@ -21404,14 +21404,14 @@
       1,
       1,
       0,
-      1,
+      0,
       1,
       1,
       1,
       1,
       1,
       0,
-      1,
+      0,
       1,
       1,
       1,
@@ -22120,7 +22120,6 @@
       0,
       0,
       0,
-      1,
       1,
       1,
       1,
@@ -22128,6 +22127,7 @@
       1,
       1,
       0,
+      0,
       1,
       1,
       1,
@@ -22143,7 +22143,7 @@
       1,
       1,
       1,
-      1,
+      0,
       0,
       1,
       1,
@@ -22858,7 +22858,7 @@
       1,
       1,
       1,
-      1,
+      0,
       1,
       0,
       1,
@@ -23024,11 +23024,11 @@
       0,
       0,
       0,
-      1,
       0,
       0,
       0,
       0,
+      0,
       1,
       0,
       0,
@@ -23912,7 +23912,6 @@
       0,
       0,
       0,
-      1,
       0,
       0,
       0,
@@ -23932,6 +23931,7 @@
       0,
       0,
       0,
+      0,
       1,
       1,
       1,
@@ -23991,9 +23991,9 @@
       0,
       0,
       0,
-      1,
       0,
-      1,
+      0,
+      0,
       0,
       0,
       0,
@@ -25629,9 +25629,1188 @@
       "y": 36,
       "width": 1,
       "height": 1,
-      "label": "Return to Overworld",
-      "destination": "overworld"
+      "label": "Enter E.Arcade Lobby",
+      "destination": "lobby"
+    },
+    {
+      "id": "mayor",
+      "type": "npc",
+      "x": 41,
+      "y": 37,
+      "dir": "down",
+      "label": "Mayor Gupta",
+      "preset": "mayor",
+      "dialogue": [
+        "Welcome to Ixotopia, wanderer! This town is compiled fresh every sunrise.",
+        "Beyond these paths lie the Ponds of Off-by-One and the Grove of Edge Cases.",
+        "If you ever feel lost, just remember: every maze is a graph with extra steps.",
+        "Pro tip: talk to Prof. Algorithm by the plaza — she has a challenge for you."
+      ]
+    },
+    {
+      "id": "quizmaster",
+      "type": "npc",
+      "x": 44,
+      "y": 40,
+      "dir": "down",
+      "label": "Prof. Algorithm",
+      "preset": "quizmaster",
+      "quiz": "leetcode-quiz",
+      "dialogue": [
+        "Ah, a challenger! I have been waiting to test your LeetCode mettle.",
+        "Answer a few questions correctly and I will crown you with the rank you deserve.",
+        "Shall we begin?"
+      ]
+    },
+    {
+      "id": "pondsage",
+      "type": "npc",
+      "x": 31,
+      "y": 40,
+      "dir": "down",
+      "label": "Pond Sage",
+      "preset": "pondsage",
+      "dialogue": [
+        "These waters hold many secrets... mostly memory leaks.",
+        "They say the first bug in Ixotopia was a single floating-point error near the fountain.",
+        "Careful where you step — the edge cases are sharp.",
+        "The pond is always trying to reach its base case."
+      ]
+    },
+    {
+      "id": "blacksmith",
+      "type": "npc",
+      "x": 40,
+      "y": 42,
+      "dir": "down",
+      "label": "Coder Smith",
+      "preset": "blacksmith",
+      "dialogue": [
+        "I forge ranks from pure effort. Grind daily and your rating will shine.",
+        "My hammer is O(1), but my patience is O(n²).",
+        "Come back after a few solves — maybe I will have something for you."
+      ]
+    },
+    {
+      "id": "archivist",
+      "type": "npc",
+      "x": 47,
+      "y": 37,
+      "dir": "down",
+      "label": "Archivist Ada",
+      "preset": "archivist",
+      "dialogue": [
+        "I keep the chronicles of every accepted submission in the town hall.",
+        "Two Sum was the first legend ever recorded here. Many have walked that path.",
+        "The rarest artifact? A solution accepted on the very first try.",
+        "Keep exploring — the town hides more than it shows."
+      ]
     }
   ],
-  "tileProperties": {}
+  "tileProperties": {
+    "8": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "56": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "121": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "122": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "126": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "128": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "149": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "150": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "151": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "152": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "169": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "170": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "171": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "172": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "173": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "174": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "175": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "193": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "194": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "195": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "196": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "197": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "198": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "199": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "200": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "217": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "218": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "219": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "225": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "241": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "243": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "265": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "266": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "267": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "268": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "269": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "273": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "274": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "275": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "290": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "297": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "298": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "299": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "305": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "306": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "314": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "321": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "322": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "323": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "327": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "329": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "330": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "332": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "333": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "334": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "335": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "353": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "354": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "355": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "356": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "357": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "358": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "359": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "361": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "362": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "363": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "364": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "365": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "366": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "367": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "368": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "369": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "370": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "371": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "372": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "373": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "374": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "375": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "376": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "377": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "378": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "379": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "385": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "386": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "387": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "388": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "389": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "390": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "391": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "392": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "393": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "394": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "395": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "396": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "397": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "398": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "399": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "400": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "401": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "402": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "403": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "409": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "410": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "411": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "412": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "413": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "414": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "415": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "416": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "417": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "418": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "419": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "420": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "421": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "422": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "423": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "424": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "425": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "426": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "427": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "433": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "434": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "435": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "436": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "437": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "438": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "439": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "440": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "441": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "442": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "443": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "444": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "445": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "446": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "447": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "448": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "449": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "450": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "451": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "457": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "458": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "459": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "460": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "461": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "462": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "463": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "464": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "465": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "471": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "472": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "473": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "474": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "475": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "479": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "480": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "481": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "482": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "483": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "484": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "485": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "486": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "487": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "488": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "489": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "495": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "496": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "497": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "498": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "499": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "503": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "504": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "505": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "506": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "507": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "508": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "509": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "510": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "511": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "512": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "513": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "519": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "520": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "521": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "522": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "523": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "527": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "528": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "529": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "530": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "531": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "532": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "533": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "534": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "535": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "536": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "537": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "543": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "544": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "545": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "546": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "547": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "551": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "552": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "553": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "554": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "555": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "556": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "557": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "558": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "559": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "560": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "561": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "577": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "578": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "579": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "580": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "581": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "582": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "583": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "584": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "585": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "586": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "587": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "588": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "589": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "590": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "591": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "592": {
+      "walkable": true,
+      "type": "floor"
+    },
+    "601": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "602": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "603": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "604": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "605": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "606": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "607": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "608": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "609": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "610": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "611": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "612": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "613": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "614": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "615": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "616": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "625": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "626": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "627": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "628": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "629": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "630": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "631": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "632": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "633": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "634": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "635": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "636": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "637": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "638": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "639": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "640": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "649": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "650": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "651": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "652": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "653": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "654": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "655": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "656": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "657": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "658": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "659": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "660": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "661": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "662": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "663": {
+      "walkable": false,
+      "type": "wall"
+    },
+    "664": {
+      "walkable": false,
+      "type": "wall"
+    }
+  }
 }

@@ -69,6 +69,9 @@ import type { GameResult } from "@/lib/arcade/types";
 import ArcadeGameOverlay from "@/components/arcade/ArcadeGameOverlay";
 import AvatarEditor from "@/components/arcade/AvatarEditor";
 import EditorMode from "@/components/arcade/EditorMode";
+import NpcDialog, { type NpcDialogData } from "@/components/arcade/NpcDialog";
+import QuizGameOverlay from "@/components/arcade/QuizGameOverlay";
+import { getNpcLoadout } from "@/lib/arcade/npcs";
 
 const REMOTE_PLAYER_SMOOTHING_MS = 180;
 const LERP_DURATION = REMOTE_PLAYER_SMOOTHING_MS / 1000;
@@ -305,6 +308,12 @@ export default function ArcadeRoomPage({
   const [showArcadeGame, setShowArcadeGame] = useState(false);
   const arcadeGameOpenRef = useRef(false);
 
+  // NPC dialogue + town quiz state
+  const [showNpcDialog, setShowNpcDialog] = useState<NpcDialogData | null>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const npcDialogOpenRef = useRef(false);
+  const quizOpenRef = useRef(false);
+
   // Editor state
   const [isAdmin, setIsAdmin] = useState(false);
   const [editorMode, setEditorMode] = useState(false);
@@ -349,6 +358,16 @@ export default function ArcadeRoomPage({
     isMobileRef.current = mobile;
     setIsMobile(mobile);
   }, []);
+
+  // Keep refs in sync so the game loop can block movement while an overlay
+  // (NPC dialogue / quiz) is open — reading state directly in the loop would
+  // require stale-closure-prone subscriptions.
+  useEffect(() => {
+    npcDialogOpenRef.current = !!showNpcDialog;
+  }, [showNpcDialog]);
+  useEffect(() => {
+    quizOpenRef.current = showQuiz;
+  }, [showQuiz]);
 
   const handleInteract = useCallback(() => {
     if (editorModeRef.current) return; // Disable interaction in editor
@@ -396,6 +415,15 @@ export default function ArcadeRoomPage({
       return;
     }
     const obj = findNearbyObject(localP.x, localP.y);
+    if (obj?.type === "npc") {
+      setShowNpcDialog({
+        id: obj.id,
+        label: obj.label ?? "Villager",
+        dialogue: obj.dialogue ?? [],
+        quiz: obj.quiz,
+      });
+      return;
+    }
     if (obj?.type === "elevator") {
       fetch("/api/arcade/rooms?limit=50")
         .then((r) => (r.ok ? r.json() : null))
@@ -684,6 +712,14 @@ export default function ArcadeRoomPage({
           (f: { sprite: string }) => f.sprite,
         );
         loadFurnitureSprites("/sprites/arcade", spriteKeys);
+        // Re-register NPC avatars in case the reloaded map contains NPCs
+        for (const obj of map.objects ?? []) {
+          if (obj.type !== "npc") continue;
+          const npcKey = `npc:${obj.id ?? `${obj.x},${obj.y}`}`;
+          const npcLoadout = getNpcLoadout(obj.preset);
+          setPlayerAvatar(npcKey, npcLoadout);
+          preloadLoadout(npcLoadout).catch(() => {});
+        }
       },
       onGameAck(game: string) {
         // Forward to overlay via window global
@@ -769,6 +805,15 @@ export default function ArcadeRoomPage({
       const map = loadMapFromData(mapRes.room.map_json);
       mapRef.current = map;
 
+      // Register avatar loadouts for interactive NPCs so they render properly
+      for (const obj of map.objects ?? []) {
+        if (obj.type !== "npc") continue;
+        const npcKey = `npc:${obj.id ?? `${obj.x},${obj.y}`}`;
+        const npcLoadout = getNpcLoadout(obj.preset);
+        setPlayerAvatar(npcKey, npcLoadout);
+        preloadLoadout(npcLoadout).catch(() => {});
+      }
+
       const apiPortals = mapRes.room.portals ?? [];
       const mapPortals = (map.objects ?? [])
         .filter((obj) => obj.type === "door" || obj.type === "stairs" || obj.type === "portal")
@@ -836,6 +881,7 @@ export default function ArcadeRoomPage({
       const onMoveDir = (dir: Direction) => {
         if (editorModeRef.current) return;
         if (terminalOpenRef.current) return;
+        if (npcDialogOpenRef.current || quizOpenRef.current) return;
         if (sittingRef.current) {
           sendStand();
           return;
@@ -1039,7 +1085,12 @@ export default function ArcadeRoomPage({
             } else {
               const obj = findNearbyObject(localP.x, localP.y);
               if (obj) {
-                const label = obj.type === "elevator" ? "Elevator" : obj.type;
+                const label =
+                  obj.type === "elevator"
+                    ? "Elevator"
+                    : obj.type === "npc"
+                      ? (obj.label ?? "Talk")
+                      : obj.type;
                 promptRef.current = { x: obj.x, y: obj.y, text: label };
                 if (nearInteractableRef.current !== obj.type) {
                   nearInteractableRef.current = obj.type;
@@ -1341,6 +1392,9 @@ export default function ArcadeRoomPage({
         }
         return;
       }
+      if (showNpcDialog || showQuiz) {
+        return; // NPC dialogue / quiz overlays handle their own keyboard
+      }
       if (showTerminal) {
         if (e.key === "Escape") {
           setShowTerminal(false);
@@ -1388,6 +1442,8 @@ export default function ArcadeRoomPage({
     router,
     chatOpen,
     showAvatarModal,
+    showNpcDialog,
+    showQuiz,
     showDialog,
     showTerminal,
     showArcadeGame,
@@ -1583,6 +1639,27 @@ export default function ArcadeRoomPage({
             arcadeGameOpenRef.current = false;
             sendStand();
           }}
+        />
+      )}
+
+      {/* NPC dialogue overlay */}
+      {showNpcDialog && (
+        <NpcDialog
+          npc={showNpcDialog}
+          isMobile={isMobile}
+          onClose={() => setShowNpcDialog(null)}
+          onStartQuiz={() => {
+            setShowNpcDialog(null);
+            setShowQuiz(true);
+          }}
+        />
+      )}
+
+      {/* Town LeetCode quiz overlay */}
+      {showQuiz && (
+        <QuizGameOverlay
+          isMobile={isMobile}
+          onClose={() => setShowQuiz(false)}
         />
       )}
 

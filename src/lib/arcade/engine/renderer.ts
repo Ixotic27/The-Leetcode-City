@@ -240,7 +240,7 @@ export function buildLayerCaches(map: GameMap): void {
   }
 
   // Draw optional world layer (fringe/midground)
-  const worldLayer = (map.layers as any).world;
+  const worldLayer = (map.layers as { world?: number[] }).world;
   if (worldLayer) {
     for (let i = 0; i < worldLayer.length; i++) {
       const gid = worldLayer[i];
@@ -258,7 +258,7 @@ export function buildLayerCaches(map: GameMap): void {
   }
 
   // Draw optional abovePlayer layer
-  const aboveLayer = (map.layers as any).abovePlayer;
+  const aboveLayer = (map.layers as { abovePlayer?: number[] }).abovePlayer;
   if (aboveLayer) {
     const aboveCanvas = document.createElement("canvas");
     aboveCanvas.width = map.width * ts;
@@ -360,6 +360,35 @@ export function render(
           ctx.drawImage(img, f.x, f.y, img.width * 2, img.height * 2);
         } else {
           drawFurnitureFallback(ctx, f);
+        }
+      },
+    });
+  }
+
+  // Interactive NPCs (map objects) — drawn like players with name labels,
+  // z-sorted together with players so the town feels populated.
+  for (const obj of map.objects) {
+    if (obj.type !== "npc") continue;
+    const nid = obj.id ? `npc:${obj.id}` : `npc:${obj.x},${obj.y}`;
+    const nx = obj.x * ts;
+    const ny = obj.y * ts;
+    const dir = (obj.dir ?? "down") as Direction;
+    const spriteScale = 2;
+    renderables.push({
+      sortY: (obj.y + 1) * ts,
+      draw: () => {
+        // Same footprint math as players: 64×64 sprite with feet on the tile
+        drawCharacter(ctx, nid, obj.sprite_id ?? 0, dir, false, nx - 16, ny - 32, spriteScale);
+        if (obj.label) {
+          ctx.font = "bold 8px monospace";
+          ctx.textAlign = "center";
+          const labelW = ctx.measureText(obj.label).width;
+          const lx = nx + ts / 2;
+          const ly = ny - 40;
+          ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.fillRect(lx - labelW / 2 - 4, ly - 10, labelW + 8, 12);
+          ctx.fillStyle = "#e8e4df";
+          ctx.fillText(obj.label, lx, ly);
         }
       },
     });

@@ -24,6 +24,16 @@ export interface MapObject {
   height?: number;
   label?: string;
   dir?: "up" | "down" | "left" | "right";
+  /** Unique id (used by interactive NPCs to key their avatar). */
+  id?: string;
+  /** Dialogue lines shown when the player interacts (NPCs). */
+  dialogue?: string[];
+  /** Named avatar preset (see src/lib/arcade/npcs.ts). */
+  preset?: string;
+  /** Optional mini-game key attached to an NPC (e.g. "leetcode-quiz"). */
+  quiz?: string;
+  /** Legacy character sprite index (0-5) used when no avatar preset exists. */
+  sprite_id?: number;
 
   // Portal fields
   destination?: string;
@@ -173,6 +183,20 @@ export function rebuildCollision(map: GameMap): void {
       const gid = map.layers.ground[i];
       const props = map.tileProperties[gid];
       if (props && !props.walkable) coll[i] = 1;
+    }
+
+    // 1b. Midground (world) layer — trees, water, buildings that sit on top
+    // of ground tiles must also block movement (e.g. the Ixotopia open map).
+    // Above-player tiles are excluded: they render OVER players, so they are
+    // never solid.
+    const worldLayer = (map.layers as { world?: number[] }).world;
+    if (worldLayer) {
+      for (let i = 0; i < worldLayer.length; i++) {
+        const gid = worldLayer[i];
+        if (!gid) continue;
+        const props = map.tileProperties[gid];
+        if (props && !props.walkable) coll[i] = 1;
+      }
     }
   } else {
     for (let i = 0; i < coll.length; i++) {
