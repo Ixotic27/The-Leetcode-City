@@ -1435,6 +1435,8 @@ function MoonLensFlare({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.G
   );
 }
 
+import { useCity } from "@/context/CityContext";
+
 // ─── AtmosphereCycleManager Component ─────────────────────────────
 interface AtmosphereCycleManagerProps {
   theme: any;
@@ -1443,7 +1445,10 @@ interface AtmosphereCycleManagerProps {
   timeRef: React.MutableRefObject<number>;
   cityRadius?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  reducedMotion?: boolean;
 }
+
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 export default function AtmosphereCycleManager({
   theme,
@@ -1452,7 +1457,10 @@ export default function AtmosphereCycleManager({
   timeRef,
   cityRadius,
   weatherMode = "sunny",
+  reducedMotion: propReducedMotion,
 }: AtmosphereCycleManagerProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
+  const isCycleActive = active && !reducedMotion;
   const { scene } = useThree();
   const { isRaining } = useWeather();
 
@@ -1595,7 +1603,7 @@ export default function AtmosphereCycleManager({
       }
     }
 
-    if (active) {
+    if (isCycleActive) {
       // Global Day/Night Cycle based on India Standard Time (IST: UTC+5:30)
       const now = Date.now();
       const istOffset = 5.5 * 60 * 60 * 1000;

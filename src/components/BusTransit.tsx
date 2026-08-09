@@ -17,6 +17,7 @@ interface BusTransitProps {
   } | null;
   onArrival: (targetDistrict: string) => void;
   onOpenTransitMenu: (fromDistrict: string) => void;
+  reducedMotion?: boolean;
 }
 
 // ─── 3D BMTC Bus Stop Shelter ──────────────────────────────────
@@ -186,15 +187,15 @@ export function SkyTransitBoard({
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    texRef.current = tex;
     return tex;
   }, [fontReady, district, color]);
 
   useEffect(() => {
+    texRef.current = texture;
     return () => {
-      texRef.current?.dispose();
+      texture?.dispose();
     };
-  }, []);
+  }, [texture]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -345,6 +346,8 @@ export function BusModel({
   );
 }
 
+import { useReducedMotion } from "@/lib/reducedMotion";
+
 // ─── Main Bus Transit Manager ─────────────────────────────────
 export default function BusTransit({
   plazas,
@@ -352,7 +355,9 @@ export default function BusTransit({
   transitState,
   onArrival,
   onOpenTransitMenu,
+  reducedMotion: propReducedMotion,
 }: BusTransitProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const { camera } = useThree();
   const [progress, setProgress] = useState(0);
   const busPos = useMemo(() => new THREE.Vector3(), []);
@@ -381,11 +386,9 @@ export default function BusTransit({
       toPlaza.position[2] + Math.cos(toRotY) * 45,
     ];
 
-    const points: THREE.Vector3[] = [];
-    points.push(new THREE.Vector3(...fromPos));
+    const points: THREE.Vector3[] = [new THREE.Vector3(...fromPos)];
 
-    // Check if we need to cross the central horizontal river (Z = 0)
-    const crossedRiver = (fromPos[2] > 0 && toPos[2] < 0) || (fromPos[2] < 0 && toPos[2] > 0);
+    const crossedRiver = Math.sign(fromPos[2]) !== Math.sign(toPos[2]);
 
     if (crossedRiver && bridges.length > 0) {
       // Find the closest bridge on X to fromPos
@@ -423,16 +426,17 @@ export default function BusTransit({
   // Reset transit progress when state becomes active
   useEffect(() => {
     if (transitState?.active) {
-      setProgress(0);
+      const targetProgress = reducedMotion ? 1 : 0;
+      queueMicrotask(() => setProgress(targetProgress));
     }
-  }, [transitState]);
+  }, [transitState, reducedMotion]);
 
   // Update bus position and snap camera behind it
   useFrame((_, delta) => {
     if (!transitState?.active || !curve) return;
 
-    // Travel duration is roughly 5 seconds
-    const speed = 0.2;
+    // Travel duration is roughly 5 seconds (or instant when reduced motion is requested)
+    const speed = reducedMotion ? 100.0 : 0.2;
     const nextProg = Math.min(progress + delta * speed, 1);
     setProgress(nextProg);
 
@@ -442,11 +446,13 @@ export default function BusTransit({
     busPos.copy(pos);
     busRot.set(0, Math.atan2(tangent.x, tangent.z), 0);
 
-    // Position camera slightly behind the bus direction
-    const yaw = Math.atan2(tangent.x, tangent.z);
-    const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(new THREE.Euler(0, yaw, 0));
-    camera.position.copy(pos).add(camOffset);
-    camera.lookAt(pos.x, pos.y + 4, pos.z);
+    // Position camera slightly behind the bus direction unless reduced motion is active
+    if (!reducedMotion) {
+      const yaw = Math.atan2(tangent.x, tangent.z);
+      const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(new THREE.Euler(0, yaw, 0));
+      camera.position.copy(pos).add(camOffset);
+      camera.lookAt(pos.x, pos.y + 4, pos.z);
+    }
 
     if (nextProg >= 1) {
       onArrival(transitState.toDistrict);
