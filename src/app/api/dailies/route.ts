@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTodayStr } from "@/lib/dailies";
 import { DailyMissionService } from "@/services/dailyMissionService";
 import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
+import { booleanFlagSchema, validateQuery } from "@/lib/validation";
+
+const querySchema = z.object({
+  mobile: booleanFlagSchema,
+});
 
 export async function GET(request: Request) {
   const authDev = await resolveAuthenticatedDeveloper({
@@ -25,7 +31,11 @@ export async function GET(request: Request) {
   const today = getTodayStr();
 
   const { searchParams } = new URL(request.url);
-  const isMobile = searchParams.get("mobile") === "1";
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
+  }
+  const isMobile = queryVal.data.mobile;
 
   const summary = await service.loadMissionSummary(
     {

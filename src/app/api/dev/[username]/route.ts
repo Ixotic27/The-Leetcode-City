@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
-import { validateParams, validateQuery } from "@/lib/validation";
+import { booleanFlagSchema, usernameSchema, validateParams, validateQuery } from "@/lib/validation";
 import { logApiError, newReqId } from "@/lib/api-logger";
 import { OwnershipResolver } from "@/services/ownershipResolver";
 import { CityReadModel } from "@/services/cityReadModel";
@@ -10,11 +10,11 @@ import { CityReadModel } from "@/services/cityReadModel";
 export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({
-  username: z.string().trim().min(1, "Username is required"),
+  username: usernameSchema,
 });
 
 const querySchema = z.object({
-  refresh: z.string().optional(),
+  refresh: booleanFlagSchema,
 });
 
 interface LeetCodeProfile {
@@ -209,7 +209,7 @@ export async function GET(
   if (!queryVal.success) {
     return queryVal.response;
   }
-  const forceRefresh = queryVal.data.refresh === "true";
+  const forceRefresh = queryVal.data.refresh;
   const sb = getSupabaseAdmin();
 
   let cachedRecord = null;

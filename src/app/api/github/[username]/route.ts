@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { validateParams } from "@/lib/validation";
+import { usernameSchema, validateParams } from "@/lib/validation";
 
 const paramsSchema = z.object({
-  username: z.string().trim().min(1, "Username is required"),
+  username: usernameSchema,
 });
 
 export async function GET(
