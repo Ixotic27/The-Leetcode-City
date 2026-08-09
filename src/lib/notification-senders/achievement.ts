@@ -43,11 +43,22 @@ export function sendAchievementNotification(
   const achievementListHtml = notable
     .map((a) => {
       const tierColor = TIER_COLORS[a.tier] ?? "#888888";
-      return `<li style="margin-bottom: 6px; color: #f0f0f0;">
-        <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${tierColor}; margin-right: 8px;"></span>
-        <strong style="color: #ffa116;">${a.name}</strong>
-        <span style="color: #666;">(${a.tier})</span>
-      </li>`;
+      return `
+        <li style="margin-bottom: 6px; color: #f0f0f0;">
+          <span
+            style="
+              display: inline-block;
+              width: 10px;
+              height: 10px;
+              border-radius: 50%;
+              background-color: ${tierColor};
+              margin-right: 8px;
+            "
+          ></span>
+          <strong style="color: #ffa116;">${a.name}</strong>
+          <span style="color: #666;">(${a.tier})</span>
+        </li>
+      `;
     })
     .join("");
 
