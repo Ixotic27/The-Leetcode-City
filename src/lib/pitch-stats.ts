@@ -1,27 +1,58 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+/**
+ * Snapshot of city-wide metrics rendered on the pitch/landing page.
+ *
+ * Contains raw counts for every tracked metric plus pre-formatted
+ * (`formatted*`) display strings so UI components can render values directly
+ * without re-formatting. Revenue fields are derived from known Stripe
+ * dashboard totals (see the `KNOWN_*_REVENUE_BRL` constants below) and are
+ * displayed in BRL.
+ */
 export interface PitchStats {
+  /** Total number of registered developers. */
   developers: number;
+  /** Number of developers who have claimed their profile. */
   claimed: number;
+  /** Number of paid ad campaigns purchased. */
   adCampaigns: number;
+  /** Number of unique brands that purchased ad campaigns. */
   uniqueBrands: number;
+  /** Number of in-app shop purchases. */
   shopPurchases: number;
+  /** Number of kudos awarded. */
   kudos: number;
+  /** Number of building visits recorded. */
   buildingVisits: number;
+  /** Number of achievements earned. */
   achievements: number;
+  /** Days since the platform launch date. */
   daysOld: number;
+  /** Claim rate as a percentage string (e.g. `"12.3%"`, `"0%"`). */
   conversionRate: string;
+  /** `developers` formatted with thousands separators. */
   formattedDevelopers: string;
+  /** `claimed` formatted with thousands separators. */
   formattedClaimed: string;
+  /** `adCampaigns` formatted with thousands separators. */
   formattedAdCampaigns: string;
+  /** `uniqueBrands` formatted with thousands separators. */
   formattedUniqueBrands: string;
+  /** `shopPurchases` formatted with thousands separators. */
   formattedShopPurchases: string;
+  /** `kudos` formatted with thousands separators. */
   formattedKudos: string;
+  /** `buildingVisits` formatted with thousands separators. */
   formattedBuildingVisits: string;
+  /** `achievements` formatted with thousands separators. */
   formattedAchievements: string;
+  /** `daysOld` rendered as e.g. `"168 days old"`. */
   formattedDaysOld: string;
+  /** Total known revenue in BRL, e.g. `"R$1,586+"`. */
   formattedRevenue: string;
+  /** Known ad revenue in BRL, e.g. `"R$1,550"`. */
   formattedAdRevenue: string;
+  /** Known shop revenue in BRL, or `"Early sales"` when none exists. */
   formattedShopRevenue: string;
 }
 
@@ -45,6 +76,20 @@ function fmtRounded(n: number): string {
   return fmt(n);
 }
 
+/**
+ * Aggregates and returns the city-wide stats shown on the pitch page.
+ *
+ * Runs several Supabase queries in parallel (developer counts, paid ad
+ * purchases, kudos, building visits, achievements), derives the claim
+ * conversion rate and platform age, and formats every value for display —
+ * including BRL revenue computed from the known Stripe dashboard totals.
+ *
+ * Never throws: if any query fails, the error is logged to the console and an
+ * all-zero `PitchStats` snapshot is returned so the pitch page still renders.
+ *
+ * @returns A `PitchStats` snapshot with raw and formatted metrics, or an
+ * all-zero snapshot when the underlying queries fail.
+ */
 export async function getPitchStats(): Promise<PitchStats> {
   const admin = getSupabaseAdmin();
 

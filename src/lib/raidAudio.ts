@@ -52,3 +52,9 @@ export function stopAllRaidSounds() {
     s.stop();
   }
 }
+
+// NEW: Safe guard — checks if a sound is currently playing
+// Used by useRaidSequence to prevent double-trigger on rapid phase transitions
+export function isRaidSoundPlaying(name: string): boolean {
+  return raidSounds?.[name]?.playing() ?? false;
+}
