@@ -5,6 +5,12 @@ import { buildButton } from "@/lib/email-template";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://theleetcodecity.tech";
 
+/**
+ * Defines the configuration for a re-engagement email tier.
+ *
+ * Each tier specifies how long a developer must be inactive,
+ * along with the email content to send when the tier is triggered.
+ */
 interface ReEngagementTier {
   daysInactive: number;
   tier: string;
@@ -12,7 +18,12 @@ interface ReEngagementTier {
   body: (login: string) => string;
   html: (login: string, extraInfo: string) => string;
 }
-
+/**
+ * Re-engagement email tiers based on the number of days a developer has been inactive.
+ *
+ * Each tier defines the inactivity period and the email content
+ * used to re-engage inactive developers.
+ */
 const TIERS: ReEngagementTier[] = [
   {
     daysInactive: 7,
