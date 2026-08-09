@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { z } from "zod";
 import { validateQuery } from "@/lib/validation";
+import { logApiError, newReqId } from "@/lib/api-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ const querySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const reqId = newReqId();
   const queryVal = validateQuery(req.nextUrl.searchParams, querySchema);
   if (!queryVal.success) {
     return queryVal.response;
@@ -30,7 +32,7 @@ export async function GET(req: NextRequest) {
     .limit(8);
 
   if (error) {
-    console.error("Search API error:", error);
+    logApiError({ reqId, route: "/api/search", error, message: "Search API error" });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
