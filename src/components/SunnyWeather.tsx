@@ -3,6 +3,7 @@
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 /**
  * ============================================================================
@@ -87,6 +88,7 @@ const ShimmerShader = {
  */
 const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   const meshRef = useRef<THREE.Mesh>(null);
+  const reducedMotion = useReducedMotion();
   
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -95,7 +97,7 @@ const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   }), [intensity]);
 
   useFrame((state) => {
-    if (meshRef.current) {
+    if (meshRef.current && !reducedMotion) {
       const mat = meshRef.current.material as THREE.ShaderMaterial;
       mat.uniforms.uTime.value = state.clock.getElapsedTime();
     }

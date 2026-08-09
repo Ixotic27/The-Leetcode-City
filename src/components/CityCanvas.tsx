@@ -2225,12 +2225,14 @@ function OrbitScene({
   focusedBuildingB,
   relicFocus,
   isNewBuilding,
+  reducedMotion = false,
 }: {
   buildings: CityBuilding[];
   focusedBuilding: string | null;
   focusedBuildingB?: string | null;
   relicFocus?: { x: number; y: number; z: number } | null;
   isNewBuilding?: boolean;
+  reducedMotion?: boolean;
 }) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
@@ -2259,7 +2261,7 @@ function OrbitScene({
         maxDistance={2500}
         maxPolarAngle={Math.PI / 2.1}
         target={[TARGET_X, TARGET_Y, TARGET_Z]}
-        autoRotate
+        autoRotate={!reducedMotion}
         autoRotateSpeed={0.15}
       />
     </>
@@ -2268,7 +2270,7 @@ function OrbitScene({
 
 // ─── Wallpaper Orbit (no interaction, auto-rotate + parallax) ─
 
-function WallpaperOrbitScene({ speed }: { speed: number }) {
+function WallpaperOrbitScene({ speed, reducedMotion = false }: { speed: number; reducedMotion?: boolean }) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
 
@@ -2287,7 +2289,7 @@ function WallpaperOrbitScene({ speed }: { speed: number }) {
         maxDistance={2500}
         maxPolarAngle={Math.PI / 2.1}
         target={[TARGET_X, TARGET_Y, TARGET_Z]}
-        autoRotate
+        autoRotate={!reducedMotion}
         autoRotateSpeed={speed}
         enablePan={false}
         enableZoom={false}
@@ -2368,6 +2370,7 @@ export interface CityCanvasProps {
   } | null;
   onArrival?: (targetDistrict: string) => void;
   onOpenTransitMenu?: (fromDistrict: string) => void;
+  reducedMotion?: boolean;
 }
 
 // Dynamically adjust scene exposure based on city energy (devs coding)
@@ -2493,6 +2496,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
   onOpenCodeForge,
   flyPosRef,
   themeIndex,
+  reducedMotion = false,
 }: CityCanvasSceneContentProps) {
   const { isRaining } = useWeather();
 
@@ -2522,7 +2526,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
       )}
 
       {wallpaperMode ? (
-        <WallpaperOrbitScene speed={wallpaperSpeed ?? 0.08} />
+        <WallpaperOrbitScene speed={wallpaperSpeed ?? 0.08} reducedMotion={reducedMotion} />
       ) : (
         <>
           {!introMode && !rabbitCinematic && !flyMode && !(transitState?.active) && (!raidPhase || raidPhase === "idle" || raidPhase === "preview") && (
@@ -2532,6 +2536,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
               focusedBuildingB={focusedBuildingB}
               isNewBuilding={isNewBuilding}
               relicFocus={relicFocus}
+              reducedMotion={reducedMotion}
             />
           )}
 
@@ -2679,6 +2684,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         timeRef={timeRef}
         weatherMode={weatherMode}
         multiplayerPlayers={multiplayerPlayers}
+        reducedMotion={reducedMotion}
       />
 
       <InstancedDecorations items={decorations} roadMarkingColor={theme.roadMarkingColor} sidewalkColor={theme.sidewalkColor} />
@@ -2689,11 +2695,12 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         transitState={transitState ?? null}
         onArrival={onArrival ?? (() => { })}
         onOpenTransitMenu={onOpenTransitMenu ?? (() => { })}
+        reducedMotion={reducedMotion}
       />
 
       <InterCityConnections />
-      <MetroSystem />
-      <TramSystem />
+      <MetroSystem reducedMotion={reducedMotion} />
+      <TramSystem reducedMotion={reducedMotion} />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
         <Suspense fallback={null}>
           <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
@@ -2734,6 +2741,8 @@ const CityCanvasOverlayLayer = memo(function CityCanvasOverlayLayer({
     </>
   );
 });
+
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 export default function CityCanvas({
   onReady,
@@ -2799,7 +2808,9 @@ export default function CityCanvas({
   transitState,
   onArrival,
   onOpenTransitMenu,
+  reducedMotion: propReducedMotion,
 }: CityCanvasProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
   const [codeForgeOpen, setCodeForgeOpen] = useState(false);
@@ -3038,6 +3049,7 @@ export default function CityCanvas({
         onOpenCodeForge={handleOpenCodeForge}
         flyPosRef={flyPosRef}
         themeIndex={themeIndex}
+        reducedMotion={reducedMotion}
       />
 
     </Canvas>
