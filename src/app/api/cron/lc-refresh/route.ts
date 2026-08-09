@@ -254,9 +254,14 @@ async function discoverAndInsertNewUsers(
       headers: LC_HEADERS,
       body: JSON.stringify({ query, variables: { page } }),
     });
+    if (!res.ok) {
+      console.warn(`[lc-refresh] discovery fetch page ${page} returned HTTP ${res.status}`);
+      return 0;
+    }
     const json = await res.json();
     const usernames: string[] = (json?.data?.globalRanking?.rankingNodes ?? [])
-      .map((n: RankingNode) => n.user.username.toLowerCase());
+      .map((n: RankingNode) => n.user?.username?.toLowerCase())
+      .filter(Boolean);
 
     if (usernames.length === 0) return 0;
 
