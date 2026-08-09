@@ -23,8 +23,8 @@ export async function GET(req: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
-  // Escape LIKE special characters (% _ \) to prevent wildcard injection
-  const escapedQ = q.replace(/[%_\\]/g, (c) => (c === "\\" ? "\\\\" : `\\${c}`));
+  // Escape LIKE wildcard characters so user input is treated literally.
+  const escapedQ = q.replace(/[\\%_]/g, "\\$&");
   const { data, error } = await supabase
     .from("developers")
     .select("github_login, avatar_url, name, easy_solved, medium_solved, hard_solved, lc_global_rank")
