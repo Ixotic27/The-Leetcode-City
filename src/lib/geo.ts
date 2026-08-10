@@ -1,12 +1,19 @@
 /**
- * Lightweight Brazil detection.
+ * Lightweight Brazil geolocation detection module.
  *
- * Combines three signals in order of reliability:
+ * Provides utilities to determine whether a client request originates from Brazil,
+ * enabling localized features such as PIX payment options.
+ *
+ * Detection evaluates three signals in hierarchical order of reliability:
  *   1. Server-detected country (Vercel `x-vercel-ip-country` header), passed via prop
- *   2. Browser timezone (e.g. `America/Sao_Paulo`) — set by the OS, not by language
- *   3. Browser language (`navigator.language`) — least reliable for devs with English OS
+ *   2. Browser timezone (e.g. `America/Sao_Paulo`) — set by the OS, independent of UI language
+ *   3. Browser language (`navigator.language`) — fallback signal for Portuguese language preference
  */
 
+/**
+ * Set of IANA timezone identifiers corresponding to Brazilian time zones.
+ * Used as the primary client-side detection signal derived from system settings.
+ */
 const BR_TIMEZONES = new Set([
   "America/Sao_Paulo",
   "America/Fortaleza",
@@ -26,7 +33,17 @@ const BR_TIMEZONES = new Set([
   "America/Santarem",
 ]);
 
-/** Client-side check. Use `serverCountry` from headers when available. */
+/**
+ * Client-side check to determine if the user is located in Brazil.
+ *
+ * Evaluates detection signals in order of decreasing reliability:
+ * 1. `serverCountry` parameter (e.g., from Vercel `x-vercel-ip-country` header)
+ * 2. System/Browser timezone matching against `BR_TIMEZONES`
+ * 3. Browser preferred language starting with `"pt"` (Portuguese)
+ *
+ * @param serverCountry - Optional ISO 3166-1 alpha-2 country code string passed from server headers (e.g., `"BR"`).
+ * @returns `true` if the client is detected to be in Brazil, `false` otherwise.
+ */
 export function isBrazilClient(serverCountry?: string | null): boolean {
   if (serverCountry && serverCountry.toUpperCase() === "BR") return true;
   if (typeof navigator === "undefined") return false;
