@@ -22,38 +22,40 @@ vi.mock("@/lib/supabase", () => {
               }
 
               // solveResult
-              if (cols === "easy_solved, medium_solved, hard_solved") {
-                return Promise.resolve({
-                  data: [
-                    { easy_solved: 10, medium_solved: 5, hard_solved: 2 },
-                    { easy_solved: 20, medium_solved: 15, hard_solved: 8 },
-                  ],
-                  error: null,
-                });
+              if (cols === "github_login, easy_solved, medium_solved, hard_solved") {
+                return {
+                  order: () => ({
+                    limit: () => ({
+                      maybeSingle: () =>
+                        Promise.resolve({
+                          data: {
+                            github_login: "top-coder",
+                            easy_solved: 100,
+                            medium_solved: 50,
+                            hard_solved: 30,
+                          },
+                          error: null,
+                        }),
+                    }),
+                  }),
+                };
               }
 
-              // tallestResult
-              return {
-                order: () => ({
-                  limit: () => ({
-
-                    maybeSingle: () =>
-                      Promise.resolve({
-                        data: {
-                          github_login: "top-coder",
-                          easy_solved: 100,
-                          medium_solved: 50,
-                          hard_solved: 30,
-                        },
-                        error: null,
-                      }),
-                  }),
-                }),
-              };
+              return {};
             },
           };
         }
         return {};
+      },
+      rpc: (fn: string) => {
+        // get_city_solve_totals: (10+5+2) + (20+15+8) = 60
+        if (fn === "get_city_solve_totals") {
+          return Promise.resolve({
+            data: { total_solves: 60, total_developers: 100 },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: null });
       },
     }),
   };
