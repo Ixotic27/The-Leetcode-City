@@ -309,6 +309,8 @@ export function BusModel({
   );
 }
 
+import { useReducedMotion } from "@/lib/reducedMotion";
+
 // ─── Main Bus Transit Manager ─────────────────────────────────
 export default function BusTransit({
   plazas,
@@ -408,18 +410,18 @@ export default function BusTransit({
 
   // Handle audio triggers and progress when transit starts
   useEffect(() => {
-    if (transitState?.active) {
-      const targetProgress = reducedMotion ? 1 : 0;
-      queueMicrotask(() => setProgress(targetProgress));
-      
-      // Play takeoff sound on start & start flight loop
-      takeoffSoundRef.current?.play();
-      flightLoopSoundRef.current?.play();
-    } else {
-      // Stop sounds when transit ends or resets
-      flightLoopSoundRef.current?.stop();
-    }
-  }, [transitState, reducedMotion]);
+  if (transitState?.active) {
+    const targetProgress = reducedMotion ? 1 : 0;
+    queueMicrotask(() => setProgress(targetProgress));
+
+    // Play takeoff sound on start & start flight loop
+    takeoffSoundRef.current?.play();
+    flightLoopSoundRef.current?.play();
+  } else {
+    // Stop sounds when transit ends or resets
+    flightLoopSoundRef.current?.stop();
+  }
+}, [transitState, reducedMotion]);
 
   // Update bus position and snap camera behind it
   useFrame((_, delta) => {
