@@ -112,14 +112,25 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
     const user = data?.matchedUser;
     if (!user) return false;
 
-    const acNums = user.submitStats?.acSubmissionNum ?? [];
-    const totNums = user.submitStats?.totalSubmissionNum ?? [];
+    // Guard against malformed LeetCode API responses
+    if (!user.submitStats || !Array.isArray(user.submitStats.acSubmissionNum)) {
+        console.warn(`  [lc-refresh] Missing submitStats for ${username}, skipping.`);
+        return false;
+    }
+
+    if (!user.userCalendar) {
+        console.warn(`  [lc-refresh] Missing userCalendar for ${username}, skipping.`);
+        return false;
+    }
+
+    const acNums = user.submitStats.acSubmissionNum;
+    const totNums = user.submitStats.totalSubmissionNum ?? [];
     const getAC = (d: string) => acNums.find((x: any) => x.difficulty === d)?.count ?? 0;
     const getTot = (d: string) => totNums.find((x: any) => x.difficulty === d)?.count ?? 1;
 
     const totalSolved = getAC("All");
     const totalSub = getTot("All");
-    const activeDays = user.userCalendar?.totalActiveDays ?? 0;
+    const activeDays = user.userCalendar.totalActiveDays ?? 0;
 
     // Calculate weekly contributions (last 7 days)
     const now = new Date();
@@ -190,7 +201,7 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
             hard_solved: getAC("Hard"),
             acceptance_rate: totalSub > 0 ? Math.round((totalSolved / totalSub) * 100) / 100 : 0,
             total_submitted: totalSub,
-            lc_streak: user.maxStreak ?? user.userCalendar?.streak ?? 0,
+            lc_streak: user.maxStreak ?? user.userCalendar.streak ?? 0,
             lc_max_streak: user.maxStreak ?? 0,
             active_days_last_year: activeDays,
             total_active_days: activeDays,
@@ -238,11 +249,19 @@ async function fetchRankingPage(page: number): Promise<string[]> {
             headers: LC_HEADERS,
             body: JSON.stringify({ query, variables: { page } }),
         });
+        if (res.status === 429) {
+            console.warn(`  ⚠️  Rate limited fetching ranking page ${page} (HTTP 429).`);
+            return [];
+        }
+        if (!res.ok) {
+            console.error(`  Error fetching ranking page ${page}: HTTP ${res.status}`);
+            return [];
+        }
         const json = await res.json();
         const nodes = json?.data?.globalRanking?.rankingNodes ?? [];
-        return nodes.map((n: { user: { username: string } }) => n.user.username);
+        return nodes.map((n: { user: { username: string } }) => n.user.username).filter(Boolean);
     } catch (err) {
-        console.error("Error fetching ranking page:", err);
+        console.error(`Error fetching ranking page ${page}:`, err);
         return [];
     }
 }
@@ -260,16 +279,16 @@ async function filterNewUsernames(usernames: string[]): Promise<string[]> {
 }
 
 async function discoverNewUsers(pagesToScan: number): Promise<number> {
-    console.log(`\n  Discovery: scanning ${pagesToScan} randomized ranking page(s) for new users...`);
+    console.log(`\n  Discovery: scanning ${pagesToScan} randomized ranking page(s) (pages 1-500) for new users...`);
 
     let totalDiscovered = 0;
     const scannedPages = new Set<number>();
 
     for (let i = 0; i < pagesToScan; i++) {
-        // Pick a random page from the top 100 global ranking pages
-        let page = Math.floor(Math.random() * 100) + 1;
+        // Pick a random page from the top 500 global ranking pages
+        let page = Math.floor(Math.random() * 500) + 1;
         while (scannedPages.has(page)) {
-            page = Math.floor(Math.random() * 100) + 1;
+            page = Math.floor(Math.random() * 500) + 1;
         }
         scannedPages.add(page);
 

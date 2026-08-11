@@ -4,8 +4,14 @@ import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notifi
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 import { InfrastructureError } from "@/lib/errors";
 
+/**
+ * Supported payment provider identifier.
+ */
 export type PurchaseProvider = "stripe" | "cashfree" | "nowpayments" | "abacatepay" | string;
 
+/**
+ * Result returned after attempting to claim a pending purchase.
+ */
 export interface ClaimPendingPurchaseResult {
   ok: boolean;
   purchase_id?: string;
@@ -14,6 +20,9 @@ export interface ClaimPendingPurchaseResult {
   reason?: string;
 }
 
+/**
+ * Context required to claim a pending purchase.
+ */
 export interface PurchaseClaimContext {
   provider: PurchaseProvider;
   transactionId: string;
@@ -23,8 +32,17 @@ export interface PurchaseClaimContext {
   supabaseClient: SupabaseClient;
 }
 
+/**
+ * Function type used to atomically claim a pending purchase.
+ *
+ * @param ctx Purchase claim context.
+ * @returns Result of the claim operation.
+ */
 export type ClaimPendingPurchaseFn = (ctx: PurchaseClaimContext) => Promise<ClaimPendingPurchaseResult>;
 
+/**
+ * Options required to orchestrate a purchase fulfillment.
+ */
 export interface PurchaseOrchestrationOptions {
   provider: PurchaseProvider;
   transactionId: string;
@@ -39,6 +57,9 @@ export interface PurchaseOrchestrationOptions {
   claimPendingPurchase: ClaimPendingPurchaseFn;
 }
 
+/**
+ * Result returned after completing purchase orchestration.
+ */
 export interface PurchaseOrchestrationResult {
   kind: "completed" | "duplicate" | "sold_out" | "not_found" | "failed";
   purchaseId?: string;
@@ -47,6 +68,12 @@ export interface PurchaseOrchestrationResult {
   reason?: string;
 }
 
+/**
+ * Claims, fulfills, equips, and records a completed purchase.
+ *
+ * @param options Purchase orchestration options.
+ * @returns The final purchase orchestration result.
+ */
 export async function orchestratePurchaseFulfillment({
   provider,
   transactionId,
@@ -166,6 +193,12 @@ export async function orchestratePurchaseFulfillment({
   };
 }
 
+/**
+ * Atomically claims a pending purchase to prevent duplicate fulfillment.
+ *
+ * @param ctx Purchase claim context.
+ * @returns The result of the claim attempt.
+ */
 export async function claimPendingPurchaseAtomically({
   provider,
   transactionId,

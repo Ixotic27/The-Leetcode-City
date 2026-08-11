@@ -91,9 +91,33 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .skeleton-shimmer::after {
-    animation: none;
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
+  .skeleton-shimmer::after {
+    animation: none !important;
+  }
+  .live-dot {
+    animation: none !important;
+  }
+}
+
+html.reduced-motion *, html.reduced-motion ::before, html.reduced-motion ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.reduced-motion .skeleton-shimmer::after {
+  animation: none !important;
+}
+
+html.reduced-motion .live-dot {
+  animation: none !important;
 }
 
 @keyframes fade-in {
