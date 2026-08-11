@@ -3,9 +3,11 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
+import { Howl } from "howler";
 import * as THREE from "three";
 import type { CityPlaza, CityBridge } from "@/lib/github";
 import { DISTRICT_COLORS } from "@/lib/github";
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 interface BusTransitProps {
   plazas: CityPlaza[];
@@ -17,6 +19,7 @@ interface BusTransitProps {
   } | null;
   onArrival: (targetDistrict: string) => void;
   onOpenTransitMenu: (fromDistrict: string) => void;
+  reducedMotion?: boolean;
 }
 
 // ─── 3D BMTC Bus Stop Shelter ──────────────────────────────────
@@ -152,11 +155,9 @@ export function SkyTransitBoard({
     const ctx = c.getContext("2d")!;
     ctx.clearRect(0, 0, 512, 128);
 
-    // Semi-transparent dark background
     ctx.fillStyle = "rgba(12, 16, 24, 0.9)";
     ctx.fillRect(0, 0, 512, 128);
 
-    // Draw neon border with glow
     ctx.shadowColor = color;
     ctx.shadowBlur = 12;
     ctx.strokeStyle = color;
@@ -166,7 +167,6 @@ export function SkyTransitBoard({
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Text selection based on district
     let icon = "🚌";
     let typeText = "BUS STATION";
     if (district === "backend" || district === "data_ai" || district === "security") {
@@ -186,20 +186,19 @@ export function SkyTransitBoard({
 
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
-    texRef.current = tex;
     return tex;
   }, [fontReady, district, color]);
 
   useEffect(() => {
+    texRef.current = texture;
     return () => {
-      texRef.current?.dispose();
+      texture?.dispose();
     };
-  }, []);
+  }, [texture]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
     if (meshRef.current) {
-      // Gentle floating bobbing
       meshRef.current.position.y = Math.sin(t * 1.5) * 2.5;
       meshRef.current.rotation.x = Math.sin(t * 0.8) * 0.04;
       meshRef.current.rotation.z = Math.cos(t * 0.8) * 0.04;
@@ -214,57 +213,35 @@ export function SkyTransitBoard({
   return (
     <Billboard position={[position[0], 200, position[2]]} follow lockX={false} lockY={false} lockZ={false}>
       <group ref={meshRef}>
-      {/* Neon laser beam pointing down to anchor the board */}
-      <mesh ref={laserRef} position={[0, -100, 0]}>
-        <cylinderGeometry args={[0.8, 0.8, 200, 8]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={2.0}
-          transparent
-          opacity={0.25}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Main Board Frame */}
-      <mesh>
-        <boxGeometry args={[70, 24, 3]} />
-        <meshStandardMaterial
-          color="#151922"
-          roughness={0.2}
-          metalness={0.8}
-        />
-      </mesh>
-
-      {/* Glowing Neon Outline Frame */}
-      <mesh position={[0, 0, 0.1]}>
-        <boxGeometry args={[72, 26, 0.5]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={3.0}
-          transparent
-          opacity={0.65}
-        />
-      </mesh>
-
-      {/* Screen Face (Front) */}
-      {texture && (
-        <mesh position={[0, 0, 1.55]}>
-          <planeGeometry args={[68, 22]} />
-          <meshBasicMaterial
-            map={texture}
+        <mesh ref={laserRef} position={[0, -100, 0]}>
+          <cylinderGeometry args={[0.8, 0.8, 200, 8]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={2.0}
             transparent
-            alphaTest={0.05}
+            opacity={0.25}
+            depthWrite={false}
           />
         </mesh>
-      )}
+        <mesh>
+          <boxGeometry args={[70, 24, 3]} />
+          <meshStandardMaterial color="#151922" roughness={0.2} metalness={0.8} />
+        </mesh>
+        <mesh position={[0, 0, 0.1]}>
+          <boxGeometry args={[72, 26, 0.5]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={3.0} transparent opacity={0.65} />
+        </mesh>
+        {texture && (
+          <mesh position={[0, 0, 1.55]}>
+            <planeGeometry args={[68, 22]} />
+            <meshBasicMaterial map={texture} transparent alphaTest={0.05} />
+          </mesh>
+        )}
       </group>
     </Billboard>
   );
 }
-
 
 // ─── 3D BMTC Bus Model ────────────────────────────────────────
 export function BusModel({
@@ -276,19 +253,14 @@ export function BusModel({
 }) {
   return (
     <group position={position} rotation={rotation}>
-      {/* Red Body */}
       <mesh position={[0, 3.2, 0]}>
         <boxGeometry args={[7.2, 4.4, 16]} />
         <meshStandardMaterial color="#cc2222" roughness={0.4} />
       </mesh>
-
-      {/* White Accent Stripe */}
       <mesh position={[0, 2.2, 0]}>
         <boxGeometry args={[7.25, 0.5, 16.05]} />
         <meshStandardMaterial color="#ffffff" roughness={0.5} />
       </mesh>
-
-      {/* Windshields (Front & Rear) */}
       <mesh position={[0, 3.8, 8.02]}>
         <boxGeometry args={[6.2, 2.0, 0.1]} />
         <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.9} />
@@ -297,8 +269,6 @@ export function BusModel({
         <boxGeometry args={[6.2, 2.0, 0.1]} />
         <meshStandardMaterial color="#111111" roughness={0.2} metalness={0.9} />
       </mesh>
-
-      {/* Side Windows */}
       {[-6, -3, 0, 3, 6].map((z, idx) => (
         <group key={idx} position={[0, 3.8, z]}>
           <mesh position={[3.62, 0, 0]}>
@@ -311,8 +281,6 @@ export function BusModel({
           </mesh>
         </group>
       ))}
-
-      {/* Headlights */}
       <mesh position={[-2.5, 1.6, 8.02]}>
         <boxGeometry args={[0.7, 0.7, 0.1]} />
         <meshStandardMaterial color="#ffffdd" emissive="#ffffcc" emissiveIntensity={3.0} toneMapped={false} />
@@ -321,8 +289,6 @@ export function BusModel({
         <boxGeometry args={[0.7, 0.7, 0.1]} />
         <meshStandardMaterial color="#ffffdd" emissive="#ffffcc" emissiveIntensity={3.0} toneMapped={false} />
       </mesh>
-
-      {/* LED Destination Marquee */}
       <mesh position={[0, 4.6, 8.03]}>
         <boxGeometry args={[4.0, 0.5, 0.05]} />
         <meshStandardMaterial color="#151515" />
@@ -331,8 +297,6 @@ export function BusModel({
         <boxGeometry args={[3.6, 0.35, 0.01]} />
         <meshStandardMaterial color="#ff9000" emissive="#ff9000" emissiveIntensity={2.5} toneMapped={false} />
       </mesh>
-
-      {/* Wheels */}
       {[-2.0, 2.0].map((x) =>
         [-4.5, 4.5].map((z) => (
           <mesh key={`${x}-${z}`} position={[x * 1.5, 0.7, z]} rotation={[0, 0, Math.PI / 2]}>
@@ -352,11 +316,38 @@ export default function BusTransit({
   transitState,
   onArrival,
   onOpenTransitMenu,
+  reducedMotion: propReducedMotion,
 }: BusTransitProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
   const { camera } = useThree();
   const [progress, setProgress] = useState(0);
   const busPos = useMemo(() => new THREE.Vector3(), []);
   const busRot = useMemo(() => new THREE.Euler(), []);
+
+  // Audio references for transit sound effects
+  const takeoffSoundRef = useRef<Howl | null>(null);
+  const flightLoopSoundRef = useRef<Howl | null>(null);
+
+  // Initialize Howler sounds on mount
+  useEffect(() => {
+    takeoffSoundRef.current = new Howl({
+      src: ["/audio/raid/takeoff.mp3"],
+      volume: 0.4,
+      html5: true,
+    });
+
+    flightLoopSoundRef.current = new Howl({
+      src: ["/audio/raid/flight-loop.mp3"],
+      loop: true,
+      volume: 0.3,
+      html5: true,
+    });
+
+    return () => {
+      takeoffSoundRef.current?.unload();
+      flightLoopSoundRef.current?.unload();
+    };
+  }, []);
 
   // Compute travel path spline between the two plazas
   const curve = useMemo(() => {
@@ -381,14 +372,11 @@ export default function BusTransit({
       toPlaza.position[2] + Math.cos(toRotY) * 45,
     ];
 
-    const points: THREE.Vector3[] = [];
-    points.push(new THREE.Vector3(...fromPos));
+    const points: THREE.Vector3[] = [new THREE.Vector3(...fromPos)];
 
-    // Check if we need to cross the central horizontal river (Z = 0)
-    const crossedRiver = (fromPos[2] > 0 && toPos[2] < 0) || (fromPos[2] < 0 && toPos[2] > 0);
+    const crossedRiver = Math.sign(fromPos[2]) !== Math.sign(toPos[2]);
 
     if (crossedRiver && bridges.length > 0) {
-      // Find the closest bridge on X to fromPos
       let bestBridge = bridges[0];
       let minXDist = Infinity;
       for (const b of bridges) {
@@ -402,15 +390,13 @@ export default function BusTransit({
       const bx = bestBridge.position[0];
       const bz = bestBridge.position[2];
 
-      // Route through bridge coordinates
       const startZ = fromPos[2] > 0 ? 80 : -80;
       const endZ = toPos[2] > 0 ? 80 : -80;
 
       points.push(new THREE.Vector3(bx, 0.5, startZ));
-      points.push(new THREE.Vector3(bx, 0.5, bz)); // Center of bridge
+      points.push(new THREE.Vector3(bx, 0.5, bz));
       points.push(new THREE.Vector3(bx, 0.5, endZ));
     } else {
-      // Direct routing with a curved midpoint
       const mx = (fromPos[0] + toPos[0]) / 2;
       const mz = (fromPos[2] + toPos[2]) / 2 + (fromPos[0] > toPos[0] ? 40 : -40);
       points.push(new THREE.Vector3(mx, 0.5, mz));
@@ -420,19 +406,27 @@ export default function BusTransit({
     return new THREE.CatmullRomCurve3(points);
   }, [transitState, plazas, bridges]);
 
-  // Reset transit progress when state becomes active
+  // Handle audio triggers and progress when transit starts
   useEffect(() => {
     if (transitState?.active) {
-      setProgress(0);
+      const targetProgress = reducedMotion ? 1 : 0;
+      queueMicrotask(() => setProgress(targetProgress));
+      
+      // Play takeoff sound on start & start flight loop
+      takeoffSoundRef.current?.play();
+      flightLoopSoundRef.current?.play();
+    } else {
+      // Stop sounds when transit ends or resets
+      flightLoopSoundRef.current?.stop();
     }
-  }, [transitState]);
+  }, [transitState, reducedMotion]);
 
   // Update bus position and snap camera behind it
   useFrame((_, delta) => {
     if (!transitState?.active || !curve) return;
 
-    // Travel duration is roughly 5 seconds
-    const speed = 0.2;
+    // Travel duration is roughly 5 seconds (or instant when reduced motion is requested)
+    const speed = reducedMotion ? 100.0 : 0.2;
     const nextProg = Math.min(progress + delta * speed, 1);
     setProgress(nextProg);
 
@@ -442,25 +436,25 @@ export default function BusTransit({
     busPos.copy(pos);
     busRot.set(0, Math.atan2(tangent.x, tangent.z), 0);
 
-    // Position camera slightly behind the bus direction
-    const yaw = Math.atan2(tangent.x, tangent.z);
-    const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(new THREE.Euler(0, yaw, 0));
-    camera.position.copy(pos).add(camOffset);
-    camera.lookAt(pos.x, pos.y + 4, pos.z);
+    // Position camera slightly behind the bus direction unless reduced motion is active
+    if (!reducedMotion) {
+      const yaw = Math.atan2(tangent.x, tangent.z);
+      const camOffset = new THREE.Vector3(0, 18, -32).applyEuler(new THREE.Euler(0, yaw, 0));
+      camera.position.copy(pos).add(camOffset);
+      camera.lookAt(pos.x, pos.y + 4, pos.z);
+    }
 
     if (nextProg >= 1) {
+      flightLoopSoundRef.current?.stop();
       onArrival(transitState.toDistrict);
     }
   });
 
   return (
     <>
-      {/* Bus Stop Shelters rendered at plazas */}
       {plazas.map((p, idx) => {
         if (!p.district) return null;
-        // Face the bus stops slightly inward toward the center
         const rotY = Math.atan2(p.position[0], p.position[2]) + Math.PI;
-        // Offset to the edge of the plaza along its facing direction so it doesn't overlap the center monument
         const stopPos: [number, number, number] = [
           p.position[0] + Math.sin(rotY) * 45,
           p.position[1],
@@ -480,8 +474,6 @@ export default function BusTransit({
               position={stopPos}
               district={p.district}
             />
-            {/* Tall pulsing beacon column visible from far away */}
-            {/* Tall beacon visible from across the city */}
             <mesh position={[stopPos[0], 250, stopPos[2]]}>
               <cylinderGeometry args={[1.2, 1.2, 500, 6]} />
               <meshStandardMaterial
@@ -497,7 +489,6 @@ export default function BusTransit({
         );
       })}
 
-      {/* Bus model flying along route */}
       {transitState?.active && curve && (
         <BusModel position={busPos} rotation={busRot} />
       )}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logApiError, newReqId } from "@/lib/api-logger";
 
 /**
  * Public aggregate statistics for the LeetCode City.
@@ -7,6 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  * and tallest building metrics. No authentication required.
  */
 export async function GET() {
+  const reqId = newReqId();
   try {
     const sb = getSupabaseAdmin();
 
@@ -59,7 +61,7 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error("[/api/stats] Error generating city stats:", error);
+    logApiError({ reqId, route: "/api/stats", error, message: "Error generating city stats" });
     return NextResponse.json(
       {
         totalDevelopers: 0,
