@@ -2,64 +2,32 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { rateLimit } from "@/lib/rate-limit";
 import { isValidUrl, createDummyClient } from "./lib/supabase";
-
-
-// ---------------------------------------------------------------------------
-// Route-specific rate limits: [maxRequests, windowMs]
-// ---------------------------------------------------------------------------
-const WINDOW_1_MIN_MS = 60_000; // 1 minute
-
-const ROUTE_LIMITS: [string, number, number][] = [
-  // Exact-prefix match – order from most-specific to least-specific
-  ["/api/customizations/upload", 5, WINDOW_1_MIN_MS],
-  ["/api/customizations", 10, WINDOW_1_MIN_MS],
-  ["/api/sky-ads/track", 30, WINDOW_1_MIN_MS],
-  ["/api/sky-ads", 30, WINDOW_1_MIN_MS],
-  ["/api/arena/submit", 10, WINDOW_1_MIN_MS],
-  ["/api/arena", 30, WINDOW_1_MIN_MS],
-  ["/api/raid", 15, WINDOW_1_MIN_MS],
-  ["/api/checkin", 10, WINDOW_1_MIN_MS],
-  ["/api/heartbeats", 60, WINDOW_1_MIN_MS],
-  ["/api/interactions/kudos", 20, WINDOW_1_MIN_MS],
-  ["/api/interactions/visit", 50, WINDOW_1_MIN_MS],
-  ["/api/interactions", 60, WINDOW_1_MIN_MS],
-  ["/api/achievements", 30, WINDOW_1_MIN_MS],
-  ["/api/loadout", 10, WINDOW_1_MIN_MS],
-  ["/api/feed", 30, WINDOW_1_MIN_MS],
-  ["/api/checkout/status", 40, WINDOW_1_MIN_MS],
-  ["/api/checkout", 6, WINDOW_1_MIN_MS],
-  ["/api/claim", 5, WINDOW_1_MIN_MS],
-  ["/api/city", 30, WINDOW_1_MIN_MS],
-  ["/api/dev/", 60, WINDOW_1_MIN_MS],
-  ["/api/items", 30, WINDOW_1_MIN_MS],
-  ["/api/auth", 10, WINDOW_1_MIN_MS],
-];
-
-const DEFAULT_API: [number, number] = [60, WINDOW_1_MIN_MS];
-const DEFAULT_PAGE: [number, number] = [120, WINDOW_1_MIN_MS];
+import { getRateLimitConfig } from "@/lib/rate-limit-config";
 
 function getLimitForPath(pathname: string): {
   limit: number;
   window: number;
   group: string;
 } {
+  const config = getRateLimitConfig();
+
   // Webhooks are called by trusted third-parties (Stripe, AbacatePay, Cashfree) –
   // they verify signatures, so we don't rate-limit them.
   if (pathname.startsWith("/api/webhooks")) {
-    return { limit: 1000, window: WINDOW_1_MIN_MS, group: "webhooks" };
+    return { limit: config.webhooksMax, window: config.windowMs, group: "webhooks" };
   }
 
-  for (const [prefix, limit, window] of ROUTE_LIMITS) {
+  for (const [prefix, limit, window] of config.routeLimits) {
     if (pathname.startsWith(prefix)) {
       return { limit, window, group: prefix };
     }
   }
 
   if (pathname.startsWith("/api/")) {
-    return { limit: DEFAULT_API[0], window: DEFAULT_API[1], group: "/api" };
+    return { limit: config.defaultApiMax, window: config.windowMs, group: "/api" };
   }
 
-  return { limit: DEFAULT_PAGE[0], window: DEFAULT_PAGE[1], group: "/pages" };
+  return { limit: config.defaultPageMax, window: config.windowMs, group: "/pages" };
 }
 
 /**
