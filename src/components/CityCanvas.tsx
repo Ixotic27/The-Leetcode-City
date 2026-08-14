@@ -1943,6 +1943,81 @@ function MarinaLighthouse({ position }: { position: [number, number, number] }) 
   );
 }
 
+function CharminarMonument({ position }: { position: [number, number, number] }) {
+  const stone = "#d8b384";
+  const trim = "#f0d2a2";
+  const shadow = "#8f6742";
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 1, 0]}>
+        <boxGeometry args={[34, 2, 34]} />
+        <meshStandardMaterial color={shadow} roughness={0.82} />
+      </mesh>
+
+      <mesh position={[0, 13, 0]}>
+        <boxGeometry args={[26, 24, 20]} />
+        <meshStandardMaterial color={stone} roughness={0.78} />
+      </mesh>
+
+      {[
+        [0, 11, 10.2, 0],
+        [0, 11, -10.2, Math.PI],
+        [13.2, 11, 0, Math.PI / 2],
+        [-13.2, 11, 0, -Math.PI / 2],
+      ].map(([x, y, z, ry], i) => (
+        <group key={`arch-${i}`} position={[x, y, z]} rotation={[0, ry, 0]}>
+          <mesh position={[0, -1, 0.2]}>
+            <boxGeometry args={[10, 13, 1.2]} />
+            <meshStandardMaterial color="#5a351f" roughness={0.92} />
+          </mesh>
+          <mesh position={[0, 6, 0.4]} rotation={[0, 0, Math.PI]}>
+            <ringGeometry args={[5, 7.2, 28, 1, 0, Math.PI]} />
+            <meshStandardMaterial color={trim} side={THREE.DoubleSide} roughness={0.7} />
+          </mesh>
+        </group>
+      ))}
+
+      {[
+        [-17, -13],
+        [17, -13],
+        [-17, 13],
+        [17, 13],
+      ].map(([x, z], tower) => (
+        <group key={`minaret-${tower}`} position={[x, 0, z]}>
+          <mesh position={[0, 15, 0]}>
+            <cylinderGeometry args={[3.1, 3.6, 28, 20]} />
+            <meshStandardMaterial color={stone} roughness={0.78} />
+          </mesh>
+          {[7, 17, 27].map((y) => (
+            <mesh key={`ring-${tower}-${y}`} position={[0, y, 0]}>
+              <torusGeometry args={[3.85, 0.38, 8, 28]} />
+              <meshStandardMaterial color={trim} roughness={0.65} />
+            </mesh>
+          ))}
+          <mesh position={[0, 31.6, 0]}>
+            <coneGeometry args={[3.9, 7.2, 24]} />
+            <meshStandardMaterial color={trim} roughness={0.72} />
+          </mesh>
+          <mesh position={[0, 36, 0]}>
+            <sphereGeometry args={[0.75, 12, 8]} />
+            <meshStandardMaterial color="#d5a84f" metalness={0.35} roughness={0.35} />
+          </mesh>
+        </group>
+      ))}
+
+      <mesh position={[0, 26, 0]}>
+        <cylinderGeometry args={[8, 9, 4, 24]} />
+        <meshStandardMaterial color={trim} roughness={0.74} />
+      </mesh>
+      <mesh position={[0, 30.5, 0]}>
+        <sphereGeometry args={[7.2, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color={stone} roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
 // â”€â”€â”€ Decoration Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Decorations({ items }: { items: CityDecoration[] }) {
@@ -1957,6 +2032,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'fountain': return <Fountain key={`fountain-${i}`} position={d.position} />;
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
+          case 'charminar': return <CharminarMonument key={`charminar-${i}`} position={d.position} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
           case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
