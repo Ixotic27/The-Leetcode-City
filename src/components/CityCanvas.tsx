@@ -1943,6 +1943,81 @@ function MarinaLighthouse({ position }: { position: [number, number, number] }) 
   );
 }
 
+function GatewayOfIndiaMonument({ position }: { position: [number, number, number] }) {
+  const basalt = "#b99166";
+  const trim = "#e1c299";
+  const shadow = "#5f3d28";
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 1, 0]}>
+        <boxGeometry args={[44, 2, 18]} />
+        <meshStandardMaterial color={shadow} roughness={0.82} />
+      </mesh>
+
+      <mesh position={[0, 15, 0]}>
+        <boxGeometry args={[36, 28, 8]} />
+        <meshStandardMaterial color={basalt} roughness={0.78} />
+      </mesh>
+      <mesh position={[0, 12, 4.2]}>
+        <boxGeometry args={[15, 20, 1.2]} />
+        <meshStandardMaterial color={shadow} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 22.3, 4.45]} rotation={[0, 0, Math.PI]}>
+        <ringGeometry args={[7.5, 10.7, 36, 1, 0, Math.PI]} />
+        <meshStandardMaterial color={trim} side={THREE.DoubleSide} roughness={0.68} />
+      </mesh>
+
+      {[-14, 14].map((x) => (
+        <group key={`gateway-panel-${x}`} position={[x, 15, 4.6]}>
+          <mesh>
+            <boxGeometry args={[7.5, 21, 1]} />
+            <meshStandardMaterial color={trim} roughness={0.72} />
+          </mesh>
+          {[-2.2, 0, 2.2].map((lx) => (
+            <mesh key={`lattice-v-${lx}`} position={[lx, 0, 0.6]}>
+              <boxGeometry args={[0.32, 17, 0.35]} />
+              <meshStandardMaterial color={shadow} roughness={0.8} />
+            </mesh>
+          ))}
+          {[-6, -2, 2, 6].map((ly) => (
+            <mesh key={`lattice-h-${ly}`} position={[0, ly, 0.7]}>
+              <boxGeometry args={[6.3, 0.28, 0.35]} />
+              <meshStandardMaterial color={shadow} roughness={0.8} />
+            </mesh>
+          ))}
+        </group>
+      ))}
+
+      {[-18, 18].map((x) => (
+        <group key={`gateway-turret-${x}`} position={[x, 0, 0]}>
+          <mesh position={[0, 18, 0]}>
+            <cylinderGeometry args={[3.4, 4.2, 31, 18]} />
+            <meshStandardMaterial color={basalt} roughness={0.78} />
+          </mesh>
+          <mesh position={[0, 34.5, 0]}>
+            <coneGeometry args={[4.8, 7, 18]} />
+            <meshStandardMaterial color={trim} roughness={0.7} />
+          </mesh>
+          <mesh position={[0, 38.8, 0]}>
+            <sphereGeometry args={[0.75, 10, 8]} />
+            <meshStandardMaterial color="#c99b45" metalness={0.35} roughness={0.3} />
+          </mesh>
+        </group>
+      ))}
+
+      <mesh position={[0, 31, 0]}>
+        <boxGeometry args={[30, 4, 10]} />
+        <meshStandardMaterial color={trim} roughness={0.72} />
+      </mesh>
+      <mesh position={[0, 36, 0]}>
+        <sphereGeometry args={[8, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color={basalt} roughness={0.75} />
+      </mesh>
+    </group>
+  );
+}
+
 // â”€â”€â”€ Decoration Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Decorations({ items }: { items: CityDecoration[] }) {
@@ -1957,6 +2032,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'fountain': return <Fountain key={`fountain-${i}`} position={d.position} />;
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
+          case 'gatewayOfIndia': return <GatewayOfIndiaMonument key={`gateway-india-${i}`} position={d.position} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
           case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
