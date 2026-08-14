@@ -1943,6 +1943,84 @@ function MarinaLighthouse({ position }: { position: [number, number, number] }) 
   );
 }
 
+function IsroRocketMonument({ position }: { position: [number, number, number] }) {
+  const plumeRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!plumeRef.current) return;
+    const pulse = 1 + Math.sin(clock.elapsedTime * 9) * 0.12;
+    plumeRef.current.scale.set(1 + pulse * 0.08, pulse, 1 + pulse * 0.08);
+    plumeRef.current.rotation.y = clock.elapsedTime * 1.2;
+  });
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 1, 0]}>
+        <cylinderGeometry args={[13, 14, 2, 24]} />
+        <meshStandardMaterial color="#3f4654" metalness={0.35} roughness={0.45} />
+      </mesh>
+
+      <group position={[0, 2, 0]}>
+        <mesh position={[0, 18, 0]}>
+          <cylinderGeometry args={[3.6, 4.1, 32, 28]} />
+          <meshStandardMaterial color="#f4f7fb" metalness={0.2} roughness={0.42} />
+        </mesh>
+        <mesh position={[0, 36.5, 0]}>
+          <coneGeometry args={[3.6, 8, 28]} />
+          <meshStandardMaterial color="#ef4444" roughness={0.45} />
+        </mesh>
+        {[-1, 1].map((side) => (
+          <mesh key={`booster-${side}`} position={[side * 4.4, 13, 0]}>
+            <cylinderGeometry args={[1.4, 1.7, 24, 18]} />
+            <meshStandardMaterial color="#dbeafe" metalness={0.25} roughness={0.48} />
+          </mesh>
+        ))}
+        {[-1, 1].map((side) => (
+          <mesh key={`fin-${side}`} position={[side * 3.3, 5, 0]} rotation={[0, 0, side * 0.35]}>
+            <boxGeometry args={[1.1, 8, 4.8]} />
+            <meshStandardMaterial color="#2563eb" roughness={0.5} />
+          </mesh>
+        ))}
+        <mesh position={[0, 22, 3.9]}>
+          <boxGeometry args={[7.4, 2.8, 0.35]} />
+          <meshStandardMaterial color="#f97316" roughness={0.55} />
+        </mesh>
+      </group>
+
+      <group position={[9, 15, -2]}>
+        <mesh position={[0, 14, 0]}>
+          <boxGeometry args={[1.2, 28, 1.2]} />
+          <meshStandardMaterial color="#6b7280" metalness={0.55} roughness={0.35} />
+        </mesh>
+        {[5, 13, 21].map((y) => (
+          <mesh key={`platform-${y}`} position={[-3.8, y, 0]}>
+            <boxGeometry args={[8, 0.8, 4.8]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.4} roughness={0.42} />
+          </mesh>
+        ))}
+        {Array.from({ length: 5 }, (_, i) => (
+          <mesh key={`gantry-rung-${i}`} position={[0, 4 + i * 5, 0.2]}>
+            <boxGeometry args={[5.5, 0.35, 0.55]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.35} roughness={0.45} />
+          </mesh>
+        ))}
+      </group>
+
+      <group ref={plumeRef} position={[0, 0.5, 0]}>
+        <mesh position={[0, -2.2, 0]}>
+          <coneGeometry args={[5.2, 9, 20, 1, true]} />
+          <meshStandardMaterial color="#fb923c" emissive="#f97316" emissiveIntensity={2.6} transparent opacity={0.55} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+        <mesh position={[0, -1, 0]} scale={0.6}>
+          <coneGeometry args={[4, 8, 18, 1, true]} />
+          <meshStandardMaterial color="#fde68a" emissive="#facc15" emissiveIntensity={3.4} transparent opacity={0.7} side={THREE.DoubleSide} toneMapped={false} />
+        </mesh>
+      </group>
+      <pointLight position={[0, 2, 0]} color="#ff9f1c" intensity={20} distance={34} decay={2} />
+    </group>
+  );
+}
+
 // â”€â”€â”€ Decoration Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Decorations({ items }: { items: CityDecoration[] }) {
@@ -1958,6 +2036,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
+          case 'isroRocket': return <IsroRocketMonument key={`isro-rocket-${i}`} position={d.position} />;
           case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
           default: return null;
