@@ -75,7 +75,7 @@
     "viem": "^2.54.3",
     "wagmi": "^3.6.21",
     "web-push": "^3.6.7",
-    "zod": "^4.4.3"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@emnapi/core": "^1.10.0",
