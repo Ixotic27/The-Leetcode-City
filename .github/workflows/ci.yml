@@ -30,7 +30,7 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run Linter
         run: |
@@ -145,11 +145,10 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run Production Build
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "mock-anon-key-placeholder-string-12345"
         run: npm run build
-    
