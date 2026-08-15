@@ -23,7 +23,9 @@ export async function GET(request: Request) {
     return queryVal.response;
   }
 
-  const { limit, before, today } = queryVal.data;
+  // Normalize limit to guarantee it's a definite number for TypeScript
+  const { limit: rawLimit, before, today } = queryVal.data;
+  const limit = rawLimit ?? 20;
   const todayOnly = today === "1";
 
   const sb = getSupabaseAdmin();
@@ -40,10 +42,11 @@ export async function GET(request: Request) {
     `)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit((limit ?? 50) + 1);
+    .limit(limit + 1);
+
   if (todayOnly) {
-    const today = new Date().toISOString().split("T")[0];
-    query = query.gte("created_at", `${today}T00:00:00Z`);
+    const todayStr = new Date().toISOString().split("T")[0];
+    query = query.gte("created_at", `${todayStr}T00:00:00Z`);
   }
 
   if (before) {
