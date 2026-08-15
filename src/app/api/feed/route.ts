@@ -40,8 +40,7 @@ export async function GET(request: Request) {
     `)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit(limit + 1);
-
+    .limit((limit ?? 50) + 1);
   if (todayOnly) {
     const today = new Date().toISOString().split("T")[0];
     query = query.gte("created_at", `${today}T00:00:00Z`);
