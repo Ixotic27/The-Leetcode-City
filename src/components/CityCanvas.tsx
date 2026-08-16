@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability, @typescript-eslint/no-unused-vars */
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { useRef, useEffect, useState, useMemo, useCallback, lazy, Suspense, memo } from "react";
 import type { MutableRefObject, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -401,6 +402,7 @@ function CameraFocus({
   controlsRef: React.RefObject<any>;
 }) {
   const { camera } = useThree();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const startPos = useRef(new THREE.Vector3());
   const startLook = useRef(new THREE.Vector3());
   const endPos = useRef(new THREE.Vector3());
@@ -521,6 +523,16 @@ function CameraFocus({
 
   useFrame((_, delta) => {
     if (!active.current || progress.current >= 1) return;
+    if (prefersReducedMotion) {
+      camera.position.copy(endPos.current);
+      if (controlsRef.current) {
+        controlsRef.current.target.copy(endLook.current);
+        controlsRef.current.update();
+      }
+      progress.current = 1;
+      active.current = false;
+      return;
+    }
 
     progress.current = Math.min(1, progress.current + delta * 0.7);
     // Ease-out cubic
@@ -2234,7 +2246,7 @@ function OrbitScene({
 }) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
-
+  const prefersReducedMotion = usePrefersReducedMotion();
   // Reset camera on mount — wide panorama centered on founder area
   useEffect(() => {
     camera.position.set(1300, 700, 1500);
@@ -2253,13 +2265,13 @@ function OrbitScene({
       />
       <OrbitControls
         ref={controlsRef}
-        enableDamping
+        enableDamping={!prefersReducedMotion}
         dampingFactor={0.06}
         minDistance={40}
         maxDistance={2500}
         maxPolarAngle={Math.PI / 2.1}
         target={[TARGET_X, TARGET_Y, TARGET_Z]}
-        autoRotate
+        autoRotate={!prefersReducedMotion}
         autoRotateSpeed={0.15}
       />
     </>
