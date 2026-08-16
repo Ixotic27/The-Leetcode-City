@@ -127,7 +127,7 @@ describe("RaidService", () => {
             single: vi.fn().mockResolvedValue({ data: mockDefender }),
             update: vi.fn(() => chain),
             eq: vi.fn(() => chain),
-            then: (resolve: any) => resolve({ data: mockDefender }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: mockDefender }),
           };
           return chain;
         }
@@ -136,7 +136,7 @@ describe("RaidService", () => {
             eq: vi.fn(() => chain),
             gt: vi.fn(() => chain),
             single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
-            then: (resolve: any) => resolve({ data: [] }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: [] }),
           };
           return {
             select: vi.fn(() => chain),
@@ -146,7 +146,7 @@ describe("RaidService", () => {
           const chain = {
             eq: vi.fn(() => chain),
             maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-            then: (resolve: any) => resolve({ data: null }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: null }),
           };
           return {
             select: vi.fn(() => chain),
@@ -157,7 +157,7 @@ describe("RaidService", () => {
             eq: vi.fn(() => chain),
             is: vi.fn(() => chain),
             in: vi.fn().mockResolvedValue({ data: [] }),
-            then: (resolve: any) => resolve({ data: [] }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: [] }),
           };
           return {
             select: vi.fn(() => chain),
@@ -168,14 +168,14 @@ describe("RaidService", () => {
             update: vi.fn(() => chain),
             eq: vi.fn(() => chain),
             insert: vi.fn().mockResolvedValue({ data: null }),
-            then: (resolve: any) => resolve({ data: null }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: null }),
           };
           return chain;
         }
         if (table === "activity_feed") {
           const chain = {
             insert: vi.fn().mockResolvedValue({ data: null }),
-            then: (resolve: any) => resolve({ data: null }),
+            then: (resolve: (value: unknown) => void) => resolve({ data: null }),
           };
           return chain;
         }
