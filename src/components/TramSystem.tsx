@@ -17,6 +17,7 @@ interface LocalTramProps {
 function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion: propReducedMotion }: LocalTramProps) {
   const reducedMotion = useReducedMotion(propReducedMotion);
   const tramRef = useRef<THREE.Group>(null);
+  const tramLength = 8.2;
 
   // Pre-calculate track segment lines (for visual details)
   const trackSegments = useMemo(() => {
@@ -53,6 +54,23 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion
             <boxGeometry args={[0.15, 0.1, len + 0.1]} />
             <meshStandardMaterial color="#8a8f99" metalness={0.95} roughness={0.1} />
           </mesh>
+          {/* Overhead electric wire spans */}
+          <mesh position={[0, 5.25, 0]}>
+            <boxGeometry args={[0.08, 0.08, len + 0.35]} />
+            <meshStandardMaterial color="#d9f99d" emissive="#84cc16" emissiveIntensity={0.6} />
+          </mesh>
+          {i % 2 === 0 && (
+            <>
+              <mesh position={[-2.35, 2.65, 0]}>
+                <boxGeometry args={[0.12, 5.25, 0.12]} />
+                <meshStandardMaterial color="#4b5563" metalness={0.6} roughness={0.35} />
+              </mesh>
+              <mesh position={[0, 5.15, 0]}>
+                <boxGeometry args={[4.8, 0.1, 0.1]} />
+                <meshStandardMaterial color="#4b5563" metalness={0.6} roughness={0.35} />
+              </mesh>
+            </>
+          )}
         </group>
       );
     }
@@ -66,10 +84,10 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion
     const z = Math.sin(time) * radius;
 
     // Set position relative to the local city origin
-    tramRef.current.position.set(x, 0.45, z);
+    tramRef.current.position.set(x, 0.65, z);
     
-    // Face the tangent (heading of travel)
-    tramRef.current.rotation.y = -time + Math.PI;
+    // Face the circular tangent so the car stays centered through curves.
+    tramRef.current.rotation.y = Math.atan2(-Math.sin(time), Math.cos(time));
   });
 
   return (
@@ -81,21 +99,36 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion
       <group ref={tramRef}>
         {/* Tram Body (Vintage styled box) */}
         <mesh position={[0, 1.4, 0]}>
-          <boxGeometry args={[3.0, 2.5, 9.5]} />
+          <boxGeometry args={[3.0, 2.45, tramLength]} />
           <meshStandardMaterial color={color} roughness={0.3} metalness={0.4} />
         </mesh>
         {/* Yellow glowing strip at top */}
         <mesh position={[0, 2.65, 0]}>
-          <boxGeometry args={[2.8, 0.2, 9.7]} />
+          <boxGeometry args={[2.8, 0.2, tramLength + 0.25]} />
           <meshStandardMaterial color="#ffa116" emissive="#ffa116" emissiveIntensity={2} toneMapped={false} />
         </mesh>
         {/* Roof (dark grey curved plate) */}
         <mesh position={[0, 2.8, 0]}>
-          <boxGeometry args={[3.2, 0.2, 10.0]} />
+          <boxGeometry args={[3.2, 0.2, tramLength + 0.5]} />
           <meshStandardMaterial color="#2d2d30" roughness={0.8} />
         </mesh>
+        {/* Pantograph connecting the tram to the overhead wire */}
+        <group position={[0, 3.65, 0]}>
+          <mesh position={[0, 0.75, 0]}>
+            <boxGeometry args={[0.12, 1.5, 0.12]} />
+            <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.25} />
+          </mesh>
+          <mesh position={[-0.45, 1.45, 0]} rotation={[0, 0, -0.55]}>
+            <boxGeometry args={[0.1, 1.15, 0.1]} />
+            <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.25} />
+          </mesh>
+          <mesh position={[0.45, 1.45, 0]} rotation={[0, 0, 0.55]}>
+            <boxGeometry args={[0.1, 1.15, 0.1]} />
+            <meshStandardMaterial color="#4b5563" metalness={0.7} roughness={0.25} />
+          </mesh>
+        </group>
         {/* Glowing Windows */}
-        {[-3, -1.2, 0.6, 2.4].map((offsetZ) => (
+        {[-2.7, -0.9, 0.9, 2.7].map((offsetZ) => (
           [-1.52, 1.52].map((side) => (
             <mesh key={`twin-${offsetZ}-${side}`} position={[side, 1.6, offsetZ]}>
               <boxGeometry args={[0.05, 1.0, 1.2]} />
@@ -104,11 +137,11 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion
           ))
         ))}
         {/* Tram Headlights (Front and Back) */}
-        <mesh position={[0, 0.9, 4.8]}>
+        <mesh position={[0, 0.9, tramLength / 2 + 0.05]}>
           <sphereGeometry args={[0.38, 8, 8]} />
           <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={4} toneMapped={false} />
         </mesh>
-        <mesh position={[0, 0.9, -4.8]}>
+        <mesh position={[0, 0.9, -tramLength / 2 - 0.05]}>
           <sphereGeometry args={[0.38, 8, 8]} />
           <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={4} toneMapped={false} />
         </mesh>
