@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { autoEquipIfSolo } from "@/lib/items";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
-
-const lastSpend = new Map<string, number>();
+import { rateLimit } from "@/lib/rate-limit";
 
 // Items that allow multiple purchases (consumables / multi-slot)
 const MULTI_BUY_ITEMS = new Set(["streak_freeze", "billboard"]);
@@ -18,13 +18,12 @@ export async function POST(request: Request) {
   }
   const user = auth.user;
 
-  // Rate limit: 1 spend per 3 seconds per user
-  const now = Date.now();
-  const last = lastSpend.get(user.id);
-  if (last && now - last < 3_000) {
+  // Distributed rate limit: 1 spend per 3 seconds per user (the previous
+  // in-process Map did not work across serverless instances, #1662).
+  const { ok: rlOk } = await rateLimit(`pixels-spend:${user.id}`, 1, 3_000);
+  if (!rlOk) {
     return NextResponse.json({ error: "Too fast. Wait a few seconds." }, { status: 429 });
   }
-  lastSpend.set(user.id, now);
 
   const githubLogin = (
     user.user_metadata?.user_name ??
@@ -37,6 +36,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const ownershipResolver = new OwnershipResolver();
 
   const { data: dev } = await sb
     .from("developers")
@@ -52,16 +52,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Account suspended" }, { status: 403 });
   }
 
-  let body: { item_id: string; gifted_to_login?: string };
+  let body: { item_id?: string; gifted_to_login?: string; request_id?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { item_id, gifted_to_login } = body;
+  const { item_id, gifted_to_login, request_id } = body;
   if (!item_id) {
     return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
+  }
+  if (request_id !== undefined && (typeof request_id !== "string" || request_id.length === 0 || request_id.length > 128)) {
+    return NextResponse.json({ error: "Invalid request_id" }, { status: 400 });
   }
 
   // Validate item exists and has PX price
@@ -160,26 +163,8 @@ export async function POST(request: Request) {
     }
 
     // Check receiver doesn't already own this item
-    if (!MULTI_BUY_ITEMS.has(item_id)) {
-      const { data: receiverOwnsBought } = await sb
-        .from("purchases")
-        .select("id")
-        .eq("developer_id", receiver.id)
-        .is("gifted_to", null)
-        .eq("item_id", item_id)
-        .eq("status", "completed")
-        .maybeSingle();
-      const { data: receiverOwnsGifted } = await sb
-        .from("purchases")
-        .select("id")
-        .eq("gifted_to", receiver.id)
-        .eq("item_id", item_id)
-        .eq("status", "completed")
-        .maybeSingle();
-
-      if (receiverOwnsBought || receiverOwnsGifted) {
-        return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
-      }
+    if (!MULTI_BUY_ITEMS.has(item_id) && (await ownershipResolver.ownsItem(receiver.id, item_id))) {
+      return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
     }
 
     recipientId = receiver.id;
@@ -187,8 +172,12 @@ export async function POST(request: Request) {
 
   // Call spend_pixels RPC via admin client (service_role)
   const allowMultiple = MULTI_BUY_ITEMS.has(item_id);
+  // Multi-buy idempotency: a client-supplied request_id makes concurrent
+  // retries of the same logical purchase dedupe inside spend_pixels (the
+  // previous Date.now()-based key was never idempotent, #1662).
+  const multiBuyNonce = request_id ?? crypto.randomUUID();
   const idempotencyKey = allowMultiple
-    ? `buy:${item_id}:${dev.id}:${recipientId ?? "self"}:${Date.now()}`
+    ? `buy:${item_id}:${dev.id}:${recipientId ?? "self"}:${multiBuyNonce}`
     : `buy:${item_id}:${dev.id}:${recipientId ?? "self"}`;
 
   const { data, error } = await sb.rpc("spend_pixels", {

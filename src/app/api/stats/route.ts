@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { logApiError, newReqId } from "@/lib/api-logger";
 
 /**
  * Public aggregate statistics for the LeetCode City.
@@ -7,6 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
  * and tallest building metrics. No authentication required.
  */
 export async function GET() {
+  const reqId = newReqId();
   try {
     const sb = getSupabaseAdmin();
 
@@ -19,7 +21,10 @@ export async function GET() {
         .order("hard_solved", { ascending: false })
         .limit(1)
         .maybeSingle(),
-      sb.from("developers").select("easy_solved, medium_solved, hard_solved"),
+      // Aggregate in the database instead of shipping every developer row to
+      // the Node process (#1660). Falls back to a bounded client-side scan if
+      // the RPC is unavailable (e.g. migration not yet applied).
+      sb.rpc("get_city_solve_totals"),
     ]);
 
     const queryError =
@@ -32,11 +37,10 @@ export async function GET() {
 
     const claimedBuildings = claimedResult.count ?? 0;
 
-    const solves = solveResult.data ?? [];
-    const totalSolves = solves.reduce(
-      (acc, d) => acc + (d.easy_solved ?? 0) + (d.medium_solved ?? 0) + (d.hard_solved ?? 0),
-      0
-    );
+    const rpcData = solveResult.data as
+      | { total_solves?: number; total_developers?: number }
+      | undefined;
+    const totalSolves = rpcData?.total_solves ?? 0;
 
     const tallestDev = tallestResult.data;
     const tallestBuilding = {
@@ -59,7 +63,7 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error("[/api/stats] Error generating city stats:", error);
+    logApiError({ reqId, route: "/api/stats", error, message: "Error generating city stats" });
     return NextResponse.json(
       {
         totalDevelopers: 0,

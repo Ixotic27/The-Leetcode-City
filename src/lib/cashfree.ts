@@ -52,12 +52,12 @@ export async function createCashfreeOrder(opts: {
     amountINR: opts.amountINR,
     customerPhone: opts.customerPhone,
   });
+  // SECURITY: never log CASHFREE_SECRET_KEY (or any substring of it).
+  // Payment secrets must not reach logs, log drains, or aggregation pipelines.
   console.log("[createCashfreeOrder] Config:", {
     env: (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "").replace(/['"]/g, "").trim(),
     apiUrl: getApiUrl(),
     appId: getAppId(),
-    // Log first/last 4 chars of secret key for security validation
-    secretPrefix: getSecretKey().substring(0, 12),
   });
 
   const env = (process.env.NEXT_PUBLIC_CASHFREE_ENV ?? "SANDBOX").replace(/['"]/g, "").trim();

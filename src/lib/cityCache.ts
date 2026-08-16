@@ -7,6 +7,7 @@ import type {
   CityBridge,
   CityCanal,
 } from "@/lib/github";
+import type { CitySerializableValue } from "@/services/citySerializer";
 
 interface CityCache {
   buildings: CityBuilding[];
@@ -17,6 +18,12 @@ interface CityCache {
   bridges: CityBridge[];
   canals?: CityCanal[];
   stats: { total_developers: number; total_contributions: number };
+  readModel?: {
+    from: number;
+    to: number;
+    developers: Array<Record<string, CitySerializableValue>>;
+    stats: Record<string, CitySerializableValue>;
+  };
   timestamp: number;
 }
 

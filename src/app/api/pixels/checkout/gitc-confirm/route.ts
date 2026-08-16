@@ -59,6 +59,23 @@ export async function POST(request: NextRequest) {
 
   const sb = getSupabaseAdmin();
 
+  // Bind the caller to their developer row. A quote may only be confirmed by
+  // the developer who owns it (IDOR prevention).
+  const githubLogin = (
+    user.user_metadata?.user_name ??
+    user.user_metadata?.preferred_username ??
+    ""
+  ).toLowerCase();
+  const { data: callerDev } = await sb
+    .from("developers")
+    .select("id, claimed, claimed_by")
+    .eq("github_login", githubLogin)
+    .single<{ id: number; claimed: boolean; claimed_by: string | null }>();
+
+  if (!callerDev || !callerDev.claimed || callerDev.claimed_by !== user.id) {
+    return NextResponse.json({ error: "You must claim your building first" }, { status: 403 });
+  }
+
   const { data: payment, error: payErr } = await sb
     .from("pixel_gitc_payments")
     .select("id, pixel_purchase_id, developer_id, package_id, wallet_address, gitc_amount_wei, quote_block_number, status, expires_at, tx_hash")
@@ -67,6 +84,10 @@ export async function POST(request: NextRequest) {
 
   if (payErr || !payment) {
     return NextResponse.json({ error: "Quote not found" }, { status: 404 });
+  }
+
+  if (payment.developer_id !== callerDev.id) {
+    return NextResponse.json({ error: "This quote does not belong to you" }, { status: 403 });
   }
 
   if (payment.status === "confirmed" && payment.tx_hash === txHash.toLowerCase()) {

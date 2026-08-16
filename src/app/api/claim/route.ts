@@ -5,7 +5,7 @@ import { resolveAuthenticatedDeveloper } from "@/lib/authenticated-developer";
 
 export async function POST() {
   const auth = await resolveAuthenticatedDeveloper({
-    loadDeveloper: false,
+    loadDeveloper: true,
   });
 
   if (!auth.ok || !auth.user) {

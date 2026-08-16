@@ -17,6 +17,8 @@ interface ActionToolbarProps {
   setNeonGridActive: React.Dispatch<React.SetStateAction<boolean>>;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
   cycleWeather?: () => void;
+  reducedMotion?: boolean;
+  setReducedMotion?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const ActionToolbar: React.FC<ActionToolbarProps> = ({
@@ -32,6 +34,8 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
   setNeonGridActive,
   weatherMode = "sunny",
   cycleWeather = () => {},
+  reducedMotion = false,
+  setReducedMotion,
 }) => {
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -94,6 +98,22 @@ const ActionToolbar: React.FC<ActionToolbarProps> = ({
         <span>GRID: {neonGridActive ? "ON" : "OFF"}</span>
       </button>
  
+      {/* Reduced Motion Toggle Button */}
+      {setReducedMotion && (
+        <button
+          onClick={() => setReducedMotion((prev) => !prev)}
+          className={`btn-press flex items-center gap-1.5 border-[3px] px-2.5 py-1 text-[10px] backdrop-blur-sm transition-colors ${
+            reducedMotion
+              ? "border-cyan-500/80 bg-cyan-500/10 text-cyan-400 hover:border-cyan-400"
+              : "border-border bg-bg/70 text-cream hover:border-border-light"
+          }`}
+          aria-label={reducedMotion ? "Disable reduced motion mode" : "Enable reduced motion mode"}
+        >
+          <span style={{ color: theme.accent }} aria-hidden="true">&#9654;</span>
+          <span>MOTION: {reducedMotion ? "REDUCED" : "FULL"}</span>
+        </button>
+      )}
+
       {/* Weather Selector Button */}
       <button
         onClick={cycleWeather}

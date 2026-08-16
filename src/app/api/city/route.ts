@@ -30,11 +30,19 @@ export async function GET(request: Request) {
   const service = new CityService();
   const result = await service.loadCityData({ from, to });
 
+  // Only healthy payloads are cacheable. Error responses must keep their
+  // original Cache-Control (e.g. no-store) so CDNs/browsers never cache
+  // failed or empty bodies as if they were valid city data (#1659).
+  const cacheControl =
+    result.status >= 200 && result.status < 300
+      ? "public, max-age=60, stale-while-revalidate=300"
+      : result.headers["Cache-Control"] ?? "no-store";
+
   return NextResponse.json(result.body, {
     status: result.status,
     headers: {
       ...result.headers,
-      "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+      "Cache-Control": cacheControl,
     },
   });
 }

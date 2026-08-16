@@ -1,5 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { fetchZeroxSwap, is0xEnabled } from "@/lib/gitc-server";
+import { evmAddressSchema, positiveAmountStringSchema, validateQuery } from "@/lib/validation";
+
+const querySchema = z.object({
+  sellToken: z.string().trim().min(1, "sellToken is required"),
+  sellAmount: positiveAmountStringSchema,
+  taker: evmAddressSchema.optional(),
+  slippageBps: z
+    .string()
+    .regex(/^\d+$/, "slippageBps must be a string of digits")
+    .optional(),
+});
 
 /**
  * Indicative price for a USDC|ETH → GITC swap on Base (0x Swap API v2).
@@ -11,11 +23,16 @@ export async function GET(req: NextRequest) {
   if (!is0xEnabled()) return NextResponse.json({ disabled: true });
 
   const sp = req.nextUrl.searchParams;
+  const queryVal = validateQuery(sp, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
+  }
+  const { sellToken, sellAmount, taker, slippageBps } = queryVal.data;
   const result = await fetchZeroxSwap("price", {
-    sellToken: sp.get("sellToken") ?? "",
-    sellAmount: sp.get("sellAmount") ?? "",
-    taker: sp.get("taker") ?? undefined,
-    slippageBps: sp.get("slippageBps") ?? undefined,
+    sellToken,
+    sellAmount,
+    taker,
+    slippageBps,
   });
 
   if (!result.ok) {

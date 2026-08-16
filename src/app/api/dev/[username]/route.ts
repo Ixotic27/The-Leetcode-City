@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { checkAchievements, countGifts } from "@/lib/achievements";
-import { getEnvNumber } from "@/lib/env";
-import { validateParams, validateQuery } from "@/lib/validation";
+import { booleanFlagSchema, usernameSchema, validateParams, validateQuery } from "@/lib/validation";
+import { logApiError, newReqId } from "@/lib/api-logger";
+import { OwnershipResolver } from "@/services/ownershipResolver";
+import { CityReadModel } from "@/services/cityReadModel";
 
 export const dynamic = "force-dynamic";
 
 const paramsSchema = z.object({
-  username: z.string().trim().min(1, "Username is required"),
+  username: usernameSchema,
 });
 
 const querySchema = z.object({
-  refresh: z.string().optional(),
+  refresh: booleanFlagSchema,
 });
 
 interface LeetCodeProfile {
@@ -114,7 +116,7 @@ const LC_HEADERS = {
 import { parseMaxStreak } from "@/lib/leetcode";
 import { calculateLeetcodeXp, mergeBaseXp } from "@/lib/xp";
 
-async function fetchLeetCodeUser(username: string) {
+async function fetchLeetCodeUser(username: string, reqId: string) {
   const currentYear = new Date().getFullYear();
   const prevYear = currentYear - 1;
 
@@ -154,17 +156,17 @@ async function fetchLeetCodeUser(username: string) {
       body: JSON.stringify({ query, variables: { username } }),
     });
     if (!res.ok) {
-      console.error(`[/api/dev] LeetCode responded ${res.status} for user "${username}"`);
+      logApiError({ reqId, route: "/api/dev/[username]", error: `LeetCode responded ${res.status} for user "${username}"` });
       return null;
     }
     const rawText = await res.text();
     let json: LeetCodeApiResponse;
     try { json = JSON.parse(rawText); } catch (err) { 
-      console.error(`[/api/dev] LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}`, err);
+      logApiError({ reqId, route: "/api/dev/[username]", error: err, message: `LeetCode non-JSON response for "${username}": ${rawText.substring(0, 200)}` });
       return null;
     }
     if (!json?.data?.matchedUser) {
-      console.error(`[/api/dev] LeetCode returned no matchedUser for "${username}". Status: ${res.status}. firstErr:`, json?.errors?.[0]?.message);
+      logApiError({ reqId, route: "/api/dev/[username]", error: json?.errors?.[0]?.message ?? "LeetCode returned no matchedUser", message: `LeetCode returned no matchedUser for "${username}". Status: ${res.status}.` });
     }
     const apiData = json.data;
     if (apiData?.matchedUser) {
@@ -195,6 +197,7 @@ export async function GET(
   { params }: { params: Promise<{ username: string }> }
 ) {
   const resolvedParams = await params;
+  const reqId = newReqId();
   const paramVal = validateParams(resolvedParams, paramsSchema);
   if (!paramVal.success) {
     return paramVal.response;
@@ -206,7 +209,7 @@ export async function GET(
   if (!queryVal.success) {
     return queryVal.response;
   }
-  const forceRefresh = queryVal.data.refresh === "true";
+  const forceRefresh = queryVal.data.refresh;
   const sb = getSupabaseAdmin();
 
   let cachedRecord = null;
@@ -226,16 +229,16 @@ export async function GET(
   }
 
   
-  let rateLimitKey: string | null = null;
   let isAuthenticatedUser = false;
+  let authUserId: string | null = null;
   if (!cachedRecord) {
     const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
     const auth = await resolveAuthenticatedDeveloper({ loadDeveloper: false });
     isAuthenticatedUser = !!auth.user;
+    authUserId = auth.user?.id ?? null;
     const key = auth.user ? `user:${auth.user.id}` : (
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
     );
-    rateLimitKey = key;
     // Skip rate limiting if this is a force-refresh from a logged-in user
     const skipRateLimit = forceRefresh && isAuthenticatedUser;
     if (!skipRateLimit) {
@@ -244,14 +247,13 @@ export async function GET(
       }
       // Record immediately, before the LeetCode API call, to prevent race condition
       await recordRateLimitRequest(key);
-      rateLimitKey = null;
     }
   }
 
   let upserted = cachedRecord;
 
   if (!cachedRecord) {
-    const data = await fetchLeetCodeUser(username);
+    const data = await fetchLeetCodeUser(username, reqId);
     if (!data) {
       if (cached) {
         upserted = cached;
@@ -397,24 +399,13 @@ export async function GET(
           upserted.github_login,
         );
       } catch (err) {
-        console.error("[dev/[username]] achievement check failed:", err);
+        logApiError({ reqId, userId: authUserId, route: "/api/dev/[username]", error: err, message: "Achievement check failed" });
       }
     }
   }
 
   
-  const [purchasesResult, giftPurchasesResult, customizationsResult, raidTagsResult] = await Promise.all([
-    sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("developer_id", upserted.id)
-      .is("gifted_to", null)
-      .eq("status", "completed"),
-    sb
-      .from("purchases")
-      .select("item_id, provider, amount_cents")
-      .eq("gifted_to", upserted.id)
-      .eq("status", "completed"),
+  const [customizationsResult, raidTagsResult] = await Promise.all([
     sb
       .from("developer_customizations")
       .select("item_id, config")
@@ -427,14 +418,8 @@ export async function GET(
       .eq("active", true),
   ]);
 
-  const ownedItems = [
-    ...(purchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
-    ...(giftPurchasesResult.data ?? [])
-      .filter(p => !(p.amount_cents === 0 && ["stripe", "cashfree", "abacatepay", "nowpayments"].includes(p.provider)))
-      .map(p => p.item_id),
-  ];
+  const ownershipResolver = new OwnershipResolver();
+  const ownedItems = await ownershipResolver.listOwnedItems(upserted.id);
 
   const customColor = (customizationsResult.data ?? []).find(c => c.item_id === "custom_color")?.config?.color ?? null;
   const billboardConfig = (customizationsResult.data ?? []).find(c => c.item_id === "billboard")?.config;
@@ -451,8 +436,21 @@ export async function GET(
 
   const buildingStyle = (customizationsResult.data ?? []).find(c => c.item_id === "building_style")?.config?.style ?? "tower";
 
+  const readModel = new CityReadModel(sb as never);
+  const normalizedDeveloper = readModel.buildDeveloperReadModel(upserted as never, {
+    ownedItems,
+    customColor,
+    billboardImages,
+    ledBannerText,
+    achievements: [],
+    loadout,
+    buildingStyle,
+    activeRaidTag: raidTagsResult.data?.[0] ?? null,
+  });
+
   const result = {
     ...upserted,
+    ...normalizedDeveloper,
     owned_items: ownedItems,
     custom_color: customColor,
     billboard_images: billboardImages,

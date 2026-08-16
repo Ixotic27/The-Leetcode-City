@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { limitParamSchema, offsetParamSchema, validateQuery } from "@/lib/validation";
+
+const querySchema = z.object({
+  limit: limitParamSchema.optional().default(100),
+  offset: offsetParamSchema.optional().default(0),
+});
 
 function getRankTitle(rating: number, index: number): { title: string; badge: string; rarity: string } {
   if (index <= 10) return { title: "The Sentinel", badge: "badge_legendary", rarity: "legendary" };
@@ -13,10 +20,11 @@ function getRankTitle(rating: number, index: number): { title: string; badge: st
 export async function GET(request: NextRequest) {
   const sb = getSupabaseAdmin();
   const { searchParams } = new URL(request.url);
-  const rawLimit = parseInt(searchParams.get("limit") ?? "", 10);
-  const rawOffset = parseInt(searchParams.get("offset") ?? "", 10);
-  const limit = Number.isNaN(rawLimit) ? 100 : Math.min(100, Math.max(1, rawLimit));
-  const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, rawOffset);
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
+  }
+  const { limit, offset } = queryVal.data;
 
   // Query ratings table, ordering by ELO rating desc
   const { data: leaderboard, error } = await sb

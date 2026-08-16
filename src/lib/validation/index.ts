@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { z, ZodSchema } from "zod";
 
+export * from "./schemas";
+export type { ZodSchema };
+
 /**
  * Formats Zod validation errors into a standard 400 Bad Request response.
  */

@@ -274,7 +274,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ loadout: saved });
   } catch (e) {
-    console.warn("Could not save loadout to database (falling back to returning request loadout):", e);
-    return NextResponse.json({ loadout: loadoutData });
+    // Fail closed: never claim a save succeeded when persistence threw.
+    // Returning the request body with HTTP 200 silently discarded the user's
+    // loadout on the next fetch and masked storage outages (#1661).
+    console.error("Failed to save loadout to database:", e);
+    return NextResponse.json({ error: "Failed to save loadout" }, { status: 500 });
   }
 }
