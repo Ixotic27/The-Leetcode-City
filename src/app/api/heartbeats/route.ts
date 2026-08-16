@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, broadcastToChannel } from "@/lib/supabase";
+import { rateLimit } from "@/lib/rate-limit";
 import crypto from "crypto";
 
 function hashKey(key: string): string {
@@ -12,6 +13,11 @@ const MAX_STRING = 64;
 const MAX_PROJECT = 128;
 const MAX_SESSION_ID = 128;
 const MAX_ACTIVE_SECONDS = 3600;
+// Ceiling on total credited activeSeconds per request. 25 events at the per-
+// event max (3600s) would credit 25 hours of "activity" from a single call;
+// no real editor session produces that. This bounds batches to a plausible
+// amount of wall-clock coding time per request.
+const MAX_REQUEST_ACTIVE_SECONDS = 3600;
 const ALLOWED_EDITORS = new Set(["vscode", "cursor", "vscodium", "windsurf", "positron"]);
 const ALLOWED_OS = new Set(["darwin", "linux", "win32", "freebsd", "openbsd"]);
 const ALLOWED_STATUS = new Set(["active", "offline"]);
@@ -80,6 +86,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
   }
 
+  // Rate-limit per API key: a coding session sends a handful of heartbeats per
+  // minute. This stops forged batches from inflating presence/session totals
+  // beyond wall-clock time (previously unbounded).
+  const keyHash = hashKey(apiKey);
+  const { ok: rlOk } = await rateLimit(`heartbeats:${keyHash}`, 60, 60_000);
+  if (!rlOk) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
@@ -119,6 +134,7 @@ export async function POST(request: NextRequest) {
   }
   const activeBySession = new Map<string, SessionAgg>();
 
+  let requestActiveSeconds = 0;
   for (const hb of heartbeats) {
     if (hb.status === "offline") {
       const { error } = await sb
@@ -141,8 +157,16 @@ export async function POST(request: NextRequest) {
       activeSeconds: 0,
       editorName: hb.editorName,
     };
+    // Clamp the batch's total credited seconds to a plausible wall-clock
+    // budget. Excess is dropped rather than rejecting the whole request so
+    // legitimate editor traffic is never blocked.
+    const credit =
+      requestActiveSeconds + hb.activeSeconds <= MAX_REQUEST_ACTIVE_SECONDS
+        ? hb.activeSeconds
+        : Math.max(0, MAX_REQUEST_ACTIVE_SECONDS - requestActiveSeconds);
+    requestActiveSeconds += credit;
     agg.count += 1;
-    agg.activeSeconds += hb.activeSeconds;
+    agg.activeSeconds += credit;
     agg.language = hb.language;
     agg.project = hb.project;
     agg.editorName = hb.editorName;
