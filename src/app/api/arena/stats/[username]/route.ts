@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 import { getAuthenticatedDeveloper } from "@/lib/arena";
+import { usernameSchema, validateParams } from "@/lib/validation";
+
+const paramsSchema = z.object({
+  username: usernameSchema,
+});
 
 function getRankTitle(rating: number, rank: number): { title: string; badge: string; rarity: string } {
   if (rank > 0 && rank <= 10) return { title: "The Sentinel", badge: "badge_legendary", rarity: "legendary" };
@@ -17,7 +23,11 @@ export async function GET(
   props: { params: Promise<{ username: string }> }
 ) {
   const params = await props.params;
-  const username = params.username.toLowerCase();
+  const paramVal = validateParams(params, paramsSchema);
+  if (!paramVal.success) {
+    return paramVal.response;
+  }
+  const username = paramVal.data.username.toLowerCase();
   const sb = getSupabaseAdmin();
 
   // 1. Fetch developer by username

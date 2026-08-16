@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getAuthenticatedDeveloper } from "@/lib/arena";
+import { uuidSchema, validateParams } from "@/lib/validation";
+
+const paramsSchema = z.object({
+  id: uuidSchema,
+});
 
 interface ProblemRow {
   id: number;
@@ -19,6 +25,12 @@ export async function GET(
   props: { params: Promise<{ id: string }> }
 ) {
   const params = await props.params;
+  const paramVal = validateParams(params, paramsSchema);
+  if (!paramVal.success) {
+    return paramVal.response;
+  }
+  const challengeId = paramVal.data.id;
+
   // Authenticate user (supporting extension API key or browser cookie)
   const dev = await getAuthenticatedDeveloper(request);
   if (!dev) {
@@ -26,7 +38,6 @@ export async function GET(
   }
 
   const sb = getSupabaseAdmin();
-  const challengeId = params.id;
 
   // Fetch the challenge
   const { data: challenge, error } = await sb

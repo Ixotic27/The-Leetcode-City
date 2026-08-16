@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { z } from "zod";
-import { validateParams } from "@/lib/validation";
+import { slugSchema, validateParams } from "@/lib/validation";
 
 import fs from "fs/promises";
 import path from "path";
 
 const paramsSchema = z.object({
-  slug: z.string().trim().min(1, "Slug is required"),
+  slug: slugSchema,
 });
 
 // GET /api/arcade/rooms/[slug] — get room with full map_json + track visit

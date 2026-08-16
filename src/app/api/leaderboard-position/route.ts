@@ -1,27 +1,26 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { usernameSchema, validateQuery } from "@/lib/validation";
 
 const VALID_TABS = ["solved", "lc_rank", "streak", "contest", "xp", "achievers"] as const;
-type Tab = (typeof VALID_TABS)[number];
+
+const querySchema = z.object({
+  tab: z.enum(VALID_TABS).optional().default("solved"),
+  login: usernameSchema,
+});
 
 /**
  * @param {import('next/server').NextRequest} request
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tab = searchParams.get("tab") ?? "solved";
-  const login = searchParams.get("login")?.toLowerCase();
-
-  if (!VALID_TABS.includes(tab as Tab)) {
-    return NextResponse.json(
-      { error: `Invalid tab value: "${tab}". Must be one of: ${VALID_TABS.join(", ")}` },
-      { status: 400 }
-    );
+  const queryVal = validateQuery(searchParams, querySchema);
+  if (!queryVal.success) {
+    return queryVal.response;
   }
-
-  if (!login) {
-    return NextResponse.json({ error: "Missing login" }, { status: 400 });
-  }
+  const { tab } = queryVal.data;
+  const login = queryVal.data.login.toLowerCase();
 
   const sb = getSupabaseAdmin();
 
