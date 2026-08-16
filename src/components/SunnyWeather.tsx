@@ -118,12 +118,63 @@ const HeatShimmerVolume = ({ intensity }: { intensity: number }) => {
   );
 };
 
+const RAY_COUNT = 8;
+
 /**
  * VolumetricGodRays
  * Simulates atmospheric scattering using a multi-layered geometry approximation.
  */
 const VolumetricGodRays = ({ sunPos }: { sunPos: THREE.Vector3 }) => {
-  return null;
+  const groupRef = useRef<THREE.Group>(null);
+
+  const rays = useMemo(() => {
+    return Array.from({ length: RAY_COUNT }, (_, i) => ({
+      angleOffset: (i / RAY_COUNT) * Math.PI * 2,
+      width: 18 + Math.random() * 30,
+      opacity: 0.03 + Math.random() * 0.04,
+      length: 400 + Math.random() * 200,
+    }));
+  }, []);
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return;
+    const t = clock.getElapsedTime();
+    groupRef.current.children.forEach((child, i) => {
+      const mesh = child as THREE.Mesh;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = rays[i].opacity * (0.7 + 0.3 * Math.sin(t * 0.4 + i));
+    });
+  });
+
+  const dir = useMemo(() => sunPos.clone().normalize(), [sunPos]);
+  const perpX = useMemo(() => new THREE.Vector3(1, 0, 0).cross(dir).normalize(), [dir]);
+
+  return (
+    <group ref={groupRef} position={sunPos}>
+      {rays.map((ray, i) => {
+        const angle = ray.angleOffset;
+        const offsetX = Math.cos(angle) * 10;
+        const offsetZ = Math.sin(angle) * 10;
+        return (
+          <mesh
+            key={i}
+            position={[offsetX, -ray.length / 2, offsetZ]}
+            rotation={[0, angle, 0]}
+          >
+            <planeGeometry args={[ray.width, ray.length]} />
+            <meshBasicMaterial
+              color="#fff8e0"
+              transparent
+              opacity={ray.opacity}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
 };
 
 /**
