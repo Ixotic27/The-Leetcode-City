@@ -2437,20 +2437,16 @@ function OrbitScene({
         controlsRef={controlsRef}
       />
       <OrbitControls
-        ref={controlsRef}
-        enableDamping={!prefersReducedMotion}
-        dampingFactor={0.06}
-        minDistance={40}
-        maxDistance={2500}
-        maxPolarAngle={Math.PI / 2.1}
-        target={[TARGET_X, TARGET_Y, TARGET_Z]}
-
-        autoRotate={!prefersReducedMotion}
-
-        autoRotate={!reducedMotion}
-
-        autoRotateSpeed={0.15}
-      />
+       ref={controlsRef}
+       enableDamping={!prefersReducedMotion}
+       dampingFactor={0.06}
+       minDistance={40}
+       maxDistance={2500}
+       maxPolarAngle={Math.PI / 2.1}
+       target={[TARGET_X, TARGET_Y, TARGET_Z]}
+       autoRotate={!prefersReducedMotion}
+       autoRotateSpeed={0.15}
+     />
     </>
   );
 }
