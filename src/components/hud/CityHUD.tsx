@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import MiniMap from "@/components/MiniMap";
 import CityAnalyticsDashboard from "@/components/CityAnalyticsDashboard";
+import CityStatsTableModal from "@/components/hud/CityStatsTableModal";
 import ActivityTicker from "@/components/ActivityTicker";
 import ActivityPanel from "@/components/ActivityPanel";
 import DailiesWidget from "@/components/DailiesWidget";
@@ -114,6 +115,7 @@ export default function CityHUD() {
 
   // Search input specifically for the landing page
   const [landingSearchInput, setLandingSearchInput] = useState("");
+  const [staticStatsOpen, setStaticStatsOpen] = useState(false);
 
   const handleLandingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +203,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -255,7 +257,7 @@ export default function CityHUD() {
                   const isDone = current >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -320,7 +322,7 @@ export default function CityHUD() {
                   const isDone = count >= target;
 
                   return (
-                    <div className="pointer-events-auto mt-2 w-full max-w-lg border-[3px] border-border bg-bg-raised p-4 sm:p-5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
+                    <div className="pointer-events-auto mt-1.5 w-full max-w-lg border-[3px] border-border bg-bg-raised px-3 py-2 sm:px-4 sm:py-2.5 relative overflow-hidden text-left font-pixel font-bold uppercase text-cream">
                       {/* Grid background effect */}
                       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,161,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,161,22,0.02)_1px,transparent_1px)] bg-[size:8px_8px] pointer-events-none" />
 
@@ -817,6 +819,11 @@ export default function CityHUD() {
         districtZones={districtZones}
         open={analyticsOpen}
         onClose={() => setAnalyticsOpen(false)}
+        onOpenStaticTable={() => setStaticStatsOpen(true)}
+      />
+      <CityStatsTableModal
+        open={staticStatsOpen}
+        onClose={() => setStaticStatsOpen(false)}
       />
 
       {/* ─── Activity Ticker ─── */}

@@ -67,6 +67,7 @@ function HomeContent() {
     dayNightCycleActive,
     neonGridActive,
     weatherMode,
+    reducedMotion,
     setHud,
     setPlayerPos,
     districtZones,
@@ -175,6 +176,7 @@ function HomeContent() {
         themeIndex={themeIndex}
         dayNightCycleActive={dayNightCycleActive}
         weatherMode={weatherMode}
+        reducedMotion={reducedMotion}
         neonGridActive={neonGridActive}
         onHud={(s, a, x, z, yaw) => {
           setHud({ speed: s, altitude: a });

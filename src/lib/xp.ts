@@ -25,7 +25,6 @@ export interface XpRank {
 /**
  * Supported sources that can award XP.
  */
-
 export type XpSourceType =
   | "checkin"
   | "dailies"

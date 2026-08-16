@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { autoEquipIfSolo } from "@/lib/items";
+import { OwnershipResolver } from "@/services/ownershipResolver";
 import { sendPurchaseNotification, sendGiftSentNotification } from "@/lib/notification-senders/purchase";
 import { sendGiftReceivedNotification } from "@/lib/notification-senders/gift";
 
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
   }
 
   const sb = getSupabaseAdmin();
+  const ownershipResolver = new OwnershipResolver();
 
   const { data: dev } = await sb
     .from("developers")
@@ -160,26 +162,8 @@ export async function POST(request: Request) {
     }
 
     // Check receiver doesn't already own this item
-    if (!MULTI_BUY_ITEMS.has(item_id)) {
-      const { data: receiverOwnsBought } = await sb
-        .from("purchases")
-        .select("id")
-        .eq("developer_id", receiver.id)
-        .is("gifted_to", null)
-        .eq("item_id", item_id)
-        .eq("status", "completed")
-        .maybeSingle();
-      const { data: receiverOwnsGifted } = await sb
-        .from("purchases")
-        .select("id")
-        .eq("gifted_to", receiver.id)
-        .eq("item_id", item_id)
-        .eq("status", "completed")
-        .maybeSingle();
-
-      if (receiverOwnsBought || receiverOwnsGifted) {
-        return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
-      }
+    if (!MULTI_BUY_ITEMS.has(item_id) && (await ownershipResolver.ownsItem(receiver.id, item_id))) {
+      return NextResponse.json({ error: "Receiver already owns this item" }, { status: 409 });
     }
 
     recipientId = receiver.id;

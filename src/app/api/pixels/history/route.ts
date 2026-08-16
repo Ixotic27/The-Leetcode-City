@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { parsePagination } from "@/lib/parse-pagination";
 
 export async function GET(req: NextRequest) {
   const { resolveAuthenticatedDeveloper } = await import("@/lib/authenticated-developer");
@@ -26,10 +27,9 @@ export async function GET(req: NextRequest) {
   if (!dev) return NextResponse.json({ transactions: [], next_cursor: null });
 
   const cursor = req.nextUrl.searchParams.get("cursor");
-  const limit = Math.min(
-    50,
-    Math.max(1, parseInt(req.nextUrl.searchParams.get("limit") ?? "20", 10)),
-  );
+  // Cursor-paginated, so only `limit` is used; the helper's [1, 50] clamp and
+  // default of 20 already match what this route applied inline.
+  const { limit } = parsePagination(req.nextUrl.searchParams.get("limit"), null);
 
   let query = sb
     .from("wallet_transactions")

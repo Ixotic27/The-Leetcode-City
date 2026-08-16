@@ -7,11 +7,13 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { useWeather } from "@/context/WeatherContext";
 
+
 // Helper to interpolate two hex colors using THREE.Color
 function lerpColor(c1: string, c2: string, alpha: number): string {
   const color1 = new THREE.Color(c1);
   const color2 = new THREE.Color(c2);
   color1.lerp(color2, alpha);
+  
   return "#" + color1.getHexString();
 }
 
@@ -1433,6 +1435,8 @@ function MoonLensFlare({ moonGroupRef }: { moonGroupRef: React.RefObject<THREE.G
   );
 }
 
+import { useCity } from "@/context/CityContext";
+
 // ─── AtmosphereCycleManager Component ─────────────────────────────
 interface AtmosphereCycleManagerProps {
   theme: any;
@@ -1441,7 +1445,10 @@ interface AtmosphereCycleManagerProps {
   timeRef: React.MutableRefObject<number>;
   cityRadius?: number;
   weatherMode?: "sunny" | "rainy" | "windy" | "stormy" | "snowy";
+  reducedMotion?: boolean;
 }
+
+import { useReducedMotion } from "@/lib/reducedMotion";
 
 export default function AtmosphereCycleManager({
   theme,
@@ -1450,7 +1457,10 @@ export default function AtmosphereCycleManager({
   timeRef,
   cityRadius,
   weatherMode = "sunny",
+  reducedMotion: propReducedMotion,
 }: AtmosphereCycleManagerProps) {
+  const reducedMotion = useReducedMotion(propReducedMotion);
+  const isCycleActive = active && !reducedMotion;
   const { scene } = useThree();
   const { isRaining } = useWeather();
 
@@ -1593,7 +1603,7 @@ export default function AtmosphereCycleManager({
       }
     }
 
-    if (active) {
+    if (isCycleActive) {
       // Global Day/Night Cycle based on India Standard Time (IST: UTC+5:30)
       const now = Date.now();
       const istOffset = 5.5 * 60 * 60 * 1000;
