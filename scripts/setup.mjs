@@ -43,7 +43,7 @@ const checkOnly = args.includes("--check");
 
 console.log(`
 ${c.bold}${c.cyan}╔══════════════════════════════════════════════╗
-║     🏙️  The Leetcode City — Dev Setup       ║
+║     The Leetcode City — Dev Setup       ║
 ╚══════════════════════════════════════════════╝${c.reset}
 `);
 

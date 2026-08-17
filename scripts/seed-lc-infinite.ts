@@ -261,7 +261,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
 
 async function main() {
   const startPage = getLastPage();
-  console.log(`\n🏙️  LC City Infinite Mass Seeder — Resuming from page ${startPage}...\n`);
+  console.log(`\nLC City Infinite Mass Seeder — Resuming from page ${startPage}...\n`);
   if (MAX_PAGES !== Infinity) {
     console.log(`📦 Batch mode: will process ${MAX_PAGES} page(s) then stop.\n`);
   }

@@ -418,7 +418,7 @@ async function runHourlyCycle(cycleNum: number) {
 }
 
 async function main() {
-    console.log("\n🏙️  LC City Pipeline Fetcher");
+    console.log("\nLC City Pipeline Fetcher");
     console.log(`   Target:       ~${LIMIT} users/run`);
     console.log(`   Concurrency:  ${CONCURRENCY}`);
     console.log(`   Discovery:    ${DISCOVER_PAGES} random pages`);
