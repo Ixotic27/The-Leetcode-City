@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { touchLastActive } from "@/lib/notification-helpers";
 import { trackDailyMission } from "@/lib/dailies";
+import { processDeveloperActivity } from "@/lib/developerActivityEngine";
 
 /**
  * @param {import('next/server').NextRequest} request
@@ -29,12 +29,6 @@ export async function POST(request: Request) {
 
   const admin = getSupabaseAdmin();
 
-  const githubLogin = (
-    user.user_metadata.user_name ??
-    user.user_metadata.preferred_username ??
-    ""
-  ).toLowerCase();
-
   // Fetch visitor
   const { data: visitor } = await admin
     .from("developers")
@@ -57,8 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Building not found" }, { status: 404 });
   }
 
-  // Track activity
-  await touchLastActive(visitor.id);
+  // Track activity (last-active is handled by the engine below)
 
   // No self-visits
   if (visitor.id === building.id) {
@@ -89,10 +82,13 @@ export async function POST(request: Request) {
   if (!insertError) {
     await admin.rpc("increment_visit_count", { target_dev_id: building.id });
 
-    // Grant XP for visiting a building
-    await admin.rpc("grant_xp_atomic", { p_developer_id: visitor.id, p_source: "visit", p_amount: 2 });
+    // ── Common reward pipeline (engine) ──────────────────────────────
+    await processDeveloperActivity(admin as never, {
+      developerId: visitor.id,
+      xpGrants: [{ source: "visit", amount: 2 }],
+    });
 
-    // Only credit daily missions for genuine, unique visits
+    // Domain-specific: daily missions for unique visits
     await trackDailyMission(visitor.id, "visit_building");
     await trackDailyMission(visitor.id, "visit_3_buildings");
 
@@ -103,8 +99,8 @@ export async function POST(request: Request) {
       .eq("building_id", building.id)
       .eq("visit_date", today);
 
+    // Domain-specific: building visit milestone feed event
     if ((todayVisits ?? 0) >= 10) {
-      // Only insert once per building per day
       const { data: existing } = await admin
         .from("activity_feed")
         .select("id")

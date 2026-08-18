@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { touchLastActive } from "@/lib/notification-helpers";
 import { sendRaidAlertNotification } from "@/lib/notification-senders/raid";
 import { trackDailyMission } from "@/lib/dailies";
+import { processDeveloperActivity } from "@/lib/developerActivityEngine";
 import { RAID_TAG_DURATION_DAYS, XP_WIN_ATTACKER, XP_WIN_DEFENDER, XP_LOSE_DEFENDER, type ScoreBreakdown } from "@/lib/raid";
 import type { RaidDeveloper } from "@/lib/raid-planner";
 
@@ -66,8 +66,6 @@ export async function performRaidPostExecution(
       admin.rpc("increment_raid_xp", { p_developer_id: attacker.id, p_amount: XP_WIN_ATTACKER }),
       admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_WIN_DEFENDER }),
     ]);
-    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_win", p_amount: 50 });
-    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
 
     try {
       const { data: newWins, error: relicErr } = await admin.rpc("increment_relic_progress", {
@@ -93,23 +91,34 @@ export async function performRaidPostExecution(
     }
   } else {
     await admin.rpc("increment_raid_xp", { p_developer_id: defender.id, p_amount: XP_LOSE_DEFENDER });
-    await admin.rpc("grant_xp_atomic", { p_developer_id: attacker.id, p_source: "raid_loss", p_amount: 15 });
-    await admin.rpc("grant_xp_atomic", { p_developer_id: defender.id, p_source: "raid_defend", p_amount: 30 });
   }
 
-  await admin.from("activity_feed").insert({
-    event_type: details.success ? "raid_success" : "raid_failed",
-    actor_id: attacker.id,
-    target_id: defender.id,
-    metadata: {
-      attacker_login: attacker.github_login,
-      defender_login: defender.github_login,
-      attack_score: details.attack.total,
-      defense_score: details.defense.total,
+  // ── Common reward pipeline (engine) ──────────────────────────────────
+  // XP grants + last-active + activity feed + achievements in one coordinated call
+  await processDeveloperActivity(admin as never, {
+    developerId: attacker.id,
+    xpGrants: details.success
+      ? [
+          { source: "raid_win", amount: 50 },
+          { source: "raid_defend", amount: 30 },
+        ]
+      : [
+          { source: "raid_loss", amount: 15 },
+          { source: "raid_defend", amount: 30 },
+        ],
+    feedEvent: {
+      eventType: details.success ? "raid_success" : "raid_failed",
+      metadata: {
+        attacker_login: attacker.github_login,
+        defender_login: defender.github_login,
+        attack_score: details.attack.total,
+        defense_score: details.defense.total,
+      },
+      targetId: defender.id,
     },
   });
 
-  await touchLastActive(attacker.id);
+  // Domain-specific: daily missions + notification
   await trackDailyMission(attacker.id, "attempt_battle");
   if (details.success) await trackDailyMission(attacker.id, "win_battle");
   sendRaidAlertNotification(defender.id, defender.github_login, attacker.github_login, details.raidId ?? 0, details.success, details.attack.total, details.defense.total);

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
-import { checkAchievements } from "@/lib/achievements";
-import { touchLastActive } from "@/lib/notification-helpers";
 import { trackDailyMission } from "@/lib/dailies";
+import { processDeveloperActivity } from "@/lib/developerActivityEngine";
 import { getUtcDateStrings } from "@/lib/utc-date";
 
 /**
@@ -72,31 +71,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: rpcResult.error }, { status: 429 });
   }
 
-  await touchLastActive(giver.id);
-  await trackDailyMission(giver.id, "give_kudos");
-  await trackDailyMission(giver.id, "give_kudos_3");
-
+  // Domain-specific: increment kudos count on receiver
   await admin.rpc("increment_kudos_count", { target_dev_id: receiver.id });
 
-    await admin.rpc("grant_xp_atomic", { p_developer_id: giver.id, p_source: "kudos_given", p_amount: 3 });
-    await admin.rpc("grant_xp_atomic", { p_developer_id: receiver.id, p_source: "kudos_received", p_amount: 1 });
-
-  await admin.from("activity_feed").insert({
-    event_type: "kudos_given",
-    actor_id: giver.id,
-    target_id: receiver.id,
-    metadata: {
-      giver_login: githubLogin,
-      receiver_login: receiver.github_login,
+  // ── Common reward pipeline (engine) ──────────────────────────────────
+  await processDeveloperActivity(admin as never, {
+    developerId: giver.id,
+    actorLogin: githubLogin,
+    stats: {
+      contributions: giver.contributions ?? 0,
+      public_repos: giver.public_repos ?? 0,
+      total_stars: giver.total_stars ?? 0,
+      referral_count: 0,
+      kudos_count: giver.kudos_count ?? 0,
+      gifts_sent: 0,
+      gifts_received: 0,
+      easy_solved: giver.easy_solved ?? 0,
+      medium_solved: giver.medium_solved ?? 0,
+      hard_solved: giver.hard_solved ?? 0,
+      contest_rating: giver.contest_rating ?? 0,
+      lc_streak: giver.lc_streak ?? 0,
+      total_prs: giver.total_prs ?? 0,
+    },
+    xpGrants: [
+      { source: "kudos_given", amount: 3 },
+      { source: "kudos_received", amount: 1 },
+    ],
+    feedEvent: {
+      eventType: "kudos_given",
+      metadata: {
+        giver_login: githubLogin,
+        receiver_login: receiver.github_login,
+      },
+      targetId: receiver.id,
     },
   });
 
-  const { data: streakResult, error: streakError } = await admin.rpc("update_kudos_streak", {
+  // Domain-specific: kudos streak + daily missions
+  await trackDailyMission(giver.id, "give_kudos");
+  await trackDailyMission(giver.id, "give_kudos_3");
+
+  const { error: streakError } = await admin.rpc("update_kudos_streak", {
     p_giver_id: giver.id, p_given_date: today,
   });
-  
   if (streakError) { console.warn("[kudos] update_kudos_streak RPC error:", streakError.message); }
-  const newKudosStreak = (streakResult?.kudos_streak as number | undefined) ?? giver.kudos_streak ?? 0;
 
   try {
     await admin.rpc("increment_kudos_week", {
@@ -106,23 +124,6 @@ export async function POST(request: Request) {
   } catch (err) {
     console.warn("[app/api/interactions/kudos/route.ts] non-critical error:", err);
   }
-
-  await checkAchievements(giver.id, {
-    contributions: giver.contributions ?? 0,
-    public_repos: giver.public_repos ?? 0,
-    total_stars: giver.total_stars ?? 0,
-    referral_count: 0,
-    kudos_count: giver.kudos_count ?? 0,
-    gifts_sent: 0,
-    gifts_received: 0,
-    kudos_streak: newKudosStreak,
-    easy_solved: giver.easy_solved ?? 0,
-    medium_solved: giver.medium_solved ?? 0,
-    hard_solved: giver.hard_solved ?? 0,
-    contest_rating: giver.contest_rating ?? 0,
-    lc_streak: giver.lc_streak ?? 0,
-    total_prs: giver.total_prs ?? 0,
-  }, githubLogin);
 
   return NextResponse.json({ ok: true });
 }

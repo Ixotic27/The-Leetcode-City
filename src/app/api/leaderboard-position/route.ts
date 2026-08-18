@@ -12,6 +12,9 @@ const querySchema = z.object({
 
 /**
  * @param {import('next/server').NextRequest} request
+ * @throws {Response} Returns a 400 Bad Request when `tab` is not one of the valid
+ *   values (solved, lc_rank, streak, contest, xp, achievers) or when `login` is
+ *   missing or does not match the username format.
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

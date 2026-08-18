@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import { trackDailyMission } from "@/lib/dailies";
+import { processDeveloperActivity } from "@/lib/developerActivityEngine";
 import { buildFlyLeaderboard, type FlyScoreRow } from "@/lib/fly-leaderboard";
 import { getTodaySeed } from "@/lib/fly-seed";
 import { validateBody } from "@/lib/validation";
@@ -130,10 +131,14 @@ export async function POST(request: Request) {
   }
 
   const flyXp = Math.floor(score * 0.1);
-  if (flyXp > 0) {
-    await admin.rpc("grant_xp_atomic", { p_developer_id: dev.id, p_source: "fly", p_amount: flyXp });
-  }
 
+  // ── Common reward pipeline (engine) ──────────────────────────────
+  await processDeveloperActivity(admin as never, {
+    developerId: dev.id,
+    xpGrants: flyXp > 0 ? [{ source: "fly", amount: flyXp }] : [],
+  });
+
+  // Domain-specific: daily missions
   await trackDailyMission(dev.id, "fly_score_50", { score });
   await trackDailyMission(dev.id, "fly_score_150", { score });
 
