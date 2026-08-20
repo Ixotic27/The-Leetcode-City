@@ -176,7 +176,7 @@ async function upsertUser(username: string, data: any): Promise<boolean> {
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
-    console.log(`\n🏙️  LC City Seeder — seeding ${LC_USERS.length} users...\n`);
+    console.log(`\n LC City Seeder — seeding ${LC_USERS.length} users...\n`);
 
     let ok = 0, skip = 0, fail = 0;
 

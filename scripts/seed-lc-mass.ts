@@ -169,7 +169,7 @@ const START_PAGE = 1;
 const PAGES_TO_FETCH = 40; // ~1000 people total (25 per page)
 
 async function main() {
-    console.log(`\n🏙️  LC City Mass Seeder — Fetching ${PAGES_TO_FETCH} pages of rankings...\n`);
+    console.log(`\n LC City Mass Seeder — Fetching ${PAGES_TO_FETCH} pages of rankings...\n`);
 
     let ok = 0;
     let skip = 0;

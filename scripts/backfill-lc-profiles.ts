@@ -181,7 +181,7 @@ async function upsertFullProfile(username: string, data: any): Promise<boolean> 
 }
 
 async function main() {
-    console.log("\n🏙️  LC City Profile Backfiller\n");
+    console.log("\nLC City Profile Backfiller\n");
     console.log("   Fetching all developers from DB...\n");
 
     // Fetch all developer logins in batches
