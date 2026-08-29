@@ -1955,6 +1955,146 @@ function MarinaLighthouse({ position }: { position: [number, number, number] }) 
   );
 }
 
+// ─── Vidhana Soudha Monument ─────────────────────────────────
+
+function VidhanaSoudha({ position }: { position: [number, number, number] }) {
+  const domeGlowRef = useRef<THREE.Mesh>(null);
+
+  useFrame(({ clock }) => {
+    if (!domeGlowRef.current) return;
+    const pulse = 1.6 + Math.sin(clock.elapsedTime * 1.2) * 0.3;
+    (domeGlowRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
+  });
+
+  const stoneColor = "#c9b896";
+  const trimColor = "#8a6d3f";
+  const windowColor = "#2a2418";
+
+  // Building footprint
+  const bodyW = 60;
+  const bodyD = 26;
+  const bodyH = 20;
+
+  // Window grid: rows of windows across the facade (both floors)
+  const windowCols = 9;
+  const windowRows = 2;
+  const winW = 2.2;
+  const winH = 3.2;
+  const colSpacing = bodyW / (windowCols + 1);
+  const rowSpacing = bodyH / (windowRows + 1);
+
+  return (
+    <group position={position}>
+      {/* Base plinth */}
+      <mesh position={[0, 1.5, 0]}>
+        <boxGeometry args={[bodyW + 10, 3, bodyD + 10]} />
+        <meshStandardMaterial color="#8a7a5c" roughness={0.9} />
+      </mesh>
+
+      {/* Main building body */}
+      <mesh position={[0, 3 + bodyH / 2, 0]}>
+        <boxGeometry args={[bodyW, bodyH, bodyD]} />
+        <meshStandardMaterial color={stoneColor} roughness={0.85} />
+      </mesh>
+
+      {/* Facade windows — front face (+Z), correctly centered grid */}
+      {Array.from({ length: windowCols }, (_, ci) =>
+        Array.from({ length: windowRows }, (_, ri) => {
+          const wx = -bodyW / 2 + colSpacing * (ci + 1);
+          const wy = 3 + rowSpacing * (ri + 1);
+          return (
+            <mesh key={`win-f-${ci}-${ri}`} position={[wx, wy, bodyD / 2 + 0.05]}>
+              <boxGeometry args={[winW, winH, 0.3]} />
+              <meshStandardMaterial
+                color={windowColor}
+                emissive={windowColor}
+                emissiveIntensity={0.4}
+              />
+            </mesh>
+          );
+        })
+      )}
+
+      {/* Facade windows — back face (-Z), mirrored */}
+      {Array.from({ length: windowCols }, (_, ci) =>
+        Array.from({ length: windowRows }, (_, ri) => {
+          const wx = -bodyW / 2 + colSpacing * (ci + 1);
+          const wy = 3 + rowSpacing * (ri + 1);
+          return (
+            <mesh key={`win-b-${ci}-${ri}`} position={[wx, wy, -bodyD / 2 - 0.05]}>
+              <boxGeometry args={[winW, winH, 0.3]} />
+              <meshStandardMaterial
+                color={windowColor}
+                emissive={windowColor}
+                emissiveIntensity={0.4}
+              />
+            </mesh>
+          );
+        })
+      )}
+
+      {/* Colonnade pillars along the front */}
+      {Array.from({ length: windowCols + 1 }, (_, i) => {
+        const px = -bodyW / 2 + colSpacing * i - colSpacing / 2 + colSpacing / 2;
+        const pillarX = -bodyW / 2 + (i * bodyW) / windowCols;
+        return (
+          <mesh key={`pillar-${i}`} position={[pillarX, 3 + bodyH / 2, bodyD / 2 + 2]}>
+            <cylinderGeometry args={[0.8, 0.9, bodyH, 10]} />
+            <meshStandardMaterial color={trimColor} roughness={0.7} />
+          </mesh>
+        );
+      })}
+
+      {/* Central portico / entrance block (raised, centered) */}
+      <mesh position={[0, 3 + bodyH + 4, 0]}>
+        <boxGeometry args={[18, 8, bodyD + 4]} />
+        <meshStandardMaterial color={stoneColor} roughness={0.85} />
+      </mesh>
+
+      {/* Dome base drum — sits centered above the portico */}
+      <mesh position={[0, 3 + bodyH + 8 + 3, 0]}>
+        <cylinderGeometry args={[9, 10, 6, 16]} />
+        <meshStandardMaterial color={trimColor} roughness={0.6} />
+      </mesh>
+
+      {/* Main dome — centered exactly above the drum's central axis */}
+      <mesh position={[0, 3 + bodyH + 8 + 6 + 6, 0]}>
+        <sphereGeometry args={[9, 20, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#d4c49a" roughness={0.5} />
+      </mesh>
+
+      {/* Glowing finial on top of dome */}
+      <mesh ref={domeGlowRef} position={[0, 3 + bodyH + 8 + 6 + 6 + 9 + 1.5, 0]}>
+        <sphereGeometry args={[1.4, 10, 8]} />
+        <meshStandardMaterial
+          color="#ffa116"
+          emissive="#ffa116"
+          emissiveIntensity={1.6}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Corner corner-towers (echo the dome, smaller) */}
+      {[
+        [-bodyW / 2 + 4, -bodyD / 2 + 4],
+        [bodyW / 2 - 4, -bodyD / 2 + 4],
+        [-bodyW / 2 + 4, bodyD / 2 - 4],
+        [bodyW / 2 - 4, bodyD / 2 - 4],
+      ].map(([tx, tz], i) => (
+        <group key={`corner-tower-${i}`} position={[tx, 3 + bodyH, tz]}>
+          <mesh position={[0, 3, 0]}>
+            <cylinderGeometry args={[2.6, 3, 6, 10]} />
+            <meshStandardMaterial color={trimColor} roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 6.5, 0]}>
+            <coneGeometry args={[3, 3, 10]} />
+            <meshStandardMaterial color="#d4c49a" roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
 // â”€â”€â”€ Decoration Renderer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Decorations({ items }: { items: CityDecoration[] }) {
@@ -1971,6 +2111,7 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
           case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
+          case 'vidhanaSoudha': return <VidhanaSoudha key={`vidhana-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
           default: return null;
         }
