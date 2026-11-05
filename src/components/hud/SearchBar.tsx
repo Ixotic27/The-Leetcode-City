@@ -196,7 +196,7 @@ export function SearchFeedback({
   );
 }
 
-export default function SearchBar() {
+export default function SearchBar({ inline = false }: { inline?: boolean }) {
   const {
     username,
     setUsername,
@@ -221,6 +221,9 @@ export default function SearchBar() {
     setPlazas,
     setDecorations,
     setDistrictZones,
+    setRiver,
+    setBridges,
+    setCanals,
     stats,
     authLogin,
     ghostPreviewShownRef,
@@ -241,9 +244,10 @@ export default function SearchBar() {
       setOpen(false);
       return;
     }
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
           setResults(data);
@@ -251,10 +255,10 @@ export default function SearchBar() {
           setActiveIdx(-1);
         }
       } catch (err) {
-        console.error("Autocomplete fetch error:", err);
+        if (!controller.signal.aborted) console.error("Autocomplete fetch error:", err);
       }
     }, 200);
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [username]);
 
   useEffect(() => {
@@ -274,7 +278,7 @@ export default function SearchBar() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIdx((i) => Math.max(i - 1, -1));
-    } else if (e.key === "Enter" && activeIdx >= 0) {
+    } else if (e.key === "Enter" && open && activeIdx >= 0 && results[activeIdx]) {
       e.preventDefault();
       const selected = results[activeIdx].github_login;
       setUsername(selected);
@@ -282,13 +286,14 @@ export default function SearchBar() {
       searchUser(selected);
     } else if (e.key === "Escape") {
       setOpen(false);
+      setActiveIdx(-1);
     }
   };
 
   const searchUser = async (overrideUsername?: string) => {
     const target = overrideUsername ?? username;
     const trimmed = target.trim().toLowerCase();
-    if (!trimmed) return;
+    if (!trimmed || feedback?.type === "loading") return;
 
     // Track search event dynamically
     try {
@@ -374,6 +379,9 @@ export default function SearchBar() {
         setPlazas(layout.plazas);
         setDecorations(layout.decorations);
         setDistrictZones(layout.districtZones);
+        setRiver(layout.river);
+        setBridges(layout.bridges);
+        setCanals(layout.canals);
         setCityCache({
           ...layout,
           stats: stats ?? { total_developers: 0, total_contributions: 0 },
@@ -390,6 +398,13 @@ export default function SearchBar() {
           };
           const layout = generateCityLayout(rawDevsRef.current);
           setBuildings(layout.buildings);
+          setPlazas(layout.plazas);
+          setDecorations(layout.decorations);
+          setDistrictZones(layout.districtZones);
+          setRiver(layout.river);
+          setBridges(layout.bridges);
+          setCanals(layout.canals);
+          setCityCache({ ...layout, stats });
           updatedBuildings = layout.buildings;
         }
       }
@@ -444,32 +459,36 @@ export default function SearchBar() {
     searchUser();
   };
 
-  if (!exploreMode || compareBuilding || comparePair) return null;
+  if ((!inline && !exploreMode) || compareBuilding || comparePair) return null;
 
   return (
-    <div ref={containerRef} className="pointer-events-auto absolute top-3 left-32 right-3 z-[31] sm:left-36 sm:right-auto sm:top-4 sm:w-72">
+    <div ref={containerRef} className={inline ? "relative w-full" : "pointer-events-auto fixed top-3 left-28 right-3 z-[31] sm:left-32 sm:right-auto sm:top-4 sm:w-80"}>
       <form id="search-bar-form" onSubmit={handleSubmit} className="flex items-center gap-2">
         <input
+          id="city-search-input"
           type="text"
           value={username}
           onChange={(e) => {
             setUsername(e.target.value);
+            setActiveIdx(-1);
+            setResults([]);
+            setOpen(false);
             if (feedback?.type === "error") setFeedback(null);
           }}
           onKeyDown={handleKeyDown}
           aria-label="Search a LeetCode username and fly to their building"
           placeholder="search a username"
-          className="min-w-0 flex-1 border-[3px] border-border bg-bg/70 px-3 py-1.5 text-base text-cream outline-none backdrop-blur-sm transition-colors placeholder:text-dim normal-case sm:text-[11px]"
+          className="min-h-11 min-w-0 flex-1 border-2 border-border bg-bg/90 px-3 text-base text-cream backdrop-blur-sm transition-colors placeholder:text-muted normal-case sm:text-[11px]"
           onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
           onBlur={(e) => (e.currentTarget.style.borderColor = "")}
         />
         <button
           type="submit"
-          disabled={loading || !username.trim()}
-          className="btn-press flex-shrink-0 border-[3px] border-transparent px-3 py-1.5 text-[11px] text-bg disabled:opacity-40"
+          disabled={loading || feedback?.type === "loading" || !username.trim()}
+          className="btn-press min-h-11 flex-shrink-0 border-2 border-transparent px-3 text-[11px] text-bg disabled:opacity-40"
           style={{ backgroundColor: theme.accent }}
         >
-          {loading ? <span className="blink-dot inline-block">_</span> : "Go"}
+          {loading || feedback?.type === "loading" ? "..." : "Find"}
         </button>
       </form>
       {open && results.length > 0 && (
@@ -477,14 +496,15 @@ export default function SearchBar() {
           {results.map((dev, idx) => {
             const totalSolved = (dev.easy_solved ?? 0) + (dev.medium_solved ?? 0) + (dev.hard_solved ?? 0);
             return (
-              <div
+              <button
+                type="button"
                 key={dev.github_login}
                 onClick={() => {
                   setUsername(dev.github_login);
                   setOpen(false);
                   searchUser(dev.github_login);
                 }}
-                className={`flex items-center justify-between px-3 py-2 cursor-pointer text-xs transition-colors font-pixel uppercase ${
+                className={`flex min-h-11 w-full items-center justify-between px-3 py-2 text-left text-xs transition-colors font-pixel normal-case ${
                   idx === activeIdx
                     ? "bg-white/10 text-white"
                     : "text-cream/90 hover:bg-white/5 hover:text-white"
@@ -495,7 +515,7 @@ export default function SearchBar() {
               >
                 <span>{dev.github_login}</span>
                 <span className="text-[10px] text-muted normal-case">{totalSolved} solved</span>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -506,7 +526,7 @@ export default function SearchBar() {
             feedback={feedback}
             accentColor={theme.accent}
             onDismiss={() => setFeedback(null)}
-            onRetry={searchUser}
+            onRetry={() => { void searchUser(); }}
           />
         </div>
       )}

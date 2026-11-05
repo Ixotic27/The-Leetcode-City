@@ -3,7 +3,7 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { DISTRICT_ORIGINS } from "@/lib/github";
+import type { CityPlaza } from "@/lib/github";
 import { useReducedMotion } from "@/lib/reducedMotion";
 
 interface TrackSegment {
@@ -197,8 +197,13 @@ function MetroTrain({ segment, speedMultiplier = 1.0, reducedMotion: propReduced
 }
 
 // ─── Main Elevated Track & Pillars Assembly ───────────────────────
-export default function MetroSystem({ reducedMotion }: { reducedMotion?: boolean } = {}) {
-  const o = DISTRICT_ORIGINS;
+export default function MetroSystem({ plazas, reducedMotion }: { plazas: CityPlaza[]; reducedMotion?: boolean }) {
+  // District origins come from the live layout: one plaza per populated district.
+  const o = useMemo(() => {
+    const m: Record<string, [number, number, number]> = {};
+    for (const p of plazas) if (p.district && !m[p.district]) m[p.district] = p.position;
+    return m;
+  }, [plazas]);
 
   // Define elevated track paths (Y=40)
   const trackSegments = useMemo<TrackSegment[]>(() => {

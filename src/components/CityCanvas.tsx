@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/refs, react-hooks/immutability, @typescript-eslint/no-unused-vars */
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { useRef, useEffect, useState, useMemo, useCallback, lazy, Suspense, memo } from "react";
@@ -52,6 +52,13 @@ import { RainParticles } from './weather/RainParticles';
 import { RainRippleGround } from './weather/RainRippleGround';
 import CodeForgeModal from "@/components/CodeForgeModal";
 import { WaterPlane } from "./WaterShader";
+import { placeCityLandmarks } from "@/lib/city/landmarks";
+import { buildDistrictIslands, type DistrictIsland } from "@/lib/city/world";
+import DistrictIslands from "./city/DistrictIslands";
+import CityCircuit from "./city/CityCircuit";
+import CircuitHUD from "./city/CircuitHUD";
+import StreetTraffic from "./city/StreetTraffic";
+import { createCityCircuit, INITIAL_CIRCUIT_TELEMETRY, type CircuitTrack, type CircuitTelemetry, type DriveInput } from "@/lib/city/driving";
 
 
 // â”€â”€â”€ Theme Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1200,18 +1207,12 @@ function CameraReset() {
 
 // â”€â”€â”€ Ground â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function Ground({ color, grid1, grid2, showNeonGrid, accentColor }: { color: string; grid1: string; grid2: string; showNeonGrid?: boolean; accentColor?: string }) {
+function Ground({ islands, color, showNeonGrid, accentColor }: { islands: DistrictIsland[]; color: string; showNeonGrid?: boolean; accentColor?: string }) {
   return (
     <group>
-      {/* City ground â€” compact island */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
-        <planeGeometry args={[6000, 6000]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.15} roughness={0.95} />
-      </mesh>
-      {showNeonGrid ? (
+      <DistrictIslands islands={islands} color={color} />
+      {showNeonGrid && (
         <NeonGridOverlay accentColor={accentColor ?? "#e040c0"} />
-      ) : (
-        <gridHelper args={[4000, 200, grid1, grid2]} position={[0, -0.5, 0]} />
       )}
       {/* Ocean â€” animated water plane surrounding the city */}
       <WaterPlane
@@ -1394,39 +1395,47 @@ function BridgeGate({ position }: { position: [number, number, number] }) {
 }
 
 // Auto-rickshaw: iconic yellow-green three-wheeler
-function AutoRickshaw({ position, rotation }: { position: [number, number, number]; rotation: number }) {
+// The same rickshaw model as before (body, roof, three wheels, headlight), one draw call per part.
+const RICKSHAW_PARTS: { geometry: () => THREE.BufferGeometry; material: () => THREE.Material; offsets: [number, number, number][]; wheel?: boolean }[] = [
+  { geometry: () => new THREE.BoxGeometry(4, 2.8, 3), material: () => new THREE.MeshStandardMaterial({ color: "#2a8a2a", emissive: "#2a8a2a", emissiveIntensity: 0.35 }), offsets: [[0, 1.8, 0]] },
+  { geometry: () => new THREE.BoxGeometry(4.2, 0.4, 3.2), material: () => new THREE.MeshStandardMaterial({ color: "#e8c820", emissive: "#e8c820", emissiveIntensity: 0.5 }), offsets: [[0, 3.6, 0]] },
+  { geometry: () => new THREE.CylinderGeometry(0.5, 0.5, 0.4, 8), material: () => new THREE.MeshStandardMaterial({ color: "#222", emissive: "#222", emissiveIntensity: 0.2 }), offsets: [[2.2, 0.5, 0], [-1.5, 0.5, 1.6], [-1.5, 0.5, -1.6]], wheel: true },
+  { geometry: () => new THREE.BoxGeometry(0.3, 0.6, 0.6), material: () => new THREE.MeshStandardMaterial({ color: "#f0d870", emissive: "#f0d870", emissiveIntensity: 1.5, toneMapped: false }), offsets: [[2.3, 2.2, 0]] },
+];
+
+function InstancedRickshaws({ items }: { items: CityDecoration[] }) {
+  const parts = useMemo(() => RICKSHAW_PARTS.map((part) => ({ ...part, geo: part.geometry(), mat: part.material() })), []);
+  const refs = useRef<(THREE.InstancedMesh | null)[]>([]);
+  useEffect(() => () => parts.forEach((p) => { p.geo.dispose(); p.mat.dispose(); }), [parts]);
+
+  useEffect(() => {
+    const yaw = new THREE.Quaternion(), wheelTilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+    const q = new THREE.Quaternion(), p = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1), m = new THREE.Matrix4();
+    parts.forEach((part, pi) => {
+      const mesh = refs.current[pi];
+      if (!mesh) return;
+      let n = 0;
+      for (const d of items) {
+        yaw.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, d.rotation);
+        q.copy(yaw);
+        if (part.wheel) q.multiply(wheelTilt);
+        for (const offset of part.offsets) {
+          p.set(...offset).applyQuaternion(yaw).add(new THREE.Vector3(...d.position));
+          mesh.setMatrixAt(n++, m.compose(p, q, one));
+        }
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+    });
+  }, [items, parts]);
+
+  if (items.length === 0) return null;
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
-      {/* Body */}
-      <mesh position={[0, 1.8, 0]}>
-        <boxGeometry args={[4, 2.8, 3]} />
-        <meshStandardMaterial color="#2a8a2a" emissive="#2a8a2a" emissiveIntensity={0.35} />
-      </mesh>
-      {/* Roof */}
-      <mesh position={[0, 3.6, 0]}>
-        <boxGeometry args={[4.2, 0.4, 3.2]} />
-        <meshStandardMaterial color="#e8c820" emissive="#e8c820" emissiveIntensity={0.5} />
-      </mesh>
-      {/* Front wheel */}
-      <mesh position={[2.2, 0.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.5, 0.5, 0.4, 8]} />
-        <meshStandardMaterial color="#222" emissive="#222" emissiveIntensity={0.2} />
-      </mesh>
-      {/* Rear wheels */}
-      <mesh position={[-1.5, 0.5, 1.6]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.5, 0.5, 0.4, 8]} />
-        <meshStandardMaterial color="#222" emissive="#222" emissiveIntensity={0.2} />
-      </mesh>
-      <mesh position={[-1.5, 0.5, -1.6]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.5, 0.5, 0.4, 8]} />
-        <meshStandardMaterial color="#222" emissive="#222" emissiveIntensity={0.2} />
-      </mesh>
-      {/* Headlight */}
-      <mesh position={[2.3, 2.2, 0]}>
-        <boxGeometry args={[0.3, 0.6, 0.6]} />
-        <meshStandardMaterial color="#f0d870" emissive="#f0d870" emissiveIntensity={1.5} toneMapped={false} />
-      </mesh>
-    </group>
+    <>
+      {parts.map((part, pi) => (
+        <instancedMesh key={`${pi}-${items.length}`} ref={(el) => { refs.current[pi] = el; }} args={[part.geo, part.mat, items.length * part.offsets.length]} />
+      ))}
+    </>
   );
 }
 
@@ -1446,43 +1455,33 @@ function River({ river, waterColor, waterEmissive }: { river: CityRiver; waterCo
   );
 }
 
-function CityCanals({ canals, waterColor, waterEmissive }: { canals: CityCanal[]; waterColor: string; waterEmissive: string }) {
-  const matsRef = useRef<THREE.MeshBasicMaterial[]>([]);
+// All ponds and canals share one instanced plane and one material (one draw call).
+function CityCanals({ canals, waterEmissive }: { canals: CityCanal[]; waterColor: string; waterEmissive: string }) {
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1), []);
+  const material = useMemo(() => new THREE.MeshBasicMaterial({ color: waterEmissive, transparent: true, opacity: 0.72, depthWrite: false }), [waterEmissive]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
+
+  useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const euler = new THREE.Euler(), quat = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3(), m = new THREE.Matrix4();
+    canals.forEach((canal, i) => {
+      // Same transform the per-canal meshes used: rotation [-PI/2, 0, rotation], plane sized [length, width].
+      euler.set(-Math.PI / 2, 0, canal.rotation);
+      mesh.setMatrixAt(i, m.compose(pos.set(...canal.position), quat.setFromEuler(euler), scale.set(canal.length, canal.width, 1)));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  }, [canals]);
 
   useFrame(({ clock }) => {
-    const opacity = 0.72 + Math.sin(clock.elapsedTime * 0.6) * 0.06;
-    for (const mat of matsRef.current) {
-      mat.opacity = opacity;
-    }
+    material.opacity = 0.72 + Math.sin(clock.elapsedTime * 0.6) * 0.06;
   });
 
   if (canals.length === 0) return null;
-
-  return (
-    <>
-      {canals.map((canal, i) => (
-        <mesh
-          key={`canal-${i}`}
-          rotation={[-Math.PI / 2, 0, canal.rotation]}
-          position={canal.position}
-          renderOrder={1}
-        >
-          <planeGeometry args={[canal.length, canal.width]} />
-          <meshBasicMaterial
-            ref={(el: THREE.MeshBasicMaterial | null) => {
-              if (el) {
-                if (!matsRef.current.includes(el)) matsRef.current.push(el);
-              }
-            }}
-            color={waterEmissive}
-            transparent
-            opacity={0.72}
-            depthWrite={false}
-          />
-        </mesh>
-      ))}
-    </>
-  );
+  return <instancedMesh key={canals.length} ref={meshRef} args={[geometry, material, canals.length]} renderOrder={1} />;
 }
 
 function RiverText({ river }: { river: CityRiver }) {
@@ -1579,7 +1578,7 @@ function Waterfront({ river, dockColor }: { river: CityRiver; dockColor: string 
     for (let side = 0; side < 2; side++) {
       const x = side === 0 ? leftX : rightX;
       for (let i = 0; i < dockCount / 2; i++) {
-        const z = -halfRange + i * dockSpacing;
+        const z = river.centerZ - halfRange + i * dockSpacing;
         p.set(x, 0.2, z);
         m.compose(p, q, s);
         dockPlankRef.current.setMatrixAt(di++, m);
@@ -1968,7 +1967,6 @@ function Decorations({ items }: { items: CityDecoration[] }) {
           case 'bench': return <ParkBench key={`bench-${i}`} position={d.position} rotation={d.rotation} />;
           case 'fountain': return <Fountain key={`fountain-${i}`} position={d.position} />;
           case 'sidewalk': return <Sidewalk key={`walk-${i}`} position={d.position} size={d.size!} />;
-          case 'autoRickshaw': return <AutoRickshaw key={`rick-${i}`} position={d.position} rotation={d.rotation} />;
           case 'marinaLighthouse': return <MarinaLighthouse key={`lighthouse-${i}`} position={d.position} />;
           case 'shaniwarWada': return <ShaniwarWada key={`shaniwar-wada-${i}`} position={d.position} />;
           case 'busStop': return null; // Handled separately in BusTransit component to make it interactive!
@@ -1988,9 +1986,9 @@ const _dScale = new THREE.Vector3();
 const _dEuler = new THREE.Euler();
 const _dLocalPos = new THREE.Vector3();
 const _dPartQuat = new THREE.Quaternion();
+const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'autoRickshaw', 'roadMarking', 'roadSurface', 'bench', 'fountain', 'sidewalk']);
 
 function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { items: CityDecoration[]; roadMarkingColor: string; sidewalkColor: string }) {
-  const INSTANCED_TYPES = new Set(['tree', 'streetLamp', 'car', 'roadMarking', 'roadSurface', 'bench', 'fountain', 'sidewalk']);
   const trees = useMemo(() => items.filter(d => d.type === 'tree'), [items]);
   const lamps = useMemo(() => items.filter(d => d.type === 'streetLamp'), [items]);
   const cars = useMemo(() => items.filter(d => d.type === 'car'), [items]);
@@ -2001,6 +1999,7 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
   const sidewalks = useMemo(() => items.filter(d => d.type === 'sidewalk'), [items]);
   // Non-instanced Bengaluru decorations (rendered individually via Decorations fallback)
   const customItems = useMemo(() => items.filter(d => !INSTANCED_TYPES.has(d.type)), [items]);
+  const rickshaws = useMemo(() => items.filter(d => d.type === 'autoRickshaw'), [items]);
 
   const treeTrunkRef = useRef<THREE.InstancedMesh>(null);
   const treeCanopyRef = useRef<THREE.InstancedMesh>(null);
@@ -2168,7 +2167,8 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
       const w = d.size?.[0] ?? 2;
       const h = d.size?.[1] ?? 6;
 
-      _dEuler.set(-Math.PI / 2, d.rotation, 0);
+      // Lay flat first, then turn about world Y ('XYZ' would stand rotated markings upright).
+      _dEuler.set(-Math.PI / 2, d.rotation, 0, 'YXZ');
       _dQuat.setFromEuler(_dEuler);
       _dPos.set(d.position[0], d.position[1], d.position[2]);
       _dScale.set(w, h, 1);
@@ -2321,7 +2321,8 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
       const w = d.size?.[0] ?? 12;
       const h = d.size?.[1] ?? 12;
 
-      _dEuler.set(-Math.PI / 2, d.rotation, 0);
+      // Lay flat first, then turn about world Y ('XYZ' would stand east-west roads upright as walls).
+      _dEuler.set(-Math.PI / 2, d.rotation, 0, 'YXZ');
       _dQuat.setFromEuler(_dEuler);
       _dPos.set(d.position[0], d.position[1], d.position[2]);
       _dScale.set(w, h, 1);
@@ -2391,6 +2392,7 @@ function InstancedDecorations({ items, roadMarkingColor, sidewalkColor }: { item
       )}
       {/* Bengaluru-themed decorations: rendered individually (not instanced) */}
       {customItems.length > 0 && <Decorations items={customItems} />}
+      <InstancedRickshaws items={rickshaws} />
     </>
   );
 }
@@ -2487,6 +2489,8 @@ function WallpaperOrbitScene({ speed, reducedMotion = false }: { speed: number; 
 
 export interface CityCanvasProps {
   onReady?: () => void;
+  /** Data has finished loading; lets an empty city render instead of waiting for buildings. */
+  cityLoaded?: boolean;
   buildings: CityBuilding[];
   plazas: CityPlaza[];
   decorations: CityDecoration[];
@@ -2494,6 +2498,8 @@ export interface CityCanvasProps {
   bridges?: CityBridge[];
   canals?: CityCanal[];
   flyMode: boolean;
+  driveMode?: boolean;
+  onExitDrive?: () => void;
   flyVehicle?: string;
   onExitFly: (aborted?: boolean) => void;
   onCollect?: (score: number, earned: number, combo: number, collected: number, maxCombo: number) => void;
@@ -2587,6 +2593,11 @@ export function getCityCanvasAccessibilityText(focusedBuilding: string | null | 
 }
 
 interface CityCanvasSceneContentProps extends CityCanvasProps {
+  islands: DistrictIsland[];
+  circuitTrack: CircuitTrack;
+  onDriveTelemetry: (telemetry: CircuitTelemetry) => void;
+  driveRestartSignal: number;
+  driveTouchInput: MutableRefObject<DriveInput>;
   theme: CityTheme;
   cityRadius: number;
   showPerf: boolean;
@@ -2608,6 +2619,13 @@ interface CityCanvasOverlayLayerProps {
 }
 
 const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
+  islands,
+  circuitTrack,
+  driveMode,
+  onExitDrive,
+  onDriveTelemetry,
+  driveRestartSignal,
+  driveTouchInput,
   buildings,
   plazas,
   decorations,
@@ -2712,7 +2730,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         <WallpaperOrbitScene speed={wallpaperSpeed ?? 0.08} reducedMotion={reducedMotion} />
       ) : (
         <>
-          {!introMode && !rabbitCinematic && !flyMode && !(transitState?.active) && (!raidPhase || raidPhase === "idle" || raidPhase === "preview") && (
+          {!driveMode && !introMode && !rabbitCinematic && !flyMode && !(transitState?.active) && (!raidPhase || raidPhase === "idle" || raidPhase === "preview") && (
             <OrbitScene
               buildings={buildings}
               focusedBuilding={focusedBuilding ?? null}
@@ -2756,15 +2774,15 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
       )}
 
       <Ground
+        islands={islands}
         key={`ground-${themeIndex}`}
         color={theme.groundColor}
-        grid1={theme.grid1}
-        grid2={theme.grid2}
         showNeonGrid={neonGridActive}
         accentColor={theme.building.accent}
       />
+      <CityCircuit track={circuitTrack} active={Boolean(driveMode)} onExit={onExitDrive ?? (() => {})} onTelemetry={onDriveTelemetry} restartSignal={driveRestartSignal} touchInput={driveTouchInput} reducedMotion={reducedMotion} />
 
-      <FounderSpire onClick={onLandmarkClick ?? (() => { })} />
+      <FounderSpire onClick={onLandmarkClick ?? (() => { })} position={landmarkPositions[15]} />
       <Suspense fallback={null}>
         <Colosseum
           position={landmarkPositions[0]}
@@ -2841,15 +2859,17 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
 
       {river && bridges && bridges[0] && (() => {
         const [bx, , bz] = bridges[0].position;
+        const end = bridges[0].width / 2 - 10; // gates stand on the deck at each shore
         return (
           <>
-            <BridgeGate position={[bx, 0, bz + 80]} />
-            <BridgeGate position={[bx, 0, bz - 80]} />
+            <BridgeGate position={[bx, 0, bz + end]} />
+            <BridgeGate position={[bx, 0, bz - end]} />
           </>
         );
       })()}
 
       <CityScene
+        interactive={!driveMode}
         buildings={buildings}
         colors={theme.building}
         focusedBuilding={raidPhase && raidPhase !== "idle" && raidPhase !== "preview" && raidPhase !== "share" && raidPhase !== "done" ? (raidDefender?.login ?? focusedBuilding) : focusedBuilding}
@@ -2871,6 +2891,7 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
       />
 
       <InstancedDecorations items={decorations} roadMarkingColor={theme.roadMarkingColor} sidewalkColor={theme.sidewalkColor} />
+      {!driveMode && <StreetTraffic decorations={decorations} reducedMotion={reducedMotion} />}
 
       <BusTransit
         plazas={plazas}
@@ -2881,9 +2902,9 @@ const CityCanvasSceneContent = memo(function CityCanvasSceneContent({
         reducedMotion={reducedMotion}
       />
 
-      <InterCityConnections />
-      <MetroSystem reducedMotion={reducedMotion} />
-      <TramSystem reducedMotion={reducedMotion} />
+      <InterCityConnections plazas={plazas} />
+      <MetroSystem plazas={plazas} reducedMotion={reducedMotion} />
+      <TramSystem plazas={plazas} reducedMotion={reducedMotion} />
       {!wallpaperMode && skyAds && skyAds.length > 0 && (
         <Suspense fallback={null}>
           <SkyAds ads={skyAds} cityRadius={cityRadius} flyMode={flyMode} onAdClick={onAdClick} onAdViewed={onAdViewed} />
@@ -2927,8 +2948,60 @@ const CityCanvasOverlayLayer = memo(function CityCanvasOverlayLayer({
 
 import { useReducedMotion } from "@/lib/reducedMotion";
 
+// Each lit material links a program with ~50 unrolled point lights (~1.4 s apiece on D3D11).
+// Compiling them while frames render blocks the main thread one program at a time, and
+// compiling the empty pre-data scene wastes a whole set when the light count changes. So the
+// render loop stays paused until the city is mounted, then every program is compiled in one
+// batch (in parallel where KHR_parallel_shader_compile exists) before the first frame.
+type WarmupProgram = { isReady(): boolean | null };
+
+/** Compiles every material in the scene and resolves once all their programs have linked. */
+export function warmUpShaders(gl: Pick<THREE.WebGLRenderer, "compile" | "properties">, scene: THREE.Object3D, camera: THREE.Camera): Promise<void> {
+  return new Promise((resolve) => {
+    const pending = new Set<WarmupProgram>();
+    try {
+      // Poll the few distinct programs, not the scene's thousands of materials.
+      for (const material of gl.compile(scene, camera)) {
+        const program = (gl.properties.get(material) as { currentProgram?: WarmupProgram }).currentProgram;
+        if (program) pending.add(program);
+      }
+    } catch (err) {
+      console.warn("CityCanvas: shader warmup failed", err);
+    }
+    // Not renderer.compileAsync: its poll throws (and never resolves) when a material is disposed
+    // mid-compile, which happens while chunks are still mounting.
+    const poll = () => {
+      for (const program of pending) {
+        // Only an explicit false means "still compiling"; a deleted program or lost context reads null.
+        if (program.isReady() !== false) pending.delete(program);
+      }
+      if (pending.size) setTimeout(poll, 10);
+      else resolve();
+    };
+    poll();
+  });
+}
+
+/** The first frame waits for the city's buildings, or for loading to finish with none. */
+export const isCityReadyToDraw = (buildingCount: number, cityLoaded: boolean) => buildingCount > 0 || cityLoaded;
+
+function ShaderWarmup({ ready, onDone }: { ready: boolean; onDone: () => void }) {
+  const { gl, scene, camera } = useThree();
+  const started = useRef(false);
+  useEffect(() => {
+    if (!ready || started.current) return;
+    started.current = true;
+    // One frame lets children that mount from their own effects join the batch.
+    requestAnimationFrame(() => { void warmUpShaders(gl, scene, camera).then(onDone); });
+  }, [ready, gl, scene, camera, onDone]);
+  return null;
+}
+
 export default function CityCanvas({
   onReady,
+  cityLoaded = false,
+  driveMode = false,
+  onExitDrive,
   buildings,
   plazas,
   decorations,
@@ -2997,9 +3070,18 @@ export default function CityCanvas({
   const router = useRouter();
   const [dungeonOpen, setDungeonOpen] = useState(false);
   const [codeForgeOpen, setCodeForgeOpen] = useState(false);
+  const [driveTelemetry, setDriveTelemetry] = useState<CircuitTelemetry>(INITIAL_CIRCUIT_TELEMETRY);
+  const [driveRestartSignal, setDriveRestartSignal] = useState(0);
+  const driveTouchInput = useRef<DriveInput>({ throttle: 0, steer: 0, brake: false });
   const skyAdsMemo = useMemo(() => skyAds ?? [], [skyAds]);
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const [shadersReady, setShadersReady] = useState(false);
+  const handleShadersReady = useCallback(() => {
+    setShadersReady(true);
+    // Two frames so the first city frame is on screen before the loading screen goes.
+    requestAnimationFrame(() => requestAnimationFrame(() => onReadyRef.current?.()));
+  }, []);
   const t = THEMES[themeIndex] ?? THEMES[0];
   const [kbBuildingIndex, setKbBuildingIndex] = useState(0);
   const showPerf = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("perf");
@@ -3007,7 +3089,7 @@ export default function CityCanvas({
   const timeRef = useRef(0.0);
 
   const handleCanvasKeyDown = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (!buildings.length) return;
+    if (driveMode || flyMode || !buildings.length) return;
 
     const isForward = e.key === "ArrowRight" || e.key === "ArrowDown";
     const isBackward = e.key === "ArrowLeft" || e.key === "ArrowUp";
@@ -3038,7 +3120,7 @@ export default function CityCanvas({
     } else if (e.key === "Escape") {
       if (onClearFocus) onClearFocus();
     }
-  }, [buildings, focusedBuilding, kbBuildingIndex, onBuildingFocus, onBuildingClick, onClearFocus]);
+  }, [driveMode, flyMode, buildings, focusedBuilding, kbBuildingIndex, onBuildingFocus, onBuildingClick, onClearFocus]);
 
   const cityRadius = useMemo(() => {
     let max = 200;
@@ -3067,40 +3149,16 @@ export default function CityCanvas({
     setCodeForgeOpen(false);
   }, []);
 
-  const landmarkPositions = useMemo(() => {
-    const posList: [number, number, number][] = [];
-    const count = 15;
-    let seed = 99999;
-    function random() {
-      const x = Math.sin(seed++) * 10000;
-      return x - Math.floor(x);
-    }
-    // Place landmarks INSIDE the city among the buildings â€” not far outside
-    // Use 15%-45% of cityRadius so they sit within the building clusters
-    const minR = cityRadius * 0.4;
-    const maxR = cityRadius * 1.3;
-    const rangeR = maxR - minR;
-    for (let i = 0; i < count; i++) {
-      const radius = minR + random() * rangeR;
-      const angle = (i / count) * Math.PI * 2 + random() * 0.4;
-      const x = Math.round(Math.cos(angle) * radius);
-      let z = Math.round(Math.sin(angle) * radius);
-      // Push away from the river channel (Z: -95 to 95)
-      if (Math.abs(z) < 95) {
-        z = z >= 0 ? 95 + random() * 60 : -95 - random() * 60;
-      }
-      posList.push([x, 0, z]);
-    }
-    
-    return posList;
-  }, [cityRadius]);
-
+  const landmarkPositions = useMemo(() => placeCityLandmarks(decorations), [decorations]);
+  const islands = useMemo(() => buildDistrictIslands({ buildings, plazas, decorations, extraPoints: landmarkPositions }), [buildings, plazas, decorations, landmarkPositions]);
+  const circuitMaxX = Math.max(20000, ...islands.map((island) => island.bounds.maxX));
+  const circuitTrack = useMemo(() => createCityCircuit(circuitMaxX), [circuitMaxX]);
 
   return (
     <>
     <Canvas
       role="application"
-      aria-label="3D LeetCode City â€” use arrow keys to move between buildings, Enter to open a profile, Escape to close. Press Tab to leave the city."
+      aria-label={driveMode ? "City circuit. Use WASD or arrow keys to drive, Space to brake, Escape to leave." : "3D LeetCode City. Use arrow keys to move between buildings, Enter to open a profile, Escape to close. Press Tab to leave the city."}
       tabIndex={0}
       onKeyDown={handleCanvasKeyDown}
       camera={{ position: [1300, 700, 1500], fov: 55, near: 1.0, far: 6100 }}
@@ -3148,19 +3206,20 @@ export default function CityCanvas({
           console.warn("CityCanvas: failed to enforce nearest filtering", e);
         }
 
-        // Signal that WebGL is alive â€” wait 2 rAF frames so the GPU
-        // has actually drawn at least one frame before we dismiss the
-        // loading screen.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            onReadyRef.current?.();
-          });
-        });
       }}
+      frameloop={shadersReady ? "always" : "never"}
       gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.3 }}
       style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh" }}
     >
+      <ShaderWarmup ready={isCityReadyToDraw(buildings.length, cityLoaded)} onDone={handleShadersReady} />
       <CityCanvasSceneContent
+        islands={islands}
+        circuitTrack={circuitTrack}
+        driveMode={driveMode}
+        onExitDrive={onExitDrive}
+        onDriveTelemetry={setDriveTelemetry}
+        driveRestartSignal={driveRestartSignal}
+        driveTouchInput={driveTouchInput}
         buildings={buildings}
         plazas={plazas}
         decorations={decorations}
@@ -3220,7 +3279,7 @@ export default function CityCanvas({
         initialFlightYaw={initialFlightYaw}
         multiplayerPlayers={multiplayerPlayers}
         isNewBuilding={isNewBuilding}
-        transitState={transitState}
+        transitState={driveMode ? null : transitState}
         onArrival={onArrival}
         onOpenTransitMenu={onOpenTransitMenu}
         cityRadius={cityRadius}
@@ -3236,6 +3295,7 @@ export default function CityCanvas({
       />
 
     </Canvas>
+    {driveMode && <CircuitHUD telemetry={driveTelemetry} onExit={onExitDrive ?? (() => {})} onRestart={() => setDriveRestartSignal((signal) => signal + 1)} touchInput={driveTouchInput} />}
     <CityCanvasOverlayLayer
       focusedBuilding={focusedBuilding}
       dungeonOpen={dungeonOpen}

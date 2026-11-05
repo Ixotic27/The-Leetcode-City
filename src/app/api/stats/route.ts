@@ -27,8 +27,9 @@ export async function GET() {
       sb.rpc("get_city_solve_totals"),
     ]);
 
+    const missingSolveRpc = solveResult.error?.code === "PGRST202" || solveResult.error?.code === "42883";
     const queryError =
-      totalResult.error ?? claimedResult.error ?? tallestResult.error ?? solveResult.error;
+      totalResult.error ?? claimedResult.error ?? tallestResult.error ?? (missingSolveRpc ? null : solveResult.error);
     if (queryError) {
       throw queryError;
     }
@@ -40,7 +41,23 @@ export async function GET() {
     const rpcData = solveResult.data as
       | { total_solves?: number; total_developers?: number }
       | undefined;
-    const totalSolves = rpcData?.total_solves ?? 0;
+    let totalSolves = rpcData?.total_solves ?? 0;
+    if (missingSolveRpc) {
+      totalSolves = 0;
+      const pageSize = 1000;
+      for (let from = 0; from < totalDevelopers;) {
+        const { data, error } = await sb.from("developers")
+          .select("easy_solved, medium_solved, hard_solved")
+          .order("id", { ascending: true })
+          .range(from, Math.min(from + pageSize, totalDevelopers) - 1);
+        if (error) throw error;
+        if (!data?.length) throw new Error("Developer totals scan ended before the counted rows were read");
+        for (const developer of data) {
+          totalSolves += (developer.easy_solved ?? 0) + (developer.medium_solved ?? 0) + (developer.hard_solved ?? 0);
+        }
+        from += data.length;
+      }
+    }
 
     const tallestDev = tallestResult.data;
     const tallestBuilding = {

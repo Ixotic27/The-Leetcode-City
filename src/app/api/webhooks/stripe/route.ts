@@ -194,7 +194,7 @@ export async function POST(request: Request) {
               await stripe.refunds.create({
                 payment_intent: paymentIntentId,
                 reason: "requested_by_customer",
-              });
+              }, { idempotencyKey: `refund:${paymentIntentId}` });
               refundSuccess = true;
             } catch (refundError) {
               console.error("[Stripe webhook] Refund failed:", refundError);
@@ -244,7 +244,7 @@ export async function POST(request: Request) {
             await stripe.refunds.create({
               payment_intent: paymentIntentId,
               reason: "requested_by_customer",
-            });
+            }, { idempotencyKey: `refund:${paymentIntentId}` });
           } catch (refundError) {
             console.error("[Stripe webhook] Refund failed for missing purchase:", refundError);
           }

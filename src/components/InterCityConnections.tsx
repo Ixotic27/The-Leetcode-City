@@ -2,7 +2,31 @@
 
 import React, { useMemo } from "react";
 import * as THREE from "three";
-import { DISTRICT_ORIGINS } from "@/lib/github";
+import type { CityPlaza } from "@/lib/github";
+
+type Vec3 = [number, number, number];
+
+/**
+ * Shorten a link a→b so it runs from one district's waterfront to the other's, over open water,
+ * instead of along the districts' avenues. `reach` is each district's half-extent [x, z] from its square.
+ * Null if the districts touch or coincide.
+ */
+export function trimToDistricts(a: Vec3, b: Vec3, reachA?: [number, number], reachB?: [number, number]): [Vec3, Vec3] | null {
+  const dx = b[0] - a[0];
+  const dz = b[2] - a[2];
+  const len = Math.hypot(dx, dz);
+  if (!len) return null;
+  const ux = dx / len;
+  const uz = dz / len;
+  // Distance from a square's centre to its district's edge along (ux, uz).
+  const edge = ([hx, hz]: [number, number]) => Math.min(ux ? hx / Math.abs(ux) : Infinity, uz ? hz / Math.abs(uz) : Infinity);
+  const edgeA = edge(reachA ?? [0, 0]), edgeB = edge(reachB ?? [0, 0]);
+  if (!(len > edgeA + edgeB)) return null;
+  return [
+    [a[0] + ux * edgeA, a[1], a[2] + uz * edgeA],
+    [b[0] - ux * edgeB, b[1], b[2] - uz * edgeB],
+  ];
+}
 
 interface BridgeProps {
   start: [number, number, number];
@@ -510,57 +534,40 @@ export function JungleCorridor({ start: startCoords, end: endCoords }: BridgePro
 }
 
 // ─── Main Connections Assembly ──────────────────────────────────
-export default function InterCityConnections() {
+// [key, from district, to district, kind]. Each pair shares an axis on the compass grid; crossings of
+// the river are left to the layout's river bridges.
+const LINKS: [string, string, string, "bridge" | "flyover" | "jungle"][] = [
+  ["bengaluru-mumbai", "downtown", "frontend", "bridge"],
+  ["bengaluru-hyderabad", "downtown", "backend", "flyover"],
+  ["bengaluru-pune", "downtown", "mobile", "flyover"],
+  ["mumbai-chennai", "frontend", "security", "jungle"],
+  ["hyderabad-chennai", "backend", "security", "flyover"],
+  ["mumbai-ahmedabad", "frontend", "data_ai", "bridge"],
+  ["pune-ahmedabad", "mobile", "data_ai", "flyover"],
+];
+const UNITS_PER_KM = 1400; // the old signs read 2.5 km for 3500 units
+
+export default function InterCityConnections({ plazas }: { plazas: CityPlaza[] }) {
   const connections = useMemo(() => {
     const list: React.ReactNode[] = [];
 
-    // Origins map
-    const o = DISTRICT_ORIGINS;
+    // District squares from the live layout (one plaza per populated district)
+    const o: Record<string, CityPlaza> = {};
+    for (const p of plazas) if (p.district && !o[p.district]) o[p.district] = p;
 
-    // Connect Downtown (Bengaluru) to all main suburbs
-    
-    // 1. Downtown to Mumbai (frontend) - Suspension Bridge
-    if (o.downtown && o.frontend) {
-      list.push(<SuspensionBridge key="bengaluru-mumbai" start={o.downtown} end={o.frontend} />);
-    }
-
-    // 2. Downtown to Hyderabad (backend) - Highway Flyover
-    if (o.downtown && o.backend) {
-      list.push(<HighwayFlyover key="bengaluru-hyderabad" start={o.downtown} end={o.backend} labelText="HYDERABAD 2.5 KM ->" />);
-    }
- 
-    // 3. Downtown to Pune (mobile) - Highway Flyover
-    if (o.downtown && o.mobile) {
-      list.push(<HighwayFlyover key="bengaluru-pune" start={o.downtown} end={o.mobile} labelText="PUNE 1.8 KM ->" />);
-    }
- 
-    // 4. Mumbai (frontend) to Chennai (security) - Jungle Corridor
-    if (o.frontend && o.security) {
-      list.push(<JungleCorridor key="mumbai-chennai" start={o.frontend} end={o.security} />);
-    }
- 
-    // 5. Hyderabad (backend) to Chennai (security) - Highway Flyover
-    if (o.backend && o.security) {
-      list.push(<HighwayFlyover key="hyderabad-chennai" start={o.backend} end={o.security} labelText="CHENNAI 3.2 KM ->" />);
-    }
- 
-    // 6. Mumbai (frontend) to Ahmedabad (data_ai) - Suspension Bridge
-    if (o.frontend && o.data_ai) {
-      list.push(<SuspensionBridge key="mumbai-ahmedabad" start={o.frontend} end={o.data_ai} />);
-    }
- 
-    // 7. Pune (mobile) to Ahmedabad (data_ai) - Highway Flyover
-    if (o.mobile && o.data_ai) {
-      list.push(<HighwayFlyover key="pune-ahmedabad" start={o.mobile} end={o.data_ai} labelText="MUMBAI 4.1 KM ->" />);
-    }
- 
-    // 8. Pune (mobile) to Kolkata (devops) - Highway Flyover
-    if (o.mobile && o.devops) {
-      list.push(<HighwayFlyover key="pune-kolkata" start={o.mobile} end={o.devops} labelText="KOLKATA 5.0 KM ->" />);
+    for (const [key, from, to, kind] of LINKS) {
+      if (!o[from] || !o[to]) continue;
+      const span = trimToDistricts(o[from].position, o[to].position, o[from].reach, o[to].reach);
+      if (!span) continue;
+      const [start, end] = span;
+      const km = Math.hypot(end[0] - start[0], end[2] - start[2]) / UNITS_PER_KM;
+      if (kind === "bridge") list.push(<SuspensionBridge key={key} start={start} end={end} />);
+      else if (kind === "jungle") list.push(<JungleCorridor key={key} start={start} end={end} />);
+      else list.push(<HighwayFlyover key={key} start={start} end={end} labelText={`${(o[to].city ?? to).toUpperCase()} ${km.toFixed(1)} KM ->`} />);
     }
 
     return list;
-  }, []);
+  }, [plazas]);
 
   return <>{connections}</>;
 }

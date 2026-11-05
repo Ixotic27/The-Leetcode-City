@@ -115,7 +115,7 @@ describe("Arena Problem Submission Validation (Issue #1208)", () => {
   describe("Practice Mode (No Challenge)", () => {
     it("should accept submission without challenge_id (practice mode)", () => {
       // In practice mode, users can submit to any valid problem
-      const submission = {
+      const submission: { problem_id: string; status: string; challenge_id?: string } = {
         problem_id: "problem-abc", // Must exist in arena_problems
         status: "accepted",
         // No challenge_id

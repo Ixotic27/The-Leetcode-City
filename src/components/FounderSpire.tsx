@@ -9,9 +9,10 @@ const SPIRE_HEIGHT = 800;
 
 interface FounderSpireProps {
   onClick: () => void;
+  position?: [number, number, number];
 }
 
-export default function FounderSpire({ onClick }: FounderSpireProps) {
+export default function FounderSpire({ onClick, position = [0, 0, 0] }: FounderSpireProps) {
   const groupRef = useRef<THREE.Group>(null);
   const pulseRef = useRef<THREE.Mesh>(null);
   const ring1Ref = useRef<THREE.Mesh>(null);
@@ -112,7 +113,7 @@ export default function FounderSpire({ onClick }: FounderSpireProps) {
   });
 
   return (
-    <group ref={groupRef} position={[0, 0, 0]}>
+    <group ref={groupRef} position={position}>
       {/* Invisible hitbox for easier clicking */}
       <mesh position={[0, SPIRE_HEIGHT / 2, 0]} visible={false}>
         <cylinderGeometry args={[35, 35, SPIRE_HEIGHT, 8]} />

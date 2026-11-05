@@ -222,7 +222,7 @@ describe("Stripe webhook route", () => {
     expect(processedEventInsertCount.count).toBe(1);
   });
 
-  it("issues a refund when no pending purchase is found", async () => {
+  it("refunds a missing purchase once and skips a replay of the processed event", async () => {
     const callLog: string[] = [];
     const processedEventInsertCount = { count: 0 };
     const record4 = { callLog, stripeProcessedEventExists: false, enablePendingPurchase: false, processedEventInsertCount };
@@ -230,8 +230,7 @@ describe("Stripe webhook route", () => {
       from: (table: string) => createMockQuery(table, record4),
       rpc: async (name: string) => {
         if (name === "claim_pending_purchase_atomic") {
-          // No pending purchase found
-          return { data: null, error: null };
+          return { data: [{ ok: false, error_code: "not_found", purchase_id: null }], error: null };
         }
         return { data: null, error: null };
       },
@@ -240,6 +239,7 @@ describe("Stripe webhook route", () => {
       refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
       webhooks: {
         constructEvent: vi.fn(() => ({
+          id: "evt_missing_purchase",
           type: "checkout.session.completed",
           data: {
             object: {
@@ -258,7 +258,44 @@ describe("Stripe webhook route", () => {
     expect(mockStripeRefundsCreate).toHaveBeenCalledWith({
       payment_intent: "pi_missing_purchase",
       reason: "requested_by_customer",
-    });
+    }, { idempotencyKey: "refund:pi_missing_purchase" });
+    expect(mockFulfillItemPurchase).not.toHaveBeenCalled();
+    expect(processedEventInsertCount.count).toBe(1);
+    record4.stripeProcessedEventExists = true;
+    const replay = await POST(makeRequest(JSON.stringify({} as unknown)));
+    expect(await replay.json()).toEqual({ received: true, duplicate: true });
+    expect(mockStripeRefundsCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses one payment-intent refund key across missing-purchase and sold-out events", async () => {
+    for (const errorCode of ["not_found", "sold_out"]) {
+      const record = { callLog: [] as string[], stripeProcessedEventExists: false, enablePendingPurchase: false };
+      mockGetSupabaseAdmin.mockReturnValue({
+        from: (table: string) => createMockQuery(table, record),
+        rpc: async () => ({
+          data: [{ ok: false, error_code: errorCode, purchase_id: errorCode === "sold_out" ? "purchase_oversold" : null }],
+          error: null,
+        }),
+      });
+      mockGetStripe.mockReturnValue({
+        refunds: { create: (...args: unknown[]) => mockStripeRefundsCreate(...args) },
+        webhooks: {
+          constructEvent: () => ({
+            id: `evt_${errorCode}`, type: "checkout.session.completed",
+            data: { object: {
+              metadata: { developer_id: "1", item_id: "consumable" },
+              payment_intent: "pi_same_payment",
+            } },
+          }),
+        },
+      });
+      expect((await POST(makeRequest("{}"))).status).toBe(200);
+    }
+    expect(mockStripeRefundsCreate.mock.calls).toEqual([
+      [{ payment_intent: "pi_same_payment", reason: "requested_by_customer" }, { idempotencyKey: "refund:pi_same_payment" }],
+      [{ payment_intent: "pi_same_payment", reason: "requested_by_customer" }, { idempotencyKey: "refund:pi_same_payment" }],
+    ]);
+    expect(mockFulfillItemPurchase).not.toHaveBeenCalled();
   });
 
   it("does not issue a refund when a processed purchase exists for the same txId", async () => {
@@ -282,7 +319,7 @@ describe("Stripe webhook route", () => {
       },
       rpc: async (name: string) => {
         if (name === "claim_pending_purchase_atomic") {
-          return { data: null, error: null };
+          return { data: [{ ok: false, error_code: "not_found", purchase_id: null }], error: null };
         }
         return { data: null, error: null };
       },

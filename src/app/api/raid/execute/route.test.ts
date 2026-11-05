@@ -155,14 +155,15 @@ describe("POST /api/raid/execute", () => {
       }
 
       if (table === "purchases") {
+        const query = {
+          eq: () => query,
+          is: () => query,
+          single: async () => ({ data: [], error: null }),
+          then: (resolve: (value: { data: never[]; error: null }) => void) =>
+            Promise.resolve({ data: [], error: null }).then(resolve),
+        };
         return {
-          select: () => ({
-            eq: () => ({
-              eq: () => ({
-                single: async () => ({ data: [] }),
-              }),
-            }),
-          }),
+          select: () => query,
           update: () => ({
             eq: async () => ({ error: null }),
           }),
@@ -286,5 +287,7 @@ describe("POST /api/raid/execute", () => {
 
     expect(response.status).toBe(429);
     expect(remainingQuantity).toBe(1);
+    expect(mockTouchLastActive).not.toHaveBeenCalled();
+    expect(mockSendRaidAlertNotification).not.toHaveBeenCalled();
   });
 });

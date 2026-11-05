@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateCityLayout, DISTRICT_ORIGINS } from "../github";
+import { generateCityLayout } from "../github";
 
 // Generate 50 dummy developers with extremely high stats to fill the downtown tier
 const dummyDevs = Array.from({ length: 50 }, (_, i) => ({
@@ -13,79 +13,39 @@ const dummyDevs = Array.from({ length: 50 }, (_, i) => ({
 
 const mockDevs = [
   ...dummyDevs,
-  {
-    github_login: "dev1",
-    contributions: 0,
-    total_stars: 0,
-    public_repos: 0,
-    primary_language: "TypeScript", // frontend (Mumbai: [0, 0, 4000])
-    rank: 100,
-  },
-  {
-    github_login: "dev2",
-    contributions: 0,
-    total_stars: 0,
-    public_repos: 0,
-    primary_language: "Java", // backend (Hyderabad: [3500, 0, 0])
-    rank: 101,
-  },
-  {
-    github_login: "dev3",
-    contributions: 0,
-    total_stars: 0,
-    public_repos: 0,
-    primary_language: "Python", // fullstack (Delhi: [0, 0, -4000])
-    rank: 102,
-  },
+  { github_login: "dev1", contributions: 0, total_stars: 0, public_repos: 0, primary_language: "TypeScript", rank: 100 }, // frontend (Mumbai, north)
+  { github_login: "dev2", contributions: 0, total_stars: 0, public_repos: 0, primary_language: "Java", rank: 101 },       // backend (Hyderabad, east)
+  { github_login: "dev3", contributions: 0, total_stars: 0, public_repos: 0, primary_language: "Python", rank: 102 },     // data_ai (Ahmedabad, north-west)
 ];
 
 describe("Multi-City Layout Positioning Tests", () => {
-  it("computes layout and offsets building coordinates by their district origins", () => {
-    const layout = generateCityLayout(mockDevs as any);
-    
-    // Check that we have generated buildings
-    expect(layout.buildings.length).toBeGreaterThan(50);
-    
-    // Find building positions for each developer
-    const b1 = layout.buildings.find(b => b.login === "dev1");
-    const b2 = layout.buildings.find(b => b.login === "dev2");
-    
-    expect(b1).toBeDefined();
-    expect(b2).toBeDefined();
-    
-    // dev1 primary language is TypeScript -> frontend (Mumbai origin: [0, 0, 4000])
-    // The building Z coordinate should be close to 4000
-    expect(b1!.position[2]).toBeGreaterThan(3000);
-    expect(b1!.position[2]).toBeLessThan(5000);
-    
-    // dev2 primary language is Java -> backend (Hyderabad origin: [3500, 0, 0])
-    // The building X coordinate should be close to 3500
-    expect(b2!.position[0]).toBeGreaterThan(2500);
-    expect(b2!.position[0]).toBeLessThan(4500);
+  const layout = generateCityLayout(mockDevs as any);
+  const plaza = (district: string) => layout.plazas.find((p) => p.district === district)!.position;
+
+  it("sets each district on its compass slot around downtown", () => {
+    const [dx, , dz] = plaza("downtown");
+    const [fx, , fz] = plaza("frontend");
+    const [bx, , bz] = plaza("backend");
+    const [ax, , az] = plaza("data_ai");
+    // Same column / row as downtown, separated by at least a civic square plus the channel.
+    expect(fx).toBe(dx);
+    expect(fz - dz).toBeGreaterThan(500);
+    expect(bz).toBe(dz);
+    expect(bx - dx).toBeGreaterThan(500);
+    expect(ax).toBeLessThan(dx);
+    expect(az).toBe(fz);
   });
 
-  it("assigns plazas to correct district names and offsets them dynamically", () => {
-    const layout = generateCityLayout(mockDevs as any);
-    expect(layout.plazas.length).toBeGreaterThan(0);
-    
-    // Plazas should be grouped/assigned to their districts
-    const frontendPlaza = layout.plazas.find(p => p.district === "frontend");
-    const backendPlaza = layout.plazas.find(p => p.district === "backend");
-    
-    expect(frontendPlaza).toBeDefined();
-    expect(backendPlaza).toBeDefined();
-    
-    // Frontend plaza coordinate matches DISTRICT_ORIGINS.frontend + gridToWorld(0, 0)
-    expect(frontendPlaza!.position[0]).toBe(DISTRICT_ORIGINS.frontend[0]);
-    expect(frontendPlaza!.position[2]).toBe(DISTRICT_ORIGINS.frontend[2] + 150);
-    
-    // Backend plaza coordinate matches DISTRICT_ORIGINS.backend + gridToWorld(0, 0)
-    expect(backendPlaza!.position[0]).toBe(DISTRICT_ORIGINS.backend[0]);
-    expect(backendPlaza!.position[2]).toBe(DISTRICT_ORIGINS.backend[2] + 150);
+  it("places each resident inside their own district, next to its square", () => {
+    for (const [login, district] of [["dev1", "frontend"], ["dev2", "backend"], ["dev3", "data_ai"]]) {
+      const building = layout.buildings.find((b) => b.login === login)!;
+      const [px, , pz] = plaza(district);
+      expect(building.district).toBe(district);
+      expect(Math.hypot(building.position[0] - px, building.position[2] - pz)).toBeLessThan(500);
+    }
   });
 
   it("sets district property for all placed buildings", () => {
-    const layout = generateCityLayout(mockDevs as any);
     for (const b of layout.buildings) {
       expect(b.district).toBeDefined();
       expect(typeof b.district).toBe("string");

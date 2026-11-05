@@ -5,7 +5,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import type { CityPlaza, CityBridge } from "@/lib/github";
-import { DISTRICT_COLORS } from "@/lib/github";
+import { BUS_STOP_OFFSET, DISTRICT_COLORS } from "@/lib/github";
+
+const busStopOf = (plaza: CityPlaza): [number, number, number] =>
+  [plaza.position[0] + BUS_STOP_OFFSET[0], plaza.position[1], plaza.position[2] + BUS_STOP_OFFSET[1]];
 
 interface BusTransitProps {
   plazas: CityPlaza[];
@@ -372,23 +375,14 @@ export default function BusTransit({
 
     if (!fromPlaza || !toPlaza) return null;
 
-    const fromRotY = Math.atan2(fromPlaza.position[0], fromPlaza.position[2]) + Math.PI;
-    const fromPos: [number, number, number] = [
-      fromPlaza.position[0] + Math.sin(fromRotY) * 45,
-      fromPlaza.position[1],
-      fromPlaza.position[2] + Math.cos(fromRotY) * 45,
-    ];
-
-    const toRotY = Math.atan2(toPlaza.position[0], toPlaza.position[2]) + Math.PI;
-    const toPos: [number, number, number] = [
-      toPlaza.position[0] + Math.sin(toRotY) * 45,
-      toPlaza.position[1],
-      toPlaza.position[2] + Math.cos(toRotY) * 45,
-    ];
+    const fromPos = busStopOf(fromPlaza);
+    const toPos = busStopOf(toPlaza);
 
     const points: THREE.Vector3[] = [new THREE.Vector3(...fromPos)];
 
-    const crossedRiver = Math.sign(fromPos[2]) !== Math.sign(toPos[2]);
+    // The river runs along Z = riverZ (bridges sit on it), not necessarily z=0.
+    const riverZ = bridges[0]?.position[2] ?? 0;
+    const crossedRiver = Math.sign(fromPos[2] - riverZ) !== Math.sign(toPos[2] - riverZ);
 
     if (crossedRiver && bridges.length > 0) {
       // Find the closest bridge on X to fromPos
@@ -405,9 +399,10 @@ export default function BusTransit({
       const bx = bestBridge.position[0];
       const bz = bestBridge.position[2];
 
-      // Route through bridge coordinates
-      const startZ = fromPos[2] > 0 ? 80 : -80;
-      const endZ = toPos[2] > 0 ? 80 : -80;
+      // Route through bridge coordinates, joining the bridge at its shore-side ends
+      const end = bestBridge.width / 2;
+      const startZ = fromPos[2] > riverZ ? bz + end : bz - end;
+      const endZ = toPos[2] > riverZ ? bz + end : bz - end;
 
       points.push(new THREE.Vector3(bx, 0.5, startZ));
       points.push(new THREE.Vector3(bx, 0.5, bz)); // Center of bridge
@@ -464,14 +459,9 @@ export default function BusTransit({
       {/* Bus Stop Shelters rendered at plazas */}
       {plazas.map((p, idx) => {
         if (!p.district) return null;
-        // Face the bus stops slightly inward toward the center
-        const rotY = Math.atan2(p.position[0], p.position[2]) + Math.PI;
-        // Offset to the edge of the plaza along its facing direction so it doesn't overlap the center monument
-        const stopPos: [number, number, number] = [
-          p.position[0] + Math.sin(rotY) * 45,
-          p.position[1],
-          p.position[2] + Math.cos(rotY) * 45,
-        ];
+        // The plan reserves a corner of the square for the stop; the shelter faces the square's centre.
+        const stopPos = busStopOf(p);
+        const rotY = Math.atan2(-BUS_STOP_OFFSET[0], -BUS_STOP_OFFSET[1]);
         return (
           <group key={`transit-node-${idx}`}>
             <group position={stopPos} scale={[5, 5, 5]}>

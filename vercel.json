@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/cleanup-active-players",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/milestone-check",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -52,6 +52,10 @@ docs/cloudflare-setup.md
 
 trace/
 docs/
+!docs/
+docs/*
+!docs/git-city-reference/
+!docs/git-city-reference/**
 
 *.mp4
 *.mov

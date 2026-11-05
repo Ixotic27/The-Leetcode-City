@@ -79,16 +79,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap"
-          rel="stylesheet"
-        />
+        <link rel="preload" href="/fonts/Silkscreen-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
       <body className="bg-bg font-pixel text-warm" suppressHydrationWarning>
         {children}

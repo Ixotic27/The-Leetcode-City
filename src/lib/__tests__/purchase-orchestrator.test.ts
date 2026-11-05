@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { orchestratePurchaseFulfillment } from "../purchase-orchestrator";
+import { claimPendingPurchaseAtomically, orchestratePurchaseFulfillment } from "../purchase-orchestrator";
 
 const mockFulfillItemPurchase = vi.fn();
 const mockAutoEquipIfSolo = vi.fn();
@@ -56,6 +56,30 @@ describe("orchestratePurchaseFulfillment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFulfillItemPurchase.mockResolvedValue({ status: "completed" });
+  });
+
+  it.each(["not_found", "item_not_found"])("keeps RPC %s distinct from an already claimed payment", async (errorCode) => {
+    const result = await claimPendingPurchaseAtomically({
+      provider: "stripe", transactionId: "pi_missing", developerId: 7, itemId: "flag",
+      supabaseClient: { rpc: vi.fn().mockResolvedValue({
+        data: [{ ok: false, error_code: errorCode, purchase_id: null }], error: null,
+      }) } as never,
+    });
+    expect(result).toEqual({ ok: false, reason: "not_found" });
+    expect(result.already_claimed).not.toBe(true);
+  });
+
+  it("keeps an already claimed RPC result idempotent", async () => {
+    const sb = { rpc: vi.fn().mockResolvedValue({
+      data: [{ ok: false, error_code: "already_claimed", purchase_id: "purchase-1" }], error: null,
+    }) };
+    const result = await orchestratePurchaseFulfillment({
+      provider: "stripe", transactionId: "pi_duplicate", developerId: 7, itemId: "flag",
+      supabaseClient: sb as never,
+      claimPendingPurchase: claimPendingPurchaseAtomically,
+    });
+    expect(result.kind).toBe("duplicate");
+    expect(mockFulfillItemPurchase).not.toHaveBeenCalled();
   });
 
   it("finalizes a standard purchase and dispatches notifications", async () => {

@@ -14,6 +14,8 @@ import type { LiveSession } from "@/lib/useCodingPresence";
 import type { CityPlayer } from "@/lib/multiplayer/types";
 import type { CityBuilding } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
+import { chunkHasFocus, createBuildingChunks, isChunkWithinRange } from "@/lib/city/sceneChunks";
+import { useBuildingPicking } from "./useBuildingPicking";
 
 
 const GRID_CELL_SIZE = 200;
@@ -122,6 +124,7 @@ interface CitySceneProps {
   /** Multiplayer: other players' state from PartyKit */
   multiplayerPlayers?: Map<string, CityPlayer>;
   reducedMotion?: boolean;
+  interactive?: boolean;
 }
 
 function WeatherSystem({ weatherMode, reducedMotion = false }: { weatherMode: "sunny" | "rainy" | "windy" | "stormy" | "snowy"; reducedMotion?: boolean }) {
@@ -354,8 +357,11 @@ export default function CityScene({
   weatherMode = "sunny",
   multiplayerPlayers,
   reducedMotion = false,
+  interactive = true,
 }: CitySceneProps) {
   const atlasTexture = useMemo(() => createWindowAtlas(colors), [colors]);
+  const camera = useThree((state) => state.camera);
+  const registerBuildingMesh = useBuildingPicking(onBuildingClick, !interactive || Boolean(introMode || flyMode));
   const grid = useMemo(
     () => buildSpatialGrid(buildings, GRID_CELL_SIZE),
     [buildings],
@@ -383,44 +389,13 @@ export default function CityScene({
     return () => atlasTexture.dispose();
   }, [atlasTexture]);
 
-  // Initial camera position (matches Canvas camera prop)
-  const INITIAL_CAM_X = 1300;
-  const INITIAL_CAM_Z = 1500;
-
   const buildingChunks = useMemo(() => {
-    const CHUNK_SIZE = 1500; // Increased to reduce number of chunks/draw calls
-    const map = new Map<string, CityBuilding[]>();
-    for (const b of buildings) {
-      const cx = Math.floor(b.position[0] / CHUNK_SIZE);
-      const cz = Math.floor(b.position[2] / CHUNK_SIZE);
-      const key = `${cx},${cz}`;
-      let arr = map.get(key);
-      if (!arr) {
-        arr = [];
-        map.set(key, arr);
-      }
-      arr.push(b);
-    }
-    const chunks = Array.from(map.values()).map(chunk => {
-      // Calculate center of chunk for distance culling
-      let sumX = 0, sumZ = 0;
-      for (const b of chunk) { sumX += b.position[0]; sumZ += b.position[2]; }
-      const cx = sumX / chunk.length;
-      const cz = sumZ / chunk.length;
-      return { chunk, cx, cz };
-    });
-
-    // Sort by distance from initial camera — nearest chunks first
-    chunks.sort((a, b) => {
-      const dA = (a.cx - INITIAL_CAM_X) ** 2 + (a.cz - INITIAL_CAM_Z) ** 2;
-      const dB = (b.cx - INITIAL_CAM_X) ** 2 + (b.cz - INITIAL_CAM_Z) ** 2;
-      return dA - dB;
-    });
-
-    return chunks;
+    const initialCamera = new THREE.Vector3(1300, 700, 1500);
+    return createBuildingChunks(buildings).sort((a, b) =>
+      a.bounds.center.distanceToSquared(initialCamera) - b.bounds.center.distanceToSquared(initialCamera));
   }, [buildings]);
 
-  const chunkRefs = useRef<(THREE.Group | null)[]>([]);
+  const chunkRefs = useRef(new Map<string, THREE.Group>());
   const lastChunkUpdate = useRef(-1);
 
   useFrame(({ camera, clock, size }) => {
@@ -430,14 +405,10 @@ export default function CityScene({
     if (elapsed - lastChunkUpdate.current >= 0.2) {
       lastChunkUpdate.current = elapsed;
 
-      // 1. Dynamic chunk distance culling (6000 units radius matching camera far plane 6100)
-      const camX = camera.position.x;
-      const camZ = camera.position.z;
-      for (let i = 0; i < buildingChunks.length; i++) {
-        const group = chunkRefs.current[i];
-        if (group) {
-          group.visible = true;
-        }
+      for (const chunk of buildingChunks) {
+        const group = chunkRefs.current.get(chunk.key);
+        if (group) group.visible = chunkHasFocus(chunk, focusedLower, focusedBLower)
+          || isChunkWithinRange(chunk, camera.position, camera.far);
       }
 
       // 2. Focus beacon screen positioning updates
@@ -461,22 +432,15 @@ export default function CityScene({
   });
 
   // Progressive chunk mounting: render nearest visible chunks immediately, stream rest quickly
-  const [mountedChunkCount, setMountedChunkCount] = useState(8);
+  const [mountProgress, setMountProgress] = useState({ chunks: buildingChunks, count: 8 });
+  const mountedChunkCount = mountProgress.chunks === buildingChunks ? mountProgress.count : 8;
 
   useEffect(() => {
-    if (buildingChunks.length === 0) return;
-
-    // Mount first 8 nearest chunks immediately (entire visible central city)
-    const INITIAL_CHUNKS = Math.min(8, buildingChunks.length);
-    setMountedChunkCount(INITIAL_CHUNKS);
-
-    // Then stream remaining peripheral chunks every 50ms
-    if (buildingChunks.length <= INITIAL_CHUNKS) return;
-
-    let current = INITIAL_CHUNKS;
+    if (buildingChunks.length <= 8) return;
+    let current = 8;
     const timer = setInterval(() => {
       current = Math.min(current + 3, buildingChunks.length);
-      setMountedChunkCount(current);
+      setMountProgress({ chunks: buildingChunks, count: current });
       if (current >= buildingChunks.length) clearInterval(timer);
     }, 50);
 
@@ -485,21 +449,23 @@ export default function CityScene({
 
   return (
     <>
-      {buildingChunks.map((chunkData, idx) => (
+      {buildingChunks.map((chunkData, idx) => idx < mountedChunkCount || chunkHasFocus(chunkData, focusedLower, focusedBLower) ? (
         <group
-          key={`chunk-${chunkData.cx}-${chunkData.cz}`}
+          key={chunkData.key}
           ref={(el) => {
-            chunkRefs.current[idx] = el;
+            if (el) chunkRefs.current.set(chunkData.key, el);
+            else chunkRefs.current.delete(chunkData.key);
           }}
+          visible={chunkHasFocus(chunkData, focusedLower, focusedBLower) || isChunkWithinRange(chunkData, camera.position, camera.far)}
         >
           <InstancedBuildings
-            buildings={chunkData.chunk}
+            buildings={chunkData.buildings}
             colors={colors}
             atlasTexture={atlasTexture}
             focusedBuilding={focusedBuilding}
             focusedBuildingB={focusedBuildingB}
-            onBuildingClick={onBuildingClick}
-            introMode={introMode}
+            hasFocus={Boolean(focusedBuildingData || focusedBuildingBData)}
+            registerBuildingMesh={registerBuildingMesh}
             holdRise={holdRise}
             liveByLogin={liveByLogin}
             cityEnergy={cityEnergy}
@@ -507,7 +473,7 @@ export default function CityScene({
             weatherMode={weatherMode}
           />
         </group>
-      ))}
+      ) : null)}
 
 
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { POST } from "../route";
 
 const mockGetUser = vi.fn();
+const mockLookupDeveloper = vi.fn();
 
 vi.mock("@/lib/supabase-server", () => ({
   createServerSupabase: vi.fn(() => ({
@@ -12,7 +13,9 @@ vi.mock("@/lib/supabase-server", () => ({
 }));
 
 vi.mock("@/lib/supabase", () => ({
-  getSupabaseAdmin: vi.fn(),
+  getSupabaseAdmin: vi.fn(() => ({
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: mockLookupDeveloper }) }) }),
+  })),
 }));
 
 vi.mock("@/lib/items", () => ({
@@ -22,6 +25,7 @@ vi.mock("@/lib/items", () => ({
 describe("/api/claim route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLookupDeveloper.mockResolvedValue({ data: null, error: null });
   });
 
   it("returns a GitHub-specific error when OAuth metadata has no login", async () => {

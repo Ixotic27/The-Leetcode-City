@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef, useMemo, useEffect, memo } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useRef, useMemo, useEffect, useState, memo } from "react";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { CityBuilding } from "@/lib/github";
 import { DISTRICT_COLORS, DISTRICT_ORIGINS } from "@/lib/github";
 import type { BuildingColors } from "./CityCanvas";
-import { wasAdPointerConsumed } from "./SkyAds";
+import type { RegisterBuildingMesh } from "./useBuildingPicking";
 
 // ─── Atlas Constants ───────────────
 const ATLAS_SIZE = 2048;
@@ -67,6 +67,7 @@ const fragmentShader = /* glsl */ `
   uniform float uFogFar;
   uniform float uFocusedId;
   uniform float uFocusedIdB;
+  uniform float uHasFocus;
   uniform float uDimOpacity;
   uniform float uDimEmissive;
   uniform float uCityEnergy;
@@ -176,7 +177,7 @@ const fragmentShader = /* glsl */ `
                     + step(abs(vInstanceId - uFocusedIdB), 0.5);
     isFocused = min(isFocused, 1.0);
 
-    float hasFocus = step(0.0, uFocusedId);
+    float hasFocus = uHasFocus;
 
     float dimFactor = mix(1.0, mix(uDimOpacity, 1.0, isFocused), hasFocus);
     float emissiveMult = mix(1.0, mix(uDimEmissive, 1.0, isFocused), hasFocus);
@@ -219,8 +220,8 @@ interface InstancedBuildingsProps {
   atlasTexture: THREE.CanvasTexture;
   focusedBuilding?: string | null;
   focusedBuildingB?: string | null;
-  introMode?: boolean;
-  onBuildingClick?: (building: CityBuilding) => void;
+  hasFocus: boolean;
+  registerBuildingMesh: RegisterBuildingMesh;
   dimOpacity?: number;
   dimEmissive?: number;
   holdRise?: boolean;
@@ -245,8 +246,8 @@ export default memo(function InstancedBuildings({
   atlasTexture,
   focusedBuilding,
   focusedBuildingB,
-  introMode,
-  onBuildingClick,
+  hasFocus,
+  registerBuildingMesh,
   dimOpacity = 0.15,
   dimEmissive = 0.3,
   holdRise,
@@ -268,7 +269,7 @@ export default memo(function InstancedBuildings({
   }, [buildings]);
 
   const geo = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const material = useMemo(() => {
+  const [material] = useState(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
         uAtlas: { value: atlasTexture },
@@ -279,6 +280,7 @@ export default memo(function InstancedBuildings({
         uFogFar: { value: 3500 },
         uFocusedId: { value: -1.0 },
         uFocusedIdB: { value: -1.0 },
+        uHasFocus: { value: 0.0 },
         uDimOpacity: { value: dimOpacity },
         uDimEmissive: { value: dimEmissive },
         uCityEnergy: { value: cityEnergy },
@@ -290,7 +292,8 @@ export default memo(function InstancedBuildings({
       fragmentShader,
       toneMapped: true,
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  });
+  const materialRef = useRef(material);
 
   // Update uniforms in-place when theme/atlas changes so the instancedMesh
   // is NOT recreated (which would lose all instance attributes).
@@ -306,15 +309,15 @@ export default memo(function InstancedBuildings({
   }, [focusedBuilding, buildings]);
 
   useEffect(() => {
-    material.uniforms.uAtlas.value = atlasTexture;
-    material.uniforms.uRoofColor.value.set(colors.roof);
-    material.uniforms.uFaceColor.value.set(colors.face);
-    material.uniforms.uDimOpacity.value = dimOpacity;
-    material.uniforms.uDimEmissive.value = dimEmissive;
-    material.uniforms.uCityEnergy.value = cityEnergy;
-    material.uniforms.uSnowIntensity.value = weatherMode === "snowy" ? 1.0 : 0.0;
-    material.uniforms.uCurrentOrigin.value.copy(currentOrigin);
-    material.needsUpdate = true;
+    const uniforms = materialRef.current.uniforms;
+    uniforms.uAtlas.value = atlasTexture;
+    uniforms.uRoofColor.value.set(colors.roof);
+    uniforms.uFaceColor.value.set(colors.face);
+    uniforms.uDimOpacity.value = dimOpacity;
+    uniforms.uDimEmissive.value = dimEmissive;
+    uniforms.uCityEnergy.value = cityEnergy;
+    uniforms.uSnowIntensity.value = weatherMode === "snowy" ? 1.0 : 0.0;
+    uniforms.uCurrentOrigin.value.copy(currentOrigin);
   }, [atlasTexture, colors.roof, colors.face, dimOpacity, dimEmissive, cityEnergy, weatherMode, currentOrigin, material]);
 
   const { uvFrontData, uvSideData, riseData, tintData, lcData } =
@@ -383,13 +386,11 @@ export default memo(function InstancedBuildings({
         tintData: tint,
         lcData: lc,
       };
-    }, [buildings, count]);
+    }, [buildings, count, colors.face]);
 
   const liveData = useMemo(() => new Float32Array(count), [count]);
   const risingRef = useRef<RiseState[]>([]);
   const riseInitialized = useRef(false);
-  const holdRiseRef = useRef(holdRise);
-  holdRiseRef.current = holdRise;
 
   useEffect(() => {
     const mesh = meshRef.current;
@@ -439,7 +440,8 @@ export default memo(function InstancedBuildings({
     );
 
     if (hasPlayedRiseGlobal) {
-      for (let i = 0; i < count; i++) riseData[i] = 1;
+      const riseValues = (mesh.geometry.getAttribute("aRise") as THREE.InstancedBufferAttribute).array;
+      for (let i = 0; i < count; i++) riseValues[i] = 1;
       riseAttr.needsUpdate = true;
       riseInitialized.current = true;
       risingRef.current = [];
@@ -490,48 +492,47 @@ export default memo(function InstancedBuildings({
 
   const lastFogNear = useRef(0);
   const lastFogFar = useRef(0);
-  const cityEnergyRef = useRef(cityEnergy);
-  cityEnergyRef.current = cityEnergy;
 
   // Global Time Cycle Logic
-  useFrame(({ scene, clock }) => {
-    if (!material.uniforms) return;
+  useFrame(({ scene }) => {
+    const uniforms = materialRef.current.uniforms;
     const fog = scene.fog as THREE.Fog | null;
     if (!fog) return;
 
     const tVal = timeRef ? timeRef.current : 0.0;
     // Map cycle progress [0, 1] to uTimeOfDay [0, 1] using cosine curve
     const uTimeVal = (1.0 - Math.cos(tVal * 2.0 * Math.PI)) / 2.0;
-    material.uniforms.uTimeOfDay.value = uTimeVal;
+    uniforms.uTimeOfDay.value = uTimeVal;
 
-    const lastFogColorHex = material.uniforms.uFogColor.value.getHex();
+    const lastFogColorHex = uniforms.uFogColor.value.getHex();
     const currentFogHex = fog.color.getHex();
     if (fog.near !== lastFogNear.current || fog.far !== lastFogFar.current || currentFogHex !== lastFogColorHex) {
-      material.uniforms.uFogColor.value.copy(fog.color);
-      material.uniforms.uFogNear.value = fog.near;
-      material.uniforms.uFogFar.value = fog.far;
+      uniforms.uFogColor.value.copy(fog.color);
+      uniforms.uFogNear.value = fog.near;
+      uniforms.uFogFar.value = fog.far;
       lastFogNear.current = fog.near;
       lastFogFar.current = fog.far;
     }
 
-    const current = material.uniforms.uCityEnergy.value;
-    const target = cityEnergyRef.current;
+    const current = uniforms.uCityEnergy.value;
+    const target = cityEnergy;
     if (Math.abs(current - target) > 0.001) {
-      material.uniforms.uCityEnergy.value += (target - current) * 0.04;
+      uniforms.uCityEnergy.value += (target - current) * 0.04;
     }
   });
 
   useEffect(() => {
-    if (!material.uniforms) return;
+    const uniforms = materialRef.current.uniforms;
     const idA = focusedBuilding
       ? loginToIdx.get(focusedBuilding.toLowerCase())
       : undefined;
     const idB = focusedBuildingB
       ? loginToIdx.get(focusedBuildingB.toLowerCase())
       : undefined;
-    material.uniforms.uFocusedId.value = idA !== undefined ? idA : -1.0;
-    material.uniforms.uFocusedIdB.value = idB !== undefined ? idB : -1.0;
-  }, [focusedBuilding, focusedBuildingB, loginToIdx, material]);
+    uniforms.uFocusedId.value = idA !== undefined ? idA : -1.0;
+    uniforms.uFocusedIdB.value = idB !== undefined ? idB : -1.0;
+    uniforms.uHasFocus.value = hasFocus ? 1 : 0;
+  }, [focusedBuilding, focusedBuildingB, hasFocus, loginToIdx, material]);
 
   useEffect(() => {
     const mesh = meshRef.current;
@@ -556,7 +557,7 @@ export default memo(function InstancedBuildings({
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
     if (!mesh) return;
-    if (holdRiseRef.current) return;
+    if (holdRise) return;
 
     const now = clock.elapsedTime;
     if (!riseInitialized.current) {
@@ -600,115 +601,10 @@ export default memo(function InstancedBuildings({
     if (anyChanged) riseAttr.needsUpdate = true;
   });
 
-  const { gl, camera } = useThree();
-  const raycasterRef = useRef(new THREE.Raycaster());
-  const pointerNDC = useRef(new THREE.Vector2());
-
-  const buildingsRef = useRef(buildings);
-  buildingsRef.current = buildings;
-  const onClickRef = useRef(onBuildingClick);
-  onClickRef.current = onBuildingClick;
-  const introRef = useRef(introMode);
-  introRef.current = introMode;
-
-  const tapRef = useRef<{
-    time: number;
-    id: number;
-    x: number;
-    y: number;
-  } | null>(null);
-
   useEffect(() => {
-    const canvas = gl.domElement;
-
-    const screenToNDC = (clientX: number, clientY: number) => {
-      const rect = canvas.getBoundingClientRect();
-      pointerNDC.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      pointerNDC.current.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-    };
-
-    const raycastInstance = (
-      clientX: number,
-      clientY: number,
-    ): number | null => {
-      const mesh = meshRef.current;
-      if (!mesh) return null;
-      screenToNDC(clientX, clientY);
-      raycasterRef.current.setFromCamera(pointerNDC.current, camera);
-      const hits: THREE.Intersection[] = [];
-      mesh.raycast(raycasterRef.current, hits);
-      if (hits.length > 0) {
-        hits.sort((a, b) => a.distance - b.distance);
-        if (hits[0].instanceId !== undefined) return hits[0].instanceId;
-      }
-      return null;
-    };
-
-    const onPointerDown = (e: PointerEvent) => {
-      if (
-        introRef.current ||
-        wasAdPointerConsumed() ||
-        (window as any).__spireClicked
-      )
-        return;
-      const id = raycastInstance(e.clientX, e.clientY);
-      if (id !== null && id < buildingsRef.current.length) {
-        tapRef.current = {
-          time: performance.now(),
-          id,
-          x: e.clientX,
-          y: e.clientY,
-        };
-      }
-    };
-
-    const onPointerUp = (e: PointerEvent) => {
-      const tap = tapRef.current;
-      if (!tap) return;
-      tapRef.current = null;
-
-      const elapsed = performance.now() - tap.time;
-      if (elapsed > 400) return;
-
-      const dx = e.clientX - tap.x;
-      const dy = e.clientY - tap.y;
-      if (dx * dx + dy * dy > 625) return;
-
-      if (tap.id < buildingsRef.current.length) {
-        onClickRef.current?.(buildingsRef.current[tap.id]);
-      }
-    };
-
-    const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    let lastMoveTime = 0;
-    const onPointerMove = isTouch
-      ? null
-      : (e: PointerEvent) => {
-          if (introRef.current) {
-            document.body.style.cursor = "auto";
-            return;
-          }
-          if ((window as any).__spireCursor) return;
-          const now = performance.now();
-          if (now - lastMoveTime < 125) return;
-          lastMoveTime = now;
-          const id = raycastInstance(e.clientX, e.clientY);
-          document.body.style.cursor = id !== null ? "pointer" : "auto";
-        };
-
-    canvas.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointerup", onPointerUp);
-    if (onPointerMove) canvas.addEventListener("pointermove", onPointerMove);
-
-    return () => {
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("pointerup", onPointerUp);
-      if (onPointerMove)
-        canvas.removeEventListener("pointermove", onPointerMove);
-      document.body.style.cursor = "auto";
-    };
-  }, [gl, camera]);
-
+    const mesh = meshRef.current;
+    if (mesh && count > 0) return registerBuildingMesh(mesh, buildings);
+  }, [buildings, count, registerBuildingMesh]);
   useEffect(() => {
     return () => {
       geo.dispose();

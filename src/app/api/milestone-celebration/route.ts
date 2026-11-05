@@ -40,10 +40,14 @@ export async function POST(request: NextRequest) {
     .from("milestone_celebrations")
     .upsert({ milestone, reached_at: new Date().toISOString() }, { onConflict: "milestone", ignoreDuplicates: true })
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error && !error.message.includes("duplicate")) {
+  if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  // ignoreDuplicates returns no row when this milestone was already recorded: don't notify twice.
+  if (!data) {
+    return NextResponse.json({ celebrated: false, milestone });
   }
 
   sendCommunityMilestoneNotifications(milestone).catch((err) => {

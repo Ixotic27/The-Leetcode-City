@@ -15,17 +15,18 @@ const CURSOR_OPTIONS: { id: CursorType; label: string }[] = [
 ];
 
 export const CursorSelector: React.FC<CursorSelectorProps> = ({ accentColor = '#3b82f6' }) => {
-  const [activeCursor, setActiveCursor] = useState<CursorType>(() => {
-    try {
-      const saved = localStorage.getItem('leetcodecity_cursor') as CursorType;
-      if (saved && CURSOR_OPTIONS.some(c => c.id === saved)) {
-        return saved;
-      }
-    } catch (err) {
-      console.warn('[CursorSelector] Failed to load cursor preference:', err);
-    }
-    return 'default';
-  });
+  const [activeCursor, setActiveCursor] = useState<CursorType>('default');
+
+  useEffect(() => {
+    // Load the browser preference after hydration so the initial markup matches SSR.
+    const frame = requestAnimationFrame(() => {
+      try {
+        const saved = localStorage.getItem('leetcodecity_cursor') as CursorType;
+        if (CURSOR_OPTIONS.some((cursor) => cursor.id === saved)) setActiveCursor(saved);
+      } catch { /* The default cursor also works when storage is unavailable. */ }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);

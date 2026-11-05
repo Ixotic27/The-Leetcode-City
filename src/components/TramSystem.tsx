@@ -3,7 +3,7 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { DISTRICT_ORIGINS } from "@/lib/github";
+import type { CityPlaza } from "@/lib/github";
 import { useReducedMotion } from "@/lib/reducedMotion";
 
 interface LocalTramProps {
@@ -150,20 +150,28 @@ function LocalTramLoop({ center, color, radius = 62, speed = 0.25, reducedMotion
   );
 }
 
-export default function TramSystem({ reducedMotion }: { reducedMotion?: boolean } = {}) {
-  const o = DISTRICT_ORIGINS;
+// [color, radius, speed] per district. Radius stays <= 150 so the loop fits the civic square (half 187 x 163).
+const TRAM_LINES: Record<string, [string, number, number]> = {
+  downtown: ["#ffa116", 150, 0.10],
+  frontend: ["#34d399", 146, 0.12],
+  backend: ["#60a5fa", 148, 0.11],
+  fullstack: ["#f472b6", 145, 0.09],
+  mobile: ["#a7f3d0", 150, 0.13],
+  devops: ["#f87171", 147, 0.11],
+  data_ai: ["#22d3ee", 149, 0.10],
+  security: ["#818cf8", 144, 0.12],
+};
 
-  // We place a local tram loop around each city's plaza center (origins)
+export default function TramSystem({ plazas, reducedMotion }: { plazas: CityPlaza[]; reducedMotion?: boolean }) {
+  // We place a local tram loop around each district's plaza center (its live origin)
   return (
     <group>
-      {o.downtown && <LocalTramLoop center={o.downtown} color="#ffa116" radius={150} speed={0.10} reducedMotion={reducedMotion} />}
-      {o.frontend && <LocalTramLoop center={o.frontend} color="#34d399" radius={155} speed={0.12} reducedMotion={reducedMotion} />}
-      {o.backend && <LocalTramLoop center={o.backend} color="#60a5fa" radius={148} speed={0.11} reducedMotion={reducedMotion} />}
-      {o.fullstack && <LocalTramLoop center={o.fullstack} color="#f472b6" radius={152} speed={0.09} reducedMotion={reducedMotion} />}
-      {o.mobile && <LocalTramLoop center={o.mobile} color="#a7f3d0" radius={150} speed={0.13} reducedMotion={reducedMotion} />}
-      {o.devops && <LocalTramLoop center={o.devops} color="#f87171" radius={154} speed={0.11} reducedMotion={reducedMotion} />}
-      {o.data_ai && <LocalTramLoop center={o.data_ai} color="#22d3ee" radius={149} speed={0.10} reducedMotion={reducedMotion} />}
-      {o.security && <LocalTramLoop center={o.security} color="#818cf8" radius={153} speed={0.12} reducedMotion={reducedMotion} />}
+      {plazas.map((p) => {
+        const line = p.district ? TRAM_LINES[p.district] : undefined;
+        if (!line) return null;
+        const [color, radius, speed] = line;
+        return <LocalTramLoop key={p.district} center={p.position} color={color} radius={radius} speed={speed} reducedMotion={reducedMotion} />;
+      })}
     </group>
   );
 }

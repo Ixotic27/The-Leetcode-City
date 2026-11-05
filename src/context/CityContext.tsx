@@ -78,10 +78,6 @@ export const THEMES = [
   { name: "Emerald", accent: "#f0c060", shadow: "#806020" },
 ];
 
-export const CELEBRATION_MILESTONES = [
-  10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000,
-];
-
 export const PERMANENT_ERROR_CODES = new Set(["not-found", "org", "no-activity"]);
 
 interface CityContextProps {
@@ -1638,31 +1634,6 @@ export function CityProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => { });
   }, []);
-
-  // Milestone check when dev counts change
-  useEffect(() => {
-    if (stats.total_developers < CELEBRATION_MILESTONES[0]) return;
-    const current = [...CELEBRATION_MILESTONES].reverse().find((m) => stats.total_developers >= m);
-    if (!current) return;
-    const alreadyRecorded = milestoneCelebrations.some((c) => c.milestone === current);
-    if (alreadyRecorded) return;
-
-    fetch("/api/milestone-celebration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ total_developers: stats.total_developers }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.celebrated) {
-          setMilestoneCelebrations((prev) => [
-            { milestone: data.milestone, reached_at: data.reached_at ?? new Date().toISOString() },
-            ...prev,
-          ]);
-        }
-      })
-      .catch(() => { });
-  }, [stats.total_developers, milestoneCelebrations]);
 
   // Visit counting trigger
   useEffect(() => {

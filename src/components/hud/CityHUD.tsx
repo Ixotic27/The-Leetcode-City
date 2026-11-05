@@ -13,7 +13,7 @@ import LevelUpToast from "@/components/LevelUpToast";
 import XpBar from "@/components/XpBar";
 import { useCity } from "@/context/CityContext";
 import MiniLeaderboard from "./MiniLeaderboard";
-import { SearchFeedback } from "./SearchBar";
+import SearchBar from "./SearchBar";
 import { ITEM_NAMES } from "@/lib/zones";
 
 // Feature flags
@@ -26,11 +26,10 @@ function getStreakTierColor(streak: number) {
   return "#4488ff";
 }
 
-export default function CityHUD() {
+export default function CityHUD({ onStartDrive }: { onStartDrive?: () => void }) {
   const {
     flyMode,
     lastDistrictRef,
-    setUsername,
     exploreMode,
     introMode,
     rabbitCinematic,
@@ -107,31 +106,10 @@ export default function CityHUD() {
     effectiveLiveCount,
     setFocusedBuilding,
     setSelectedBuilding,
-    username,
-    feedback,
-    setFeedback,
-    loading,
+    isMobile,
   } = useCity();
 
-  // Search input specifically for the landing page
-  const [landingSearchInput, setLandingSearchInput] = useState("");
   const [staticStatsOpen, setStaticStatsOpen] = useState(false);
-
-  const handleLandingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!landingSearchInput.trim()) return;
-    setUsername(landingSearchInput);
-    
-    // Trigger submit on the SearchBar form
-    setTimeout(() => {
-      const searchForm = document.querySelector("#search-bar-form") as HTMLFormElement;
-      if (searchForm) {
-        searchForm.requestSubmit();
-      }
-    }, 0);
-  };
-
-  const isMobile = typeof window !== "undefined" ? window.innerWidth < 640 || "ontouchstart" in window : false;
 
   // ESC key to exit explore mode
   useEffect(() => {
@@ -370,46 +348,8 @@ export default function CityHUD() {
               })()}
             </div>
 
-              {/* Search Input Form */}
-              <form
-                onSubmit={handleLandingSubmit}
-                className="flex w-full max-w-lg items-center gap-2 px-2 sm:px-0 pt-2 sm:pt-0"
-              >
-                <input
-                  type="text"
-                  value={landingSearchInput}
-                  onChange={(e) => {
-                    setLandingSearchInput(e.target.value);
-                    if (feedback?.type === "error") setFeedback(null);
-                  }}
-                  placeholder={session ? "search any LeetCode username" : "type your LeetCode username"}
-                  className="w-full min-w-0 flex-1 border-2 sm:border-[3px] border-border bg-bg-raised px-3 py-2 text-base sm:text-xs text-cream outline-none backdrop-blur-sm transition-colors placeholder:text-dim sm:px-4 sm:py-2.5"
-                  onFocus={(e) => (e.currentTarget.style.borderColor = theme.accent)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "")}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !landingSearchInput.trim()}
-                  className="btn-press flex-shrink-0 px-2 sm:px-5 py-2 text-[11px] sm:text-xs text-bg disabled:opacity-40 sm:py-2.5"
-                  style={{
-                    backgroundColor: theme.accent,
-                    boxShadow: `4px 4px 0 0 ${theme.shadow}`,
-                  }}
-                >
-                  {loading ? <span className="blink-dot inline-block">_</span> : "Search"}
-                </button>
-              </form>
-
-              {/* Search Feedback */}
-              <div className="w-full max-w-lg">
-                <SearchFeedback
-                  feedback={feedback}
-                  accentColor={theme.accent}
-                  onDismiss={() => setFeedback(null)}
-                  onRetry={() => {
-                    window.dispatchEvent(new CustomEvent("leetcodecity:search"));
-                  }}
-                />
+              <div className="w-full max-w-lg px-2 pt-2 text-left sm:px-0 sm:pt-0">
+                <SearchBar inline />
               </div>
 
               {/* Primary & Secondary actions grouped together just below search feedback */}
@@ -472,6 +412,19 @@ export default function CityHUD() {
                       ✈ Fly
                       <span className="block text-[8px] opacity-60 normal-case font-normal">Collect PX</span>
                     </button>
+                    {onStartDrive && (
+                      <button
+                        onClick={onStartDrive}
+                        className="btn-press flex-1 py-3 text-xs sm:py-3.5 sm:text-sm text-bg text-center font-bold px-6"
+                        style={{
+                          backgroundColor: theme.accent,
+                          boxShadow: `4px 4px 0 0 ${theme.shadow}`,
+                        }}
+                      >
+                        🏁 Race
+                        <span className="block text-[8px] opacity-60 normal-case font-normal">Time Trial</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Row 2: Arcade, Leaderboard, Roadmap (Smaller buttons, side-by-side) */}
@@ -546,6 +499,11 @@ export default function CityHUD() {
             )}
           </div>
         </div>
+      )}
+
+      {exploreMode && !flyMode && !introMode && !rabbitCinematic && <SearchBar />}
+      {exploreMode && !flyMode && !introMode && !rabbitCinematic && onStartDrive && (
+        <button onClick={onStartDrive} className="pointer-events-auto fixed right-4 top-[140px] z-30 min-h-11 min-w-[130px] border-2 border-border-light bg-bg/95 px-4 text-[10px] text-lime hover:border-lime">Race circuit</button>
       )}
 
       {/* ─── Mobile Bottom Bar (game-style nav) ─── */}

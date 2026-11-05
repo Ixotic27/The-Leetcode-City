@@ -40,6 +40,7 @@ body {
   background: #0d0d0f;
   color: #d4cfc4;
   font-family: "Silkscreen", monospace;
+  -webkit-font-smoothing: antialiased;
 }
 
 @keyframes blink-dot {

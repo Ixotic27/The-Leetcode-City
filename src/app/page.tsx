@@ -40,7 +40,6 @@ const LoadingScreen = dynamic(() => import("@/components/LoadingScreen"), {
 });
 
 // HUD Modular Subcomponents
-import SearchBar from "@/components/hud/SearchBar";
 import ProfileCard from "@/components/hud/ProfileCard";
 import ComparisonPanel from "@/components/hud/ComparisonPanel";
 import FlyModeHUD from "@/components/hud/FlyModeHUD";
@@ -140,6 +139,15 @@ function HomeContent() {
   const buildingClickCountRef = useRef<Record<string, number>>({});
   const signInPromptShownRef = useRef<Set<string>>(new Set());
   const [flyPauseSignal, setFlyPauseSignal] = useState(0);
+  const [driveMode, setDriveMode] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const handleCanvasReady = useCallback(() => setCanvasReady(true), []);
+  const handleStartDrive = useCallback(() => {
+    setSelectedBuilding(null);
+    setFocusedBuilding(null);
+    setDriveMode(true);
+  }, [setSelectedBuilding, setFocusedBuilding]);
+  const handleExitDrive = useCallback(() => setDriveMode(false), []);
 
   const authLogin = (
     session?.user?.user_metadata?.user_name ??
@@ -160,6 +168,10 @@ function HomeContent() {
     <main className="relative min-h-screen overflow-hidden bg-bg font-pixel uppercase text-warm">
       {/* 3D Canvas */}
       <CityCanvas
+        onReady={handleCanvasReady}
+        cityLoaded={loadStage === "ready" || loadStage === "done"}
+        driveMode={driveMode}
+        onExitDrive={handleExitDrive}
         buildings={buildings}
         plazas={plazas}
         decorations={decorations}
@@ -338,12 +350,12 @@ function HomeContent() {
         onRabbitCinematicEnd={endRabbitCinematic}
       />
 
-      <SearchBar />
+      {!driveMode && <>
       <ProfileCard />
       <ComparisonPanel />
       <FlyModeHUD />
       <RaidSystem />
-      <CityHUD />
+      <CityHUD onStartDrive={handleStartDrive} />
       <AuthManager />
       <SettingsPanel />
       <ModalsOverlay />
@@ -360,10 +372,12 @@ function HomeContent() {
         />
       )}
 
+      </>}
+
       {/* Loading screen overlay */}
       {loadStage !== "done" && (
         <LoadingScreen
-          stage={loadStage}
+          stage={loadStage === "ready" && !canvasReady ? "rendering" : loadStage}
           progress={loadProgress}
           error={loadError}
           accentColor={theme.accent}

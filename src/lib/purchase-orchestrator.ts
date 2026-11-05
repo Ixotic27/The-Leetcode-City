@@ -232,6 +232,10 @@ export async function claimPendingPurchaseAtomically({
       return { ok: true, purchase_id: String(claimResult.purchase_id) };
     }
 
+    if (claimResult?.error_code === "not_found" || claimResult?.error_code === "item_not_found") {
+      return { ok: false, reason: "not_found" };
+    }
+
     return { ok: false, purchase_id: claimResult?.purchase_id, already_claimed: true, reason: "already_claimed" };
   }
 
